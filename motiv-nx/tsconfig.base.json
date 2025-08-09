@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "importHelpers": true,
+    "isolatedModules": true,
+    "lib": ["es2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2023",
+    "customConditions": ["development"],
+    "baseUrl": ".",
+    "paths": {
+      "@motiv-nx/database": ["libs/database/src/index.ts"],
+      "@motiv-nx/shared-config": ["libs/shared-config/src/index.ts"],
+      "@motiv-nx/shared-types": ["libs/shared-types/src/index.ts"],
+      "@motiv-nx/shared-utils": ["libs/shared-utils/src/index.ts"]
+    }
+  }
+}
