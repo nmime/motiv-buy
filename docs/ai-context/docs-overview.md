@@ -1,89 +1,145 @@
-# Documentation Architecture
+# Motiv-Buy Documentation Architecture
 
-This project uses a **3-tier documentation system** that organizes knowledge by stability and scope, enabling efficient AI context loading and scalable development.
+This project uses a **streamlined documentation system** organized by scope and stability, enabling efficient AI context loading and scalable development for the Motiv-Buy monorepo.
 
-## How the 3-Tier System Works
+## Current Documentation Structure
 
-**Tier 1 (Foundation)**: Stable, system-wide documentation that rarely changes - architectural principles, technology decisions, cross-component patterns, and core development protocols.
-
-**Tier 2 (Component)**: Architectural charters for major components - high-level design principles, integration patterns, and component-wide conventions without feature-specific details.
-
-**Tier 3 (Feature-Specific)**: Granular documentation co-located with code - specific implementation patterns, technical details, and local architectural decisions that evolve with features.
-
-This hierarchy allows AI agents to load targeted context efficiently while maintaining a stable foundation of core knowledge.
+The documentation is currently organized in a simple but effective hierarchy that can be expanded as the project grows.
 
 ## Documentation Principles
-- **Co-location**: Documentation lives near relevant code
-- **Smart Extension**: New documentation files created automatically when warranted
+- **Co-location**: Documentation lives near relevant code when appropriate
+- **Smart Extension**: New documentation files created when specific components develop complex patterns
 - **AI-First**: Optimized for efficient AI context loading and machine-readable patterns
+- **Monorepo Awareness**: Unified documentation reflecting the shared nature of apps and libraries
 
 ## Tier 1: Foundational Documentation (System-Wide)
 
-- **[Master Context](/CLAUDE.md)** - *Essential for every session.* Coding standards, security requirements, MCP server integration patterns, and development protocols
-- **[Project Structure](/docs/ai-context/project-structure.md)** - *REQUIRED reading.* Complete technology stack, file tree, and system architecture. Must be attached to Gemini consultations
-- **[System Integration](/docs/ai-context/system-integration.md)** - *For cross-component work.* Communication patterns, data flow, testing strategies, and performance optimization
-- **[Deployment Infrastructure](/docs/ai-context/deployment-infrastructure.md)** - *Infrastructure patterns.* Containerization, monitoring, CI/CD workflows, and scaling strategies
-- **[Task Management](/docs/ai-context/handoff.md)** - *Session continuity.* Current tasks, documentation system progress, and next session goals
+- **[Master Context](/CLAUDE.md)** - *Essential for every session.* Coding standards, security requirements, MCP server integration patterns, development protocols, and monorepo structure
+- **[Project Structure](/docs/ai-context/project-structure.md)** - *REQUIRED reading.* Complete technology stack, file tree, and system architecture. Must be referenced for any structural changes
+- **[Documentation Architecture](/docs/ai-context/docs-overview.md)** - *This file.* How documentation is organized and when to extend it
 
-## Tier 2: Component-Level Documentation
+## Tier 2: Application-Level Documentation (Future)
 
-### Backend Components
-- **[Backend Context](/backend/CONTEXT.md)** - *Server implementation.* API patterns, database integration, service architecture, and performance considerations
-- **[Worker Services](/workers/CONTEXT.md)** - *Background processing.* Job queue patterns, scheduling, and async task management
-- **[Shared Libraries](/shared/CONTEXT.md)** - *Reusable code.* Common utilities, shared types, and cross-component functionality
+As applications develop distinct patterns and complexity, create component-level documentation:
 
-### Frontend Components
-- **[Web Application](/frontend/CONTEXT.md)** - *Client implementation.* UI patterns, state management, routing, and user interaction patterns
-- **[Mobile Application](/mobile/CONTEXT.md)** - *Mobile implementation.* Platform-specific patterns, native integrations, and mobile optimizations
-- **[Admin Dashboard](/admin/CONTEXT.md)** - *Administrative interface.* Permission patterns, admin workflows, and management tools
+### Potential API Documentation
+- **[API Context](/apps/api/CONTEXT.md)** - *When API grows complex.* HTTP API patterns, endpoint organization, middleware, and integration approaches
 
-### Infrastructure Components
-- **[Infrastructure Code](/infrastructure/CONTEXT.md)** - *IaC patterns.* Terraform/CloudFormation templates, resource definitions, and deployment automation
-- **[Monitoring Setup](/monitoring/CONTEXT.md)** - *Observability patterns.* Metrics collection, alerting rules, and dashboard configurations
+### Potential Bot Documentation  
+- **[Bot Context](/apps/bot/CONTEXT.md)** - *When bot grows complex.* Telegram bot patterns, handler organization, middleware, and user interaction flows
 
-## Tier 3: Feature-Specific Documentation
+### Potential Migration Documentation
+- **[Migration Context](/apps/migration/CONTEXT.md)** - *When migrations become complex.* Migration patterns, data transformation strategies, and rollback procedures
 
-Granular CONTEXT.md files co-located with code for minimal cascade effects:
+### Potential Library Documentation
+- **[Database Context](/libs/database/CONTEXT.md)** - *When database layer becomes complex.* Entity patterns, repository conventions, and data access strategies
+- **[DTO Context](/libs/dto/CONTEXT.md)** - *When DTOs become numerous.* Validation patterns, transformation strategies, and shared type conventions
 
-### Backend Feature Documentation
-- **[Core Services](/backend/src/core/services/CONTEXT.md)** - *Business logic patterns.* Service architecture, data processing, integration patterns, and error handling
-- **[API Layer](/backend/src/api/CONTEXT.md)** - *API patterns.* Endpoint design, validation, middleware, and request/response handling
-- **[Data Layer](/backend/src/data/CONTEXT.md)** - *Data patterns.* Database models, queries, migrations, and data access patterns
-- **[Authentication](/backend/src/auth/CONTEXT.md)** - *Auth patterns.* Authentication flows, authorization rules, session management, and security
-- **[Integrations](/backend/src/integrations/CONTEXT.md)** - *External services.* Third-party API clients, webhook handlers, and service adapters
+## Tier 3: Feature-Specific Documentation (Future)
 
-### Frontend Feature Documentation
-- **[UI Components](/frontend/src/components/CONTEXT.md)** - *Component patterns.* Reusable components, styling patterns, accessibility, and composition strategies
-- **[State Management](/frontend/src/store/CONTEXT.md)** - *State patterns.* Global state, local state, data flow, and persistence strategies
-- **[API Client](/frontend/src/api/CONTEXT.md)** - *Client patterns.* HTTP clients, error handling, caching, and data synchronization
-- **[Routing](/frontend/src/routes/CONTEXT.md)** - *Navigation patterns.* Route definitions, guards, lazy loading, and deep linking
-- **[Utilities](/frontend/src/utils/CONTEXT.md)** - *Helper functions.* Formatters, validators, transformers, and common utilities
+Granular CONTEXT.md files co-located with code for minimal cascade effects, created when specific feature areas develop distinct patterns:
 
-### Shared Feature Documentation
-- **[Common Types](/shared/src/types/CONTEXT.md)** - *Type definitions.* Shared interfaces, enums, and type utilities
-- **[Validation Rules](/shared/src/validation/CONTEXT.md)** - *Validation patterns.* Schema definitions, custom validators, and error messages
-- **[Constants](/shared/src/constants/CONTEXT.md)** - *Shared constants.* Configuration values, enums, and magic numbers
-- **[Utilities](/shared/src/utils/CONTEXT.md)** - *Shared utilities.* Cross-platform helpers, formatters, and common functions
+### Potential API Feature Documentation
+- **[API Health Context](/apps/api/src/app/health/CONTEXT.md)** - *If health checks become complex.* Health check patterns, monitoring integration, and service dependencies
+- **[API User Context](/apps/api/src/app/user/CONTEXT.md)** - *If user management becomes complex.* User API patterns, validation strategies, and data handling
 
+### Potential Bot Feature Documentation
+- **[Bot Handlers Context](/apps/bot/src/app/handlers/CONTEXT.md)** - *If bot handlers develop complex patterns.* Command handling patterns, state management, and user interaction flows
+- **[Bot Services Context](/apps/bot/src/app/services/CONTEXT.md)** - *If bot services become complex.* Service patterns, external API integration, and business logic organization
 
+### Potential Database Feature Documentation
+- **[Database Entities Context](/libs/database/src/entities/CONTEXT.md)** - *If entity relationships become complex.* Entity design patterns, relationship strategies, and data modeling approaches
+- **[Database Repositories Context](/libs/database/src/repositories/CONTEXT.md)** - *If repository patterns diversify.* Query strategies, data access patterns, and performance optimizations
 
-## Adding New Documentation
+## When to Extend Documentation
 
-### New Component
-1. Create `/new-component/CONTEXT.md` (Tier 2)
-2. Add entry to this file under appropriate section
-3. Create feature-specific Tier 3 docs as features develop
+### Create New Component CONTEXT.md when:
+- An application (api, bot, migration) develops 5+ meaningful files with distinct patterns
+- Cross-cutting concerns emerge that need architectural documentation
+- Integration patterns become complex enough to warrant explanation
+- Example: Adding complex authentication patterns to API → Create `apps/api/CONTEXT.md`
 
-### New Feature
-1. Create `/component/src/feature/CONTEXT.md` (Tier 3)
-2. Reference parent component patterns
-3. Add entry to this file under component's features
+### Create New Feature-Specific CONTEXT.md when:
+- A feature area within an application has 3+ files with distinct functional patterns
+- Complex business logic emerges that needs pattern documentation  
+- Integration between components requires explanation
+- Example: Complex user management with multiple services → Create `apps/api/src/app/user/CONTEXT.md`
 
-### Deprecating Documentation
-1. Remove obsolete CONTEXT.md files
-2. Update this mapping document
-3. Check for broken references in other docs
+### When NOT to create new files:
+- Small additions (1-2 files) that fit existing documentation scope
+- Bug fixes or minor modifications that don't change patterns
+- Temporary or experimental code without established patterns
+- Simple features that follow existing documented patterns
+
+## Documentation Update Process
+
+### For New Applications or Libraries:
+1. **Create new component CONTEXT.md** following existing patterns
+2. **Update this overview** to include the new documentation in the appropriate tier
+3. **Reference from foundational docs** if it affects system-wide concerns
+
+### For New Features Within Existing Components:
+1. **Assess complexity** - does this warrant feature-specific documentation?
+2. **Create feature CONTEXT.md** if patterns are distinct and non-trivial
+3. **Update parent component docs** if architectural patterns change
+4. **Add to this overview** under the appropriate tier
+
+### For Major Architectural Changes:
+1. **Update foundational documentation first** (CLAUDE.md, project-structure.md)
+2. **Cascade to component documentation** as needed
+3. **Create new documentation files** if entirely new architectural areas emerge
+4. **Update this overview** to reflect the new documentation structure
+
+## File Content Template for New CONTEXT.md:
+
+```markdown
+# [Component/Feature] Documentation
+
+*This file documents [specific area] patterns and implementations within [context].*
+
+## [Area] Architecture
+- [Key architectural elements and decisions]
+
+## Implementation Patterns
+- [Key patterns used in this area]
+- [Coding conventions specific to this component]
+
+## Integration Points
+- [How this integrates with other parts of the system]
+- [External dependencies and their usage patterns]
+
+## Development Guidelines
+- [Component-specific development practices]
+- [Testing strategies for this area]
 
 ---
 
-*This documentation architecture template should be customized to match your project's actual structure and components. Add or remove sections based on your architecture.*
+*This file was created to document [brief reason] as part of the Motiv-Buy documentation system.*
+```
+
+## Current File Inventory
+
+### Foundational Documentation (Tier 1)
+- `/CLAUDE.md` - Master AI context and development guidelines
+- `/docs/ai-context/project-structure.md` - Complete technology stack and file structure
+- `/docs/ai-context/docs-overview.md` - This file, documentation architecture
+
+### Specification Templates
+- `/docs/specs/example-app-specification.md` - Application development template  
+- `/docs/specs/example-lib-specification.md` - Library development template
+
+### Missing Documentation (Create When Needed)
+- Component-level documentation (Tier 2) - Create when applications develop complex patterns
+- Feature-specific documentation (Tier 3) - Create when specific areas develop distinct patterns
+
+## Benefits of This System
+
+- **Scalable Growth**: Documentation expands naturally as project complexity increases
+- **Focused Context Loading**: AI agents can load only relevant documentation for their tasks  
+- **Minimal Maintenance**: Documentation is created only when value is clear
+- **Clear Structure**: Hierarchical organization makes it easy to find relevant information
+- **Monorepo Optimized**: Reflects the shared nature of applications and libraries
+
+---
+
+*This documentation architecture is designed to grow with the Motiv-Buy project, providing structure when needed while avoiding premature documentation overhead.*
