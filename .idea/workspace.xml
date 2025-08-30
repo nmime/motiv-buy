@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="9ff9faaf-ec93-4feb-ba0d-e2ebd7bef8b8" name="Changes" comment="init">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DarkyenusTimeTracker">
+    <option name="totalTimeSeconds" value="4347" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="313up0NgwwtO5N0wRwvv9LDDndi" />
+  <component name="ProjectViewState">
+    <option name="autoscrollToSource" value="true" />
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+    <option name="showScratchesAndConsoles" value="false" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/nmi/Projects/motiv-buy/motiv-buy/apps/api/src/config&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;/Users/nmi/Projects/motiv-buy/motiv-buy/node_modules/prettier&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/nmi/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/motiv-buy/apps/api/src/config" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/motiv-buy/apps/api/src" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-WS-252.23892.411" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="9ff9faaf-ec93-4feb-ba0d-e2ebd7bef8b8" name="Changes" comment="" />
+      <created>1754765255721</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1754765255721</updated>
+      <workItem from="1754765256822" duration="3489000" />
+      <workItem from="1754806734584" duration="7680000" />
+      <workItem from="1754885725843" duration="2983000" />
+      <workItem from="1754986867454" duration="527000" />
+      <workItem from="1755248244104" duration="599000" />
+      <workItem from="1756265969257" duration="7000" />
+      <workItem from="1756561055329" duration="433000" />
+    </task>
+    <task id="LOCAL-00001" summary="init">
+      <option name="closed" value="true" />
+      <created>1756561101284</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1756561101284</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+    <option name="exactExcludedFiles">
+      <list>
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-types/src/lib/api.types.d.ts" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-types/src/lib/api.types.d.ts.map" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-utils/src/lib/transform.utils.d.ts" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-utils/src/lib/transform.utils.d.ts.map" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-types/src/index.d.ts" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-types/src/index.d.ts.map" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-utils/src/index.d.ts" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-utils/src/index.d.ts.map" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-config/src/lib/database.config.d.ts" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-config/src/lib/database.config.d.ts.map" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-utils/src/lib/date.utils.d.ts" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-utils/src/lib/date.utils.d.ts.map" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-utils/src/lib/validation.utils.d.ts" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-utils/src/lib/validation.utils.d.ts.map" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-types/src/lib/common.types.d.ts" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-types/src/lib/common.types.d.ts.map" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-types/src/lib/entity.types.d.ts" />
+        <option value="$PROJECT_DIR$/motiv-buy/libs/shared-types/src/lib/entity.types.d.ts.map" />
+      </list>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="init" />
+    <option name="LAST_COMMIT_MESSAGE" value="init" />
+  </component>
+</project>
