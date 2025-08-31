@@ -1,9 +1,0 @@
-// Private network IP ranges for health check restrictions
-export const PrivateNetworkIps = [
-  '127.0.0.1',
-  '::1',
-  '10.0.0.0/8',
-  '172.16.0.0/12',
-  '192.168.0.0/16',
-  'localhost',
-] as const;

@@ -1,20 +1,24 @@
 {
-  "name": "app-bot",
+  "name": "motiv-buy",
   "version": "1.0.0",
-  "description": "Motivational shopping bot",
-  "main": "dist/index.js",
-  "type": "module",
-  "scripts": {},
+  "description": "Motivational shopping bot workspace",
+  "private": true,
+  "scripts": {
+    "dev": "cd monorepo && pnpm run dev",
+    "build": "cd monorepo && pnpm run build",
+    "test": "cd monorepo && pnpm run test",
+    "lint": "cd monorepo && pnpm run lint",
+    "typecheck": "cd monorepo && pnpm run typecheck"
+  },
   "keywords": [
     "bot",
     "motivation",
     "shopping",
-    "typescript"
+    "typescript",
+    "nestjs"
   ],
   "author": "NMI",
   "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   },

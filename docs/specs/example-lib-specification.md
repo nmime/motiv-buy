@@ -110,7 +110,7 @@ Primary authentication orchestration service:
 // libs/features/auth/main/src/lib/service/auth.service.ts
 import { Injectable } from '@nestjs/common';
 import { AuthResultDto, TmaAuthParams, WidgetAuthParams } from '@app/features-auth-shared';
-import { AsyncResult } from '@app/common/result';
+import { AsyncResult } from '@app/common-result';
 
 @Injectable()
 export class AuthService {
@@ -167,7 +167,7 @@ export class AuthService {
 // libs/features/auth/shared/src/lib/service/auth-jwt-validation.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthJwtPayloadDto, UserData } from '../dto';
-import { Result, Ok, Err } from '@app/common/result';
+import { Result, Ok, Err } from '@app/common-result';
 import { AuthValidationError, UserNotFoundException } from '../exception';
 import { UserRepository } from '@app/mysql';
 import { AuthBlockedCacheService, AuthPremiumCacheService } from '../cache';
@@ -239,7 +239,7 @@ Redis-based caching services for performance optimization:
 ```typescript
 // libs/features/auth/shared/src/lib/cache/auth-jwt-cache.service.ts
 import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '@app/common/redis';
+import { RedisService } from '@app/common-redis';
 import { AuthJwtPayloadDto, UserData } from '../dto';
 
 @Injectable()
@@ -645,7 +645,7 @@ export interface ValidationResult {
 #### Authentication Exception Types
 ```typescript
 // libs/features/auth/shared/src/lib/exception/auth-api-problem.exception.ts
-import { ApiProblemException } from '@app/common/exception';
+import { ApiProblemException } from '@app/common-exception';
 
 export class AuthApiProblemException extends ApiProblemException {
   constructor(
@@ -787,8 +787,8 @@ Following dependency injection with service pattern:
 // libs/features/auth/shared/src/lib/auth-shared.module.ts
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { RedisModule } from '@app/common/redis';
-import { BullModule, BullQueue } from '@app/common/bull';
+import { RedisModule } from '@app/common-redis';
+import { BullModule, BullQueue } from '@app/common-bull';
 import { EventBusModule } from '@app/features/event-bus-shared';
 import { authJwtModuleOptions } from './const';
 import { AuthConfigModule } from './config';
@@ -887,7 +887,7 @@ export class AuthSharedModule {}
 // libs/features/auth/main/src/lib/auth-main.module.ts
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { RedisModule } from '@app/common/redis';
+import { RedisModule } from '@app/common-redis';
 import { AuthSharedModule, AuthConfigModule, authJwtModuleOptions } from '@app/features-auth-shared';
 import { AuthService } from './service';
 import {

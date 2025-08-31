@@ -1,1 +1,0 @@
-// DTOs are defined in services for simplicity
