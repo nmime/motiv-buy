@@ -9,7 +9,7 @@
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/libs/features/traffic/shared",
-        "main": "libs/features/traffic/shared/src/index.ts",
+        "shared": "libs/features/traffic/shared/src/index.ts",
         "tsConfig": "libs/features/traffic/shared/tsconfig.lib.json",
         "assets": ["libs/features/traffic/shared/*.md"]
       }

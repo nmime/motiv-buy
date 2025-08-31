@@ -1,15 +1,25 @@
 import { Module } from '@nestjs/common';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { TrafficController } from './controller/traffic.controller';
+import { TrafficService } from './service/traffic.service';
+import { 
+  TrafficBuyerEntity, 
+  TrafficOrderEntity, 
+  TrafficSourceEntity, 
+  TrafficUserEntity 
+} from '@app/database';
 
-/**
- * Traffic Main Module
- * 
- * Contains core business logic for traffic management.
- * TODO: Implement traffic domain functionality
- */
 @Module({
-  imports: [],
-  controllers: [],
-  providers: [],
-  exports: [],
+  imports: [
+    MikroOrmModule.forFeature([
+      TrafficBuyerEntity,
+      TrafficOrderEntity,
+      TrafficSourceEntity,
+      TrafficUserEntity
+    ])
+  ],
+  controllers: [TrafficController],
+  providers: [TrafficService],
+  exports: [TrafficService],
 })
-export class TrafficModule {}
+export class UserMainModule {}

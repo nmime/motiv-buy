@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HealthModule } from '@app/common-health';
 import { UserModule } from '@app/feature-user-main';
+import { StatisticMainModule } from '@app/feature-statistic-main';
+import { BalanceMainModule } from '@app/feature-balance-main';
+import { UserMainModule as TrafficMainModule } from '@app/feature-traffic-main';
 import { DatabaseModule, DatabaseHealthIndicator } from '@app/database';
 import { RedisHealthIndicator } from '@app/common-redis';
 import { HealthController } from './health.controller';
@@ -17,6 +20,12 @@ import { HealthController } from './health.controller';
 
     // Infrastructure modules
     DatabaseModule,
+    
+    // Feature modules
+    UserModule,
+    StatisticMainModule,
+    BalanceMainModule,
+    TrafficMainModule,
   ],
   controllers: [
     HealthController,

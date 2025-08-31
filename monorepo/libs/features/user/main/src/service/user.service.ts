@@ -4,7 +4,11 @@ import {
   UpdateUserDto, 
   UserResponseDto, 
   UserRepositoryInterface, 
-  USER_REPOSITORY 
+  USER_REPOSITORY,
+  ReferralStatsDto,
+  ReferralLinkDto,
+  NotificationSettingsDto,
+  UpdateNotificationSettingsDto
 } from '@app/feature-user-shared';
 
 /**
@@ -74,5 +78,57 @@ export class UserService {
     total: number;
   }> {
     return this.userRepository.findAll(page, limit);
+  }
+
+  /**
+   * Get referral statistics for user
+   */
+  async getReferralStats(userId: string): Promise<ReferralStatsDto> {
+    // TODO: Implement actual database query for referrals
+    return {
+      referralsCount: 5,
+      totalEarnings: 750.25,
+    };
+  }
+
+  /**
+   * Get referral link for user
+   */
+  async getReferralLink(userId: string): Promise<ReferralLinkDto> {
+    // Generate referral code based on user ID
+    const referralCode = `ref_${userId.replace(/-/g, '').substring(0, 8)}`;
+    const referralLink = `https://t.me/MotivBuyBot?start=${referralCode}`;
+
+    return {
+      referralCode,
+      referralLink,
+    };
+  }
+
+  /**
+   * Get notification settings for user
+   */
+  async getNotificationSettings(userId: string): Promise<NotificationSettingsDto> {
+    // TODO: Implement database query for notification settings
+    return {
+      limitNotifications: true,
+      inactivityNotifications: true,
+    };
+  }
+
+  /**
+   * Update notification settings for user
+   */
+  async updateNotificationSettings(
+    userId: string,
+    settings: UpdateNotificationSettingsDto,
+  ): Promise<NotificationSettingsDto> {
+    // TODO: Implement database update for notification settings
+    const current = await this.getNotificationSettings(userId);
+
+    return {
+      limitNotifications: settings.limitNotifications ?? current.limitNotifications,
+      inactivityNotifications: settings.inactivityNotifications ?? current.inactivityNotifications,
+    };
   }
 }

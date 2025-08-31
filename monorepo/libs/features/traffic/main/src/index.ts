@@ -1,7 +1,3 @@
-/**
- * Traffic Domain - Main Library
- * 
- * Core business logic for traffic management
- */
-
 export * from './traffic.module';
+export * from './controller/traffic.controller';
+export * from './service/traffic.service';

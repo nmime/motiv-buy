@@ -24,6 +24,15 @@
       "path": "../../libs/database"
     },
     {
+      "path": "../../libs/features/traffic/main"
+    },
+    {
+      "path": "../../libs/features/balance/main"
+    },
+    {
+      "path": "../../libs/features/statistic/main"
+    },
+    {
       "path": "../../libs/features/user/main"
     },
     {
