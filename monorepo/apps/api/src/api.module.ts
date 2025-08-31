@@ -10,7 +10,6 @@ import { HealthController } from './health.controller';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
     }),
 
     // Health check module
@@ -18,16 +17,11 @@ import { HealthController } from './health.controller';
 
     // Infrastructure modules
     DatabaseModule,
-
-    // Feature modules
-    UserModule,
   ],
   controllers: [
     HealthController,
   ],
   providers: [
-    DatabaseHealthIndicator,
-    RedisHealthIndicator,
   ],
 })
 export class ApiModule {}

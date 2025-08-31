@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { UserModule } from '@app/user/main';
 import { DatabaseModule } from '@app/database';
-import { BotService } from './service/bot.service';
 
 /**
  * Bot Application Module
@@ -14,15 +12,12 @@ import { BotService } from './service/bot.service';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
     }),
 
     DatabaseModule,
 
-    UserModule,
   ],
   providers: [
-    BotService,
   ],
 })
 export class BotModule {}

@@ -12,10 +12,6 @@ export abstract class BaseHealthController {
   protected readonly healthService!: HealthCheckService;
 
   protected constructor(
-    /** @deprecated */
-    health?: HealthCheckService,
-    /** @deprecated */
-    protected readonly shutdownService?: ShutdownService,
     /** @deprecated use override of readiness */
     private readonly checks?: (() => Promise<HealthIndicatorResult> | HealthIndicatorResult)[],
   ) {}
