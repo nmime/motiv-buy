@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Bot, Context } from 'grammy';
-import { UserService } from '@app/user/main';
+import { UserService } from '@app/feature-user-main';
 
 /**
  * Bot Service

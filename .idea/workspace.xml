@@ -4,10 +4,52 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9ff9faaf-ec93-4feb-ba0d-e2ebd7bef8b8" name="Changes" comment="update">
+    <list default="true" id="9ff9faaf-ec93-4feb-ba0d-e2ebd7bef8b8" name="Changes" comment="make it finally runable">
+      <change afterPath="$PROJECT_DIR$/monorepo/apps/api/src/simple-api.module.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.claude-flow/metrics/system-metrics.json" beforeDir="false" afterPath="$PROJECT_DIR$/.claude-flow/metrics/system-metrics.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/apps/api/project.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/apps/api/project.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/apps/api/src/api.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/apps/api/src/api.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/apps/api/src/health.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/apps/api/src/health.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/apps/api/src/main.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/apps/api/src/main.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/apps/api/tsconfig.app.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/apps/api/tsconfig.app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/apps/bot/src/service/bot.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/apps/bot/src/service/bot.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/apps/bot/tsconfig.app.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/apps/bot/tsconfig.app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/bull/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/bull/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/exception/src/dto/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/exception/src/dto/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/exception/src/factory/exception.factory.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/exception/src/factory/exception.factory.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/exception/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/exception/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/health/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/health/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/intl/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/intl/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/logger/src/logger.factory.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/logger/src/logger.factory.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/logger/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/logger/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/redis/src/redis-rate-limit.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/redis/src/redis-rate-limit.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/redis/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/redis/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/response/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/response/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/response/src/problem-response.transformer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/response/src/problem-response.transformer.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/response/src/response.transformer.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/response/src/websocket-response.transformer.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/response/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/response/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/shared/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/shared/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/validation/src/decorator/api-validation.decorator.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/validation/src/decorator/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/validation/src/decorator/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/validation/src/exception/client-data-validation.exception.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/validation/src/exception/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/validation/src/exception/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/validation/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/validation/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/health/database.health.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/health/database.health.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/auth/main/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/auth/main/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/auth/shared/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/auth/shared/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/balance/main/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/balance/main/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/balance/shared/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/balance/shared/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/statistic/main/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/statistic/main/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/statistic/shared/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/statistic/shared/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/traffic/main/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/traffic/main/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/traffic/shared/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/traffic/shared/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/user/main/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/user/main/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/features/user/shared/tsconfig.lib.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/features/user/shared/tsconfig.lib.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/pnpm-lock.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/pnpm-lock.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/tsconfig.base.json" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/tsconfig.base.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -16,7 +58,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="DarkyenusTimeTracker">
-    <option name="totalTimeSeconds" value="21516" />
+    <option name="totalTimeSeconds" value="24278" />
     <option name="naggedAbout" value="1" />
   </component>
   <component name="Git.Settings">
@@ -215,7 +257,7 @@
       <workItem from="1755248244104" duration="599000" />
       <workItem from="1756265969257" duration="7000" />
       <workItem from="1756561055329" duration="15189000" />
-      <workItem from="1756656913645" duration="16044000" />
+      <workItem from="1756656913645" duration="22874000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -281,7 +323,15 @@
       <option name="project" value="LOCAL" />
       <updated>1756706558283</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="update">
+      <option name="closed" value="true" />
+      <created>1756707068909</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1756707068909</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -313,6 +363,7 @@
     <MESSAGE value="init" />
     <MESSAGE value="add dtos, new features" />
     <MESSAGE value="update" />
-    <option name="LAST_COMMIT_MESSAGE" value="update" />
+    <MESSAGE value="make it finally runable" />
+    <option name="LAST_COMMIT_MESSAGE" value="make it finally runable" />
   </component>
 </project>

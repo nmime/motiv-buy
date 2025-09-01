@@ -1,12 +1,9 @@
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { ApiModule } from './api.module';
-import { createAppConfig } from '@app/shared-config';
-import { ProblemValidationPipe } from '@app/common-validation';
-import { ProblemResponseTransformer } from '@app/common-response';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -18,11 +15,19 @@ async function bootstrap() {
     })
   );
   const configService = app.get(ConfigService);
-  const appConfig = createAppConfig(configService);
+  
+  // Simple app config inline
+  const appConfig = {
+    apiPrefix: process.env.API_PREFIX || 'api/v1',
+    port: parseInt(process.env.PORT || '3000', 10),
+    host: process.env.HOST || '0.0.0.0',
+    nodeEnv: process.env.NODE_ENV || 'development',
+    corsEnabled: process.env.CORS_ENABLED !== 'false'
+  };
 
   app.setGlobalPrefix(appConfig.apiPrefix);
 
-  app.useGlobalPipes(new ProblemValidationPipe({ transform: true }));
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   if (appConfig.corsEnabled) {
     await app.register(require('@fastify/cors'), {
@@ -31,9 +36,6 @@ async function bootstrap() {
       allowedHeaders: ['Content-Type', 'Authorization'],
     });
   }
-
-  // Setup problem response transformer for RFC 9457 compliance
-  ProblemResponseTransformer.setup(app);
 
   if (appConfig.nodeEnv !== 'production') {
     const config = new DocumentBuilder()

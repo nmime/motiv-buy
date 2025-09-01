@@ -49,7 +49,8 @@ function createLoggerMiddlewares(params: object, useExisting = false) {
 
   const middleware = pinoHttp(...(Array.isArray(params) ? params : [params]));
 
-  PinoLogger.root = middleware.logger;
+  // Set the root logger using type assertion to bypass readonly restriction
+  (PinoLogger as any).root = middleware.logger;
 
 
   return [middleware, bindLoggerMiddlewareFactory(useExisting)];
@@ -204,7 +205,10 @@ export function createLogger(config: { name: string }) {
           const appId = cls.get('appId');
           const requestId = cls.getId();
 
-          method.apply(this, [{ context, error, params, userId, appId, requestId }, message, ...(params ?? [])]);
+          const logData = { context, error, userId, appId, requestId };
+          
+          // Use type assertion to bypass strict typing for custom logger method
+          (method as any).apply(this, [logData, message, ...(params ?? [])]);
         },
       },
     },

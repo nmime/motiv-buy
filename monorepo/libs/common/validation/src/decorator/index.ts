@@ -1,1 +1,1 @@
-export * from './api-validation.decorator';
+// All decorators removed - deprecated

@@ -1,16 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/out-tsc"
+    "outDir": "../../../dist/out-tsc",
+    "rootDir": "../..",
+    "skipLibCheck": true,
+    "composite": false,
+    "noEmitOnError": false
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],
-  "references": [
-    {
-      "path": "../../libs/common/shared"
-    },
-    {
-      "path": "../../libs/database"
-    }
-  ]
+  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"]
 }

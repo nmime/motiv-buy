@@ -38,7 +38,7 @@ export function Exception<DataType extends OptionalClassConstructor = undefined>
     problemType = optionsProblemType ?? 'internal_error';
     title = optionsTitle;
   } else {
-    kind = kindOrOptions ?? ExceptionKind.Internal;
+    kind = (kindOrOptions as ExceptionKind) ?? ExceptionKind.Internal;
     dataType = dataTypeParam;
     problemType = problemTypeParam ?? 'internal_error';
     title = titleParam;

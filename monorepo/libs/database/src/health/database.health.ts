@@ -22,12 +22,14 @@ export class DatabaseHealthIndicator {
       const isHealthy = healthResult.status === 'healthy' && healthResult.connected;
       
       if (isHealthy) {
-        return this.healthIndicatorService.check(key, () => ({
-          status: 'up',
-          connected: healthResult.connected,
-          uptime: healthResult.uptime,
-          type: healthResult.type,
-        }));
+        return {
+          [key]: {
+            status: 'up',
+            connected: healthResult.connected,
+            uptime: healthResult.uptime,
+            type: healthResult.type,
+          }
+        };
       } else {
         throw new Error('Database connection failed');
       }
@@ -49,10 +51,12 @@ export class DatabaseHealthIndicator {
       // Simple query to test database functionality
       await em.getConnection().execute('SELECT 1 as test');
       
-      return this.healthIndicatorService.check(key, () => ({
-        status: 'up',
-        message: 'Database queries working',
-      }));
+      return {
+        [key]: {
+          status: 'up',
+          message: 'Database queries working',
+        }
+      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Database query failed';
       

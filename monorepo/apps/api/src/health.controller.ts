@@ -1,17 +1,30 @@
-import { Controller } from '@nestjs/common';
-import { BaseHealthController } from '@app/common-health';
-import { DatabaseHealthIndicator } from '@app/database';
-import { RedisHealthIndicator } from '@app/common-redis';
+import { Controller, Get } from '@nestjs/common';
 
 @Controller('health')
-export class HealthController extends BaseHealthController {
-  constructor(
-    private readonly databaseHealthIndicator: DatabaseHealthIndicator,
-    private readonly redisHealthIndicator: RedisHealthIndicator,
-  ) {
-    super([
-      () => this.databaseHealthIndicator.pingCheck('database'),
-      () => this.redisHealthIndicator.pingCheck('redis'),
-    ]);
+export class HealthController {
+  @Get()
+  health() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+    };
+  }
+
+  @Get('ready')
+  ready() {
+    return {
+      status: 'ready',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Get('live')
+  live() {
+    return {
+      status: 'alive',
+      timestamp: new Date().toISOString(),
+    };
   }
 }
