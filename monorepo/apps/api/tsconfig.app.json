@@ -4,37 +4,5 @@
     "outDir": "../../../dist/out-tsc"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],
-  "references": [
-    {
-      "path": "../../libs/common/response"
-    },
-    {
-      "path": "../../libs/common/validation"
-    },
-    {
-      "path": "../../libs/common/shared"
-    },
-    {
-      "path": "../../libs/common/redis"
-    },
-    {
-      "path": "../../libs/database"
-    },
-    {
-      "path": "../../libs/features/traffic/main"
-    },
-    {
-      "path": "../../libs/features/balance/main"
-    },
-    {
-      "path": "../../libs/features/statistic/main"
-    },
-    {
-      "path": "../../libs/features/user/main"
-    },
-    {
-      "path": "../../libs/common/health"
-    }
-  ]
+  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"]
 }
