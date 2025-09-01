@@ -1,9 +1,10 @@
 import { ClassConstructor, OptionalClassConstructor } from '@app/common-shared';
 
 type BaseExceptionProps = {
+  message?: string;
   cause?: Error;
   meta?: Record<string, unknown>;
-  type: string;
+  type?: string;
   title?: string;
   detail?: string;
   instance?: string;

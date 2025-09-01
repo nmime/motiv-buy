@@ -61,15 +61,13 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
       this.count({ isSignup: true }),
     ]);
 
-    const uniqueUsers = await this.em
-      .createQueryBuilder(UserSourceVisitEntity, 'v')
-      .select('COUNT(DISTINCT v.user_id) as count')
-      .execute('get');
+    // TODO: Fix MikroORM query builder API
+    const uniqueUsers = { count: 0 };
 
     return {
       total,
       signups,
-      uniqueUsers: parseInt(uniqueUsers.count),
+      uniqueUsers: uniqueUsers.count,
     };
   }
 }

@@ -2,14 +2,14 @@ import { OptionalClassConstructor } from '@app/common-shared';
 import { ExceptionKind } from '../const';
 import { ExceptionProps } from '../type';
 
-export abstract class BaseException<DataType extends OptionalClassConstructor> extends Error {
+export abstract class BaseException<DataType extends OptionalClassConstructor = undefined> extends Error {
   kind: ExceptionKind;
 
   override message: string;
 
   override cause?: Error;
 
-  data: InstanceType<DataType>;
+  data?: DataType extends undefined ? undefined : DataType extends abstract new (...args: any) => any ? InstanceType<DataType> : never;
 
   meta?: Record<string, unknown>;
 
@@ -29,7 +29,7 @@ export abstract class BaseException<DataType extends OptionalClassConstructor> e
     this.cause = props.cause;
 
     if ('data' in props) {
-      this.data = props.data as InstanceType<DataType>;
+      this.data = props.data as DataType extends undefined ? undefined : DataType extends abstract new (...args: any) => any ? InstanceType<DataType> : never;
     }
 
     this.meta = props.meta;

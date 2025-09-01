@@ -5,7 +5,7 @@ import { UserSettingsEntity } from './UserSettings.entity';
 import { TrafficBuyerEntity } from './TrafficBuyer.entity';
 import { TrafficSourceEntity } from './TrafficSource.entity';
 import { TrafficOrderEntity } from './TrafficOrder.entity';
-import { EntityConstructorData } from '@app/shared-types';
+import { EntityConstructorData } from '../type/entity-constructor.type';
 
 @Entity()
 export class UserEntity {

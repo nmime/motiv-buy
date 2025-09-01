@@ -17,8 +17,10 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
-import { CurrentUser } from '@libs/features/auth/shared';
-import { JwtAuthGuard } from '@libs/features/auth/main';
+import { CurrentUserId, JwtAuthGuard, UnauthorizedException } from '@app/feature-auth-shared';
+import { ApiProblemExceptions, InternalException } from '@app/common-exception';
+import { ClientDataProblemValidationException } from '@app/common-validation';
+import { AsyncResult } from '@app/common-shared';
 import { TrafficService } from '../service/traffic.service';
 import {
   CreateBotDto,
@@ -32,7 +34,7 @@ import {
   TrafficOrderResponseDto,
   UpdateTrafficOrderDto,
   AvailableTrafficDto,
-} from '@libs/features/traffic/shared';
+} from '@app/feature-traffic-shared';
 
 /**
  * Controller for managing traffic bots and traffic purchases
@@ -41,6 +43,11 @@ import {
 @Controller('traffic')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
+@ApiProblemExceptions([
+  [UnauthorizedException, { description: 'User not authenticated' }],
+  [InternalException, { description: 'Internal server error occurred' }],
+  [ClientDataProblemValidationException, { description: 'Request validation failed' }],
+])
 export class TrafficController {
   constructor(private readonly trafficService: TrafficService) {}
 
@@ -59,8 +66,9 @@ export class TrafficController {
       }
     }
   })
-  async validateBot(@Body() dto: BotValidationDto) {
-    return this.trafficService.validateBot(dto);
+  async validateBot(@Body() dto: BotValidationDto): AsyncResult<any, ClientDataProblemValidationException | InternalException> {
+    const result = await this.trafficService.validateBot(dto);
+    return { success: true, data: result };
   }
 
   @Post('bots')
@@ -71,10 +79,11 @@ export class TrafficController {
     type: BotCreationResponseDto,
   })
   async createBot(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Body() dto: CreateBotDto,
-  ): Promise<BotCreationResponseDto> {
-    return this.trafficService.createBot(userId, dto);
+  ): AsyncResult<BotCreationResponseDto, UnauthorizedException | InternalException> {
+    const result = await this.trafficService.createBot(userId, dto);
+    return { success: true, data: result };
   }
 
   @Get('bots')
@@ -84,8 +93,9 @@ export class TrafficController {
     description: 'List of user bots',
     type: [BotResponseDto],
   })
-  async getUserBots(@CurrentUser('id') userId: string): Promise<BotResponseDto[]> {
-    return this.trafficService.getUserBots(userId);
+  async getUserBots(@CurrentUserId() userId: string): AsyncResult<BotResponseDto[], UnauthorizedException | InternalException> {
+    const result = await this.trafficService.getUserBots(userId);
+    return { success: true, data: result };
   }
 
   @Get('bots/:botId')
@@ -97,10 +107,11 @@ export class TrafficController {
     type: BotResponseDto,
   })
   async getBotDetails(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Param('botId') botId: string,
-  ): Promise<BotResponseDto> {
-    return this.trafficService.getBotDetails(userId, botId);
+  ): AsyncResult<BotResponseDto, UnauthorizedException | InternalException> {
+    const result = await this.trafficService.getBotDetails(userId, botId);
+    return { success: true, data: result };
   }
 
   @Get('bots/:botId/settings')
@@ -112,10 +123,11 @@ export class TrafficController {
     type: BotSettingsDto,
   })
   async getBotSettings(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Param('botId') botId: string,
-  ): Promise<BotSettingsDto> {
-    return this.trafficService.getBotSettings(userId, botId);
+  ): AsyncResult<BotSettingsDto, UnauthorizedException | InternalException> {
+    const result = await this.trafficService.getBotSettings(userId, botId);
+    return { success: true, data: result };
   }
 
   @Put('bots/:botId/settings')
@@ -127,11 +139,12 @@ export class TrafficController {
     type: BotSettingsDto,
   })
   async updateBotSettings(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Param('botId') botId: string,
     @Body() dto: UpdateBotSettingsDto,
-  ): Promise<BotSettingsDto> {
-    return this.trafficService.updateBotSettings(userId, botId, dto);
+  ): AsyncResult<BotSettingsDto, UnauthorizedException | InternalException> {
+    const result = await this.trafficService.updateBotSettings(userId, botId, dto);
+    return { success: true, data: result };
   }
 
   @Post('bots/:botId/actions')
@@ -148,11 +161,12 @@ export class TrafficController {
     }
   })
   async performBotAction(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Param('botId') botId: string,
     @Body() dto: BotActionDto,
-  ): Promise<{ message: string }> {
-    return this.trafficService.performBotAction(userId, botId, dto);
+  ): AsyncResult<{ message: string }, UnauthorizedException | InternalException> {
+    const result = await this.trafficService.performBotAction(userId, botId, dto);
+    return { success: true, data: result };
   }
 
   // Traffic purchase endpoints
@@ -164,8 +178,9 @@ export class TrafficController {
     description: 'Available traffic types',
     type: [AvailableTrafficDto],
   })
-  async getAvailableTraffic(): Promise<AvailableTrafficDto[]> {
-    return this.trafficService.getAvailableTraffic();
+  async getAvailableTraffic(): AsyncResult<AvailableTrafficDto[], UnauthorizedException | InternalException> {
+    const result = await this.trafficService.getAvailableTraffic();
+    return { success: true, data: result };
   }
 
   @Post('orders')
@@ -176,10 +191,11 @@ export class TrafficController {
     type: TrafficOrderResponseDto,
   })
   async createTrafficOrder(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Body() dto: CreateTrafficOrderDto,
-  ): Promise<TrafficOrderResponseDto> {
-    return this.trafficService.createTrafficOrder(userId, dto);
+  ): AsyncResult<TrafficOrderResponseDto, UnauthorizedException | InternalException> {
+    const result = await this.trafficService.createTrafficOrder(userId, dto);
+    return { success: true, data: result };
   }
 
   @Get('orders')
@@ -189,8 +205,9 @@ export class TrafficController {
     description: 'List of user traffic orders',
     type: [TrafficOrderResponseDto],
   })
-  async getUserTrafficOrders(@CurrentUser('id') userId: string): Promise<TrafficOrderResponseDto[]> {
-    return this.trafficService.getUserTrafficOrders(userId);
+  async getUserTrafficOrders(@CurrentUserId() userId: string): AsyncResult<TrafficOrderResponseDto[], UnauthorizedException | InternalException> {
+    const result = await this.trafficService.getUserTrafficOrders(userId);
+    return { success: true, data: result };
   }
 
   @Get('orders/:orderId')
@@ -202,10 +219,11 @@ export class TrafficController {
     type: TrafficOrderResponseDto,
   })
   async getTrafficOrder(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Param('orderId') orderId: string,
-  ): Promise<TrafficOrderResponseDto> {
-    return this.trafficService.getTrafficOrder(userId, orderId);
+  ): AsyncResult<TrafficOrderResponseDto, UnauthorizedException | InternalException> {
+    const result = await this.trafficService.getTrafficOrder(userId, orderId);
+    return { success: true, data: result };
   }
 
   @Put('orders/:orderId')
@@ -217,11 +235,12 @@ export class TrafficController {
     type: TrafficOrderResponseDto,
   })
   async updateTrafficOrder(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Param('orderId') orderId: string,
     @Body() dto: UpdateTrafficOrderDto,
-  ): Promise<TrafficOrderResponseDto> {
-    return this.trafficService.updateTrafficOrder(userId, orderId, dto);
+  ): AsyncResult<TrafficOrderResponseDto, UnauthorizedException | InternalException> {
+    const result = await this.trafficService.updateTrafficOrder(userId, orderId, dto);
+    return { success: true, data: result };
   }
 
   @Delete('orders/:orderId')
@@ -239,9 +258,10 @@ export class TrafficController {
   })
   @HttpCode(HttpStatus.OK)
   async cancelTrafficOrder(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Param('orderId') orderId: string,
-  ): Promise<{ message: string }> {
-    return this.trafficService.cancelTrafficOrder(userId, orderId);
+  ): AsyncResult<{ message: string }, UnauthorizedException | InternalException> {
+    const result = await this.trafficService.cancelTrafficOrder(userId, orderId);
+    return { success: true, data: result };
   }
 }

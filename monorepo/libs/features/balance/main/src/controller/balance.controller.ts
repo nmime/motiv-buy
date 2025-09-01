@@ -1,14 +1,21 @@
 import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@app/feature-auth-main';
-import { CurrentUser } from '@app/feature-auth-shared';
+import { JwtAuthGuard, CurrentUserId, UnauthorizedException } from '@app/feature-auth-shared';
 import { BalanceService } from '../service/balance.service';
 import { BalanceDto, TransactionDto, TransactionFilterDto, DepositRequestDto, WithdrawalRequestDto } from '@app/feature-balance-shared';
+import { ApiProblemExceptions, InternalException } from '@app/common-exception';
+import { ClientDataProblemValidationException } from '@app/common-validation';
+import { AsyncResult } from '@app/common-shared';
 
 @ApiTags('balance')
 @Controller('balance')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
+@ApiProblemExceptions([
+  [UnauthorizedException, { description: 'User not authenticated' }],
+  [InternalException, { description: 'Internal server error occurred' }],
+  [ClientDataProblemValidationException, { description: 'Request validation failed' }],
+])
 export class BalanceController {
   constructor(private readonly balanceService: BalanceService) {}
 
@@ -22,8 +29,9 @@ export class BalanceController {
     description: 'Balance retrieved successfully',
     type: BalanceDto,
   })
-  async getBalance(@CurrentUser('id') userId: string): Promise<BalanceDto> {
-    return this.balanceService.getBalance(userId);
+  async getBalance(@CurrentUserId() userId: string): AsyncResult<BalanceDto, UnauthorizedException | InternalException> {
+    const result = await this.balanceService.getBalance(userId);
+    return { success: true, data: result };
   }
 
   @Get('transactions')
@@ -41,9 +49,10 @@ export class BalanceController {
   })
   async getTransactionHistory(
     @Query() filter: TransactionFilterDto,
-    @CurrentUser('id') userId: string,
-  ): Promise<TransactionDto[]> {
-    return this.balanceService.getTransactionHistory(userId, filter);
+    @CurrentUserId() userId: string,
+  ): AsyncResult<TransactionDto[], UnauthorizedException | ClientDataProblemValidationException | InternalException> {
+    const result = await this.balanceService.getTransactionHistory(userId, filter);
+    return { success: true, data: result };
   }
 
   @Post('deposit')
@@ -66,9 +75,10 @@ export class BalanceController {
   })
   async requestDeposit(
     @Body() request: DepositRequestDto,
-    @CurrentUser('id') userId: string,
-  ): Promise<{ paymentUrl: string }> {
-    return this.balanceService.requestDeposit(userId, request);
+    @CurrentUserId() userId: string,
+  ): AsyncResult<{ paymentUrl: string }, UnauthorizedException | ClientDataProblemValidationException | InternalException> {
+    const result = await this.balanceService.requestDeposit(userId, request);
+    return { success: true, data: result };
   }
 
   @Post('withdrawal')
@@ -91,8 +101,9 @@ export class BalanceController {
   })
   async requestWithdrawal(
     @Body() request: WithdrawalRequestDto,
-    @CurrentUser('id') userId: string,
-  ): Promise<{ transactionId: string }> {
-    return this.balanceService.requestWithdrawal(userId, request);
+    @CurrentUserId() userId: string,
+  ): AsyncResult<{ transactionId: string }, UnauthorizedException | ClientDataProblemValidationException | InternalException> {
+    const result = await this.balanceService.requestWithdrawal(userId, request);
+    return { success: true, data: result };
   }
 }

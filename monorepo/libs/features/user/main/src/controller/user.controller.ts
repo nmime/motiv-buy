@@ -12,9 +12,10 @@ import {
   UseGuards
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@app/feature-auth-main';
-import { CurrentUser } from '@app/feature-auth-shared';
+import { JwtAuthGuard, CurrentUserId, UnauthorizedException } from '@app/feature-auth-shared';
 import { UserService } from '../service/user.service';
+import { ApiProblemExceptions, InternalException } from '@app/common-exception';
+import { AsyncResult } from '@app/common-shared';
 import { 
   CreateUserDto, 
   UpdateUserDto, 
@@ -30,6 +31,10 @@ import {
  */
 @ApiTags('users')
 @Controller('users')
+@ApiProblemExceptions([
+  [UnauthorizedException, { description: 'User not authenticated' }],
+  [InternalException, { description: 'Internal server error occurred' }],
+])
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -47,8 +52,9 @@ export class UserController {
     description: 'User created successfully',
     type: UserResponseDto,
   })
-  async register(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    return this.userService.create(createUserDto);
+  async register(@Body() createUserDto: CreateUserDto): AsyncResult<UserResponseDto, InternalException> {
+    const result = await this.userService.create(createUserDto);
+    return { success: true, data: result };
   }
 
   /**
@@ -66,8 +72,9 @@ export class UserController {
     description: 'User profile retrieved successfully',
     type: UserResponseDto,
   })
-  async getProfile(@CurrentUser('id') userId: string): Promise<UserResponseDto> {
-    return this.userService.findById(userId);
+  async getProfile(@CurrentUserId() userId: string): AsyncResult<UserResponseDto, UnauthorizedException | InternalException> {
+    const result = await this.userService.findById(userId);
+    return { success: true, data: result };
   }
 
   /**
@@ -86,10 +93,11 @@ export class UserController {
     type: UserResponseDto,
   })
   async updateProfile(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Body() updateUserDto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
-    return this.userService.update(userId, updateUserDto);
+  ): AsyncResult<UserResponseDto, UnauthorizedException | InternalException> {
+    const result = await this.userService.update(userId, updateUserDto);
+    return { success: true, data: result };
   }
 
   /**
@@ -107,8 +115,9 @@ export class UserController {
     description: 'Referral statistics retrieved successfully',
     type: ReferralStatsDto,
   })
-  async getReferralStats(@CurrentUser('id') userId: string): Promise<ReferralStatsDto> {
-    return this.userService.getReferralStats(userId);
+  async getReferralStats(@CurrentUserId() userId: string): AsyncResult<ReferralStatsDto, UnauthorizedException | InternalException> {
+    const result = await this.userService.getReferralStats(userId);
+    return { success: true, data: result };
   }
 
   /**
@@ -126,8 +135,9 @@ export class UserController {
     description: 'Referral link retrieved successfully',
     type: ReferralLinkDto,
   })
-  async getReferralLink(@CurrentUser('id') userId: string): Promise<ReferralLinkDto> {
-    return this.userService.getReferralLink(userId);
+  async getReferralLink(@CurrentUserId() userId: string): AsyncResult<ReferralLinkDto, UnauthorizedException | InternalException> {
+    const result = await this.userService.getReferralLink(userId);
+    return { success: true, data: result };
   }
 
   /**
@@ -145,8 +155,9 @@ export class UserController {
     description: 'Notification settings retrieved successfully',
     type: NotificationSettingsDto,
   })
-  async getNotificationSettings(@CurrentUser('id') userId: string): Promise<NotificationSettingsDto> {
-    return this.userService.getNotificationSettings(userId);
+  async getNotificationSettings(@CurrentUserId() userId: string): AsyncResult<NotificationSettingsDto, UnauthorizedException | InternalException> {
+    const result = await this.userService.getNotificationSettings(userId);
+    return { success: true, data: result };
   }
 
   /**
@@ -165,10 +176,11 @@ export class UserController {
     type: NotificationSettingsDto,
   })
   async updateNotificationSettings(
-    @CurrentUser('id') userId: string,
+    @CurrentUserId() userId: string,
     @Body() settings: UpdateNotificationSettingsDto,
-  ): Promise<NotificationSettingsDto> {
-    return this.userService.updateNotificationSettings(userId, settings);
+  ): AsyncResult<NotificationSettingsDto, UnauthorizedException | InternalException> {
+    const result = await this.userService.updateNotificationSettings(userId, settings);
+    return { success: true, data: result };
   }
 
   // Admin endpoints below
@@ -188,8 +200,9 @@ export class UserController {
     description: 'User retrieved successfully',
     type: UserResponseDto,
   })
-  async findById(@Param('id') id: string): Promise<UserResponseDto> {
-    return this.userService.findById(id);
+  async findById(@Param('id') id: string): AsyncResult<UserResponseDto, UnauthorizedException | InternalException> {
+    const result = await this.userService.findById(id);
+    return { success: true, data: result };
   }
 
   /**
@@ -234,13 +247,14 @@ export class UserController {
   async findAll(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
-  ): Promise<{
+  ): AsyncResult<{
     users: UserResponseDto[];
     total: number;
-  }> {
+  }, UnauthorizedException | InternalException> {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
-    return this.userService.findAll(pageNum, limitNum);
+    const result = await this.userService.findAll(pageNum, limitNum);
+    return { success: true, data: result };
   }
 
   /**
@@ -258,7 +272,8 @@ export class UserController {
     status: 204,
     description: 'User deleted successfully',
   })
-  async delete(@Param('id') id: string): Promise<void> {
-    return this.userService.delete(id);
+  async delete(@Param('id') id: string): AsyncResult<void, UnauthorizedException | InternalException> {
+    const result = await this.userService.delete(id);
+    return { success: true, data: result };
   }
 }

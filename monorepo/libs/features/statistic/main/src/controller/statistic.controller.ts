@@ -1,15 +1,20 @@
 import { Controller, Get, Query, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@app/feature-auth-main';
-import { CurrentUser } from '@app/feature-auth-shared';
+import { JwtAuthGuard, CurrentUserId, UnauthorizedException } from '@app/feature-auth-shared';
 import {
   StatisticQueryDto,
   StatisticResponseDto,
 } from '@app/feature-statistic-shared';
 import { StatisticService } from '../service/statistic.service';
+import { ApiProblemExceptions, InternalException } from '@app/common-exception';
+import { AsyncResult } from '@app/common-shared';
 
 @ApiTags('statistic')
 @Controller('statistic')
+@ApiProblemExceptions([
+  [UnauthorizedException, { description: 'User not authenticated' }],
+  [InternalException, { description: 'Internal server error occurred' }],
+])
 export class StatisticController {
   constructor(private readonly statisticService: StatisticService) {}
 
@@ -32,9 +37,10 @@ export class StatisticController {
   })
   async getStatistic(
     @Query() query: StatisticQueryDto,
-    @CurrentUser('id') userId: string,
-  ): Promise<StatisticResponseDto> {
-    return this.statisticService.getStatistic(userId, query);
+    @CurrentUserId() userId: string,
+  ): AsyncResult<StatisticResponseDto, UnauthorizedException | InternalException> {
+    const result = await this.statisticService.getStatistic(userId, query);
+    return { success: true, data: result };
   }
 
   @Get('shared/:shareToken')
@@ -49,7 +55,8 @@ export class StatisticController {
   })
   async getSharedStatistic(
     @Param('shareToken') shareToken: string,
-  ): Promise<StatisticResponseDto> {
-    return this.statisticService.getSharedStatistic(shareToken);
+  ): AsyncResult<StatisticResponseDto, InternalException> {
+    const result = await this.statisticService.getSharedStatistic(shareToken);
+    return { success: true, data: result };
   }
 }

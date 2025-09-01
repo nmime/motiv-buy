@@ -8,10 +8,10 @@ class ClientDataValidationDto {
 /**
  * @deprecated Use ClientDataProblemValidationException instead for RFC 9457 compliance
  */
-export class ClientDataValidationException extends Exception(
-  ExceptionKind.ClientDataValidation,
-  ClientDataValidationDto,
-) {
+export class ClientDataValidationException extends Exception({
+  kind: ExceptionKind.ClientDataValidation,
+  dataType: ClientDataValidationDto,
+}) {
   static readonly message = 'Client data validation failed';
 
   constructor(errors: ValidationErrorResponse) {
