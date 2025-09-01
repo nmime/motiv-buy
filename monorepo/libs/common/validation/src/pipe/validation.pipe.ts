@@ -1,11 +1,11 @@
 import { ValidationError, ValidationPipe as NestValidationPipe } from '@nestjs/common';
 import { ValidationErrorResponse } from '../type';
-import { ClientDataValidationException } from '../exception';
+import { ClientDataProblemValidationException } from '../exception';
 
 export class ValidationPipe extends NestValidationPipe {
   override createExceptionFactory() {
     return (validationErrors: ValidationError[] = []) => {
-      return new ClientDataValidationException(this.formatErrors(validationErrors));
+      return new ClientDataProblemValidationException(this.formatErrors(validationErrors));
     };
   }
 

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { TrafficController } from './controller/traffic.controller';
-import { TrafficService } from './service/traffic.service';
+import { TrafficController } from './controller';
+import { TrafficService } from './service';
 import { 
   TrafficBuyerEntity, 
   TrafficOrderEntity, 

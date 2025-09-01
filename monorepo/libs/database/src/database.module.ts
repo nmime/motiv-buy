@@ -23,7 +23,7 @@ import {
   UserTrafficBuyerEntity,
   UserTrafficOrderEntity,
   UserTrafficSourceEntity
-} from './entity/junction';
+} from './entity';
 
 const entityClasses = [
   UserEntity, 
