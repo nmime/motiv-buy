@@ -1,58 +1,70 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from "../type/entity-constructor.type";
+import { UserEntity } from './User.entity';
+import { TrafficOrderEntity } from './TrafficOrder.entity';
+import { TrafficUserEntity } from './TrafficUser.entity';
+import { TrafficActionsEntity } from './TrafficActions.entity';
+import { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategory.entity';
 
 export enum TrafficSourceType {
   Bot = 'bot',
   BotWithToken = 'bot_with_token'
 }
 
-@Entity()
+@Entity({ tableName: 'traffic_sources' })
+@Index({ name: 'ix__traffic_sources__telegram_id', properties: ['telegramId'] })
+@Index({ name: 'ix__traffic_sources__type', properties: ['type'] })
+@Index({ name: 'ix__traffic_sources__is_active', properties: ['isActive'] })
+@Index({ name: 'ix__traffic_sources__bot_username', properties: ['botUsername'] })
 export class TrafficSourceEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @Property()
+  @Property({ type: 'varchar', length: 255, fieldName: 'name' })
   name!: string;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'description' })
   description?: string;
 
+  @Property({ type: 'varchar', length: 20, fieldName: 'type' })
   @Enum(() => TrafficSourceType)
   type!: TrafficSourceType;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'bot_token' })
   botToken?: string;
 
-  @Property({ nullable: true })
+  @Property({ type: 'varchar', length: 32, nullable: true, fieldName: 'bot_username' })
   botUsername?: string;
 
-  @Property({ nullable: true })
-  @Index()
+  @Property({ type: 'bigint', nullable: true, fieldName: 'telegram_id' })
   telegramId?: string;
 
-  @Property({ default: true })
+  @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
   isActive!: boolean;
 
-  @Property({ nullable: true })
-  config?: string; // JSON string for additional configuration
+  @Property({ type: 'json', nullable: true, fieldName: 'config' })
+  config?: Record<string, any>;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne(() => 'UserEntity', { nullable: true })
-  managedBy?: any;
+  @ManyToOne(() => UserEntity, { nullable: true })
+  managedBy?: UserEntity;
 
-  @OneToMany(() => 'TrafficOrderEntity', 'trafficSource')
-  orders? = new Collection<any>(this);
+  @OneToMany(() => TrafficOrderEntity, 'trafficSource')
+  orders = new Collection<TrafficOrderEntity>(this);
 
-  @OneToMany(() => 'TrafficUserEntity', 'trafficSource')
-  trafficUsers? = new Collection<any>(this);
+  @OneToMany(() => TrafficUserEntity, 'trafficSource')
+  trafficUsers = new Collection<TrafficUserEntity>(this);
 
-  @OneToMany(() => 'TrafficActionsEntity', 'trafficSource')
-  actions? = new Collection<any>(this);
+  @OneToMany(() => TrafficActionsEntity, 'trafficSource')
+  actions = new Collection<TrafficActionsEntity>(this);
+
+  @OneToMany(() => TrafficSourceCategoriesEntity, 'trafficSource')
+  categories = new Collection<TrafficSourceCategoriesEntity>(this);
 
   constructor(data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt'>) {
     Object.assign(this, data);

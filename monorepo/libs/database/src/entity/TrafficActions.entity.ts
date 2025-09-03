@@ -23,52 +23,57 @@ export enum TrafficActionType {
   Vote = 'vote'
 }
 
-@Entity()
+@Entity({ tableName: 'traffic_actions' })
+@Index({ name: 'ix__traffic_actions__action_id', properties: ['actionId'] })
+@Index({ name: 'ix__traffic_actions__status', properties: ['status'] })
+@Index({ name: 'ix__traffic_actions__type', properties: ['type'] })
+@Index({ name: 'ix__traffic_actions__scheduled_at', properties: ['scheduledAt'] })
 export class TrafficActionsEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @Property({ unique: true })
-  @Index()
+  @Property({ type: 'varchar', length: 64, unique: true, fieldName: 'action_id' })
   actionId!: string;
 
+  @Property({ type: 'varchar', length: 20, fieldName: 'type' })
   @Enum(() => TrafficActionType)
   type!: TrafficActionType;
 
+  @Property({ type: 'varchar', length: 20, fieldName: 'status' })
   @Enum(() => TrafficActionStatus)
   status!: TrafficActionStatus;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'description' })
   description?: string;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'target_url' })
   targetUrl?: string;
 
-  @Property({ nullable: true })
-  actionData?: string; // JSON string for additional action data
+  @Property({ type: 'json', nullable: true, fieldName: 'action_data' })
+  actionData?: Record<string, any>;
 
-  @Property({ default: 0 })
-  reward = 0;
+  @Property({ type: 'decimal', precision: 10, scale: 4, default: '0', fieldName: 'reward' })
+  reward = '0';
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'scheduled_at' })
   scheduledAt?: Date;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'started_at' })
   startedAt?: Date;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'completed_at' })
   completedAt?: Date;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'failed_at' })
   failedAt?: Date;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'failure_reason' })
   failureReason?: string;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
   

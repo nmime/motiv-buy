@@ -1,5 +1,5 @@
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { UserSourceVisitEntity, PlatformType } from '../entity/UserSourceVisit.entity';
+import { UserSourceVisitEntity, PlatformType, UserSourceVisitPlatformData } from '../entity/UserSourceVisit.entity';
 
 export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitEntity> {
   constructor(em: EntityManager) {
@@ -9,7 +9,7 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
   async createVisit(data: {
     userId: string;
     platformType: PlatformType;
-    platformData?: any;
+    platformData?: UserSourceVisitPlatformData;
     params?: string;
     utmSource?: string;
     utmMedium?: string;

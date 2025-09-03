@@ -1,66 +1,67 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum } from '@mikro-orm/core';
+import { UserEntity } from './User.entity';
+import { EntityConstructorData } from '../type';
 
 export enum SettingType {
-  BOOLEAN = 'BOOLEAN',
-  STRING = 'STRING',
-  NUMBER = 'NUMBER',
-  JSON = 'JSON'
+  Boolean = 'boolean',
+  String = 'string',
+  Number = 'number',
+  Json = 'json'
 }
 
 export enum NotificationType {
-  BALANCE_CHANGES = 'BALANCE_CHANGES',
-  TRADE_NOTIFICATIONS = 'TRADE_NOTIFICATIONS',
-  REFERRAL_NOTIFICATIONS = 'REFERRAL_NOTIFICATIONS',
-  SYSTEM_NOTIFICATIONS = 'SYSTEM_NOTIFICATIONS',
-  MARKETING_NOTIFICATIONS = 'MARKETING_NOTIFICATIONS'
+  BalanceChanges = 'balance_changes',
+  TradeNotifications = 'trade_notifications',
+  ReferralNotifications = 'referral_notifications',
+  SystemNotifications = 'system_notifications',
+  MarketingNotifications = 'marketing_notifications'
 }
 
-@Entity()
-@Unique({ properties: ['user', 'key'] })
+@Entity({ tableName: 'user_settings' })
+@Index({ name: 'ix__user_settings__user_id', properties: ['user'] })
+@Index({ name: 'ix__user_settings__key', properties: ['key'] })
+@Index({ name: 'ix__user_settings__is_active', properties: ['isActive'] })
+@Unique({ name: 'uq__user_settings__user_key', properties: ['user', 'key'] })
 export class UserSettingsEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => 'UserEntity')
-  @Index()
-  user!: any;
+  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
+  user!: UserEntity;
 
-  @Property()
-  @Index()
+  @Property({ type: 'varchar', length: 64, fieldName: 'key' })
   key!: string;
 
-  @Property({ type: 'text' })
+  @Property({ type: 'text', fieldName: 'value' })
   value!: string;
 
-  @Property({ default: SettingType.STRING })
+  @Property({ type: 'varchar', length: 10, default: SettingType.String, fieldName: 'type' })
+  @Enum(() => SettingType)
   type!: SettingType;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'description' })
   description?: string;
 
-  @Property({ default: true })
+  @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
   isActive!: boolean;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(user: any, key: string, value: string, type: SettingType = SettingType.STRING) {
-    this.user = user;
-    this.key = key;
-    this.value = value;
-    this.type = type;
+  constructor(data: EntityConstructorData<UserSettingsEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive' | 'type'>) {
+    Object.assign(this, data);
   }
 
-  getValue(): any {
+  getValue(): unknown {
     switch (this.type) {
-      case SettingType.BOOLEAN:
+      case SettingType.Boolean:
         return this.value === 'true';
-      case SettingType.NUMBER:
+      case SettingType.Number:
         return parseFloat(this.value);
-      case SettingType.JSON:
+      case SettingType.Json:
         try {
           return JSON.parse(this.value);
         } catch {
@@ -71,15 +72,15 @@ export class UserSettingsEntity {
     }
   }
 
-  setValue(value: any): void {
+  setValue(value: unknown): void {
     switch (this.type) {
-      case SettingType.BOOLEAN:
+      case SettingType.Boolean:
         this.value = Boolean(value).toString();
         break;
-      case SettingType.NUMBER:
+      case SettingType.Number:
         this.value = Number(value).toString();
         break;
-      case SettingType.JSON:
+      case SettingType.Json:
         this.value = JSON.stringify(value);
         break;
       default:

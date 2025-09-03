@@ -34,7 +34,7 @@ This agent specializes in identifying and resolving performance bottlenecks in d
 - **Execution Time**: Tasks taking longer than expected
 - **Resource Constraints**: CPU, memory, or I/O limitations
 - **Coordination Overhead**: Inefficient agent communication
-- **Sequential Blockers**: Unnecessary serial execution
+- **Sequential Blockers**: Unnecessary bigserial execution
 - **Data Transfer**: Large payload movements
 
 ### 2. Detection Methods

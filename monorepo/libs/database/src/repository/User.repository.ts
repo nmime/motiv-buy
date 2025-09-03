@@ -1,5 +1,5 @@
 import {EntityManager, EntityRepository} from '@mikro-orm/core';
-import {UserEntity} from '../entity';
+import {UserEntity, UserStatus} from '../entity';
 
 export class UserRepository extends EntityRepository<UserEntity> {
   constructor(em: EntityManager) {
@@ -15,34 +15,15 @@ export class UserRepository extends EntityRepository<UserEntity> {
   }
 
   async findActiveUsers(): Promise<UserEntity[]> {
-    return this.find({ isActive: true });
-  }
-
-  async findPremiumUsers(): Promise<UserEntity[]> {
-    return this.find({ isPremium: true });
+    return this.find({ status: UserStatus.Active });
   }
 
   async findUsersByReferrer(referredBy: string): Promise<UserEntity[]> {
     return this.find({ referredBy });
   }
 
-  async createUser(data: {
-    telegramId: string;
-    username?: string;
-    firstName: string;
-    lastName?: string;
-    phone?: string;
-    languageCode?: string;
-    referredBy?: string;
-    isActive?: boolean;
-    isPremium?: boolean;
-  }): Promise<UserEntity> {
-    const user = new UserEntity({
-      ...data,
-      isActive: data.isActive ?? true,
-      isPremium: data.isPremium ?? false
-    });
-
+  async createUser(data: Partial<UserEntity>): Promise<UserEntity> {
+    const user = new UserEntity(data);
     await this.em.persistAndFlush(user);
     return user;
   }
@@ -66,7 +47,7 @@ export class UserRepository extends EntityRepository<UserEntity> {
   async deactivateUser(telegramId: string): Promise<void> {
     const user = await this.findByTelegramId(telegramId);
     if (user) {
-      user.isActive = false;
+      user.status = UserStatus.Restricted;
       await this.em.flush();
     }
   }
@@ -74,14 +55,16 @@ export class UserRepository extends EntityRepository<UserEntity> {
   async getUserStats(): Promise<{
     total: number;
     active: number;
-    premium: number;
+    restricted: number;
+    banned: number;
   }> {
-    const [total, active, premium] = await Promise.all([
+    const [total, active, restricted, banned] = await Promise.all([
       this.count(),
-      this.count({ isActive: true }),
-      this.count({ isPremium: true })
+      this.count({ status: UserStatus.Active }),
+      this.count({ status: UserStatus.Restricted }),
+      this.count({ status: UserStatus.Banned })
     ]);
 
-    return { total, active, premium };
+    return { total, active, restricted, banned };
   }
 }

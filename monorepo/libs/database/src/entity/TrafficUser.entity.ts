@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
 import { TrafficOrderEntity } from './TrafficOrder.entity';
 import { TrafficSourceEntity } from './TrafficSource.entity';
-import { EntityConstructorData } from "../type/entity-constructor.type";
+import { EntityConstructorData } from '../type';
 
 export enum TrafficUserStatus {
   Active = 'active',
@@ -10,61 +10,65 @@ export enum TrafficUserStatus {
   Pending = 'pending'
 }
 
-@Entity()
+@Entity({ tableName: 'traffic_users' })
+@Index({ name: 'ix__traffic_users__telegram_id', properties: ['telegramId'] })
+@Index({ name: 'ix__traffic_users__username', properties: ['username'] })
+@Index({ name: 'ix__traffic_users__status', properties: ['status'] })
+@Index({ name: 'ix__traffic_users__traffic_source', properties: ['trafficSource'] })
 export class TrafficUserEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @Property({ unique: true })
-  @Index()
+  @Property({ type: 'bigint', unique: true, fieldName: 'telegram_id' })
   telegramId!: string;
 
-  @Property({ nullable: true })
+  @Property({ type: 'varchar', length: 32, nullable: true })
   username?: string;
 
-  @Property()
+  @Property({ type: 'varchar', length: 64, fieldName: 'first_name' })
   firstName!: string;
 
-  @Property({ nullable: true })
+  @Property({ type: 'varchar', length: 64, nullable: true, fieldName: 'last_name' })
   lastName?: string;
 
-  @Property({ default: 0 })
+  @Property({ type: 'integer', default: 0, fieldName: 'total_orders_participated' })
   totalOrdersParticipated = 0;
 
-  @Property({ default: 0 })
-  totalEarnings = 0;
+  @Property({ type: 'decimal', precision: 20, scale: 8, default: '0', fieldName: 'total_earnings' })
+  totalEarnings = '0';
 
-  @Property({ default: 0 })
-  completionRate = 0;
+  @Property({ type: 'decimal', precision: 5, scale: 2, default: '0', fieldName: 'completion_rate' })
+  completionRate = '0';
 
-  @Property({ nullable: true })
+  @Property({ type: 'varchar', length: 10, nullable: true, fieldName: 'language_code' })
   languageCode?: string;
 
-  @Property({ default: true })
+  @Property({ type: 'boolean', default: true, fieldName: 'is_bot' })
   isBot!: boolean;
 
-  @Property({ default: true })
+  @Property({ type: 'boolean', default: true, fieldName: 'can_join_groups' })
   canJoinGroups!: boolean;
 
-  @Property({ default: false })
+  @Property({ type: 'boolean', default: false, fieldName: 'can_receive_messages' })
   canReceiveMessages!: boolean;
 
-  @Property({ default: false })
+  @Property({ type: 'boolean', default: false, fieldName: 'supports_inline_queries' })
   supportsInlineQueries!: boolean;
 
+  @Property({ type: 'varchar', length: 20, default: TrafficUserStatus.Active })
   @Enum(() => TrafficUserStatus)
   status: TrafficUserStatus = TrafficUserStatus.Active;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'last_seen_at' })
   lastSeenAt?: Date;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'joined_at' })
   joinedAt: Date = new Date();
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
   @ManyToOne(() => TrafficSourceEntity)

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Err, Ok, Result } from 'ts-results';
-import { UserRepository } from '@app/database';
+import { UserRepository, UserRole, UserStatus, UserEntity } from '@app/database';
 import { AuthJwtPayloadDto, UserData } from '../dto';
 import { BadTokenException, UserBlockedException, UserNotFoundException } from '@app/common-exception';
 import { AuthConfigService } from '../config';
@@ -28,7 +28,7 @@ export class AuthJwtValidationService {
       return Err(new UserNotFoundException());
     }
 
-    if (!user.isActive) {
+    if (user.status !== UserStatus.Active && user.status !== UserStatus.Restricted) {
       return Err(new UserBlockedException());
     }
 
@@ -40,7 +40,7 @@ export class AuthJwtValidationService {
     );
   }
 
-  private hasDevAccess(user: any): boolean {
-    return user.isCreator || user.isAdmin || user.isDev || false;
+  private hasDevAccess(user: UserEntity): boolean {
+    return user.role === UserRole.Admin || user.role === UserRole.Developer;
   }
 }

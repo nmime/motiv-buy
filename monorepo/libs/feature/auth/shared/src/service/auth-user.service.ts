@@ -83,7 +83,6 @@ export class AuthUserService {
         lastName: params.lastName || null,
         username: params.username || null,
         languageCode: params.languageCode || 'en',
-        isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

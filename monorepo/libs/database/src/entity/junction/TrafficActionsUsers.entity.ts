@@ -4,39 +4,40 @@ import { TrafficUserEntity } from '../TrafficUser.entity';
 import { EntityConstructorData } from "../../type/entity-constructor.type";
 
 
-@Entity()
-@Unique({ properties: ['trafficAction', 'trafficUser'] })
+@Entity({ tableName: 'traffic_actions_users' })
+@Index({ name: 'ix__traffic_actions_users__action_id', properties: ['trafficAction'] })
+@Index({ name: 'ix__traffic_actions_users__user_id', properties: ['trafficUser'] })
+@Index({ name: 'ix__traffic_actions_users__is_completed', properties: ['isCompleted'] })
+@Unique({ name: 'uq__traffic_actions_users__action_user', properties: ['trafficAction', 'trafficUser'] })
 export class TrafficActionsUsersEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => TrafficActionsEntity)
-  @Index()
+  @ManyToOne(() => TrafficActionsEntity, { fieldName: 'traffic_action_id' })
   trafficAction!: TrafficActionsEntity;
 
-  @ManyToOne(() => TrafficUserEntity)
-  @Index()
+  @ManyToOne(() => TrafficUserEntity, { fieldName: 'traffic_user_id' })
   trafficUser!: TrafficUserEntity;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'participation_date' })
   participationDate?: Date;
 
-  @Property({ default: false })
+  @Property({ type: 'boolean', default: false, fieldName: 'is_completed' })
   isCompleted = false;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'completed_at' })
   completedAt?: Date;
 
-  @Property({ nullable: true })
-  reward?: number;
+  @Property({ type: 'decimal', precision: 10, scale: 4, nullable: true, fieldName: 'reward' })
+  reward?: string;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'notes' })
   notes?: string;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
   constructor(data: EntityConstructorData<TrafficActionsUsersEntity, 'id' | 'createdAt' | 'updatedAt', 'isCompleted'>) {

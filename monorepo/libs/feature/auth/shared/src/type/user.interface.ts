@@ -7,7 +7,7 @@ export interface User {
   firstName: string;
   lastName?: string;
   languageCode?: string;
-  isActive: boolean;
+  status: string;
 }
 
 export interface IUserRepository {

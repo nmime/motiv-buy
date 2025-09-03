@@ -4,48 +4,49 @@ import { TrafficUserEntity } from '../TrafficUser.entity';
 import { EntityConstructorData } from "../../type/entity-constructor.type";
 
 
-@Entity()
-@Unique({ properties: ['trafficBuyer', 'trafficUser'] })
+@Entity({ tableName: 'traffic_buyer_users' })
+@Index({ name: 'ix__traffic_buyer_users__buyer_id', properties: ['trafficBuyer'] })
+@Index({ name: 'ix__traffic_buyer_users__user_id', properties: ['trafficUser'] })
+@Index({ name: 'ix__traffic_buyer_users__is_blocked', properties: ['isBlocked'] })
+@Unique({ name: 'uq__traffic_buyer_users__buyer_user', properties: ['trafficBuyer', 'trafficUser'] })
 export class TrafficBuyerUsersEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => TrafficBuyerEntity)
-  @Index()
+  @ManyToOne(() => TrafficBuyerEntity, { fieldName: 'traffic_buyer_id' })
   trafficBuyer!: TrafficBuyerEntity;
 
-  @ManyToOne(() => TrafficUserEntity)
-  @Index()
+  @ManyToOne(() => TrafficUserEntity, { fieldName: 'traffic_user_id' })
   trafficUser!: TrafficUserEntity;
 
-  @Property({ default: true })
+  @Property({ type: 'boolean', default: true, fieldName: 'can_view' })
   canView = true;
 
-  @Property({ default: false })
+  @Property({ type: 'boolean', default: false, fieldName: 'can_contact' })
   canContact = false;
 
-  @Property({ default: false })
+  @Property({ type: 'boolean', default: false, fieldName: 'is_blocked' })
   isBlocked = false;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'first_interaction_date' })
   firstInteractionDate?: Date;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'last_interaction_date' })
   lastInteractionDate?: Date;
 
-  @Property({ default: 0 })
+  @Property({ type: 'integer', default: 0, fieldName: 'total_interactions' })
   totalInteractions = 0;
 
-  @Property({ default: 0 })
+  @Property({ type: 'integer', default: 0, fieldName: 'total_orders_shared' })
   totalOrdersShared = 0;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'notes' })
   notes?: string;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
   constructor(data: EntityConstructorData<TrafficBuyerUsersEntity, 'id' | 'createdAt' | 'updatedAt', 'canView' | 'canContact' | 'isBlocked' | 'totalInteractions' | 'totalOrdersShared'>) {

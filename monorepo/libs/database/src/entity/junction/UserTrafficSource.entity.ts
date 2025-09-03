@@ -11,39 +11,42 @@ export enum UserTrafficSourceRole {
 }
 
 
-@Entity()
-@Unique({ properties: ['user', 'trafficSource'] })
+@Entity({ tableName: 'user_traffic_sources' })
+@Index({ name: 'ix__user_traffic_sources__user_id', properties: ['user'] })
+@Index({ name: 'ix__user_traffic_sources__source_id', properties: ['trafficSource'] })
+@Index({ name: 'ix__user_traffic_sources__role', properties: ['role'] })
+@Index({ name: 'ix__user_traffic_sources__is_active', properties: ['isActive'] })
+@Unique({ name: 'uq__user_traffic_sources__user_source', properties: ['user', 'trafficSource'] })
 export class UserTrafficSourceEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => UserEntity)
-  @Index()
+  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
   user!: UserEntity;
 
-  @ManyToOne(() => TrafficSourceEntity)
-  @Index()
+  @ManyToOne(() => TrafficSourceEntity, { fieldName: 'traffic_source_id' })
   trafficSource!: TrafficSourceEntity;
 
+  @Property({ type: 'varchar', length: 20, fieldName: 'role' })
   @Enum(() => UserTrafficSourceRole)
   role!: UserTrafficSourceRole;
 
-  @Property({ default: true })
+  @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
   isActive = true;
 
-  @Property({ nullable: true })
-  permissions?: string; // JSON string for specific permissions
+  @Property({ type: 'json', nullable: true, fieldName: 'permissions' })
+  permissions?: Record<string, any>;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'assigned_at' })
   assignedAt?: Date;
 
-  @Property({ nullable: true })
-  assignedBy?: string; // User ID who assigned this role
+  @Property({ type: 'uuid', nullable: true, fieldName: 'assigned_by' })
+  assignedBy?: string;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
   constructor(data: EntityConstructorData<UserTrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive'>) {

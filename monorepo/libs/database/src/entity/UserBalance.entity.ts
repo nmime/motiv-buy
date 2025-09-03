@@ -1,4 +1,6 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum } from '@mikro-orm/core';
+import { UserEntity } from './User.entity';
+import { EntityConstructorData } from '../type';
 
 export enum CurrencyType {
   USDT = 'USDT',
@@ -9,37 +11,35 @@ export enum CurrencyType {
   POINTS = 'POINTS'
 }
 
-@Entity()
-@Unique({ properties: ['user', 'currency'] })
+@Entity({ tableName: 'user_balances' })
+@Index({ name: 'ix__user_balances__user_id', properties: ['user'] })
+@Index({ name: 'ix__user_balances__currency', properties: ['currency'] })
+@Unique({ name: 'uq__user_balances__user_currency', properties: ['user', 'currency'] })
 export class UserBalanceEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => 'UserEntity')
-  @Index()
-  user!: any;
+  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
+  user!: UserEntity;
 
-  @Property()
-  @Index()
+  @Property({ type: 'varchar', length: 10, fieldName: 'currency' })
+  @Enum(() => CurrencyType)
   currency!: CurrencyType;
 
-  @Property({ type: 'decimal', precision: 20, scale: 8, default: 0 })
+  @Property({ type: 'decimal', precision: 20, scale: 8, default: '0', fieldName: 'balance' })
   balance!: string;
 
-  @Property({ type: 'decimal', precision: 20, scale: 8, default: 0 })
+  @Property({ type: 'decimal', precision: 20, scale: 8, default: '0', fieldName: 'locked_balance' })
   lockedBalance!: string;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(user: any, currency: CurrencyType, balance: string = '0') {
-    this.user = user;
-    this.currency = currency;
-    this.balance = balance;
-    this.lockedBalance = '0';
+  constructor(data: EntityConstructorData<UserBalanceEntity, 'id' | 'createdAt' | 'updatedAt'>) {
+    Object.assign(this, data);
   }
 
   getTotalBalance(): string {

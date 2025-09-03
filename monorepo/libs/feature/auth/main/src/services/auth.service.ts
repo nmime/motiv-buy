@@ -19,7 +19,7 @@ import {
   UserBlockedException,
   UserNotFoundException,
 } from '@app/common-exception';
-import { UserRepository } from '@app/database';
+import { UserRepository, UserStatus, UserRole, UserEntity } from '@app/database';
 import { PlatformType } from '@app/database';
 import { AuthUserDataDto, TelegramWidgetAuthDto } from '../dto';
 
@@ -48,7 +48,7 @@ export class AuthService {
       return { success: false, error: new UserNotFoundException() };
     }
 
-    if (!user.isActive) {
+    if (user.status !== UserStatus.Active && user.status !== UserStatus.Restricted) {
       return { success: false, error: new UserBlockedException() };
     }
 
@@ -110,7 +110,6 @@ export class AuthService {
         lastName: userData.last_name,
         username: userData.username,
         languageCode: userData.language_code,
-        isPremium: userData.is_premium,
       },
       additionalParams: {
         startParam: searchParams.get('start_param') ?? undefined,
@@ -161,7 +160,6 @@ export class AuthService {
         lastName: dto.last_name,
         username: dto.username,
         languageCode: undefined,
-        isPremium: undefined,
       },
       additionalParams: {
         utmSource: dto.utmSource,
@@ -184,7 +182,6 @@ export class AuthService {
       lastName?: string;
       username?: string;
       languageCode?: string;
-      isPremium?: boolean | string;
     };
     additionalParams?: {
       startParam?: string;
@@ -243,7 +240,7 @@ export class AuthService {
       return { success: false, error: new UserNotFoundException() };
     }
 
-    if (!user.isActive) {
+    if (user.status !== UserStatus.Active && user.status !== UserStatus.Restricted) {
       return { success: false, error: new UserBlockedException() };
     }
 
@@ -276,7 +273,7 @@ export class AuthService {
     return this.jwtService.sign(payload, { secret: this.configService.jwtSecret, expiresIn: '1d' });
   }
 
-  private hasDevAccess(user: any): boolean {
-    return user.isCreator || user.isAdmin || user.isDev || false;
+  private hasDevAccess(user: UserEntity): boolean {
+    return user.role === UserRole.Admin || user.role === UserRole.Developer;
   }
 }

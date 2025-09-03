@@ -1,5 +1,5 @@
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { TrafficOrderEntity, TrafficOrderStatus, TrafficOrderType } from '../entity';
+import { TrafficOrderEntity, TrafficOrderStatus, TrafficOrderType, TrafficSourceEntity, TrafficBuyerEntity, TrafficUserEntity } from '../entity';
 import { UserEntity } from '../entity';
 
 export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity> {
@@ -74,12 +74,12 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     trafficBuyerId: number;
     assignedUserId?: number;
   }): Promise<TrafficOrderEntity> {
-    const trafficSource = await this.em.findOneOrFail('TrafficSourceEntity', data.trafficSourceId) as any;
-    const trafficBuyer = await this.em.findOneOrFail('TrafficBuyerEntity', data.trafficBuyerId) as any;
+    const trafficSource = await this.em.findOneOrFail(TrafficSourceEntity, data.trafficSourceId);
+    const trafficBuyer = await this.em.findOneOrFail(TrafficBuyerEntity, data.trafficBuyerId);
     
-    let assignedTrafficUser: any;
+    let assignedTrafficUser: TrafficUserEntity | undefined;
     if (data.assignedUserId) {
-      assignedTrafficUser = await this.em.findOneOrFail('TrafficUserEntity', data.assignedUserId) as any;
+      assignedTrafficUser = await this.em.findOneOrFail(TrafficUserEntity, data.assignedUserId);
     }
 
     const trafficOrder = new TrafficOrderEntity({

@@ -1,10 +1,7 @@
 export * from './TrafficActionsUsers.entity';
-export * from './UserTrafficBuyer.entity';
-export * from './UserTrafficSource.entity';
-export * from './UserTrafficOrder.entity';
 export * from './TrafficBuyerSource.entity';
 export * from './TrafficBuyerUsers.entity';
-
-export { UserTrafficBuyerRole } from './UserTrafficBuyer.entity';
-export { UserTrafficSourceRole } from './UserTrafficSource.entity';
-export { UserTrafficOrderRole } from './UserTrafficOrder.entity';
+export * from './TrafficSourceCategory.entity';
+export * from './UserTrafficBuyer.entity';
+export * from './UserTrafficOrder.entity';
+export * from './UserTrafficSource.entity';

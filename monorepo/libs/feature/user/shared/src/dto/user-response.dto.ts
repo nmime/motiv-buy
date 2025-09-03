@@ -1,9 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserStatus, UserRole } from '../constant/user.constant';
+import { UserRole, UserStatus } from '../constant';
 
-/**
- * DTO for user response data
- */
 export class UserResponseDto {
   @ApiProperty({
     description: 'User ID',
@@ -12,42 +9,53 @@ export class UserResponseDto {
   id!: string;
 
   @ApiProperty({
+    description: 'Telegram user ID',
+    example: '123456789',
+  })
+  telegramId!: string;
+
+  @ApiProperty({
     description: 'User first name',
     example: 'John',
   })
   firstName!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'User last name',
     example: 'Doe',
   })
-  lastName!: string;
-
-  @ApiProperty({
-    description: 'User email address',
-    example: 'john.doe@example.com',
-  })
-  email!: string;
+  lastName?: string;
 
   @ApiPropertyOptional({
-    description: 'User phone number',
-    example: '+1234567890',
+    description: 'Telegram username',
+    example: 'johndoe',
   })
-  phoneNumber?: string;
+  username?: string;
 
   @ApiProperty({
     description: 'User status',
     enum: UserStatus,
-    example: UserStatus.ACTIVE,
+    example: UserStatus.Active,
   })
   status!: UserStatus;
 
-  @ApiProperty({
-    description: 'User role',
-    enum: UserRole,
-    example: UserRole.USER,
+  @ApiPropertyOptional({
+    description: 'User language code',
+    example: 'en',
   })
-  role!: UserRole;
+  languageCode?: string;
+
+  @ApiPropertyOptional({
+    description: 'Referrer user telegram ID',
+    example: '987654321',
+  })
+  referredBy?: string;
+
+  @ApiProperty({
+    description: 'Number of referrals made by user',
+    example: 5,
+  })
+  referralCount!: number;
 
   @ApiProperty({
     description: 'User creation date',
@@ -60,4 +68,17 @@ export class UserResponseDto {
     example: '2024-08-31T14:26:00Z',
   })
   updatedAt!: Date;
+
+  @ApiPropertyOptional({
+    description: 'User last active date',
+    example: '2024-09-01T10:30:00Z',
+  })
+  lastActiveAt?: Date;
+
+  @ApiProperty({
+    description: 'User role',
+    enum: UserRole,
+    example: UserRole.User,
+  })
+  role!: UserRole;
 }

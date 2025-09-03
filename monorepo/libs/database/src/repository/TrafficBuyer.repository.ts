@@ -1,4 +1,4 @@
-import { EntityManager, EntityRepository } from '@mikro-orm/core';
+import { EntityManager, EntityRepository, FilterQuery } from '@mikro-orm/core';
 import { TrafficBuyerEntity, TrafficBuyerType } from '../entity';
 
 export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity> {
@@ -30,7 +30,7 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
   }
 
   async findByMemberCapacity(minMembers?: number, maxMembers?: number): Promise<TrafficBuyerEntity[]> {
-    const conditions: any = { isActive: true };
+    const conditions: FilterQuery<TrafficBuyerEntity> = { isActive: true };
     
     if (minMembers !== undefined) {
       conditions.minMembers = { $lte: minMembers };

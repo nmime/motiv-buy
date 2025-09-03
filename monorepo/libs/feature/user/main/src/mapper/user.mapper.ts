@@ -1,54 +1,43 @@
 import { Injectable } from '@nestjs/common';
-
-// Local interface to avoid cross-library imports
-enum UserStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-}
-
-enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
-}
+import { UserEntity, UserRole, UserStatus } from '@app/database';
 
 interface UserResponseDto {
   id: string;
+  telegramId: string;
   firstName: string;
   lastName?: string;
-  email?: string;
-  phoneNumber?: string;
-  status?: UserStatus;
-  role?: UserRole;
+  username?: string;
+  status: UserStatus;
+  languageCode?: string;
+  referredBy?: string;
+  referralCount: number;
+  role: UserRole;
   createdAt: Date;
   updatedAt: Date;
+  lastActiveAt?: Date;
 }
 
-/**
- * User mapper - data transformation utilities
- */
 @Injectable()
 export class UserMapper {
-  /**
-   * Convert data to UserResponseDto
-   */
-  toResponse(data: any): UserResponseDto {
+  toResponse(user: UserEntity): UserResponseDto {
     return {
-      id: data.id,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phoneNumber: data.phoneNumber,
-      status: data.status,
-      role: data.role,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
+      id: user.id,
+      telegramId: user.telegramId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      status: user.status,
+      languageCode: user.languageCode,
+      referredBy: user.referredBy,
+      referralCount: user.referralCount,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      lastActiveAt: user.lastActiveAt,
     };
   }
 
-  /**
-   * Convert multiple data items to UserResponseDto array
-   */
-  toResponseArray(dataArray: any[]): UserResponseDto[] {
-    return dataArray.map(data => this.toResponse(data));
+  toResponseArray(users: UserEntity[]): UserResponseDto[] {
+    return users.map(user => this.toResponse(user));
   }
 }

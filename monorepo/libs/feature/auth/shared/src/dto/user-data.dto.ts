@@ -8,7 +8,6 @@ export class UserData {
   firstName?: string;
   lastName?: string;
   languageCode?: string;
-  isPremium?: boolean;
   isBlocked?: boolean;
   premiumUntil?: Date;
   referralCode?: string;

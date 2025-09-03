@@ -11,16 +11,16 @@ export const USER_REPOSITORY = 'USER_REPOSITORY';
  * User status enumeration
  */
 export enum UserStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  SUSPENDED = 'suspended',
+  Active = 'active',
+  Restricted = 'restricted',
+  Banned = 'banned',
 }
 
 /**
  * User role enumeration
  */
 export enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
-  MODERATOR = 'moderator',
+  User = 'user',
+  Admin = 'admin',
+  Developer = 'developer',
 }

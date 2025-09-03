@@ -4,7 +4,6 @@ export interface LoginDto {
   lastName?: string;
   username?: string;
   languageCode?: string;
-  isPremium?: boolean;
   startParam?: string;
   telegramVersion?: string;
   telegramPlatform?: string;

@@ -3,5 +3,4 @@
  * Contains contracts, DTOs, and interfaces
  */
 export * from './dto';
-export * from './repository';
 export * from './constant';

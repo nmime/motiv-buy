@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { UserRepository, UserBalanceHistoryRepository, UserSettingsRepository } from '@app/database';
+import { UserRepository, UserBalanceHistoryRepository, UserSettingsRepository, UserStatus } from '@app/database';
 
 // Local interfaces to avoid cross-library imports
 interface CreateUserDto {
@@ -24,7 +24,7 @@ interface UserResponseDto {
   firstName: string;
   lastName?: string;
   email?: string;
-  isActive?: boolean;
+  status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -70,8 +70,6 @@ export class UserService {
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
       languageCode: createUserDto.languageCode,
-      isActive: true,
-      isPremium: false,
     });
 
     return {
@@ -80,7 +78,7 @@ export class UserService {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      isActive: user.isActive,
+      status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -108,7 +106,7 @@ export class UserService {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      isActive: user.isActive,
+      status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -129,7 +127,7 @@ export class UserService {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      isActive: user.isActive,
+      status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -150,7 +148,7 @@ export class UserService {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      isActive: user.isActive,
+      status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

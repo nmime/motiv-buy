@@ -1,5 +1,10 @@
 import { Entity, PrimaryKey, Property, ManyToOne, OneToMany, Collection, Index, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from "../type/entity-constructor.type";
+import { UserEntity } from './User.entity';
+import { TrafficSourceEntity } from './TrafficSource.entity';
+import { TrafficBuyerEntity } from './TrafficBuyer.entity';
+import { TrafficUserEntity } from './TrafficUser.entity';
+import { TrafficActionsEntity } from './TrafficActions.entity';
 
 export enum TrafficOrderStatus {
   Pending = 'pending',
@@ -20,77 +25,82 @@ export enum TrafficOrderType {
   Comment = 'comment'
 }
 
-@Entity()
+@Entity({ tableName: 'traffic_orders' })
+@Index({ name: 'ix__traffic_orders__order_id', properties: ['orderId'] })
+@Index({ name: 'ix__traffic_orders__status', properties: ['status'] })
+@Index({ name: 'ix__traffic_orders__type', properties: ['type'] })
+@Index({ name: 'ix__traffic_orders__created_at', properties: ['createdAt'] })
 export class TrafficOrderEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @Property({ unique: true })
-  @Index()
+  @Property({ type: 'varchar', length: 64, unique: true, fieldName: 'order_id' })
   orderId!: string;
 
+  @Property({ type: 'varchar', length: 20, fieldName: 'type' })
   @Enum(() => TrafficOrderType)
   type!: TrafficOrderType;
 
+  @Property({ type: 'varchar', length: 20, fieldName: 'status' })
   @Enum(() => TrafficOrderStatus)
   status!: TrafficOrderStatus;
 
-  @Property()
+  @Property({ type: 'integer', fieldName: 'target_count' })
   targetCount!: number;
 
-  @Property({ default: 0 })
+  @Property({ type: 'integer', default: 0, fieldName: 'current_count' })
   currentCount = 0;
 
-  @Property()
-  pricePerAction!: number;
+  @Property({ type: 'decimal', precision: 10, scale: 4, fieldName: 'price_per_action' })
+  pricePerAction!: string;
 
-  @Property()
-  totalBudget!: number;
+  @Property({ type: 'decimal', precision: 15, scale: 4, fieldName: 'total_budget' })
+  totalBudget!: string;
 
-  @Property({ default: 0 })
-  spentAmount = 0;
+  @Property({ type: 'decimal', precision: 15, scale: 4, default: '0', fieldName: 'spent_amount' })
+  spentAmount = '0';
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'description' })
   description?: string;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'target_url' })
   targetUrl?: string;
 
-  @Property({ nullable: true })
-  requirements?: string; // JSON string for additional requirements
+  @Property({ type: 'json', nullable: true, fieldName: 'requirements' })
+  requirements?: Record<string, any>;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'start_date' })
   startDate?: Date;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'end_date' })
   endDate?: Date;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'completed_at' })
   completedAt?: Date;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne(() => 'UserEntity')
-  creator!: any;
+  @ManyToOne(() => UserEntity)
+  creator!: UserEntity;
 
-  @ManyToOne(() => 'TrafficSourceEntity')
-  trafficSource!: any;
+  @ManyToOne(() => TrafficSourceEntity)
+  trafficSource!: TrafficSourceEntity;
 
-  @ManyToOne(() => 'TrafficBuyerEntity')
-  trafficBuyer!: any;
+  @ManyToOne(() => TrafficBuyerEntity)
+  trafficBuyer!: TrafficBuyerEntity;
 
-  @ManyToOne(() => 'TrafficUserEntity', { nullable: true })
-  assignedTrafficUser?: any;
+  @ManyToOne(() => TrafficUserEntity, { nullable: true })
+  assignedTrafficUser?: TrafficUserEntity;
 
-  @ManyToOne(() => 'UserEntity', { nullable: true })
-  createdBy?: any;
+  @ManyToOne(() => UserEntity, { nullable: true })
+  createdBy?: UserEntity;
 
-  @OneToMany(() => 'TrafficActionsEntity', 'trafficOrder')
-  actions? = new Collection<any>(this);
+  @OneToMany(() => TrafficActionsEntity, 'trafficOrder')
+  actions = new Collection<TrafficActionsEntity>(this);
 
   constructor(data: EntityConstructorData<TrafficOrderEntity, 'id' | 'createdAt' | 'updatedAt', 'currentCount' | 'spentAmount'>) {
     Object.assign(this, data);

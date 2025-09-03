@@ -1,11 +1,12 @@
-import { Entity, Property, ManyToOne, Index, PrimaryKey } from '@mikro-orm/core';
+import { Entity, Property, ManyToOne, Index, PrimaryKey, Enum } from '@mikro-orm/core';
+import { UserEntity } from './User.entity';
 
 export enum PlatformType {
   Telegram = 'telegram',
-  WEB = 'web',
-  MOBILE = 'mobile',
-  BOT = 'bot',
-  API = 'api',
+  Web = 'web',
+  Mobile = 'mobile',
+  Bot = 'bot',
+  Api = 'api'
 }
 
 export interface UserSourceVisitPlatformData {
@@ -18,68 +19,68 @@ export interface UserSourceVisitPlatformData {
 @Index({ name: 'ix__user_source_visits__utm_source', properties: ['utmSource'] })
 @Index({ name: 'ix__user_source_visits__utm_medium', properties: ['utmMedium'] })
 @Index({ name: 'ix__user_source_visits__utm_campaign', properties: ['utmCampaign'] })
-@Index({ name: 'ix__user_source_visits__utm_content', properties: ['utmContent'] })
+@Index({ name: 'ix__user_source_visits__platform_type', properties: ['platformType'] })
 export class UserSourceVisitEntity {
-  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  @PrimaryKey({ type: 'bigserial' })
   id!: string;
 
-  @Property()
+  @Property({ type: 'varchar', length: 20, fieldName: 'platform_type' })
+  @Enum(() => PlatformType)
   platformType!: PlatformType;
 
-  @Property({ type: 'json', nullable: true })
+  @Property({ type: 'json', nullable: true, fieldName: 'platform_data' })
   platformData?: UserSourceVisitPlatformData;
 
-  @Property({ type: 'text', nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'params' })
   params?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 255, nullable: true, fieldName: 'utm_source' })
   utmSource?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 255, nullable: true, fieldName: 'utm_medium' })
   utmMedium?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 255, nullable: true, fieldName: 'utm_campaign' })
   utmCampaign?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 255, nullable: true, fieldName: 'utm_content' })
   utmContent?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 255, nullable: true, fieldName: 'link_type' })
   linkType?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 255, nullable: true, fieldName: 'link_code' })
   linkCode?: string;
 
-
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 10, nullable: true, fieldName: 'language' })
   language?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 10, nullable: true, fieldName: 'telegram_language' })
   telegramLanguage?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 64, nullable: true, fieldName: 'continent' })
   continent?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 64, nullable: true, fieldName: 'country' })
   country?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'varchar', length: 128, nullable: true, fieldName: 'city' })
   city?: string;
 
-  @Property({ type: 'string', length: 255, nullable: true })
+  @Property({ type: 'inet', nullable: true, fieldName: 'ip' })
   ip?: string;
 
-  @Property({ type: 'boolean', default: false })
+  @Property({ type: 'boolean', default: false, fieldName: 'is_signup' })
   isSignup: boolean = false;
 
-  @Property({ type: 'datetime', onCreate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @ManyToOne(() => 'UserEntity', { nullable: true, fieldName: 'user_id' })
-  user?: any;
+  @ManyToOne(() => UserEntity, { nullable: true, fieldName: 'user_id' })
+  user?: UserEntity;
 
-  @ManyToOne(() => 'UserEntity', { nullable: true, fieldName: 'link_user_id' })
-  linkUser?: any;
+  @ManyToOne(() => UserEntity, { nullable: true, fieldName: 'link_user_id' })
+  linkUser?: UserEntity;
 
   constructor(data?: Partial<UserSourceVisitEntity>) {
     if (data) {

@@ -1,4 +1,4 @@
-import {EntityManager, EntityRepository, QueryOrder} from '@mikro-orm/core';
+import {EntityManager, EntityRepository, QueryOrder, FilterQuery} from '@mikro-orm/core';
 import {TransactionStatus, TransactionType, UserBalanceHistoryEntity} from '../entity/UserBalanceHistory.entity';
 import {UserEntity} from '../entity/User.entity';
 import {CurrencyType} from '../entity/UserBalance.entity';
@@ -124,7 +124,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     const dateFrom = new Date();
     dateFrom.setDate(dateFrom.getDate() - days);
 
-    const conditions: any = {
+    const conditions: FilterQuery<UserBalanceHistoryEntity> = {
       createdAt: { $gte: dateFrom }
     };
 
@@ -156,7 +156,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     type?: TransactionType,
     limit: number = 50
   ): Promise<UserBalanceHistoryEntity[]> {
-    const conditions: any = {
+    const conditions: FilterQuery<UserBalanceHistoryEntity> = {
       user: { telegramId }
     };
 

@@ -18,7 +18,7 @@ import {
   BotAction,
   TrafficType,
   OrderStatus
-} from '@libs/feature/traffic/shared';
+} from '@app/feature-traffic-shared';
 
 /**
  * Service for managing traffic bots and traffic purchase orders

@@ -11,39 +11,42 @@ export enum UserTrafficBuyerRole {
 }
 
 
-@Entity()
-@Unique({ properties: ['user', 'trafficBuyer'] })
+@Entity({ tableName: 'user_traffic_buyers' })
+@Index({ name: 'ix__user_traffic_buyers__user_id', properties: ['user'] })
+@Index({ name: 'ix__user_traffic_buyers__buyer_id', properties: ['trafficBuyer'] })
+@Index({ name: 'ix__user_traffic_buyers__role', properties: ['role'] })
+@Index({ name: 'ix__user_traffic_buyers__is_active', properties: ['isActive'] })
+@Unique({ name: 'uq__user_traffic_buyers__user_buyer', properties: ['user', 'trafficBuyer'] })
 export class UserTrafficBuyerEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => UserEntity)
-  @Index()
+  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
   user!: UserEntity;
 
-  @ManyToOne(() => TrafficBuyerEntity)
-  @Index()
+  @ManyToOne(() => TrafficBuyerEntity, { fieldName: 'traffic_buyer_id' })
   trafficBuyer!: TrafficBuyerEntity;
 
+  @Property({ type: 'varchar', length: 20, fieldName: 'role' })
   @Enum(() => UserTrafficBuyerRole)
   role!: UserTrafficBuyerRole;
 
-  @Property({ default: true })
+  @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
   isActive = true;
 
-  @Property({ nullable: true })
-  permissions?: string; // JSON string for specific permissions
+  @Property({ type: 'json', nullable: true, fieldName: 'permissions' })
+  permissions?: Record<string, any>;
 
-  @Property({ nullable: true })
+  @Property({ type: 'timestamptz', nullable: true, fieldName: 'assigned_at' })
   assignedAt?: Date;
 
-  @Property({ nullable: true })
-  assignedBy?: string; // User ID who assigned this role
+  @Property({ type: 'uuid', nullable: true, fieldName: 'assigned_by' })
+  assignedBy?: string;
 
-  @Property()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
   constructor(data: EntityConstructorData<UserTrafficBuyerEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive'>) {

@@ -77,7 +77,7 @@ export class AuthJwtCacheService {
     }
   }
 
-  async getUserTokens(userId: number): Promise<string[]> {
+  async getUserTokens(userId: string): Promise<string[]> {
     try {
       const cacheKey = this.getUserTokensKey(String(userId));
       const tokensStr = await this.redis.get(cacheKey);
@@ -98,7 +98,7 @@ export class AuthJwtCacheService {
     }
   }
 
-  private async addToUserTokens(userId: number, jti: string): Promise<void> {
+  private async addToUserTokens(userId: string, jti: string): Promise<void> {
     try {
       const cacheKey = this.getUserTokensKey(String(userId));
       

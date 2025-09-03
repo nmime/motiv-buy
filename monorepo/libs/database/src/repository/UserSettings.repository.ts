@@ -19,22 +19,27 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     return this.find({ key, isActive: true }, { populate: ['user'] });
   }
 
-  async getSetting(user: UserEntity, key: string, defaultValue?: any): Promise<any> {
+  async getSetting<T = unknown>(user: UserEntity, key: string, defaultValue?: T): Promise<T> {
     const setting = await this.findByUserAndKey(user, key);
     return setting ? setting.getValue() : defaultValue;
   }
 
-  async setSetting(
+  async setSetting<T = unknown>(
     user: UserEntity,
     key: string,
-    value: any,
+    value: T,
     type: SettingType = SettingType.STRING,
     description?: string
   ): Promise<UserSettingsEntity> {
     let setting = await this.findByUserAndKey(user, key);
 
     if (!setting) {
-      setting = new UserSettingsEntity(user, key, '', type);
+      setting = new UserSettingsEntity({
+        user,
+        key,
+        value: '',
+        type
+      });
       if (description) setting.description = description;
       this.em.persist(setting);
     }
@@ -47,7 +52,7 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     return setting;
   }
 
-  async updateSetting(user: UserEntity, key: string, value: any): Promise<boolean> {
+  async updateSetting<T = unknown>(user: UserEntity, key: string, value: T): Promise<boolean> {
     const setting = await this.findByUserAndKey(user, key);
     if (setting) {
       setting.setValue(value);
@@ -67,9 +72,9 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     return false;
   }
 
-  async getUserSettings(user: UserEntity): Promise<Record<string, any>> {
+  async getUserSettings(user: UserEntity): Promise<Record<string, unknown>> {
     const settings = await this.findByUser(user);
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
 
     for (const setting of settings) {
       result[setting.key] = setting.getValue();
@@ -79,13 +84,18 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
   }
 
   async getUserSettingsWithMetadata(user: UserEntity): Promise<Record<string, {
-    value: any;
+    value: unknown;
     type: SettingType;
     description?: string;
     updatedAt: Date;
   }>> {
     const settings = await this.findByUser(user);
-    const result: Record<string, any> = {};
+    const result: Record<string, {
+      value: unknown;
+      type: SettingType;
+      description?: string;
+      updatedAt: Date;
+    }> = {};
 
     for (const setting of settings) {
       result[setting.key] = {
@@ -131,7 +141,7 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
 
   async bulkSetSettings(
     user: UserEntity,
-    settings: Record<string, { value: any; type?: SettingType; description?: string }>
+    settings: Record<string, { value: unknown; type?: SettingType; description?: string }>
   ): Promise<void> {
     for (const [key, config] of Object.entries(settings)) {
       await this.setSetting(

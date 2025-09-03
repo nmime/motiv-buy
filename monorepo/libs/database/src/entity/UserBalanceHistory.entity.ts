@@ -1,90 +1,82 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum } from '@mikro-orm/core';
 import { CurrencyType } from './UserBalance.entity';
+import { UserEntity } from './User.entity';
+import { EntityConstructorData } from '../type';
 
 export enum TransactionType {
-  DEPOSIT = 'DEPOSIT',
-  WITHDRAWAL = 'WITHDRAWAL',
-  TRANSFER_IN = 'TRANSFER_IN',
-  TRANSFER_OUT = 'TRANSFER_OUT',
-  REWARD = 'REWARD',
-  PENALTY = 'PENALTY',
-  TRADE_BUY = 'TRADE_BUY',
-  TRADE_SELL = 'TRADE_SELL',
-  REFERRAL_BONUS = 'REFERRAL_BONUS',
-  ADMIN_ADJUSTMENT = 'ADMIN_ADJUSTMENT'
+  Deposit = 'deposit',
+  Withdrawal = 'withdrawal',
+  TransferIn = 'transfer_in',
+  TransferOut = 'transfer_out',
+  Reward = 'reward',
+  Penalty = 'penalty',
+  TradeBuy = 'trade_buy',
+  TradeSell = 'trade_sell',
+  ReferralBonus = 'referral_bonus',
+  AdminAdjustment = 'admin_adjustment'
 }
 
 export enum TransactionStatus {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED'
+  Pending = 'pending',
+  Completed = 'completed',
+  Failed = 'failed',
+  Cancelled = 'cancelled'
 }
 
-@Entity()
+@Entity({ tableName: 'user_balance_history' })
+@Index({ name: 'ix__user_balance_history__user_id', properties: ['user'] })
+@Index({ name: 'ix__user_balance_history__currency', properties: ['currency'] })
+@Index({ name: 'ix__user_balance_history__type', properties: ['type'] })
+@Index({ name: 'ix__user_balance_history__status', properties: ['status'] })
+@Index({ name: 'ix__user_balance_history__reference_id', properties: ['referenceId'] })
+@Index({ name: 'ix__user_balance_history__created_at', properties: ['createdAt'] })
 export class UserBalanceHistoryEntity {
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => 'UserEntity')
-  @Index()
-  user!: any;
+  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
+  user!: UserEntity;
 
-  @Property()
-  @Index()
+  @Property({ type: 'varchar', length: 10, fieldName: 'currency' })
+  @Enum(() => CurrencyType)
   currency!: CurrencyType;
 
-  @Property()
-  @Index()
+  @Property({ type: 'varchar', length: 20, fieldName: 'type' })
+  @Enum(() => TransactionType)
   type!: TransactionType;
 
-  @Property({ type: 'decimal', precision: 20, scale: 8 })
+  @Property({ type: 'decimal', precision: 20, scale: 8, fieldName: 'amount' })
   amount!: string;
 
-  @Property({ type: 'decimal', precision: 20, scale: 8 })
+  @Property({ type: 'decimal', precision: 20, scale: 8, fieldName: 'balance_before' })
   balanceBefore!: string;
 
-  @Property({ type: 'decimal', precision: 20, scale: 8 })
+  @Property({ type: 'decimal', precision: 20, scale: 8, fieldName: 'balance_after' })
   balanceAfter!: string;
 
-  @Property({ default: TransactionStatus.PENDING })
-  @Index()
+  @Property({ type: 'varchar', length: 20, default: TransactionStatus.Pending, fieldName: 'status' })
+  @Enum(() => TransactionStatus)
   status!: TransactionStatus;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true, fieldName: 'description' })
   description?: string;
 
-  @Property({ nullable: true })
+  @Property({ type: 'varchar', length: 128, nullable: true, fieldName: 'tx_hash' })
   txHash?: string;
 
-  @Property({ nullable: true })
-  @Index()
+  @Property({ type: 'varchar', length: 64, nullable: true, fieldName: 'reference_id' })
   referenceId?: string;
 
-  @Property({ type: 'json', nullable: true })
+  @Property({ type: 'json', nullable: true, fieldName: 'metadata' })
   metadata?: Record<string, any>;
 
-  @Property()
-  @Index()
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(
-    user: any,
-    currency: CurrencyType,
-    type: TransactionType,
-    amount: string,
-    balanceBefore: string,
-    balanceAfter: string
-  ) {
-    this.user = user;
-    this.currency = currency;
-    this.type = type;
-    this.amount = amount;
-    this.balanceBefore = balanceBefore;
-    this.balanceAfter = balanceAfter;
-    this.status = TransactionStatus.PENDING;
+  constructor(data: EntityConstructorData<UserBalanceHistoryEntity, 'id' | 'createdAt' | 'updatedAt', 'status'>) {
+    Object.assign(this, data);
   }
 }
