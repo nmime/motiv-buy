@@ -4,6 +4,7 @@ dist
 node_modules
 build
 tmp
+temp
 
 # Logs
 logs

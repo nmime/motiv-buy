@@ -21,7 +21,7 @@
 ### Fundamental Development Principles
 
 #### Domain Organization
-- **`libs/features`** – This folder holds the business domains
+- **`libs/feature`** – This folder holds the business domains
 - **`libs/database`** – Database entities, repositories, and services
 - Each domain is split into two libraries: **main** and **shared**
     - **main** – The domain's core business code and implementation

@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
 export const DatabaseConfigSchema = z.object({
-  type: z.literal('postgresql'),
-  host: z.string(),
-  port: z.number(),
+  type: z.literal('sqlite'),
+  host: z.string().optional(),
+  port: z.number().optional(),
   dbName: z.string(),
-  user: z.string(),
-  password: z.string(),
+  user: z.string().optional(),
+  password: z.string().optional(),
   debug: z.boolean().default(false),
   migrations: z.object({
     path: z.string().default('./src/migrations'),
@@ -25,23 +25,17 @@ export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>;
  * Follows CLAUDE.md security-first principles - never hardcode credentials
  */
 export const getDatabaseConfig = (): DatabaseConfig => {
-  if (!process.env['DB_HOST']) {
-    throw new Error('DB_HOST environment variable is required');
-  }
   if (!process.env['DB_NAME']) {
     throw new Error('DB_NAME environment variable is required');
   }
-  if (!process.env['DB_USER']) {
-    throw new Error('DB_USER environment variable is required');
-  }
 
   const config: DatabaseConfig = {
-    type: 'postgresql',
+    type: 'sqlite',
     host: process.env['DB_HOST'],
-    port: parseInt(process.env['DB_PORT'] || '5432'),
+    port: process.env['DB_PORT'] ? parseInt(process.env['DB_PORT']) : undefined,
     dbName: process.env['DB_NAME'],
     user: process.env['DB_USER'],
-    password: process.env['DB_PASSWORD'] || '',
+    password: process.env['DB_PASSWORD'],
     debug: process.env['DB_DEBUG'] === 'true',
     migrations: {
       path: process.env['DB_MIGRATIONS_PATH'] || './src/migrations',

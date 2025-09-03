@@ -1,0 +1,32 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../../../dist/out-tsc",
+    "declaration": true,
+    "types": ["node"],
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "jest.config.ts", 
+    "src/**/*.spec.ts", 
+    "src/**/*.test.ts",
+    "src/service/auth.service.ts",
+    "src/service/source-register.service.ts",
+    "src/service/get-user-ref-link.service.ts",
+    "src/service/user-visit.service.ts",
+    "src/service/auth-services.ts",
+    "src/const/regex-patterns.const.ts",
+    "src/auth-shared.module.ts",
+    "src/auth-shared.module-clean.ts",
+    "src/auth-shared.module-standalone.ts",
+    "src/exception/unauthorized.exception.ts"
+  ]
+}

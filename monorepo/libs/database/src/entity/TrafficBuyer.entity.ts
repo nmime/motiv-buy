@@ -1,6 +1,4 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { TrafficOrderEntity } from './TrafficOrder.entity';
-import { UserEntity } from './User.entity';
 import { EntityConstructorData } from "../type/entity-constructor.type";
 
 export enum TrafficBuyerType {
@@ -58,11 +56,11 @@ export class TrafficBuyerEntity {
   @Property({ onUpdate: () => new Date() })
   updatedAt: Date = new Date();
 
-  @ManyToOne(() => UserEntity, { nullable: true })
-  managedBy?: UserEntity;
+  @ManyToOne(() => 'UserEntity', { nullable: true })
+  managedBy?: any;
 
-  @OneToMany(() => TrafficOrderEntity, order => order.trafficBuyer)
-  orders? = new Collection<TrafficOrderEntity>(this);
+  @OneToMany(() => 'TrafficOrderEntity', 'trafficBuyer')
+  orders? = new Collection<any>(this);
 
   
   constructor(data: EntityConstructorData<TrafficBuyerEntity, 'id' | 'createdAt' | 'updatedAt'>) {

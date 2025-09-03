@@ -1,7 +1,4 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { TrafficOrderEntity } from './TrafficOrder.entity';
-import { TrafficUserEntity } from './TrafficUser.entity';
-import { UserEntity } from './User.entity';
 import { EntityConstructorData } from "../type/entity-constructor.type";
 
 export enum TrafficSourceType {
@@ -45,14 +42,14 @@ export class TrafficSourceEntity {
   @Property({ onUpdate: () => new Date() })
   updatedAt: Date = new Date();
 
-  @ManyToOne(() => UserEntity, { nullable: true })
-  managedBy?: UserEntity;
+  @ManyToOne(() => 'UserEntity', { nullable: true })
+  managedBy?: any;
 
-  @OneToMany(() => TrafficOrderEntity, order => order.trafficSource)
-  orders? = new Collection<TrafficOrderEntity>(this);
+  @OneToMany(() => 'TrafficOrderEntity', 'trafficSource')
+  orders? = new Collection<any>(this);
 
-  @OneToMany(() => TrafficUserEntity, user => user.trafficSource)
-  trafficUsers? = new Collection<TrafficUserEntity>(this);
+  @OneToMany(() => 'TrafficUserEntity', 'trafficSource')
+  trafficUsers? = new Collection<any>(this);
 
   @OneToMany(() => 'TrafficActionsEntity', 'trafficSource')
   actions? = new Collection<any>(this);

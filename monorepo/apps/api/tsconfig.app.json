@@ -1,9 +1,32 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "../../../dist/out-tsc",
-    "paths": {}
+    "outDir": "../../dist/apps/api",
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "composite": false,
+    "skipLibCheck": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"]
+  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],
+  "references": [
+    {
+      "path": "../../libs/feature/statistic/main"
+    },
+    {
+      "path": "../../libs/feature/balance/main"
+    },
+    {
+      "path": "../../libs/feature/user/main"
+    },
+    {
+      "path": "../../libs/feature/auth/main"
+    },
+    {
+      "path": "../../libs/database"
+    }
+  ]
 }

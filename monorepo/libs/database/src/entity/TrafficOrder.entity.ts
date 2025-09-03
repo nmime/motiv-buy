@@ -1,8 +1,4 @@
 import { Entity, PrimaryKey, Property, ManyToOne, OneToMany, Collection, Index, Enum } from '@mikro-orm/core';
-import { TrafficSourceEntity } from './TrafficSource.entity';
-import { TrafficBuyerEntity } from './TrafficBuyer.entity';
-import { TrafficUserEntity } from './TrafficUser.entity';
-import { UserEntity } from './User.entity';
 import { EntityConstructorData } from "../type/entity-constructor.type";
 
 export enum TrafficOrderStatus {
@@ -78,20 +74,20 @@ export class TrafficOrderEntity {
   @Property({ onUpdate: () => new Date() })
   updatedAt: Date = new Date();
 
-  @ManyToOne(() => UserEntity)
-  creator!: UserEntity;
+  @ManyToOne(() => 'UserEntity')
+  creator!: any;
 
-  @ManyToOne(() => TrafficSourceEntity)
-  trafficSource!: TrafficSourceEntity;
+  @ManyToOne(() => 'TrafficSourceEntity')
+  trafficSource!: any;
 
-  @ManyToOne(() => TrafficBuyerEntity)
-  trafficBuyer!: TrafficBuyerEntity;
+  @ManyToOne(() => 'TrafficBuyerEntity')
+  trafficBuyer!: any;
 
-  @ManyToOne(() => TrafficUserEntity, { nullable: true })
-  assignedTrafficUser?: TrafficUserEntity;
+  @ManyToOne(() => 'TrafficUserEntity', { nullable: true })
+  assignedTrafficUser?: any;
 
   @ManyToOne(() => 'UserEntity', { nullable: true })
-  createdBy?: any; // UserEntity reference
+  createdBy?: any;
 
   @OneToMany(() => 'TrafficActionsEntity', 'trafficOrder')
   actions? = new Collection<any>(this);

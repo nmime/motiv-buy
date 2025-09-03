@@ -26,13 +26,23 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
     ip?: string;
     isSignup?: boolean;
   }): Promise<UserSourceVisitEntity> {
-    const visit = new UserSourceVisitEntity(data);
+    const { userId, linkUserId, ...visitData } = data;
+    const visit = new UserSourceVisitEntity(visitData);
+    
+    // Set user references using entity manager
+    if (userId) {
+      visit.user = this.em.getReference('UserEntity', userId);
+    }
+    if (linkUserId) {
+      visit.linkUser = this.em.getReference('UserEntity', linkUserId);
+    }
+    
     await this.em.persistAndFlush(visit);
     return visit;
   }
 
   async findByUserId(userId: string): Promise<UserSourceVisitEntity[]> {
-    return this.find({ userId });
+    return this.find({ user: userId });
   }
 
   async findRecentVisits(limit: number = 10): Promise<UserSourceVisitEntity[]> {

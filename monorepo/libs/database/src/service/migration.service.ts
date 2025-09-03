@@ -1,5 +1,6 @@
+import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { DatabaseService } from './database.service';
+import { InjectEntityManager } from '@mikro-orm/nestjs';
 import { UserEntity } from '../entity';
 import { UserBalanceEntity, CurrencyType } from '../entity';
 import { UserBalanceHistoryEntity, TransactionType, TransactionStatus } from '../entity';
@@ -35,12 +36,9 @@ export interface LegacyUserSettings {
   type?: string;
 }
 
+@Injectable()
 export class MigrationService {
-  private em: EntityManager;
-
-  constructor(databaseService: DatabaseService) {
-    this.em = databaseService.getEntityManager();
-  }
+  constructor(@InjectEntityManager('default') private em: EntityManager) {}
 
   async migrateUsers(legacyUsers: LegacyUser[]): Promise<{
     success: number;

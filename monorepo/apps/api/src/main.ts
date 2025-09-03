@@ -18,7 +18,7 @@ async function bootstrap() {
   
   // Simple app config inline
   const appConfig = {
-    apiPrefix: process.env.API_PREFIX || 'api/v1',
+    apiPrefix: process.env.API_PREFIX || 'api',
     port: parseInt(process.env.PORT || '3000', 10),
     host: process.env.HOST || '0.0.0.0',
     nodeEnv: process.env.NODE_ENV || 'development',

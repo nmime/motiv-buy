@@ -106,8 +106,8 @@ The application module is where we compose the domain libraries. No business log
 // apps/auth/auth-api/src/auth-api.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AuthMainModule } from '@app/features-auth-main';
-import { AuthSharedModule } from '@app/features-auth-shared';
+import { AuthMainModule } from '@app/feature-auth-main';
+import { AuthSharedModule } from '@app/feature-auth-shared';
 import { CommonDatabaseModule } from '@app/common-database';
 import { CommonRedisModule } from '@app/common-redis';
 import { CommonRabbitMQModule } from '@app/common-rabbitmq';
@@ -467,7 +467,7 @@ export class AuthValidationService {
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { AuthUserService } from '@app/features-auth-shared';
+import { AuthUserService } from '@app/feature-auth-shared';
 import { UserRepository } from '@app/mysql';
 
 describe('AuthService', () => {

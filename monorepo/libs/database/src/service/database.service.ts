@@ -1,8 +1,10 @@
+import { Injectable } from '@nestjs/common';
 import { MikroORM, EntityManager, RequestContext } from '@mikro-orm/core';
 import { FastifyRequest } from 'fastify';
 import { createMikroOrmConfig } from '../config/mikro-orm.config';
 import { DatabaseConfig } from '../config/database.config';
 
+@Injectable()
 export class DatabaseService {
   private orm!: MikroORM;
   private isConnected = false;

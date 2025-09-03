@@ -1,0 +1,226 @@
+# Production Docker Compose Configuration
+# Uses common prefixes and YAML anchors for maintainability
+
+# ==========================================
+# YAML ANCHORS - Common Configuration
+# ==========================================
+
+# Common service defaults
+x-common-defaults: &common-defaults
+  restart: unless-stopped
+  networks:
+    - ${PROJECT_NAME}-network-prod
+
+# Common healthcheck configurations
+x-healthcheck-fast: &healthcheck-fast
+  interval: 10s
+  timeout: 3s
+  retries: 5
+
+x-healthcheck-standard: &healthcheck-standard
+  interval: 30s
+  timeout: 10s
+  retries: 3
+
+# Common environment variables
+x-common-env: &common-env
+  NODE_ENV: ${NODE_ENV:-production}
+  PROJECT_NAME: ${PROJECT_NAME}
+  ENV: ${ENV:-prod}
+
+x-db-env: &db-env
+  DB_HOST: postgres-prod
+  DB_PORT: 5432
+  DB_NAME: ${PROJECT_NAME}_${NODE_ENV:-production}
+  DB_USER: ${DB_USER:-motiv_user}
+  DB_PASSWORD: ${DB_PASSWORD:-secure_prod_password_123}
+
+x-redis-env: &redis-env
+  REDIS_HOST: redis-prod
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-secure_redis_password_456}
+
+# Production resource limits
+x-api-resources: &api-resources
+  resources:
+    limits:
+      cpus: '1.0'
+      memory: 512M
+    reservations:
+      cpus: '0.5'
+      memory: 256M
+
+x-bot-resources: &bot-resources
+  resources:
+    limits:
+      cpus: '0.5'
+      memory: 256M
+    reservations:
+      cpus: '0.25'
+      memory: 128M
+
+# ==========================================
+# SERVICES
+# ==========================================
+
+services:
+  # PostgreSQL Database
+  postgres-prod:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME}-postgres-prod
+    <<: *common-defaults
+    environment:
+      POSTGRES_DB: ${PROJECT_NAME}_${NODE_ENV:-production}
+      POSTGRES_USER: ${DB_USER:-motiv_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_prod_password_123}
+      POSTGRES_HOST_AUTH_METHOD: md5
+    volumes:
+      - ${PROJECT_NAME}_postgres_prod_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "${DB_PORT_EXTERNAL:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-motiv_user} -d ${PROJECT_NAME:-motiv-buy}_${NODE_ENV:-production}"]
+      <<: *healthcheck-fast
+
+  # Redis Cache
+  redis-prod:
+    image: redis:7-alpine
+    container_name: ${PROJECT_NAME}-redis-prod
+    <<: *common-defaults
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-secure_redis_password_456}
+    command: redis-server --requirepass ${REDIS_PASSWORD:-secure_redis_password_456}
+    volumes:
+      - ${PROJECT_NAME}_redis_prod_data:/data
+      - ./config/redis/redis-prod.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_PORT_EXTERNAL:-6380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      <<: *healthcheck-fast
+
+  # API Application
+  api-prod:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile.prod
+      target: ${NODE_ENV:-production}
+    container_name: ${PROJECT_NAME}-api-prod
+    <<: *common-defaults
+    environment:
+      <<: [*common-env, *db-env, *redis-env]
+      PORT: ${PORT:-3000}
+      JWT_SECRET: ${JWT_SECRET:-super_secure_jwt_secret_production_only}
+      LOG_LEVEL: ${LOG_LEVEL:-warn}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-900000}
+    ports:
+      - "${API_PORT_EXTERNAL:-3001}:${PORT:-3000}"
+    depends_on:
+      postgres-prod:
+        condition: service_healthy
+      redis-prod:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-3000}/health"]
+      <<: *healthcheck-standard
+    deploy:
+      <<: *api-resources
+
+  # Bot Application
+  bot-prod:
+    build:
+      context: .
+      dockerfile: ./apps/bot/Dockerfile.prod
+      target: ${NODE_ENV:-production}
+    container_name: ${PROJECT_NAME}-bot-prod
+    <<: *common-defaults
+    environment:
+      <<: [*common-env, *db-env, *redis-env]
+      BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      API_BASE_URL: http://api-prod:${PORT:-3000}
+      LOG_LEVEL: ${LOG_LEVEL:-warn}
+    depends_on:
+      api-prod:
+        condition: service_healthy
+      postgres-prod:
+        condition: service_healthy
+      redis-prod:
+        condition: service_healthy
+    deploy:
+      <<: *bot-resources
+
+  # Nginx Reverse Proxy
+  nginx-prod:
+    image: nginx:alpine
+    container_name: ${PROJECT_NAME}-nginx-prod
+    <<: *common-defaults
+    volumes:
+      - ./config/nginx/nginx-prod.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/ssl:/etc/nginx/ssl:ro
+      - ${PROJECT_NAME}_nginx_logs:/var/log/nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    depends_on:
+      - api-prod
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      <<: *healthcheck-standard
+
+  # Monitoring - Prometheus
+  prometheus-prod:
+    image: prom/prometheus:latest
+    container_name: ${PROJECT_NAME}-prometheus-prod
+    <<: *common-defaults
+    volumes:
+      - ./config/prometheus/prometheus-prod.yml:/etc/prometheus/prometheus.yml:ro
+      - ${PROJECT_NAME}_prometheus_prod_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    profiles:
+      - monitoring
+
+  # Monitoring - Grafana
+  grafana-prod:
+    image: grafana/grafana:latest
+    container_name: ${PROJECT_NAME}-grafana-prod
+    <<: *common-defaults
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin_password_789}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - ${PROJECT_NAME}_grafana_prod_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "${GRAFANA_PORT:-3002}:3000"
+    depends_on:
+      - prometheus-prod
+    profiles:
+      - monitoring
+
+# ==========================================
+# NETWORKS
+# ==========================================
+
+networks:
+  ${PROJECT_NAME}-network-prod:
+    driver: bridge
+    name: ${PROJECT_NAME}-${NODE_ENV:-production}
+
+# ==========================================
+# VOLUMES
+# ==========================================
+
+volumes:
+  ${PROJECT_NAME}_postgres_prod_data:
+    name: ${PROJECT_NAME}-postgres-prod-data
+  ${PROJECT_NAME}_redis_prod_data:
+    name: ${PROJECT_NAME}-redis-prod-data
+  ${PROJECT_NAME}_prometheus_prod_data:
+    name: ${PROJECT_NAME}-prometheus-prod-data
+  ${PROJECT_NAME}_grafana_prod_data:
+    name: ${PROJECT_NAME}-grafana-prod-data
+  ${PROJECT_NAME}_nginx_logs:
+    name: ${PROJECT_NAME}-nginx-logs

@@ -1,0 +1,46 @@
+import { Injectable } from '@nestjs/common';
+import { Err, Ok, Result } from 'ts-results';
+import { UserRepository } from '@app/database';
+import { AuthJwtPayloadDto, UserData } from '../dto';
+import { BadTokenException, UserBlockedException, UserNotFoundException } from '@app/common-exception';
+import { AuthConfigService } from '../config';
+
+@Injectable()
+export class AuthJwtValidationService {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly configService: AuthConfigService,
+  ) {}
+
+  async validate(
+    payload: AuthJwtPayloadDto,
+  ): Promise<Result<UserData, UserBlockedException | UserNotFoundException | BadTokenException>> {
+    if (!payload?.app || !payload?.userId) {
+      return Err(new BadTokenException());
+    }
+
+    const user = await this.userRepository.findOne({ id: payload.userId });
+    if (!user) {
+      return Err(new UserNotFoundException());
+    }
+
+    if (this.configService.isDev && !this.hasDevAccess(user)) {
+      return Err(new UserNotFoundException());
+    }
+
+    if (!user.isActive) {
+      return Err(new UserBlockedException());
+    }
+
+    return Ok(
+      new UserData({
+        app: payload.app,
+        userId: String(payload.userId),
+      }),
+    );
+  }
+
+  private hasDevAccess(user: any): boolean {
+    return user.isCreator || user.isAdmin || user.isDev || false;
+  }
+}

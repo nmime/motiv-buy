@@ -1,16 +1,10 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, Index } from '@mikro-orm/core';
-import { UserBalanceEntity } from './UserBalance.entity';
-import { UserBalanceHistoryEntity } from './UserBalanceHistory.entity';
-import { UserSettingsEntity } from './UserSettings.entity';
-import { TrafficBuyerEntity } from './TrafficBuyer.entity';
-import { TrafficSourceEntity } from './TrafficSource.entity';
-import { TrafficOrderEntity } from './TrafficOrder.entity';
-import { EntityConstructorData } from '../type/entity-constructor.type';
+import { EntityConstructorData } from '../type';
 
 @Entity()
 export class UserEntity {
   @PrimaryKey()
-  id!: number;
+  id!: string;
 
   @Property({ unique: true })
   @Index()
@@ -53,23 +47,23 @@ export class UserEntity {
   @Property({ nullable: true })
   lastActiveAt?: Date;
 
-  @OneToMany(() => UserBalanceEntity, balance => balance.user)
-  balances? = new Collection<UserBalanceEntity>(this);
+  @OneToMany(() => 'UserBalanceEntity', 'user')
+  balances? = new Collection<any>(this);
 
-  @OneToMany(() => UserBalanceHistoryEntity, history => history.user)
-  balanceHistory? = new Collection<UserBalanceHistoryEntity>(this);
+  @OneToMany(() => 'UserBalanceHistoryEntity', 'user')
+  balanceHistory? = new Collection<any>(this);
 
-  @OneToMany(() => UserSettingsEntity, settings => settings.user)
-  settings? = new Collection<UserSettingsEntity>(this);
+  @OneToMany(() => 'UserSettingsEntity', 'user')
+  settings? = new Collection<any>(this);
 
-  @OneToMany(() => TrafficBuyerEntity, buyer => buyer.managedBy)
-  managedBuyers? = new Collection<TrafficBuyerEntity>(this);
+  @OneToMany(() => 'TrafficBuyerEntity', 'managedBy')
+  managedBuyers? = new Collection<any>(this);
 
-  @OneToMany(() => TrafficSourceEntity, source => source.managedBy)
-  managedSources? = new Collection<TrafficSourceEntity>(this);
+  @OneToMany(() => 'TrafficSourceEntity', 'managedBy')
+  managedSources? = new Collection<any>(this);
 
-  @OneToMany(() => TrafficOrderEntity, order => order.createdBy)
-  createdOrders? = new Collection<TrafficOrderEntity>(this);
+  @OneToMany(() => 'TrafficOrderEntity', 'createdBy')
+  createdOrders? = new Collection<any>(this);
 
   constructor(data: EntityConstructorData<UserEntity, 'id' | 'createdAt' | 'updatedAt', 'referralCount'>) {
      Object.assign(this, data);

@@ -1,8 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { SqliteDriver } from '@mikro-orm/sqlite';
+import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
 
 import { DatabaseService } from './service/database.service';
 import { MigrationService } from './service/migration.service';
+import { getDatabaseConfig } from './config/database.config';
 import * as repositories from './repository';
 
 import { 
@@ -43,18 +46,35 @@ const entityClasses = [
   UserTrafficSourceEntity
 ];
 
+@Global()
 @Module({
   imports: [
+    MikroOrmModule.forRoot({
+      driver: SqliteDriver,
+      dbName: process.env.DB_NAME || './dev.db',
+      entities: entityClasses,
+      metadataProvider: TsMorphMetadataProvider,
+      debug: process.env.NODE_ENV !== 'production',
+      autoLoadEntities: false,
+      migrations: {
+        path: './migrations',
+        tableName: 'mikro_orm_migrations',
+        transactional: true,
+        allOrNothing: true,
+        safe: false,
+      },
+    }),
     MikroOrmModule.forFeature(entityClasses),
   ],
   providers: [
-    DatabaseService,
-    MigrationService,
+    {
+      provide: DatabaseService,
+      useFactory: () => new DatabaseService(getDatabaseConfig()),
+    },
     ...Object.values(repositories),
   ],
   exports: [
     DatabaseService,
-    MigrationService,
     MikroOrmModule,
     ...Object.values(repositories),
   ],

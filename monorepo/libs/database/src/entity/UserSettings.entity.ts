@@ -1,5 +1,4 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique } from '@mikro-orm/core';
-import { UserEntity } from './User.entity';
 
 export enum SettingType {
   BOOLEAN = 'BOOLEAN',
@@ -22,9 +21,9 @@ export class UserSettingsEntity {
   @PrimaryKey()
   id!: number;
 
-  @ManyToOne(() => UserEntity)
+  @ManyToOne(() => 'UserEntity')
   @Index()
-  user!: UserEntity;
+  user!: any;
 
   @Property()
   @Index()
@@ -48,7 +47,7 @@ export class UserSettingsEntity {
   @Property({ onUpdate: () => new Date() })
   updatedAt: Date = new Date();
 
-  constructor(user: UserEntity, key: string, value: string, type: SettingType = SettingType.STRING) {
+  constructor(user: any, key: string, value: string, type: SettingType = SettingType.STRING) {
     this.user = user;
     this.key = key;
     this.value = value;

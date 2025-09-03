@@ -6,9 +6,9 @@ This document outlines the implementation of the authentication domain for the x
 
 ### Library Type
 This is a **domain** library - following xRocket's feature organization:
-- **Domain libraries** (`libs/features/*/main` and `libs/features/*/shared`) - Domain-specific business logic
-- **Main library** (`libs/features/auth/main`) - Core domain implementation and controllers  
-- **Shared library** (`libs/features/auth/shared`) - Reusable utilities, guards, services, and DTOs
+- **Domain libraries** (`libs/feature/*/main` and `libs/feature/*/shared`) - Domain-specific business logic
+- **Main library** (`libs/feature/auth/main`) - Core domain implementation and controllers  
+- **Shared library** (`libs/feature/auth/shared`) - Reusable utilities, guards, services, and DTOs
 - Libraries follow the principle of minimal surface exposure to maintain domain isolation
 
 ### Domain Objectives
@@ -35,7 +35,7 @@ This is a **domain** library - following xRocket's feature organization:
 Following xRocket's auth domain organization:
 
 ```
-libs/features/auth/
+libs/feature/auth/
 ├── main/                           # Core domain implementation
 │   ├── src/
 │   │   ├── index.ts               # Public API exports (AuthMainModule, AuthService)
@@ -107,9 +107,9 @@ libs/features/auth/
 Primary authentication orchestration service:
 
 ```typescript
-// libs/features/auth/main/src/lib/service/auth.service.ts
+// libs/feature/auth/main/src/lib/service/auth.service.ts
 import { Injectable } from '@nestjs/common';
-import { AuthResultDto, TmaAuthParams, WidgetAuthParams } from '@app/features-auth-shared';
+import { AuthResultDto, TmaAuthParams, WidgetAuthParams } from '@app/feature-auth-shared';
 import { AsyncResult } from '@app/common-result';
 
 @Injectable()
@@ -164,7 +164,7 @@ export class AuthService {
 #### JWT Validation Service
 
 ```typescript
-// libs/features/auth/shared/src/lib/service/auth-jwt-validation.service.ts
+// libs/feature/auth/shared/src/lib/service/auth-jwt-validation.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthJwtPayloadDto, UserData } from '../dto';
 import { Result, Ok, Err } from '@app/common-result';
@@ -237,7 +237,7 @@ export class AuthJwtValidationService {
 Redis-based caching services for performance optimization:
 
 ```typescript
-// libs/features/auth/shared/src/lib/cache/auth-jwt-cache.service.ts
+// libs/feature/auth/shared/src/lib/cache/auth-jwt-cache.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '@app/common-redis';
 import { AuthJwtPayloadDto, UserData } from '../dto';
@@ -290,7 +290,7 @@ export class AuthJwtCacheService {
   }
 }
 
-// libs/features/auth/shared/src/lib/cache/auth-blocked-cache.service.ts
+// libs/feature/auth/shared/src/lib/cache/auth-blocked-cache.service.ts
 @Injectable()
 export class AuthBlockedCacheService {
   private readonly BLOCKED_CACHE_TTL = 1800; // 30 minutes
@@ -324,7 +324,7 @@ export class AuthBlockedCacheService {
 Passport-based authentication guards and strategies:
 
 ```typescript
-// libs/features/auth/shared/src/lib/strategy/composite.strategy.ts
+// libs/feature/auth/shared/src/lib/strategy/composite.strategy.ts
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-local';
@@ -351,7 +351,7 @@ export class CompositeStrategy extends PassportStrategy(Strategy, 'composite') {
   }
 }
 
-// libs/features/auth/shared/src/lib/guard/composite-auth.guard.ts
+// libs/feature/auth/shared/src/lib/guard/composite-auth.guard.ts
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Observable } from 'rxjs';
@@ -384,7 +384,7 @@ export class CompositeAuthGuard extends AuthGuard('composite') {
 Comprehensive token lifecycle management:
 
 ```typescript
-// libs/features/auth/shared/src/lib/service/user-tokens-revoke.service.ts
+// libs/feature/auth/shared/src/lib/service/user-tokens-revoke.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthJtiCacheService, AuthJwtCacheService } from '../cache';
 import { AuthJwtApp } from '../type';
@@ -456,7 +456,7 @@ export class UserTokensRevokeService {
 
 #### Current User Decorator
 ```typescript
-// libs/features/auth/shared/src/lib/decorator/current-user-id.decorator.ts
+// libs/feature/auth/shared/src/lib/decorator/current-user-id.decorator.ts
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { UserData } from '../dto';
 
@@ -503,7 +503,7 @@ export const CurrentJwtApp = createParamDecorator(
 
 #### Data Transfer Objects
 ```typescript
-// libs/features/auth/shared/src/lib/dto/auth-jwt-payload.dto.ts
+// libs/feature/auth/shared/src/lib/dto/auth-jwt-payload.dto.ts
 import { IsString, IsNumber, IsOptional, IsEnum } from 'class-validator';
 import { AuthJwtApp } from '../type';
 
@@ -535,7 +535,7 @@ export class AuthJwtPayloadDto {
   referralCode?: string;
 }
 
-// libs/features/auth/shared/src/lib/dto/telegram-widget-auth.dto.ts
+// libs/feature/auth/shared/src/lib/dto/telegram-widget-auth.dto.ts
 export class TelegramWidgetAuthDto {
   @IsString()
   id!: string;
@@ -563,7 +563,7 @@ export class TelegramWidgetAuthDto {
   hash!: string;
 }
 
-// libs/features/auth/shared/src/lib/dto/auth-result.dto.ts
+// libs/feature/auth/shared/src/lib/dto/auth-result.dto.ts
 export class AuthResultDto {
   @IsString()
   token!: string;
@@ -588,7 +588,7 @@ export class AuthResultDto {
 
 #### Core Authentication Types
 ```typescript
-// libs/features/auth/shared/src/lib/type/auth.type.ts
+// libs/feature/auth/shared/src/lib/type/auth.type.ts
 export interface UserData {
   id: string;
   telegramId: string;
@@ -622,7 +622,7 @@ export interface SourceParams {
   utm_campaign?: string;
 }
 
-// libs/features/auth/shared/src/lib/type/jwt.type.ts
+// libs/feature/auth/shared/src/lib/type/jwt.type.ts
 export enum AuthJwtApp {
   MAIN = 'main',
   EXCHANGE = 'exchange',
@@ -644,7 +644,7 @@ export interface ValidationResult {
 
 #### Authentication Exception Types
 ```typescript
-// libs/features/auth/shared/src/lib/exception/auth-api-problem.exception.ts
+// libs/feature/auth/shared/src/lib/exception/auth-api-problem.exception.ts
 import { ApiProblemException } from '@app/common-exception';
 
 export class AuthApiProblemException extends ApiProblemException {
@@ -722,7 +722,7 @@ export class AuthValidationError extends Error {
 
 #### Authentication Constants
 ```typescript
-// libs/features/auth/shared/src/lib/const/jwt.const.ts
+// libs/feature/auth/shared/src/lib/const/jwt.const.ts
 import { JwtModuleOptions } from '@nestjs/jwt';
 import { AuthJwtApp } from '../type';
 
@@ -756,7 +756,7 @@ export const JWT_APP_CONTEXTS: Record<AuthJwtApp, { name: string; scopes: string
   },
 };
 
-// libs/features/auth/shared/src/lib/const/auth.const.ts
+// libs/feature/auth/shared/src/lib/const/auth.const.ts
 export const CACHE_TTL = {
   JWT_VALIDATION: 3600,     // 1 hour
   USER_BLOCKED: 1800,       // 30 minutes
@@ -784,12 +784,12 @@ export const RATE_LIMITS = {
 Following dependency injection with service pattern:
 
 ```typescript
-// libs/features/auth/shared/src/lib/auth-shared.module.ts
+// libs/feature/auth/shared/src/lib/auth-shared.module.ts
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { RedisModule } from '@app/common-redis';
 import { BullModule, BullQueue } from '@app/common-bull';
-import { EventBusModule } from '@app/features/event-bus-shared';
+import { EventBusModule } from '@app/feature/event-bus-shared';
 import { authJwtModuleOptions } from './const';
 import { AuthConfigModule } from './config';
 import {
@@ -884,11 +884,11 @@ export class AuthSharedModule {}
 
 #### Auth Main Module
 ```typescript
-// libs/features/auth/main/src/lib/auth-main.module.ts
+// libs/feature/auth/main/src/lib/auth-main.module.ts
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { RedisModule } from '@app/common-redis';
-import { AuthSharedModule, AuthConfigModule, authJwtModuleOptions } from '@app/features-auth-shared';
+import { AuthSharedModule, AuthConfigModule, authJwtModuleOptions } from '@app/feature-auth-shared';
 import { AuthService } from './service';
 import {
   AcceleratorCampaignReferralRepository,
@@ -919,7 +919,7 @@ export class AuthMainModule {}
 ## Implementation Plan
 
 ### Phase 1: Core Authentication Infrastructure (Week 1)
-- [ ] Set up auth domain structure: `libs/features/auth/main` and `libs/features/auth/shared`
+- [ ] Set up auth domain structure: `libs/feature/auth/main` and `libs/feature/auth/shared`
 - [ ] Implement core service interfaces (AuthService, AuthJwtValidationService)
 - [ ] Set up JWT token management with Redis caching
 - [ ] Configure NestJS modules with dependency injection
@@ -956,8 +956,8 @@ export class AuthMainModule {}
 ```typescript
 // In an authentication controller
 import { Injectable } from '@nestjs/common';
-import { AuthService } from '@app/features-auth-main';
-import { TmaAuthParams, WidgetAuthParams } from '@app/features-auth-shared';
+import { AuthService } from '@app/feature-auth-main';
+import { TmaAuthParams, WidgetAuthParams } from '@app/feature-auth-shared';
 
 @Injectable()
 export class AuthController {
@@ -997,8 +997,8 @@ export class AuthController {
 ```typescript
 // In a protected controller
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { CompositeAuthGuard, CurrentUserId, CurrentUser } from '@app/features-auth-shared';
-import { UserData } from '@app/features-auth-shared';
+import { CompositeAuthGuard, CurrentUserId, CurrentUser } from '@app/feature-auth-shared';
+import { UserData } from '@app/feature-auth-shared';
 
 @Controller('protected')
 @UseGuards(CompositeAuthGuard)
@@ -1026,7 +1026,7 @@ export class ProtectedController {
 ```typescript
 // In a user management service
 import { Injectable } from '@nestjs/common';
-import { UserTokensRevokeService, AuthJwtValidationService } from '@app/features-auth-shared';
+import { UserTokensRevokeService, AuthJwtValidationService } from '@app/feature-auth-shared';
 
 @Injectable()
 export class UserManagementService {
@@ -1250,31 +1250,31 @@ describe('Auth Integration', () => {
 ## Related Files
 
 ### Auth Domain Structure
-- `libs/features/auth/main/src/index.ts` - Main module public API (AuthMainModule, AuthService)
-- `libs/features/auth/main/src/lib/auth-main.module.ts` - Main NestJS module
-- `libs/features/auth/main/src/lib/service/auth.service.ts` - Core authentication service
-- `libs/features/auth/shared/src/index.ts` - Shared module public API (minimal surface)
-- `libs/features/auth/shared/src/lib/auth-shared.module.ts` - Shared NestJS module
-- `libs/features/auth/shared/src/lib/service/` - Shared authentication services
-- `libs/features/auth/shared/src/lib/cache/` - Redis-based caching services
-- `libs/features/auth/shared/src/lib/guard/` - Authentication guards
-- `libs/features/auth/shared/src/lib/strategy/` - Passport strategies
-- `libs/features/auth/shared/src/lib/decorator/` - Custom decorators
-- `libs/features/auth/shared/src/lib/dto/` - Data transfer objects
-- `libs/features/auth/shared/src/lib/type/` - Type definitions
-- `libs/features/auth/shared/src/lib/exception/` - Custom exceptions
-- `libs/features/auth/shared/src/lib/const/` - Authentication constants
-- `libs/features/auth/shared/src/lib/config/` - Configuration modules
-- `libs/features/auth/CONTEXT.md` - Comprehensive domain documentation
+- `libs/feature/auth/main/src/index.ts` - Main module public API (AuthMainModule, AuthService)
+- `libs/feature/auth/main/src/lib/auth-main.module.ts` - Main NestJS module
+- `libs/feature/auth/main/src/lib/service/auth.service.ts` - Core authentication service
+- `libs/feature/auth/shared/src/index.ts` - Shared module public API (minimal surface)
+- `libs/feature/auth/shared/src/lib/auth-shared.module.ts` - Shared NestJS module
+- `libs/feature/auth/shared/src/lib/service/` - Shared authentication services
+- `libs/feature/auth/shared/src/lib/cache/` - Redis-based caching services
+- `libs/feature/auth/shared/src/lib/guard/` - Authentication guards
+- `libs/feature/auth/shared/src/lib/strategy/` - Passport strategies
+- `libs/feature/auth/shared/src/lib/decorator/` - Custom decorators
+- `libs/feature/auth/shared/src/lib/dto/` - Data transfer objects
+- `libs/feature/auth/shared/src/lib/type/` - Type definitions
+- `libs/feature/auth/shared/src/lib/exception/` - Custom exceptions
+- `libs/feature/auth/shared/src/lib/const/` - Authentication constants
+- `libs/feature/auth/shared/src/lib/config/` - Configuration modules
+- `libs/feature/auth/CONTEXT.md` - Comprehensive domain documentation
 
 ### Integration Points
 - `apps/*/src/` - Applications importing AuthMainModule for authentication
-- `libs/features/*/main/src/controller/` - Controllers using authentication guards
-- `libs/features/*/main/src/service/` - Services using @CurrentUserId decorator
-- `libs/features/auth/main/package.json` - Main library dependencies
-- `libs/features/auth/shared/package.json` - Shared library dependencies
-- `libs/features/auth/main/project.json` - Nx main project configuration
-- `libs/features/auth/shared/project.json` - Nx shared project configuration
+- `libs/feature/*/main/src/controller/` - Controllers using authentication guards
+- `libs/feature/*/main/src/service/` - Services using @CurrentUserId decorator
+- `libs/feature/auth/main/package.json` - Main library dependencies
+- `libs/feature/auth/shared/package.json` - Shared library dependencies
+- `libs/feature/auth/main/project.json` - Nx main project configuration
+- `libs/feature/auth/shared/project.json` - Nx shared project configuration
 
 ## Success Criteria
 

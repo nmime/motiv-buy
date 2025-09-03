@@ -1,8 +1,7 @@
 import { Entity, Property, ManyToOne, Index, PrimaryKey } from '@mikro-orm/core';
-import { UserEntity } from './User.entity';
 
 export enum PlatformType {
-  TELEGRAM = 'telegram',
+  Telegram = 'telegram',
   WEB = 'web',
   MOBILE = 'mobile',
   BOT = 'bot',
@@ -24,56 +23,51 @@ export class UserSourceVisitEntity {
   @PrimaryKey({ type: 'bigint', autoincrement: true })
   id!: string;
 
-  @Property({ type: 'bigint', columnType: 'bigint unsigned' })
-  userId!: string;
-
   @Property()
   platformType!: PlatformType;
 
   @Property({ type: 'json', nullable: true })
-  platformData?: UserSourceVisitPlatformData | null;
+  platformData?: UserSourceVisitPlatformData;
 
   @Property({ type: 'text', nullable: true })
-  params?: string | null;
+  params?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  utmSource?: string | null;
+  utmSource?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  utmMedium?: string | null;
+  utmMedium?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  utmCampaign?: string | null;
+  utmCampaign?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  utmContent?: string | null;
+  utmContent?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  linkType?: string | null;
+  linkType?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  linkCode?: string | null;
+  linkCode?: string;
 
-  @Property({ type: 'bigint', columnType: 'bigint unsigned', nullable: true })
-  linkUserId?: string | null;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  language?: string | null;
+  language?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  telegramLanguage?: string | null;
+  telegramLanguage?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  continent?: string | null;
+  continent?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  country?: string | null;
+  country?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  city?: string | null;
+  city?: string;
 
   @Property({ type: 'string', length: 255, nullable: true })
-  ip?: string | null;
+  ip?: string;
 
   @Property({ type: 'boolean', default: false })
   isSignup: boolean = false;
@@ -81,11 +75,11 @@ export class UserSourceVisitEntity {
   @Property({ type: 'datetime', onCreate: () => new Date() })
   createdAt: Date = new Date();
 
-  @ManyToOne(() => UserEntity, { nullable: true, fieldName: 'user_id' })
-  user?: UserEntity;
+  @ManyToOne(() => 'UserEntity', { nullable: true, fieldName: 'user_id' })
+  user?: any;
 
-  @ManyToOne(() => UserEntity, { nullable: true, fieldName: 'link_user_id' })
-  linkUser?: UserEntity;
+  @ManyToOne(() => 'UserEntity', { nullable: true, fieldName: 'link_user_id' })
+  linkUser?: any;
 
   constructor(data?: Partial<UserSourceVisitEntity>) {
     if (data) {

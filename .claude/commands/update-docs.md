@@ -192,7 +192,7 @@ Before updating existing documentation, assess if new documentation files should
 - You detect a new complex subsystem within an existing component
 - The subsystem has 3+ files and represents a distinct functional area
 - No existing granular CONTEXT.md file covers this area
-- Example: Adding `agents/tutor-server/src/features/translation/` with multiple files → Create `agents/tutor-server/src/features/CONTEXT.md`
+- Example: Adding `agents/tutor-server/src/feature/translation/` with multiple files → Create `agents/tutor-server/src/feature/CONTEXT.md`
 
 **When NOT to create new files:**
 - Small additions (1-2 files) that fit existing documentation scope
@@ -232,7 +232,7 @@ Before updating existing documentation, assess if new documentation files should
 **Always begin with the most granular documentation closest to your changes:**
 - **Identify affected Tier 3 files** (feature-specific CONTEXT.md files in subdirectories)
 - **Update these granular files first** with specific implementation details, patterns, and integration points
-- **Examples**: `agents/tutor-server/src/core/pipelines/CONTEXT.md`, `web-dashboard/src/lib/api/CONTEXT.md`, `agents/tutor-server/src/features/*/CONTEXT.md`
+- **Examples**: `agents/tutor-server/src/core/pipelines/CONTEXT.md`, `web-dashboard/src/lib/api/CONTEXT.md`, `agents/tutor-server/src/feature/*/CONTEXT.md`
 - **Update guidelines**: Be specific about file names, technologies, implementation patterns
 
 ### Tier 2 (Component-Level) - CASCADE UP

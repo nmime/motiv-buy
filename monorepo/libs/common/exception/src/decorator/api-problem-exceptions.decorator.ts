@@ -1,11 +1,11 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiExtraModels, ApiResponse } from '@nestjs/swagger';
-import { ExceptionHttpStatusMapper } from '../exception-http-status.mapper';
+import { ExceptionHttpStatusMapper } from '../mapper';
 import { OptionalClassConstructor } from '@app/common-shared';
 import { ExceptionClass } from '../type';
 import { getProblemExceptionDtoSchema, getProblemType } from '../dto';
 import { formatTitleFromClassName, generateProblemType, getSchemaExample } from '../util';
-import { getHttpStatusName } from '../http-status.mapper';
+import { getHttpStatusName } from '../mapper';
 import { ApiResponseExamples } from '@nestjs/swagger/dist/decorators/api-response.decorator';
 
 export function ApiProblemExceptions(

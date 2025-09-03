@@ -1,5 +1,4 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique } from '@mikro-orm/core';
-import { UserEntity } from './User.entity';
 
 export enum CurrencyType {
   USDT = 'USDT',
@@ -16,9 +15,9 @@ export class UserBalanceEntity {
   @PrimaryKey()
   id!: number;
 
-  @ManyToOne(() => UserEntity)
+  @ManyToOne(() => 'UserEntity')
   @Index()
-  user!: UserEntity;
+  user!: any;
 
   @Property()
   @Index()
@@ -36,7 +35,7 @@ export class UserBalanceEntity {
   @Property({ onUpdate: () => new Date() })
   updatedAt: Date = new Date();
 
-  constructor(user: UserEntity, currency: CurrencyType, balance: string = '0') {
+  constructor(user: any, currency: CurrencyType, balance: string = '0') {
     this.user = user;
     this.currency = currency;
     this.balance = balance;
