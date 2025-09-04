@@ -4,7 +4,6 @@ import { SqliteDriver } from '@mikro-orm/sqlite';
 import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
 
 import { DatabaseService } from './service/database.service';
-import { MigrationService } from './service/migration.service';
 import { getDatabaseConfig } from './config/database.config';
 import * as repositories from './repository';
 
@@ -12,8 +11,12 @@ import {
   UserEntity, 
   UserBalanceEntity, 
   UserBalanceHistoryEntity, 
+  UserLastAuthEntity,
+  UserRefLinkEntity,
   UserSettingsEntity, 
-  TrafficSourceEntity, 
+  UserSourceVisitEntity,
+  TrafficSourceEntity,
+  // TrafficSourceCategoryEntity, // Temporarily commented out due to circular dependency
   TrafficBuyerEntity, 
   TrafficUserEntity, 
   TrafficOrderEntity, 
@@ -32,8 +35,12 @@ const entityClasses = [
   UserEntity, 
   UserBalanceEntity, 
   UserBalanceHistoryEntity, 
-  UserSettingsEntity, 
-  TrafficSourceEntity, 
+  UserLastAuthEntity,
+  UserRefLinkEntity,
+  UserSettingsEntity,
+  UserSourceVisitEntity,
+  TrafficSourceEntity,
+  // TrafficSourceCategoryEntity, // Temporarily commented out due to circular dependency
   TrafficBuyerEntity, 
   TrafficUserEntity, 
   TrafficOrderEntity, 

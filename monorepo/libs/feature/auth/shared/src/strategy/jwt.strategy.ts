@@ -3,7 +3,6 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { UnauthorizedException } from '@app/common-exception';
 import { AuthJwtPayloadDto, UserData } from '../dto';
-import { TokenType } from '../const';
 import { AuthJwtValidationService } from '../service';
 import { AuthConfigService } from '../config';
 
@@ -21,12 +20,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: AuthJwtPayloadDto): Promise<UserData> {
-    // Check for exchange token type and reject if needed
-    if (payload.type === TokenType.Exchange) {
-      throw new UnauthorizedException('Invalid token type for this endpoint');
-    }
-
-    // Validate payload using the validation service
     const result = await this.authJwtValidationService.validate(payload);
 
     if (result.err) {

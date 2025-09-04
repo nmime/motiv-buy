@@ -3,8 +3,8 @@ import { Controller, Get, Headers, Ip, Query, Req, UseGuards } from '@nestjs/com
 import { FastifyRequest } from 'fastify';
 import { ApiProblemExceptions } from '@app/common-exception';
 import { AsyncResult } from '@app/common-shared';
-import { AuthService } from './services';
-import { AuthDevRequestDto, AuthResponseDto, TelegramWidgetAuthDto } from './dto';
+import { AuthService } from '../service';
+import { AuthDevRequestDto, AuthResponseDto, TelegramWidgetAuthDto } from '../dto';
 import {
   AppThrottlerGuard,
   IpAuthGuard,

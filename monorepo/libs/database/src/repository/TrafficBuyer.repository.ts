@@ -23,9 +23,14 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
   }
 
   async findByPriceRange(minPrice: number, maxPrice: number): Promise<TrafficBuyerEntity[]> {
-    return this.find({ 
-      pricePerMember: { $gte: minPrice, $lte: maxPrice },
-      isActive: true 
+    const results = await this.em.find(TrafficBuyerEntity, {
+      isActive: true
+    });
+    
+    return results.filter(buyer => {
+      if (!buyer.pricePerMember) return false;
+      const price = parseFloat(buyer.pricePerMember);
+      return price >= minPrice && price <= maxPrice;
     });
   }
 
@@ -57,6 +62,8 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
   }): Promise<TrafficBuyerEntity> {
     const trafficBuyer = new TrafficBuyerEntity({
       ...data,
+      config: data.config ? JSON.parse(data.config) : undefined,
+      pricePerMember: data.pricePerMember?.toString(),
       isActive: true,
       requiresApproval: false
     });
@@ -67,7 +74,7 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
   async updatePricing(id: number, pricePerMember: number): Promise<void> {
     const buyer = await this.findOne({ id });
     if (buyer) {
-      buyer.pricePerMember = pricePerMember;
+      buyer.pricePerMember = pricePerMember.toString();
       await this.em.flush();
     }
   }

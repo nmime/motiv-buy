@@ -32,7 +32,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
 
   async findByCompletionRate(minRate: number): Promise<TrafficUserEntity[]> {
     return this.find({ 
-      completionRate: { $gte: minRate },
+      completionRate: { $gte: minRate.toString() },
       status: TrafficUserStatus.Active 
     });
   }
@@ -97,7 +97,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
   async updateEarnings(telegramId: string, amount: number): Promise<void> {
     const user = await this.findByTelegramId(telegramId);
     if (user) {
-      user.totalEarnings += amount;
+      user.totalEarnings = (parseFloat(user.totalEarnings) + amount).toString();
       await this.em.flush();
     }
   }
@@ -105,7 +105,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
   async updateCompletionRate(telegramId: string, rate: number): Promise<void> {
     const user = await this.findByTelegramId(telegramId);
     if (user) {
-      user.completionRate = Math.max(0, Math.min(100, rate)); // Ensure rate is between 0-100
+      user.completionRate = Math.max(0, Math.min(100, rate)).toString(); // Ensure rate is between 0-100
       await this.em.flush();
     }
   }
@@ -163,8 +163,8 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
       };
     }
 
-    const totalCompletionRate = users.reduce((sum, user) => sum + user.completionRate, 0);
-    const totalEarnings = users.reduce((sum, user) => sum + user.totalEarnings, 0);
+    const totalCompletionRate = users.reduce((sum, user) => sum + parseFloat(user.completionRate), 0);
+    const totalEarnings = users.reduce((sum, user) => sum + parseFloat(user.totalEarnings), 0);
     const totalOrdersCompleted = users.reduce((sum, user) => sum + user.totalOrdersParticipated, 0);
 
     return {

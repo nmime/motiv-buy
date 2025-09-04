@@ -11,8 +11,8 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     return this.findOne({ orderId });
   }
 
-  async findByCreator(creatorId: number): Promise<TrafficOrderEntity[]> {
-    return this.find({ creator: creatorId });
+  async findByCreator(creatorId: string): Promise<TrafficOrderEntity[]> {
+    return this.find({ creatorId });
   }
 
   async findByStatus(status: TrafficOrderStatus): Promise<TrafficOrderEntity[]> {
@@ -33,21 +33,25 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     return this.find({ status: TrafficOrderStatus.Pending });
   }
 
-  async findOrdersByTrafficSource(trafficSourceId: number): Promise<TrafficOrderEntity[]> {
-    return this.find({ trafficSource: trafficSourceId });
+  async findByTrafficSource(trafficSourceId: number): Promise<TrafficOrderEntity[]> {
+    return this.find({ trafficSourceId });
   }
 
-  async findOrdersByTrafficBuyer(trafficBuyerId: number): Promise<TrafficOrderEntity[]> {
-    return this.find({ trafficBuyer: trafficBuyerId });
+  async findByTrafficBuyer(trafficBuyerId: number): Promise<TrafficOrderEntity[]> {
+    return this.find({ trafficBuyerId });
   }
 
-  async findOrdersByAssignedUser(trafficUserId: number): Promise<TrafficOrderEntity[]> {
-    return this.find({ assignedTrafficUser: trafficUserId });
+  async findByAssignedUser(trafficUserId: number): Promise<TrafficOrderEntity[]> {
+    return this.find({ assignedTrafficUserId: trafficUserId });
   }
 
   async findOrdersByBudgetRange(minBudget: number, maxBudget: number): Promise<TrafficOrderEntity[]> {
-    return this.find({ 
-      totalBudget: { $gte: minBudget, $lte: maxBudget } 
+    const results = await this.findAll();
+    
+    return results.filter(order => {
+      if (!order.totalBudget) return false;
+      const budget = parseFloat(order.totalBudget);
+      return budget >= minBudget && budget <= maxBudget;
     });
   }
 
@@ -57,50 +61,31 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     });
   }
 
-  async createTrafficOrder(data: {
+  async createOrder(data: {
     orderId: string;
     type: TrafficOrderType;
-    status: TrafficOrderStatus;
     targetCount: number;
     pricePerAction: number;
     totalBudget: number;
+    creatorId: string;
+    trafficSourceId: number;
+    trafficBuyerId: number;
     description?: string;
     targetUrl?: string;
     requirements?: string;
     startDate?: Date;
     endDate?: Date;
-    creator: UserEntity;
-    trafficSourceId: number;
-    trafficBuyerId: number;
-    assignedUserId?: number;
+    assignedTrafficUserId?: number;
   }): Promise<TrafficOrderEntity> {
-    const trafficSource = await this.em.findOneOrFail(TrafficSourceEntity, data.trafficSourceId);
-    const trafficBuyer = await this.em.findOneOrFail(TrafficBuyerEntity, data.trafficBuyerId);
-    
-    let assignedTrafficUser: TrafficUserEntity | undefined;
-    if (data.assignedUserId) {
-      assignedTrafficUser = await this.em.findOneOrFail(TrafficUserEntity, data.assignedUserId);
-    }
-
-    const trafficOrder = new TrafficOrderEntity({
-      orderId: data.orderId,
-      type: data.type,
-      status: data.status,
-      targetCount: data.targetCount,
-      pricePerAction: data.pricePerAction,
-      totalBudget: data.totalBudget,
-      description: data.description,
-      targetUrl: data.targetUrl,
-      requirements: data.requirements,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      creator: data.creator,
-      trafficSource,
-      trafficBuyer,
-      assignedTrafficUser
+    const order = new TrafficOrderEntity({
+      ...data,
+      totalBudget: data.totalBudget.toString(),
+      pricePerAction: data.pricePerAction.toString(),
+      requirements: data.requirements ? JSON.parse(data.requirements) : undefined,
+      status: TrafficOrderStatus.Pending
     });
-    await this.em.persistAndFlush(trafficOrder);
-    return trafficOrder;
+    await this.em.persistAndFlush(order);
+    return order;
   }
 
   async updateStatus(orderId: string, status: TrafficOrderStatus): Promise<void> {
@@ -129,7 +114,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   async updateSpentAmount(orderId: string, amount: number): Promise<void> {
     const order = await this.findByOrderId(orderId);
     if (order) {
-      order.spentAmount = amount;
+      order.spentAmount = amount.toString();
       await this.em.flush();
     }
   }
@@ -137,7 +122,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   async assignUser(orderId: string, trafficUserId: number): Promise<void> {
     const order = await this.findByOrderId(orderId);
     if (order) {
-      order.assignedTrafficUser = this.em.getReference('TrafficUserEntity', trafficUserId) as any;
+      order.assignedTrafficUserId = trafficUserId;
       order.status = TrafficOrderStatus.InProgress;
       await this.em.flush();
     }
@@ -146,24 +131,8 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   async unassignUser(orderId: string): Promise<void> {
     const order = await this.findByOrderId(orderId);
     if (order) {
-      order.assignedTrafficUser = undefined;
+      order.assignedTrafficUserId = undefined;
       order.status = TrafficOrderStatus.Pending;
-      await this.em.flush();
-    }
-  }
-
-  async cancelOrder(orderId: string): Promise<void> {
-    const order = await this.findByOrderId(orderId);
-    if (order) {
-      order.status = TrafficOrderStatus.Cancelled;
-      await this.em.flush();
-    }
-  }
-
-  async markAsFailed(orderId: string): Promise<void> {
-    const order = await this.findByOrderId(orderId);
-    if (order) {
-      order.status = TrafficOrderStatus.Failed;
       await this.em.flush();
     }
   }
@@ -192,8 +161,8 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     ]);
 
     const orders = await this.findAll();
-    const totalBudget = orders.reduce((sum, order) => sum + order.totalBudget, 0);
-    const totalSpent = orders.reduce((sum, order) => sum + order.spentAmount, 0);
+    const totalBudget = orders.reduce((sum, order) => sum + parseFloat(order.totalBudget || '0'), 0);
+    const totalSpent = orders.reduce((sum, order) => sum + parseFloat(order.spentAmount || '0'), 0);
 
     return {
       total, pending, active, inProgress, completed, cancelled, failed,

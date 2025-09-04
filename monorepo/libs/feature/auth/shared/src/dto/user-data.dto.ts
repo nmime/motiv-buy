@@ -1,7 +1,7 @@
-import { AuthJwtApp } from '../const';
+import { PlatformType } from '@app/database';
 
 export class UserData {
-  app!: AuthJwtApp;
+  app!: PlatformType;
   userId!: string;
   telegramId?: string;
   username?: string;

@@ -1,18 +1,9 @@
 import { Entity, Property, ManyToOne, Index, PrimaryKey, Enum } from '@mikro-orm/core';
-import { UserEntity } from './User.entity';
+import { PlatformType } from '../const';
+import { EntityConstructorData, UserSourceVisitPlatformData } from '../type';
 
-export enum PlatformType {
-  Telegram = 'telegram',
-  Web = 'web',
-  Mobile = 'mobile',
-  Bot = 'bot',
-  Api = 'api'
-}
-
-export interface UserSourceVisitPlatformData {
-  telegramVersion?: string;
-  telegramPlatform?: string;
-}
+// Forward declaration for circular dependency resolution
+declare class UserEntity { }
 
 @Entity({ tableName: 'user_source_visits' })
 @Index({ name: 'ix__user_source_visits__created_at', properties: ['createdAt'] })
@@ -76,15 +67,13 @@ export class UserSourceVisitEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @ManyToOne(() => UserEntity, { nullable: true, fieldName: 'user_id' })
+  @ManyToOne('UserEntity', { nullable: true, fieldName: 'user_id' })
   user?: UserEntity;
 
-  @ManyToOne(() => UserEntity, { nullable: true, fieldName: 'link_user_id' })
+  @ManyToOne('UserEntity', { nullable: true, fieldName: 'link_user_id' })
   linkUser?: UserEntity;
 
-  constructor(data?: Partial<UserSourceVisitEntity>) {
-    if (data) {
-      Object.assign(this, data);
-    }
+  constructor(data: EntityConstructorData<UserSourceVisitEntity, 'id' | 'createdAt'>) {
+    Object.assign(this, data);
   }
 }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './services';
-import { AuthController } from './auth.controller';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { AuthService } from './service';
+import { AuthController } from './controller';
 import { AuthSharedModule } from '@app/feature-auth-shared';
 import { DatabaseModule } from '@app/database';
 
@@ -8,6 +9,13 @@ import { DatabaseModule } from '@app/database';
   imports: [
     DatabaseModule,
     AuthSharedModule,
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 10,
+      },
+    ]),
   ],
   controllers: [AuthController],
   providers: [

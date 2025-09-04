@@ -1,5 +1,4 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum } from '@mikro-orm/core';
-import { UserEntity } from './User.entity';
 import { EntityConstructorData } from '../type';
 
 export enum SettingType {
@@ -26,8 +25,8 @@ export class UserSettingsEntity {
   @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
-  user!: UserEntity;
+  @ManyToOne('UserEntity', { fieldName: 'user_id' })
+  user?: any;
 
   @Property({ type: 'varchar', length: 64, fieldName: 'key' })
   key!: string;
@@ -51,7 +50,7 @@ export class UserSettingsEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<UserSettingsEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive' | 'type'>) {
+  constructor(data: EntityConstructorData<UserSettingsEntity, 'id' | 'createdAt' | 'updatedAt' | 'getValue' | 'setValue', 'type' | 'isActive'>) {
     Object.assign(this, data);
   }
 

@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique } from '@mikro-orm/core';
 import { TrafficActionsEntity } from '../TrafficActions.entity';
 import { TrafficUserEntity } from '../TrafficUser.entity';
-import { EntityConstructorData } from "../../type/entity-constructor.type";
+import { EntityConstructorData } from "../../type";
 
 
 @Entity({ tableName: 'traffic_actions_users' })
@@ -13,11 +13,12 @@ export class TrafficActionsUsersEntity {
   @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => TrafficActionsEntity, { fieldName: 'traffic_action_id' })
-  trafficAction!: TrafficActionsEntity;
 
-  @ManyToOne(() => TrafficUserEntity, { fieldName: 'traffic_user_id' })
-  trafficUser!: TrafficUserEntity;
+  @ManyToOne('TrafficActionsEntity', { fieldName: 'traffic_action_id' })
+  trafficAction?: TrafficActionsEntity;
+
+  @ManyToOne('TrafficUserEntity', { fieldName: 'traffic_user_id' })
+  trafficUser?: TrafficUserEntity;
 
   @Property({ type: 'timestamptz', nullable: true, fieldName: 'participation_date' })
   participationDate?: Date;

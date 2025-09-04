@@ -1,7 +1,9 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique } from '@mikro-orm/core';
-import { TrafficSourceEntity } from '../TrafficSource.entity';
-import { TrafficSourceCategoryEntity as TrafficSourceCategoryMain } from '../TrafficSourceCategory.entity';
-import { EntityConstructorData } from "../../type/entity-constructor.type";
+import { EntityConstructorData } from "../../type";
+
+// Forward declarations for circular dependency resolution
+declare class TrafficSourceEntity { }
+declare class TrafficSourceCategoryEntity { }
 @Entity({ tableName: 'traffic_source_categories_junction' })
 @Index({ name: 'ix__traffic_source_categories_junction__source_id', properties: ['trafficSource'] })
 @Index({ name: 'ix__traffic_source_categories_junction__category_id', properties: ['category'] })
@@ -11,11 +13,17 @@ export class TrafficSourceCategoriesEntity {
   @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => TrafficSourceEntity, { fieldName: 'traffic_source_id' })
-  trafficSource!: TrafficSourceEntity;
+  @Property({ type: 'bigint', fieldName: 'traffic_source_id' })
+  trafficSourceId!: number;
 
-  @ManyToOne(() => TrafficSourceCategoryMain, { fieldName: 'category_id' })
-  category!: TrafficSourceCategoryMain;
+  @Property({ type: 'bigint', fieldName: 'category_id' })
+  categoryId!: number;
+
+  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
+  trafficSource?: TrafficSourceEntity;
+
+  @ManyToOne('TrafficSourceCategoryEntity', { fieldName: 'category_id' })
+  category?: TrafficSourceCategoryEntity;
 
   @Property({ type: 'boolean', default: false, fieldName: 'is_primary' })
   isPrimary = false;

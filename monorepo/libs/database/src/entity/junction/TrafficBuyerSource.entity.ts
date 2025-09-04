@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique } from '@mikro-orm/core';
 import { TrafficBuyerEntity } from '../TrafficBuyer.entity';
 import { TrafficSourceEntity } from '../TrafficSource.entity';
-import { EntityConstructorData } from "../../type/entity-constructor.type";
+import { EntityConstructorData } from "../../type";
 
 
 @Entity({ tableName: 'traffic_buyer_sources' })
@@ -13,11 +13,12 @@ export class TrafficBuyerSourceEntity {
   @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => TrafficBuyerEntity, { fieldName: 'traffic_buyer_id' })
-  trafficBuyer!: TrafficBuyerEntity;
 
-  @ManyToOne(() => TrafficSourceEntity, { fieldName: 'traffic_source_id' })
-  trafficSource!: TrafficSourceEntity;
+  @ManyToOne('TrafficBuyerEntity', { fieldName: 'traffic_buyer_id' })
+  trafficBuyer?: TrafficBuyerEntity;
+
+  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
+  trafficSource?: TrafficSourceEntity;
 
   @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
   isActive = true;

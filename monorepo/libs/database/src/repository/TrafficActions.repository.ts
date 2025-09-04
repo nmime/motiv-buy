@@ -1,16 +1,19 @@
-import { EntityRepository } from '@mikro-orm/core';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { TrafficActionsEntity, TrafficActionStatus } from '../entity/TrafficActions.entity';
 
 export class TrafficActionsRepository extends EntityRepository<TrafficActionsEntity> {
-  
+  constructor(em: EntityManager) {
+    super(em, TrafficActionsEntity);
+  }
+
   async findByOrderId(orderId: number): Promise<TrafficActionsEntity[]> {
-    return this.find({ trafficOrder: orderId }, {
+    return this.find({ trafficOrderId: orderId }, {
       populate: ['trafficOrder', 'trafficSource']
     });
   }
 
   async findBySourceId(sourceId: number): Promise<TrafficActionsEntity[]> {
-    return this.find({ trafficSource: sourceId }, {
+    return this.find({ trafficSourceId: sourceId }, {
       populate: ['trafficOrder', 'trafficSource']
     });
   }
@@ -21,21 +24,27 @@ export class TrafficActionsRepository extends EntityRepository<TrafficActionsEnt
     });
   }
 
-  async findActiveActionsByUser(userId: number): Promise<TrafficActionsEntity[]> {
+  async findInProgressActions(): Promise<TrafficActionsEntity[]> {
     return this.find({ status: TrafficActionStatus.InProgress }, {
       populate: ['trafficOrder', 'trafficSource']
     });
   }
 
-  async getActionStatistics(orderId?: number): Promise<any[]> {
-    if (orderId) {
-      return this.find({ trafficOrder: orderId }, {
-        populate: ['trafficOrder']
-      });
-    }
-    
-    return this.findAll({
-      populate: ['trafficOrder', 'trafficSource']
-    });
+  async getActionStats(): Promise<{
+    total: number;
+    pending: number;
+    inProgress: number;
+    completed: number;
+    failed: number;
+  }> {
+    const [total, pending, inProgress, completed, failed] = await Promise.all([
+      this.count(),
+      this.count({ status: TrafficActionStatus.Pending }),
+      this.count({ status: TrafficActionStatus.InProgress }),
+      this.count({ status: TrafficActionStatus.Completed }),
+      this.count({ status: TrafficActionStatus.Failed })
+    ]);
+
+    return { total, pending, inProgress, completed, failed };
   }
 }

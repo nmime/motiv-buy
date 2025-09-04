@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique } from '@mikro-orm/core';
 import { TrafficBuyerEntity } from '../TrafficBuyer.entity';
 import { TrafficUserEntity } from '../TrafficUser.entity';
-import { EntityConstructorData } from "../../type/entity-constructor.type";
+import { EntityConstructorData } from "../../type";
 
 
 @Entity({ tableName: 'traffic_buyer_users' })
@@ -13,11 +13,12 @@ export class TrafficBuyerUsersEntity {
   @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => TrafficBuyerEntity, { fieldName: 'traffic_buyer_id' })
-  trafficBuyer!: TrafficBuyerEntity;
 
-  @ManyToOne(() => TrafficUserEntity, { fieldName: 'traffic_user_id' })
-  trafficUser!: TrafficUserEntity;
+  @ManyToOne('TrafficBuyerEntity', { fieldName: 'traffic_buyer_id' })
+  trafficBuyer?: TrafficBuyerEntity;
+
+  @ManyToOne('TrafficUserEntity', { fieldName: 'traffic_user_id' })
+  trafficUser?: TrafficUserEntity;
 
   @Property({ type: 'boolean', default: true, fieldName: 'can_view' })
   canView = true;

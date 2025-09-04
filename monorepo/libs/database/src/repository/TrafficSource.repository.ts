@@ -33,7 +33,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     botToken?: string;
     botUsername?: string;
     telegramId?: string;
-    config?: string;
+    config?: Record<string, any>;
   }): Promise<TrafficSourceEntity> {
     const trafficSource = new TrafficSourceEntity({
       ...data,
@@ -43,7 +43,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     return trafficSource;
   }
 
-  async updateConfig(id: number, config: string): Promise<void> {
+  async updateConfig(id: number, config: Record<string, any>): Promise<void> {
     const source = await this.findOne({ id });
     if (source) {
       source.config = config;

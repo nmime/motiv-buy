@@ -1,15 +1,26 @@
-import { LinkType } from '../const';
+import { UserRefLinkType } from '@app/database';
 
-export class UserRefLinkDto {
-  code!: string;
-  url!: string;
-  linkType!: LinkType;
+export class UserRefLink {
+  id!: string;
+  type!: UserRefLinkType;
+  sourceType?: string;
+  sourceId?: string;
+  userId!: string;
+  refCode!: string;
+  refCodeUniqueKey!: string;
+  defaultUniqueKey!: string;
+  refPercentLevel1!: string;
+  refPercentLevel2!: string;
+  refPercentLevel3!: string;
+  isDefault!: boolean;
+  isCustom!: boolean;
+  isDeleted!: boolean;
   createdAt!: Date;
-  isActive?: boolean;
-  usageCount?: number;
-  maxUsages?: number;
+  updatedAt!: Date;
 
-  constructor(data: UserRefLinkDto) {
+  constructor(data: Partial<UserRefLink>) {
     Object.assign(this, data);
   }
 }
+
+export class UserRefLinkDto extends UserRefLink {}

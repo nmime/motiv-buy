@@ -1,5 +1,5 @@
 import { Entity, PrimaryKey, Property, ManyToOne, OneToMany, Collection, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from "../type/entity-constructor.type";
+import { EntityConstructorData } from "../type";
 import { UserEntity } from './User.entity';
 import { TrafficSourceEntity } from './TrafficSource.entity';
 import { TrafficBuyerEntity } from './TrafficBuyer.entity';
@@ -84,25 +84,26 @@ export class TrafficOrderEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne(() => UserEntity)
-  creator!: UserEntity;
 
-  @ManyToOne(() => TrafficSourceEntity)
-  trafficSource!: TrafficSourceEntity;
+  @ManyToOne('UserEntity', { fieldName: 'creator_id' })
+  creator?: UserEntity;
 
-  @ManyToOne(() => TrafficBuyerEntity)
-  trafficBuyer!: TrafficBuyerEntity;
+  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
+  trafficSource?: TrafficSourceEntity;
 
-  @ManyToOne(() => TrafficUserEntity, { nullable: true })
+  @ManyToOne('TrafficBuyerEntity', { fieldName: 'traffic_buyer_id' })
+  trafficBuyer?: TrafficBuyerEntity;
+
+  @ManyToOne('TrafficUserEntity', { nullable: true, fieldName: 'assigned_traffic_user_id' })
   assignedTrafficUser?: TrafficUserEntity;
 
-  @ManyToOne(() => UserEntity, { nullable: true })
+  @ManyToOne('UserEntity', { nullable: true, fieldName: 'created_by' })
   createdBy?: UserEntity;
 
-  @OneToMany(() => TrafficActionsEntity, 'trafficOrder')
+  @OneToMany('TrafficActionsEntity', 'trafficOrder')
   actions = new Collection<TrafficActionsEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficOrderEntity, 'id' | 'createdAt' | 'updatedAt', 'currentCount' | 'spentAmount'>) {
+  constructor(data: EntityConstructorData<TrafficOrderEntity, 'id' | 'createdAt' | 'updatedAt' | 'actions', 'currentCount' | 'spentAmount'>) {
     Object.assign(this, data);
   }
 }

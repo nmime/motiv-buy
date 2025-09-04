@@ -1,6 +1,4 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { TrafficOrderEntity } from './TrafficOrder.entity';
-import { TrafficSourceEntity } from './TrafficSource.entity';
 import { EntityConstructorData } from '../type';
 
 export enum TrafficUserStatus {
@@ -71,13 +69,13 @@ export class TrafficUserEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne(() => TrafficSourceEntity)
-  trafficSource!: TrafficSourceEntity;
+  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
+  trafficSource?: any;
 
-  @OneToMany(() => TrafficOrderEntity, order => order.assignedTrafficUser)
-  assignedOrders? = new Collection<TrafficOrderEntity>(this);
+  @OneToMany('TrafficOrderEntity', 'assignedTrafficUser')
+  assignedOrders? = new Collection<any>(this);
 
-  constructor(data: EntityConstructorData<TrafficUserEntity, 'id' | 'createdAt' | 'updatedAt' | 'joinedAt', 'totalOrdersParticipated' | 'totalEarnings' | 'completionRate'>) {
+  constructor(data: EntityConstructorData<TrafficUserEntity, 'id' | 'createdAt' | 'updatedAt' | 'joinedAt', 'totalOrdersParticipated' | 'totalEarnings' | 'completionRate' | 'isBot' | 'canJoinGroups' | 'canReceiveMessages' | 'supportsInlineQueries' | 'status'>) {
     Object.assign(this, data);
   }
 }

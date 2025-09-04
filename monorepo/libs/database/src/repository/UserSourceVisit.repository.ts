@@ -1,5 +1,7 @@
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { UserSourceVisitEntity, PlatformType, UserSourceVisitPlatformData } from '../entity/UserSourceVisit.entity';
+import { UserSourceVisitEntity } from '../entity/UserSourceVisit.entity';
+import { PlatformType } from '../const';
+import { UserSourceVisitPlatformData } from '../type';
 
 export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitEntity> {
   constructor(em: EntityManager) {
@@ -7,7 +9,7 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
   }
 
   async createVisit(data: {
-    userId: string;
+    userId?: string;
     platformType: PlatformType;
     platformData?: UserSourceVisitPlatformData;
     params?: string;
@@ -26,17 +28,7 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
     ip?: string;
     isSignup?: boolean;
   }): Promise<UserSourceVisitEntity> {
-    const { userId, linkUserId, ...visitData } = data;
-    const visit = new UserSourceVisitEntity(visitData);
-    
-    // Set user references using entity manager
-    if (userId) {
-      visit.user = this.em.getReference('UserEntity', userId);
-    }
-    if (linkUserId) {
-      visit.linkUser = this.em.getReference('UserEntity', linkUserId);
-    }
-    
+    const visit = new UserSourceVisitEntity({ ...data, isSignup: data.isSignup ?? false });
     await this.em.persistAndFlush(visit);
     return visit;
   }
@@ -64,20 +56,12 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
   async getVisitStats(): Promise<{
     total: number;
     signups: number;
-    uniqueUsers: number;
   }> {
     const [total, signups] = await Promise.all([
       this.count(),
       this.count({ isSignup: true }),
     ]);
 
-    // TODO: Fix MikroORM query builder API
-    const uniqueUsers = { count: 0 };
-
-    return {
-      total,
-      signups,
-      uniqueUsers: uniqueUsers.count,
-    };
+    return { total, signups };
   }
 }

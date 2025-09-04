@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { MikroORM, EntityManager, RequestContext } from '@mikro-orm/core';
 import { FastifyRequest } from 'fastify';
-import { createMikroOrmConfig } from '../config/mikro-orm.config';
-import { DatabaseConfig } from '../config/database.config';
+import { createMikroOrmConfig } from '../config';
+import { DatabaseConfig } from '../config';
 
 @Injectable()
 export class DatabaseService {

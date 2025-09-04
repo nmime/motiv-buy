@@ -72,7 +72,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
   }
 
   async createTransaction(data: {
-    user: UserEntity;
+    userId: string;
     currency: CurrencyType;
     type: TransactionType;
     amount: string;
@@ -84,21 +84,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     metadata?: Record<string, any>;
     status?: TransactionStatus;
   }): Promise<UserBalanceHistoryEntity> {
-    const transaction = new UserBalanceHistoryEntity(
-      data.user,
-      data.currency,
-      data.type,
-      data.amount,
-      data.balanceBefore,
-      data.balanceAfter
-    );
-
-    if (data.description) transaction.description = data.description;
-    if (data.txHash) transaction.txHash = data.txHash;
-    if (data.referenceId) transaction.referenceId = data.referenceId;
-    if (data.metadata) transaction.metadata = data.metadata;
-    if (data.status) transaction.status = data.status;
-
+    const transaction = new UserBalanceHistoryEntity(data);
     await this.em.persistAndFlush(transaction);
     return transaction;
   }
@@ -133,13 +119,13 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
 
     const [total, successful, failed] = await Promise.all([
       this.count(conditions),
-      this.count({ ...conditions, status: TransactionStatus.COMPLETED }),
-      this.count({ ...conditions, status: TransactionStatus.FAILED })
+      this.count({ ...conditions, status: TransactionStatus.Completed }),
+      this.count({ ...conditions, status: TransactionStatus.Failed })
     ]);
 
     const volumeResult = await this.em.getConnection().execute(
       'SELECT SUM(CAST(amount AS DECIMAL(20,8))) as volume FROM user_balance_history WHERE status = ? AND type IN (?, ?, ?, ?) AND created_at >= ?',
-      [TransactionStatus.COMPLETED, TransactionType.DEPOSIT, TransactionType.WITHDRAWAL, TransactionType.TRADE_BUY, TransactionType.TRADE_SELL, dateFrom]
+      [TransactionStatus.Completed, TransactionType.Deposit, TransactionType.Withdrawal, TransactionType.TradeBuy, TransactionType.TradeSell, dateFrom]
     );
 
     return {

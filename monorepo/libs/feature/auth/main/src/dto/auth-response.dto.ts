@@ -1,16 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AuthResultDto } from '@app/feature-auth-shared';
 
 export class AuthResponseDto {
   @ApiProperty({
-    description: 'Authentication result',
-    type: AuthResultDto,
+    description: 'JWT access token',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
-  data!: AuthResultDto;
-
-  @ApiProperty({
-    description: 'Success status',
-    example: true,
-  })
-  success!: boolean;
+  token!: string;
 }

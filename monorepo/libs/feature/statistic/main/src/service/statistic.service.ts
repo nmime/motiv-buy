@@ -132,7 +132,7 @@ export class StatisticService implements IStatisticService {
     };
   }
 
-  private async generateShareToken(userId: string, query: StatisticQueryDto): Promise<string> {
+  async generateShareToken(userId: string, query?: StatisticQueryDto): Promise<string> {
     // Generate a secure token (in a real app, store this in database)
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 15);

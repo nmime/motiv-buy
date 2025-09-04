@@ -1,6 +1,7 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from "../type/entity-constructor.type";
-import { UserEntity } from './User.entity';
+import { EntityConstructorData } from "../type";
+// Forward declaration for circular dependency resolution
+declare class UserEntity { }
 import { TrafficOrderEntity } from './TrafficOrder.entity';
 
 export enum TrafficBuyerType {
@@ -61,14 +62,13 @@ export class TrafficBuyerEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne(() => UserEntity, { nullable: true })
+  @ManyToOne('UserEntity', { nullable: true, fieldName: 'managed_by' })
   managedBy?: UserEntity;
 
-  @OneToMany(() => TrafficOrderEntity, 'trafficBuyer')
-  orders = new Collection<TrafficOrderEntity>(this);
+  @OneToMany('TrafficOrderEntity', 'trafficBuyer')
+  orders? = new Collection<TrafficOrderEntity>(this);
 
-  
-  constructor(data: EntityConstructorData<TrafficBuyerEntity, 'id' | 'createdAt' | 'updatedAt'>) {
+  constructor(data: EntityConstructorData<TrafficBuyerEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive' | 'requiresApproval'>) {
     Object.assign(this, data);
   }
 }

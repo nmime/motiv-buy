@@ -22,7 +22,14 @@ export class UserRepository extends EntityRepository<UserEntity> {
     return this.find({ referredBy });
   }
 
-  async createUser(data: Partial<UserEntity>): Promise<UserEntity> {
+  async createUser(data: {
+    telegramId: string;
+    username?: string;
+    firstName: string;
+    lastName?: string;
+    languageCode?: string;
+    referredBy?: string;
+  }): Promise<UserEntity> {
     const user = new UserEntity(data);
     await this.em.persistAndFlush(user);
     return user;

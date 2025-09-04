@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum } from '@mikro-orm/core';
 import { TrafficOrderEntity } from './TrafficOrder.entity';
 import { TrafficSourceEntity } from './TrafficSource.entity';
-import { EntityConstructorData } from "../type/entity-constructor.type";
+import { EntityConstructorData } from '../type';
 
 export enum TrafficActionStatus {
   Pending = 'pending',
@@ -76,16 +76,15 @@ export class TrafficActionsEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  
-  @ManyToOne(() => TrafficOrderEntity)
-  @Index()
-  trafficOrder!: TrafficOrderEntity;
 
-  @ManyToOne(() => TrafficSourceEntity)
+  @ManyToOne('TrafficOrderEntity', { fieldName: 'traffic_order_id' })
   @Index()
-  trafficSource!: TrafficSourceEntity;
+  trafficOrder?: TrafficOrderEntity;
 
-  
+  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
+  @Index()
+  trafficSource?: TrafficSourceEntity;
+
   constructor(data: EntityConstructorData<TrafficActionsEntity, 'id' | 'createdAt' | 'updatedAt', 'reward'>) {
     Object.assign(this, data);
   }

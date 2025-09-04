@@ -102,11 +102,11 @@ export class RedisRateLimitService {
       );
 
       if (typeof count !== 'number') {
-        return { success: false, error: new InternalException({ message: 'Error on executing sliding window rate limit' }) };
+        return { success: false, error: new InternalException({ detail: 'Error on executing sliding window rate limit' }) };
       }
 
       if (count > limit) {
-        return { success: false, error: new RateLimitExceedException({ message: 'Rate limit exceeded' }) };
+        return { success: false, error: new RateLimitExceedException({ detail: 'Rate limit exceeded' }) };
       }
 
       const actionResult = await action();
@@ -123,7 +123,7 @@ export class RedisRateLimitService {
       return {
         success: false,
         error: new InternalException({
-          message: 'Error on executing sliding window rate limit',
+          detail: 'Error on executing sliding window rate limit',
           cause: unknownToError(error),
         })
       };

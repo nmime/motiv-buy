@@ -1,11 +1,12 @@
-import { AuthJwtApp, TokenType } from '../const';
+import { PlatformType } from '@app/database';
+import { AuthTokenType } from '../const';
 
 export class AuthJwtPayloadDto {
-  app!: AuthJwtApp;
+  app!: PlatformType;
   userId!: string;
   jti?: string;
   uniqueKey?: string;
-  type?: TokenType;
+  type?: AuthTokenType;
   iat?: number;
   exp?: number;
 

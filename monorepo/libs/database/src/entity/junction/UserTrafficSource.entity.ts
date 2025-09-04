@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique, Enum } from '@mikro-orm/core';
 import { UserEntity } from '../User.entity';
 import { TrafficSourceEntity } from '../TrafficSource.entity';
-import { EntityConstructorData } from "../../type/entity-constructor.type";
+import { EntityConstructorData } from "../../type";
 
 export enum UserTrafficSourceRole {
   Manager = 'manager',
@@ -21,11 +21,11 @@ export class UserTrafficSourceEntity {
   @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
-  user!: UserEntity;
+  @ManyToOne('UserEntity', { fieldName: 'user_id' })
+  user?: UserEntity;
 
-  @ManyToOne(() => TrafficSourceEntity, { fieldName: 'traffic_source_id' })
-  trafficSource!: TrafficSourceEntity;
+  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
+  trafficSource?: TrafficSourceEntity;
 
   @Property({ type: 'varchar', length: 20, fieldName: 'role' })
   @Enum(() => UserTrafficSourceRole)

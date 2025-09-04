@@ -3,15 +3,15 @@ import { JwtService } from '@nestjs/jwt';
 import { URL } from 'url';
 import { v4 as uuidV4 } from 'uuid';
 import { checkSignature, validateWebAppData } from '@grammyjs/validator';
-import { AsyncResult } from '@app/common-shared';
+import { AsyncResult, Ok, Err } from '@app/common-shared';
 import {
   AuthConfigService,
-  AuthJwtApp,
   AuthJwtCacheService,
   AuthJwtPayloadDto,
   AuthResultDto,
   AuthUserService,
   TelegramAuthParams,
+  getGeoByIp,
 } from '@app/feature-auth-shared';
 import {
   NotInDevModeException,
@@ -19,7 +19,7 @@ import {
   UserBlockedException,
   UserNotFoundException,
 } from '@app/common-exception';
-import { UserRepository, UserStatus, UserRole, UserEntity } from '@app/database';
+import { UserRepository, UserLastAuthRepository, UserStatus, UserRole, UserEntity } from '@app/database';
 import { PlatformType } from '@app/database';
 import { AuthUserDataDto, TelegramWidgetAuthDto } from '../dto';
 
@@ -31,64 +31,62 @@ export class AuthService {
     private readonly authUserService: AuthUserService,
     private readonly configService: AuthConfigService,
     private readonly userRepository: UserRepository,
+    private readonly userLastAuthRepository: UserLastAuthRepository,
     private readonly jwtService: JwtService,
     private readonly authJwtCacheService: AuthJwtCacheService,
   ) {}
 
   async authDev(
     userId: string,
-    app: AuthJwtApp = AuthJwtApp.TelegramBot,
+    platformType: PlatformType = PlatformType.TelegramBot,
   ): AsyncResult<AuthResultDto, NotInDevModeException | UserBlockedException | UserNotFoundException> {
     if (!this.configService.isDev) {
-      return { success: false, error: new NotInDevModeException() };
+      return Err(new NotInDevModeException());
     }
 
     const user = await this.userRepository.findOne({ telegramId: userId });
     if (!user) {
-      return { success: false, error: new UserNotFoundException() };
+      return Err(new UserNotFoundException());
     }
 
     if (user.status !== UserStatus.Active && user.status !== UserStatus.Restricted) {
-      return { success: false, error: new UserBlockedException() };
+      return Err(new UserBlockedException());
     }
 
-    const payload = this.packPayload(app, user.id);
+    const payload = this.packPayload(platformType, user.id);
     const jwtToken = await this.createJwt({ ...payload });
 
-    return {
-      success: true,
-      data: new AuthResultDto({
-        token: jwtToken,
-      }),
-    };
+    return Ok(new AuthResultDto({
+      token: jwtToken,
+    }));
   }
 
   async authTma(params: {
     hostname: string;
     url: string;
-    app?: AuthJwtApp;
+    app?: PlatformType;
     ip: string;
   }): AsyncResult<AuthResultDto, TmaDataValidationException | UserBlockedException | UserNotFoundException> {
-    const { hostname, url, app = AuthJwtApp.TelegramMiniApp, ip } = params;
+    const { hostname, url, app = PlatformType.TelegramMiniApp, ip } = params;
     const { searchParams } = new URL(`https://${hostname}${url}`);
 
     const userSearchParam = searchParams.get('user');
     if (!userSearchParam) {
-      return { success: false, error: new TmaDataValidationException('Data validation failed') };
+      return Err(new TmaDataValidationException('Data validation failed'));
     }
 
     let userData: AuthUserDataDto;
     try {
       userData = JSON.parse(userSearchParam) as AuthUserDataDto;
     } catch (e) {
-      return { success: false, error: new TmaDataValidationException('Data validation failed', e) };
+      return Err(new TmaDataValidationException('Data validation failed'));
     }
 
     if (!this.configService.isDev) {
       const rawAuthDate = searchParams.get('auth_date');
       const authDate = rawAuthDate ? new Date(rawAuthDate) : undefined;
       if (!authDate || new Date().getTime() - authDate.getTime() > 3 * 60 * 1000) {
-        return { success: false, error: new TmaDataValidationException('Auth date expired') };
+        return Err(new TmaDataValidationException('Auth date expired'));
       }
     }
 
@@ -100,7 +98,7 @@ export class AuthService {
 
     const success = validateWebAppData(this.configService.botToken, validationParams);
     if (!success) {
-      return { success: false, error: new TmaDataValidationException('Data validation failed') };
+      return Err(new TmaDataValidationException('Data validation failed'));
     }
 
     return this.auth({
@@ -117,8 +115,7 @@ export class AuthService {
         telegramPlatform: searchParams.get('telegram_platform') ?? undefined,
         timezone: searchParams.get('timezone') ?? undefined,
       },
-      app,
-      platformType: PlatformType.Telegram,
+      platformType: app,
       ip,
     });
   }
@@ -135,7 +132,7 @@ export class AuthService {
       const maxAuthAge = 24 * 60 * 60 * 1000;
 
       if (currentTime - authTimestamp > maxAuthAge) {
-        return { success: false, error: new TmaDataValidationException('Auth date expired') };
+        return Err(new TmaDataValidationException('Auth date expired'));
       }
     }
 
@@ -150,7 +147,7 @@ export class AuthService {
     });
 
     if (!isValid) {
-      return { success: false, error: new TmaDataValidationException('Data validation failed') };
+      return Err(new TmaDataValidationException('Data validation failed'));
     }
 
     return this.auth({
@@ -169,8 +166,7 @@ export class AuthService {
         refCode: dto.refCode,
         timezone: dto.timezone,
       },
-      app: AuthJwtApp.TelegramWidget,
-      platformType: PlatformType.WEB,
+      platformType: PlatformType.TelegramWidget,
       ip,
     });
   }
@@ -194,11 +190,10 @@ export class AuthService {
       refCode?: string;
       timezone?: string;
     };
-    app?: AuthJwtApp;
     platformType: PlatformType;
     ip: string;
   }): AsyncResult<AuthResultDto, TmaDataValidationException | UserBlockedException | UserNotFoundException> {
-    const { userData, additionalParams = {}, app = AuthJwtApp.TelegramMiniApp, ip, platformType } = params;
+    const { userData, additionalParams = {}, ip, platformType } = params;
     const { startParam, telegramVersion, telegramPlatform, utmSource, utmMedium, utmCampaign, utmContent, refCode } =
       additionalParams;
 
@@ -233,33 +228,50 @@ export class AuthService {
     });
 
     if (!user) {
-      return { success: false, error: new UserNotFoundException() };
+      return Err(new UserNotFoundException());
     }
 
     if (this.configService.isDev && !this.hasDevAccess(user)) {
-      return { success: false, error: new UserNotFoundException() };
+      return Err(new UserNotFoundException());
     }
 
     if (user.status !== UserStatus.Active && user.status !== UserStatus.Restricted) {
-      return { success: false, error: new UserBlockedException() };
+      return Err(new UserBlockedException());
     }
 
-    const payload = this.packPayload(app, user.id);
+    const payload = this.packPayload(platformType, user.id);
     const jwtToken = await this.createJwt({ ...payload });
 
-    return {
-      success: true,
-      data: new AuthResultDto({
-        token: jwtToken,
-      }),
-    };
+    return Ok(new AuthResultDto({
+      token: jwtToken,
+    }));
+  }
+
+  async updateUserLastAuth(userId: string, telegramAuthParams: TelegramAuthParams): Promise<void> {
+    try {
+      const geo = telegramAuthParams.ip ? getGeoByIp(telegramAuthParams.ip) : undefined;
+      
+      await this.userLastAuthRepository.upsertUserLastAuth({
+        userId,
+        ip: telegramAuthParams.ip,
+        country: geo?.country?.name,
+        city: geo?.city,
+        continent: geo?.continent,
+      });
+    } catch (error) {
+      this.logger.error('Error updating user last auth', {
+        userId,
+        ip: telegramAuthParams.ip,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async saveKey(payload: AuthJwtPayloadDto): Promise<void> {
     await this.authJwtCacheService.saveJwtKey(payload);
   }
 
-  private packPayload(app: AuthJwtApp, userId: string): AuthJwtPayloadDto {
+  private packPayload(app: PlatformType, userId: string): AuthJwtPayloadDto {
     return new AuthJwtPayloadDto({
       app,
       userId,

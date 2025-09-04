@@ -1,7 +1,8 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique, Enum } from '@mikro-orm/core';
-import { UserEntity } from '../User.entity';
+// Forward declaration for circular dependency resolution
+declare class UserEntity { }
 import { TrafficOrderEntity } from '../TrafficOrder.entity';
-import { EntityConstructorData } from "../../type/entity-constructor.type";
+import { EntityConstructorData } from "../../type";
 
 export enum UserTrafficOrderRole {
   Creator = 'creator',
@@ -20,11 +21,12 @@ export class UserTrafficOrderEntity {
   @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
-  user!: UserEntity;
 
-  @ManyToOne(() => TrafficOrderEntity, { fieldName: 'traffic_order_id' })
-  trafficOrder!: TrafficOrderEntity;
+  @ManyToOne('UserEntity', { fieldName: 'user_id' })
+  user?: UserEntity;
+
+  @ManyToOne('TrafficOrderEntity', { fieldName: 'traffic_order_id' })
+  trafficOrder?: TrafficOrderEntity;
 
   @Property({ type: 'varchar', length: 20, fieldName: 'role' })
   @Enum(() => UserTrafficOrderRole)

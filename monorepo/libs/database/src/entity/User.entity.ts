@@ -1,11 +1,13 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, Index, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from '../type';
-import { UserBalanceEntity } from './UserBalance.entity';
-import { UserBalanceHistoryEntity } from './UserBalanceHistory.entity';
-import { UserSettingsEntity } from './UserSettings.entity';
-import { TrafficBuyerEntity } from './TrafficBuyer.entity';
-import { TrafficSourceEntity } from './TrafficSource.entity';
-import { TrafficOrderEntity } from './TrafficOrder.entity';
+
+// Forward declarations for circular dependency resolution
+declare class UserBalanceEntity { }
+declare class UserBalanceHistoryEntity { }
+declare class UserSettingsEntity { }
+declare class TrafficBuyerEntity { }
+declare class TrafficSourceEntity { }
+declare class TrafficOrderEntity { }
 
 export enum UserRole {
   User = 'user',
@@ -26,7 +28,7 @@ export enum UserStatus {
 @Index({ name: 'ix__users__status', properties: ['status'] })
 @Index({ name: 'ix__users__created_at', properties: ['createdAt'] })
 export class UserEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
   @Property({ type: 'bigint', unique: true, fieldName: 'telegram_id' })
@@ -58,6 +60,15 @@ export class UserEntity {
   @Property({ type: 'integer', default: 0, fieldName: 'referral_count' })
   referralCount = 0;
 
+  @Property({ type: 'uuid', nullable: true, fieldName: 'ref_link_level_1' })
+  refLinkLevel1?: string;
+
+  @Property({ type: 'uuid', nullable: true, fieldName: 'ref_link_level_2' })
+  refLinkLevel2?: string;
+
+  @Property({ type: 'uuid', nullable: true, fieldName: 'ref_link_level_3' })
+  refLinkLevel3?: string;
+
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
@@ -67,27 +78,25 @@ export class UserEntity {
   @Property({ type: 'timestamptz', nullable: true, fieldName: 'last_active_at' })
   lastActiveAt?: Date;
 
-  @OneToMany(() => UserBalanceEntity, 'user')
-  balances = new Collection<UserBalanceEntity>(this);
+  @OneToMany('UserBalanceEntity', 'user')
+  balances = new Collection<any>(this);
 
-  @OneToMany(() => UserBalanceHistoryEntity, 'user')
-  balanceHistory = new Collection<UserBalanceHistoryEntity>(this);
+  @OneToMany('UserBalanceHistoryEntity', 'user')
+  balanceHistory = new Collection<any>(this);
 
-  @OneToMany(() => UserSettingsEntity, 'user')
-  settings = new Collection<UserSettingsEntity>(this);
+  @OneToMany('UserSettingsEntity', 'user')
+  settings = new Collection<any>(this);
 
-  @OneToMany(() => TrafficBuyerEntity, 'managedBy')
-  managedBuyers = new Collection<TrafficBuyerEntity>(this);
+  @OneToMany('TrafficBuyerEntity', 'managedBy')
+  managedBuyers = new Collection<any>(this);
 
-  @OneToMany(() => TrafficSourceEntity, 'managedBy')
-  managedSources = new Collection<TrafficSourceEntity>(this);
+  @OneToMany('TrafficSourceEntity', 'managedBy')
+  managedSources = new Collection<any>(this);
 
-  @OneToMany(() => TrafficOrderEntity, 'createdBy')
-  createdOrders = new Collection<TrafficOrderEntity>(this);
+  @OneToMany('TrafficOrderEntity', 'createdBy')
+  createdOrders = new Collection<any>(this);
 
-  constructor(
-    data: EntityConstructorData<UserEntity, 'id' | 'createdAt' | 'updatedAt', 'referralCount' | 'role' | 'status'>,
-  ) {
+  constructor(data: EntityConstructorData<UserEntity, 'id' | 'createdAt' | 'updatedAt' | 'balances' | 'balanceHistory' | 'settings' | 'managedBuyers' | 'managedSources' | 'createdOrders', 'status' | 'role' | 'referralCount'>) {
     Object.assign(this, data);
   }
 }

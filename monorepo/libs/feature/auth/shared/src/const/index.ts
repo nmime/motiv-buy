@@ -1,4 +1,3 @@
-export * from './auth-jwt-app.enum';
 export * from './jwt-module-options.const';
 export * from '../source/const';
 
@@ -12,8 +11,6 @@ export const AuthConstant = {
   CacheTtlLanguage: 7200,
 } as const;
 
-export enum TokenType {
-  Exchange = 'exchange',
+export enum AuthTokenType {
   Main = 'main',
-  API = 'api',
 }

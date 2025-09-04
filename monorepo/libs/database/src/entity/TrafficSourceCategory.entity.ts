@@ -1,7 +1,9 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from "../type/entity-constructor.type";
-import { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategory.entity';
+import { EntityConstructorData } from "../type";
 import { LocalizedField } from '@app/common-shared';
+
+// Forward declaration for circular dependency resolution
+declare class TrafficSourceCategoriesEntity { }
 
 export enum TopicCategory {
   // Basic controls
@@ -104,7 +106,7 @@ export class TrafficSourceCategoryEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @OneToMany(() => TrafficSourceCategoriesEntity, 'category')
+  @OneToMany('TrafficSourceCategoriesEntity', 'category')
   trafficSources = new Collection<TrafficSourceCategoriesEntity>(this);
 
   constructor(data: EntityConstructorData<TrafficSourceCategoryEntity, 'id' | 'createdAt' | 'updatedAt', 'sortOrder' | 'isActive'>) {

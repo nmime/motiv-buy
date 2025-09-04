@@ -1,10 +1,12 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from "../type/entity-constructor.type";
-import { UserEntity } from './User.entity';
-import { TrafficOrderEntity } from './TrafficOrder.entity';
-import { TrafficUserEntity } from './TrafficUser.entity';
-import { TrafficActionsEntity } from './TrafficActions.entity';
-import { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategory.entity';
+import { EntityConstructorData } from "../type";
+
+// Forward declarations for circular dependency resolution
+declare class UserEntity { }
+declare class TrafficOrderEntity { }
+declare class TrafficUserEntity { }
+declare class TrafficActionsEntity { }
+declare class TrafficSourceCategoriesEntity { }
 
 export enum TrafficSourceType {
   Bot = 'bot',
@@ -51,22 +53,22 @@ export class TrafficSourceEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne(() => UserEntity, { nullable: true })
-  managedBy?: UserEntity;
+  @ManyToOne('UserEntity', { nullable: true, fieldName: 'managed_by' })
+  managedBy?: any;
 
-  @OneToMany(() => TrafficOrderEntity, 'trafficSource')
-  orders = new Collection<TrafficOrderEntity>(this);
+  @OneToMany('TrafficOrderEntity', 'trafficSource')
+  orders = new Collection<any>(this);
 
-  @OneToMany(() => TrafficUserEntity, 'trafficSource')
-  trafficUsers = new Collection<TrafficUserEntity>(this);
+  @OneToMany('TrafficUserEntity', 'trafficSource')
+  trafficUsers = new Collection<any>(this);
 
-  @OneToMany(() => TrafficActionsEntity, 'trafficSource')
-  actions = new Collection<TrafficActionsEntity>(this);
+  @OneToMany('TrafficActionsEntity', 'trafficSource')
+  actions = new Collection<any>(this);
 
-  @OneToMany(() => TrafficSourceCategoriesEntity, 'trafficSource')
-  categories = new Collection<TrafficSourceCategoriesEntity>(this);
+  // @OneToMany('TrafficSourceCategoriesEntity', 'trafficSource')
+  // categories = new Collection<any>(this);
 
-  constructor(data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt'>) {
+  constructor(data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt' | 'orders' | 'trafficUsers' | 'actions', 'isActive'>) {
     Object.assign(this, data);
   }
 }

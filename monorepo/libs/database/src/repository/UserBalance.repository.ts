@@ -7,12 +7,8 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     super(em, UserBalanceEntity);
   }
 
-  async findByUserAndCurrency(user: UserEntity, currency: CurrencyType): Promise<UserBalanceEntity | null> {
-    return this.findOne({ user, currency });
-  }
-
-  async findByUserId(userId: number): Promise<UserBalanceEntity[]> {
-    return this.find({ user: userId }, { populate: ['user'] });
+  async findByUserAndCurrency(userId: string, currency: CurrencyType): Promise<UserBalanceEntity | null> {
+    return this.findOne({ userId, currency });
   }
 
   async findByTelegramId(telegramId: string): Promise<UserBalanceEntity[]> {
@@ -20,14 +16,14 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
   }
 
   async createOrUpdateBalance(
-    user: UserEntity,
+    userId: string,
     currency: CurrencyType,
     balance: string
   ): Promise<UserBalanceEntity> {
-    let userBalance = await this.findByUserAndCurrency(user, currency);
+    let userBalance = await this.findOne({ userId, currency });
     
     if (!userBalance) {
-      userBalance = new UserBalanceEntity(user, currency, balance);
+      userBalance = new UserBalanceEntity({ userId, currency, balance, lockedBalance: '0' });
       this.em.persist(userBalance);
     } else {
       userBalance.balance = balance;
@@ -42,7 +38,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     currency: CurrencyType,
     newBalance: string
   ): Promise<UserBalanceEntity | null> {
-    const userBalance = await this.findByUserAndCurrency(user, currency);
+    const userBalance = await this.findByUserAndCurrency(user.id, currency);
     if (userBalance) {
       userBalance.balance = newBalance;
       await this.em.flush();
@@ -55,7 +51,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     currency: CurrencyType,
     amount: string
   ): Promise<boolean> {
-    const userBalance = await this.findByUserAndCurrency(user, currency);
+    const userBalance = await this.findByUserAndCurrency(user.id, currency);
     if (!userBalance) return false;
 
     const availableBalance = parseFloat(userBalance.balance);
@@ -76,7 +72,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     currency: CurrencyType,
     amount: string
   ): Promise<boolean> {
-    const userBalance = await this.findByUserAndCurrency(user, currency);
+    const userBalance = await this.findByUserAndCurrency(user.id, currency);
     if (!userBalance) return false;
 
     const lockedAmount = parseFloat(userBalance.lockedBalance);

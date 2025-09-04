@@ -1,6 +1,5 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum } from '@mikro-orm/core';
 import { CurrencyType } from './UserBalance.entity';
-import { UserEntity } from './User.entity';
 import { EntityConstructorData } from '../type';
 
 export enum TransactionType {
@@ -34,8 +33,8 @@ export class UserBalanceHistoryEntity {
   @PrimaryKey({ type: 'bigserial' })
   id!: number;
 
-  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
-  user!: UserEntity;
+  @ManyToOne('UserEntity', { fieldName: 'user_id' })
+  user?: any;
 
   @Property({ type: 'varchar', length: 10, fieldName: 'currency' })
   @Enum(() => CurrencyType)

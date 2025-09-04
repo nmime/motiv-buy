@@ -21,21 +21,21 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
 
   async getSetting<T = unknown>(user: UserEntity, key: string, defaultValue?: T): Promise<T> {
     const setting = await this.findByUserAndKey(user, key);
-    return setting ? setting.getValue() : defaultValue;
+    return setting ? (setting.getValue() as T) : (defaultValue as T);
   }
 
   async setSetting<T = unknown>(
     user: UserEntity,
     key: string,
     value: T,
-    type: SettingType = SettingType.STRING,
+    type: SettingType = SettingType.String,
     description?: string
   ): Promise<UserSettingsEntity> {
     let setting = await this.findByUserAndKey(user, key);
 
     if (!setting) {
       setting = new UserSettingsEntity({
-        user,
+        userId: user.id,
         key,
         value: '',
         type
@@ -118,7 +118,7 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
       user,
       `notifications.${notificationType}`,
       enabled,
-      SettingType.BOOLEAN,
+      SettingType.Boolean,
       `Enable/disable ${notificationType} notifications`
     );
   }
@@ -133,7 +133,7 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     const preferences: Record<string, boolean> = {};
     for (const setting of settings) {
       const notificationType = setting.key.replace('notifications.', '');
-      preferences[notificationType] = setting.getValue();
+      preferences[notificationType] = setting.getValue() as boolean;
     }
 
     return preferences;
@@ -148,7 +148,7 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
         user,
         key,
         config.value,
-        config.type || SettingType.STRING,
+        config.type || SettingType.String,
         config.description
       );
     }
