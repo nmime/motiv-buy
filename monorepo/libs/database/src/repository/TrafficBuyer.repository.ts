@@ -71,7 +71,7 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
     return trafficBuyer;
   }
 
-  async updatePricing(id: number, pricePerMember: number): Promise<void> {
+  async updatePricing(id: string, pricePerMember: number): Promise<void> {
     const buyer = await this.findOne({ id });
     if (buyer) {
       buyer.pricePerMember = pricePerMember.toString();
@@ -79,7 +79,7 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
     }
   }
 
-  async updateMemberLimits(id: number, minMembers?: number, maxMembers?: number): Promise<void> {
+  async updateMemberLimits(id: string, minMembers?: number, maxMembers?: number): Promise<void> {
     const buyer = await this.findOne({ id });
     if (buyer) {
       if (minMembers !== undefined) buyer.minMembers = minMembers;
@@ -88,7 +88,7 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
     }
   }
 
-  async deactivateBuyer(id: number): Promise<void> {
+  async deactivateBuyer(id: string): Promise<void> {
     const buyer = await this.findOne({ id });
     if (buyer) {
       buyer.isActive = false;
@@ -96,7 +96,7 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
     }
   }
 
-  async activateBuyer(id: number): Promise<void> {
+  async activateBuyer(id: string): Promise<void> {
     const buyer = await this.findOne({ id });
     if (buyer) {
       buyer.isActive = true;

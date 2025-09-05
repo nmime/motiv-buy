@@ -1,6 +1,7 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum } from '@mikro-orm/core';
 import { CurrencyType } from './UserBalance.entity';
 import { EntityConstructorData } from '../type';
+import type { UserEntity } from './User.entity';
 
 export enum TransactionType {
   Deposit = 'deposit',
@@ -30,11 +31,14 @@ export enum TransactionStatus {
 @Index({ name: 'ix__user_balance_history__reference_id', properties: ['referenceId'] })
 @Index({ name: 'ix__user_balance_history__created_at', properties: ['createdAt'] })
 export class UserBalanceHistoryEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
-  @ManyToOne('UserEntity', { fieldName: 'user_id' })
-  user?: any;
+  @Property({ type: 'uuid', fieldName: 'user_id' })
+  userId!: string;
+
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
+  user?: UserEntity;
 
   @Property({ type: 'varchar', length: 10, fieldName: 'currency' })
   @Enum(() => CurrencyType)

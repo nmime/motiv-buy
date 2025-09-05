@@ -1,23 +1,29 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique } from '@mikro-orm/core';
-import { TrafficBuyerEntity } from '../TrafficBuyer.entity';
-import { TrafficUserEntity } from '../TrafficUser.entity';
+import type { TrafficBuyerEntity } from '../TrafficBuyer.entity';
+import type { TrafficUserEntity } from '../TrafficUser.entity';
 import { EntityConstructorData } from "../../type";
 
 
 @Entity({ tableName: 'traffic_buyer_users' })
-@Index({ name: 'ix__traffic_buyer_users__buyer_id', properties: ['trafficBuyer'] })
-@Index({ name: 'ix__traffic_buyer_users__user_id', properties: ['trafficUser'] })
+@Index({ name: 'ix__traffic_buyer_users__buyer_id', properties: ['trafficBuyerId'] })
+@Index({ name: 'ix__traffic_buyer_users__user_id', properties: ['trafficUserId'] })
 @Index({ name: 'ix__traffic_buyer_users__is_blocked', properties: ['isBlocked'] })
-@Unique({ name: 'uq__traffic_buyer_users__buyer_user', properties: ['trafficBuyer', 'trafficUser'] })
+@Unique({ name: 'uq__traffic_buyer_users__buyer_user', properties: ['trafficBuyerId', 'trafficUserId'] })
 export class TrafficBuyerUsersEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
 
-  @ManyToOne('TrafficBuyerEntity', { fieldName: 'traffic_buyer_id' })
+  @Property({ type: 'uuid', fieldName: 'traffic_buyer_id' })
+  trafficBuyerId!: string;
+
+  @Property({ type: 'uuid', fieldName: 'traffic_user_id' })
+  trafficUserId!: string;
+
+  @ManyToOne('TrafficBuyerEntity', { nullable: false, joinColumn: 'traffic_buyer_id', referenceColumnName: 'id' })
   trafficBuyer?: TrafficBuyerEntity;
 
-  @ManyToOne('TrafficUserEntity', { fieldName: 'traffic_user_id' })
+  @ManyToOne('TrafficUserEntity', { nullable: false, joinColumn: 'traffic_user_id', referenceColumnName: 'id' })
   trafficUser?: TrafficUserEntity;
 
   @Property({ type: 'boolean', default: true, fieldName: 'can_view' })
@@ -50,7 +56,7 @@ export class TrafficBuyerUsersEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<TrafficBuyerUsersEntity, 'id' | 'createdAt' | 'updatedAt', 'canView' | 'canContact' | 'isBlocked' | 'totalInteractions' | 'totalOrdersShared'>) {
+  constructor(data: EntityConstructorData<TrafficBuyerUsersEntity, 'id' | 'createdAt' | 'updatedAt' | 'trafficBuyer' | 'trafficUser', 'canView' | 'canContact' | 'isBlocked' | 'totalInteractions' | 'totalOrdersShared'>) {
     Object.assign(this, data);
   }
 }

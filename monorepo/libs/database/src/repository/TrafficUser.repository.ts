@@ -55,7 +55,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
     canJoinGroups?: boolean;
     canReceiveMessages?: boolean;
     supportsInlineQueries?: boolean;
-    trafficSourceId: number;
+    trafficSourceId: string;
   }): Promise<TrafficUserEntity> {
     const trafficSource = await this.em.findOneOrFail(TrafficSourceEntity, data.trafficSourceId);
     const trafficUser = new TrafficUserEntity({

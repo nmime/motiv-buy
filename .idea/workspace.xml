@@ -4,16 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9ff9faaf-ec93-4feb-ba0d-e2ebd7bef8b8" name="Changes" comment="update database and users lib">
-      <change afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/controller/index.ts" afterDir="false" />
+    <list default="true" id="9ff9faaf-ec93-4feb-ba0d-e2ebd7bef8b8" name="Changes" comment="commit working app">
       <change beforePath="$PROJECT_DIR$/.claude-flow/metrics/system-metrics.json" beforeDir="false" afterPath="$PROJECT_DIR$/.claude-flow/metrics/system-metrics.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/redis/src/redis-rate-limit.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/redis/src/redis-rate-limit.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/shared/src/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/shared/src/types/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/shared/src/types/language.enum.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/shared/src/types/language.enum.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/shared/src/types/language.types.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/common/shared/src/utils/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/common/shared/src/utils/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/database.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/database.module.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/TrafficActions.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/TrafficActions.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/TrafficBuyer.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/TrafficBuyer.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/TrafficOrder.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/TrafficOrder.entity.ts" afterDir="false" />
@@ -23,6 +17,8 @@
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/User.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/User.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserBalance.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserBalance.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserBalanceHistory.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserBalanceHistory.entity.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserLastAuth.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserLastAuth.entity.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserRefLink.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserRefLink.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserSettings.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserSettings.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserSourceVisit.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/UserSourceVisit.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/index.ts" afterDir="false" />
@@ -34,55 +30,12 @@
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/junction/UserTrafficOrder.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/junction/UserTrafficOrder.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/junction/UserTrafficSource.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/junction/UserTrafficSource.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/entity/junction/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/entity/junction/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/index.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficActions.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficActions.repository.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficBuyer.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficBuyer.repository.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficOrder.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficOrder.repository.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficSource.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficSource.repository.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficUser.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/TrafficUser.repository.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/User.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/User.repository.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/UserBalance.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/UserBalance.repository.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/UserBalanceHistory.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/UserBalanceHistory.repository.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/UserSettings.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/UserSettings.repository.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/UserSourceVisit.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/UserSourceVisit.repository.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/repository/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/repository/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/service/database.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/service/database.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/service/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/service/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/type/entity-constructor.type.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/type/entity-constructor.type.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/database/src/type/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/database/src/type/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/auth-main.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/auth-main.module.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/auth.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/controller/auth.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/dto/auth-response.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/dto/auth-response.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/dto/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/dto/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/dto/login.dto.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/services/auth.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/service/auth.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/services/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/main/src/service/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/auth-shared.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/auth-shared.module.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/const/auth-jwt-app.enum.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/const/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/const/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/dto/auth-jwt-payload.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/dto/auth-jwt-payload.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/dto/user-data.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/dto/user-data.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/dto/user-ref-link.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/dto/user-ref-link.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/service/auth-user.service.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/service/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/service/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/source/const/link-type.enum.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/source/const/link-type.enum.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/source/service/get-user-ref-link.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/source/service/get-user-ref-link.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/source/service/source-register.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/source/service/source-register.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/strategy/jwt.strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/auth/shared/src/strategy/jwt.strategy.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/balance/main/src/dto/balance.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/balance/main/src/dto/balance.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/balance/main/src/dto/transaction.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/balance/main/src/dto/transaction.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/statistic/main/src/controller/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/statistic/main/src/controller/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/statistic/main/src/controller/statistic.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/statistic/main/src/controller/statistic.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/user/main/src/controller/user.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/user/main/src/controller/user.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/user/shared/src/constant/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/user/shared/src/constant/user.constant.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/user/shared/src/dto/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/user/shared/src/dto/notification-settings.dto.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/user/shared/src/dto/referral-link.dto.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/user/shared/src/dto/referral-stats.dto.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/user/shared/src/dto/user-response.dto.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/monorepo/libs/feature/user/shared/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/monorepo/libs/feature/user/shared/src/index.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,7 +43,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="DarkyenusTimeTracker">
-    <option name="totalTimeSeconds" value="68286" />
+    <option name="totalTimeSeconds" value="72197" />
     <option name="naggedAbout" value="1" />
   </component>
   <component name="Git.Settings">
@@ -293,7 +246,7 @@
       <workItem from="1756561055329" duration="15189000" />
       <workItem from="1756656913645" duration="54225000" />
       <workItem from="1756813319793" duration="48050000" />
-      <workItem from="1756929997398" duration="23366000" />
+      <workItem from="1756929997398" duration="33228000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -399,7 +352,15 @@
       <option name="project" value="LOCAL" />
       <updated>1756930382246</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="commit working app">
+      <option name="closed" value="true" />
+      <created>1756992538680</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1756992538680</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -425,7 +386,8 @@
     <MESSAGE value="update" />
     <MESSAGE value="finalize auth and exception lib" />
     <MESSAGE value="update database and users lib" />
-    <option name="LAST_COMMIT_MESSAGE" value="update database and users lib" />
+    <MESSAGE value="commit working app" />
+    <option name="LAST_COMMIT_MESSAGE" value="commit working app" />
     <option name="NON_MODAL_COMMIT_POSTPONE_SLOW_CHECKS" value="false" />
   </component>
   <component name="XDebuggerManager">

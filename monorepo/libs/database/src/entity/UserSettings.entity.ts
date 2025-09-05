@@ -1,5 +1,6 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from '../type';
+import type { UserEntity } from './User.entity';
 
 export enum SettingType {
   Boolean = 'boolean',
@@ -22,11 +23,14 @@ export enum NotificationType {
 @Index({ name: 'ix__user_settings__is_active', properties: ['isActive'] })
 @Unique({ name: 'uq__user_settings__user_key', properties: ['user', 'key'] })
 export class UserSettingsEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
-  @ManyToOne('UserEntity', { fieldName: 'user_id' })
-  user?: any;
+  @Property({ type: 'uuid', fieldName: 'user_id' })
+  userId!: string;
+
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
+  user?: UserEntity;
 
   @Property({ type: 'varchar', length: 64, fieldName: 'key' })
   key!: string;

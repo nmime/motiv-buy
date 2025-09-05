@@ -1,28 +1,26 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique } from '@mikro-orm/core';
 import { EntityConstructorData } from "../../type";
-
-// Forward declarations for circular dependency resolution
-declare class TrafficSourceEntity { }
-declare class TrafficSourceCategoryEntity { }
+import type { TrafficSourceEntity } from '../TrafficSource.entity';
+import type { TrafficSourceCategoryEntity } from '../TrafficSourceCategory.entity';
 @Entity({ tableName: 'traffic_source_categories_junction' })
-@Index({ name: 'ix__traffic_source_categories_junction__source_id', properties: ['trafficSource'] })
-@Index({ name: 'ix__traffic_source_categories_junction__category_id', properties: ['category'] })
+@Index({ name: 'ix__traffic_source_categories_junction__source_id', properties: ['trafficSourceId'] })
+@Index({ name: 'ix__traffic_source_categories_junction__category_id', properties: ['categoryId'] })
 @Index({ name: 'ix__traffic_source_categories_junction__is_primary', properties: ['isPrimary'] })
-@Unique({ name: 'uq__traffic_source_categories_junction__source_category', properties: ['trafficSource', 'category'] })
+@Unique({ name: 'uq__traffic_source_categories_junction__source_category', properties: ['trafficSourceId', 'categoryId'] })
 export class TrafficSourceCategoriesEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
-  @Property({ type: 'bigint', fieldName: 'traffic_source_id' })
-  trafficSourceId!: number;
+  @Property({ type: 'uuid', fieldName: 'traffic_source_id' })
+  trafficSourceId!: string;
 
-  @Property({ type: 'bigint', fieldName: 'category_id' })
-  categoryId!: number;
+  @Property({ type: 'uuid', fieldName: 'category_id' })
+  categoryId!: string;
 
-  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
+  @ManyToOne('TrafficSourceEntity', { nullable: false, joinColumn: 'traffic_source_id', referenceColumnName: 'id' })
   trafficSource?: TrafficSourceEntity;
 
-  @ManyToOne('TrafficSourceCategoryEntity', { fieldName: 'category_id' })
+  @ManyToOne('TrafficSourceCategoryEntity', { nullable: false, joinColumn: 'category_id', referenceColumnName: 'id' })
   category?: TrafficSourceCategoryEntity;
 
   @Property({ type: 'boolean', default: false, fieldName: 'is_primary' })
@@ -40,7 +38,7 @@ export class TrafficSourceCategoriesEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<TrafficSourceCategoriesEntity, 'id' | 'createdAt' | 'updatedAt', 'isPrimary' | 'sortOrder'>) {
+  constructor(data: EntityConstructorData<TrafficSourceCategoriesEntity, 'id' | 'createdAt' | 'updatedAt' | 'trafficSource' | 'category', 'isPrimary' | 'sortOrder'>) {
     Object.assign(this, data);
   }
 }

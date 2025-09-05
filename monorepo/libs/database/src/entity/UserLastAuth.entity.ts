@@ -1,13 +1,12 @@
 import { Entity, Property, ManyToOne, Index, PrimaryKey, Unique } from '@mikro-orm/core';
-// Forward declaration for circular dependency resolution
-declare class UserEntity { }
 import { EntityConstructorData } from '../type';
+import type { UserEntity } from './User.entity';
 
 @Entity({ tableName: 'user_last_auth' })
 @Unique({ properties: ['user'] })
 @Index({ name: 'ix__user_last_auth__user_id', properties: ['user'] })
 export class UserLastAuthEntity {
-  @PrimaryKey({ type: 'bigserial' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
   @Property({ type: 'inet', nullable: true })
@@ -28,7 +27,10 @@ export class UserLastAuthEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne('UserEntity', { fieldName: 'user_id' })
+  @Property({ type: 'uuid', fieldName: 'user_id' })
+  userId!: string;
+
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
   user?: UserEntity;
 
   constructor(data: EntityConstructorData<UserLastAuthEntity, 'id' | 'createdAt' | 'updatedAt'>) {

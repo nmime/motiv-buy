@@ -1,13 +1,11 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, Index, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from '../type';
-
-// Forward declarations for circular dependency resolution
-declare class UserBalanceEntity { }
-declare class UserBalanceHistoryEntity { }
-declare class UserSettingsEntity { }
-declare class TrafficBuyerEntity { }
-declare class TrafficSourceEntity { }
-declare class TrafficOrderEntity { }
+import type { UserBalanceEntity } from './UserBalance.entity';
+import type { UserBalanceHistoryEntity } from './UserBalanceHistory.entity';
+import type { UserSettingsEntity } from './UserSettings.entity';
+import type { TrafficBuyerEntity } from './TrafficBuyer.entity';
+import type { TrafficSourceEntity } from './TrafficSource.entity';
+import type { TrafficOrderEntity } from './TrafficOrder.entity';
 
 export enum UserRole {
   User = 'user',
@@ -79,22 +77,22 @@ export class UserEntity {
   lastActiveAt?: Date;
 
   @OneToMany('UserBalanceEntity', 'user')
-  balances = new Collection<any>(this);
+  balances? = new Collection<UserBalanceEntity>(this);
 
   @OneToMany('UserBalanceHistoryEntity', 'user')
-  balanceHistory = new Collection<any>(this);
+  balanceHistory? = new Collection<UserBalanceHistoryEntity>(this);
 
   @OneToMany('UserSettingsEntity', 'user')
-  settings = new Collection<any>(this);
+  settings? = new Collection<UserSettingsEntity>(this);
 
   @OneToMany('TrafficBuyerEntity', 'managedBy')
-  managedBuyers = new Collection<any>(this);
+  managedBuyers? = new Collection<TrafficBuyerEntity>(this);
 
   @OneToMany('TrafficSourceEntity', 'managedBy')
-  managedSources = new Collection<any>(this);
+  managedSources? = new Collection<TrafficSourceEntity>(this);
 
   @OneToMany('TrafficOrderEntity', 'createdBy')
-  createdOrders = new Collection<any>(this);
+  createdOrders? = new Collection<TrafficOrderEntity>(this);
 
   constructor(data: EntityConstructorData<UserEntity, 'id' | 'createdAt' | 'updatedAt' | 'balances' | 'balanceHistory' | 'settings' | 'managedBuyers' | 'managedSources' | 'createdOrders', 'status' | 'role' | 'referralCount'>) {
     Object.assign(this, data);

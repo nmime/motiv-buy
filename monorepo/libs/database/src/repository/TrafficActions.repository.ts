@@ -6,13 +6,13 @@ export class TrafficActionsRepository extends EntityRepository<TrafficActionsEnt
     super(em, TrafficActionsEntity);
   }
 
-  async findByOrderId(orderId: number): Promise<TrafficActionsEntity[]> {
+  async findByOrderId(orderId: string): Promise<TrafficActionsEntity[]> {
     return this.find({ trafficOrderId: orderId }, {
       populate: ['trafficOrder', 'trafficSource']
     });
   }
 
-  async findBySourceId(sourceId: number): Promise<TrafficActionsEntity[]> {
+  async findBySourceId(sourceId: string): Promise<TrafficActionsEntity[]> {
     return this.find({ trafficSourceId: sourceId }, {
       populate: ['trafficOrder', 'trafficSource']
     });

@@ -1,5 +1,6 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from '../type';
+import type { UserEntity } from './User.entity';
 
 export enum UserRefLinkType {
   Promo = 'promo',
@@ -37,8 +38,11 @@ export class UserRefLinkEntity {
   @Property({ type: 'uuid', nullable: true, fieldName: 'source_id' })
   sourceId?: string;
 
-  @ManyToOne('UserEntity', { fieldName: 'user_id' })
-  user?: any;
+  @Property({ type: 'uuid', fieldName: 'user_id' })
+  userId!: string;
+
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
+  user?: UserEntity;
 
   @Property({ type: 'varchar', length: 50, fieldName: 'ref_code' })
   refCode!: string;

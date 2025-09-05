@@ -1,9 +1,7 @@
 import { Entity, Property, ManyToOne, Index, PrimaryKey, Enum } from '@mikro-orm/core';
 import { PlatformType } from '../const';
 import { EntityConstructorData, UserSourceVisitPlatformData } from '../type';
-
-// Forward declaration for circular dependency resolution
-declare class UserEntity { }
+import type { UserEntity } from './User.entity';
 
 @Entity({ tableName: 'user_source_visits' })
 @Index({ name: 'ix__user_source_visits__created_at', properties: ['createdAt'] })
@@ -12,7 +10,7 @@ declare class UserEntity { }
 @Index({ name: 'ix__user_source_visits__utm_campaign', properties: ['utmCampaign'] })
 @Index({ name: 'ix__user_source_visits__platform_type', properties: ['platformType'] })
 export class UserSourceVisitEntity {
-  @PrimaryKey({ type: 'bigserial' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 20, fieldName: 'platform_type' })
@@ -67,10 +65,16 @@ export class UserSourceVisitEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
 
-  @ManyToOne('UserEntity', { nullable: true, fieldName: 'user_id' })
+  @Property({ type: 'uuid', nullable: true, fieldName: 'user_id' })
+  userId?: string;
+
+  @Property({ type: 'uuid', nullable: true, fieldName: 'link_user_id' })
+  linkUserId?: string;
+
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'user_id', referenceColumnName: 'id' })
   user?: UserEntity;
 
-  @ManyToOne('UserEntity', { nullable: true, fieldName: 'link_user_id' })
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'link_user_id', referenceColumnName: 'id' })
   linkUser?: UserEntity;
 
   constructor(data: EntityConstructorData<UserSourceVisitEntity, 'id' | 'createdAt'>) {

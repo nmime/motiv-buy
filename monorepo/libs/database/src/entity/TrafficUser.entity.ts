@@ -1,5 +1,7 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from '../type';
+import type { TrafficSourceEntity } from './TrafficSource.entity';
+import type { TrafficOrderEntity } from './TrafficOrder.entity';
 
 export enum TrafficUserStatus {
   Active = 'active',
@@ -12,10 +14,10 @@ export enum TrafficUserStatus {
 @Index({ name: 'ix__traffic_users__telegram_id', properties: ['telegramId'] })
 @Index({ name: 'ix__traffic_users__username', properties: ['username'] })
 @Index({ name: 'ix__traffic_users__status', properties: ['status'] })
-@Index({ name: 'ix__traffic_users__traffic_source', properties: ['trafficSource'] })
+@Index({ name: 'ix__traffic_users__traffic_source_id', properties: ['trafficSourceId'] })
 export class TrafficUserEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
   @Property({ type: 'bigint', unique: true, fieldName: 'telegram_id' })
   telegramId!: string;
@@ -69,13 +71,16 @@ export class TrafficUserEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
-  trafficSource?: any;
+  @Property({ type: 'uuid', fieldName: 'traffic_source_id' })
+  trafficSourceId!: string;
+
+  @ManyToOne('TrafficSourceEntity', { nullable: false, joinColumn: 'traffic_source_id', referenceColumnName: 'id' })
+  trafficSource?: TrafficSourceEntity;
 
   @OneToMany('TrafficOrderEntity', 'assignedTrafficUser')
-  assignedOrders? = new Collection<any>(this);
+  assignedOrders? = new Collection<TrafficOrderEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficUserEntity, 'id' | 'createdAt' | 'updatedAt' | 'joinedAt', 'totalOrdersParticipated' | 'totalEarnings' | 'completionRate' | 'isBot' | 'canJoinGroups' | 'canReceiveMessages' | 'supportsInlineQueries' | 'status'>) {
+  constructor(data: EntityConstructorData<TrafficUserEntity, 'id' | 'createdAt' | 'updatedAt' | 'joinedAt' | 'assignedOrders', 'totalOrdersParticipated' | 'totalEarnings' | 'completionRate' | 'isBot' | 'canJoinGroups' | 'canReceiveMessages' | 'supportsInlineQueries' | 'status'>) {
     Object.assign(this, data);
   }
 }

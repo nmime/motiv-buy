@@ -1,8 +1,7 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from "../type";
-// Forward declaration for circular dependency resolution
-declare class UserEntity { }
-import { TrafficOrderEntity } from './TrafficOrder.entity';
+import type { UserEntity } from './User.entity';
+import type { TrafficOrderEntity } from './TrafficOrder.entity';
 
 export enum TrafficBuyerType {
   Channel = 'channel',
@@ -16,8 +15,8 @@ export enum TrafficBuyerType {
 @Index({ name: 'ix__traffic_buyers__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_buyers__is_active', properties: ['isActive'] })
 export class TrafficBuyerEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
   @Property({ type: 'varchar', length: 255, fieldName: 'name' })
   name!: string;
@@ -62,13 +61,16 @@ export class TrafficBuyerEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne('UserEntity', { nullable: true, fieldName: 'managed_by' })
+  @Property({ type: 'uuid', nullable: true, fieldName: 'managed_by_id' })
+  managedById?: string;
+
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'managed_by_id', referenceColumnName: 'id' })
   managedBy?: UserEntity;
 
   @OneToMany('TrafficOrderEntity', 'trafficBuyer')
   orders? = new Collection<TrafficOrderEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficBuyerEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive' | 'requiresApproval'>) {
+  constructor(data: EntityConstructorData<TrafficBuyerEntity, 'id' | 'createdAt' | 'updatedAt' | 'orders', 'isActive' | 'requiresApproval'>) {
     Object.assign(this, data);
   }
 }

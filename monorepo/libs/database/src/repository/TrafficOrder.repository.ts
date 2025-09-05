@@ -33,15 +33,15 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     return this.find({ status: TrafficOrderStatus.Pending });
   }
 
-  async findByTrafficSource(trafficSourceId: number): Promise<TrafficOrderEntity[]> {
+  async findByTrafficSource(trafficSourceId: string): Promise<TrafficOrderEntity[]> {
     return this.find({ trafficSourceId });
   }
 
-  async findByTrafficBuyer(trafficBuyerId: number): Promise<TrafficOrderEntity[]> {
+  async findByTrafficBuyer(trafficBuyerId: string): Promise<TrafficOrderEntity[]> {
     return this.find({ trafficBuyerId });
   }
 
-  async findByAssignedUser(trafficUserId: number): Promise<TrafficOrderEntity[]> {
+  async findByAssignedUser(trafficUserId: string): Promise<TrafficOrderEntity[]> {
     return this.find({ assignedTrafficUserId: trafficUserId });
   }
 
@@ -68,20 +68,20 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     pricePerAction: number;
     totalBudget: number;
     creatorId: string;
-    trafficSourceId: number;
-    trafficBuyerId: number;
+    trafficSourceId: string;
+    trafficBuyerId: string;
     description?: string;
     targetUrl?: string;
     requirements?: string;
     startDate?: Date;
     endDate?: Date;
-    assignedTrafficUserId?: number;
+    assignedTrafficUserId?: string;
   }): Promise<TrafficOrderEntity> {
     const order = new TrafficOrderEntity({
       ...data,
       totalBudget: data.totalBudget.toString(),
       pricePerAction: data.pricePerAction.toString(),
-      requirements: data.requirements ? JSON.parse(data.requirements) : undefined,
+      requirements: typeof data.requirements === 'string' ? JSON.parse(data.requirements) : data.requirements,
       status: TrafficOrderStatus.Pending
     });
     await this.em.persistAndFlush(order);
@@ -119,7 +119,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     }
   }
 
-  async assignUser(orderId: string, trafficUserId: number): Promise<void> {
+  async assignUser(orderId: string, trafficUserId: string): Promise<void> {
     const order = await this.findByOrderId(orderId);
     if (order) {
       order.assignedTrafficUserId = trafficUserId;

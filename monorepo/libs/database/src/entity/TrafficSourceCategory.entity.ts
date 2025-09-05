@@ -1,9 +1,7 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, Index, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from "../type";
 import { LocalizedField } from '@app/common-shared';
-
-// Forward declaration for circular dependency resolution
-declare class TrafficSourceCategoriesEntity { }
+import { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategory.entity';
 
 export enum TopicCategory {
   // Basic controls
@@ -69,8 +67,8 @@ export enum TopicCategory {
 @Index({ name: 'ix__traffic_source_categories__category_type', properties: ['categoryType'] })
 @Index({ name: 'ix__traffic_source_categories__is_active', properties: ['isActive'] })
 export class TrafficSourceCategoryEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
   @Property({ type: 'json', fieldName: 'name' })
   name!: LocalizedField;
@@ -106,10 +104,10 @@ export class TrafficSourceCategoryEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @OneToMany('TrafficSourceCategoriesEntity', 'category')
-  trafficSources = new Collection<TrafficSourceCategoriesEntity>(this);
+  @OneToMany(() => TrafficSourceCategoriesEntity, 'category')
+  trafficSources? = new Collection<TrafficSourceCategoriesEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficSourceCategoryEntity, 'id' | 'createdAt' | 'updatedAt', 'sortOrder' | 'isActive'>) {
+  constructor(data: EntityConstructorData<TrafficSourceCategoryEntity, 'id' | 'createdAt' | 'updatedAt' | 'trafficSources', 'sortOrder' | 'isActive'>) {
     Object.assign(this, data);
   }
 }

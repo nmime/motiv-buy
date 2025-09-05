@@ -1,12 +1,10 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from "../type";
-
-// Forward declarations for circular dependency resolution
-declare class UserEntity { }
-declare class TrafficOrderEntity { }
-declare class TrafficUserEntity { }
-declare class TrafficActionsEntity { }
-declare class TrafficSourceCategoriesEntity { }
+import type { UserEntity } from './User.entity';
+import type { TrafficOrderEntity } from './TrafficOrder.entity';
+import type { TrafficUserEntity } from './TrafficUser.entity';
+import type { TrafficActionsEntity } from './TrafficActions.entity';
+import type { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategory.entity';
 
 export enum TrafficSourceType {
   Bot = 'bot',
@@ -19,8 +17,8 @@ export enum TrafficSourceType {
 @Index({ name: 'ix__traffic_sources__is_active', properties: ['isActive'] })
 @Index({ name: 'ix__traffic_sources__bot_username', properties: ['botUsername'] })
 export class TrafficSourceEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
   @Property({ type: 'varchar', length: 255, fieldName: 'name' })
   name!: string;
@@ -53,22 +51,25 @@ export class TrafficSourceEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @ManyToOne('UserEntity', { nullable: true, fieldName: 'managed_by' })
-  managedBy?: any;
+  @Property({ type: 'uuid', nullable: true, fieldName: 'managed_by_id' })
+  managedById?: string;
+
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'managed_by_id', referenceColumnName: 'id' })
+  managedBy?: UserEntity;
 
   @OneToMany('TrafficOrderEntity', 'trafficSource')
-  orders = new Collection<any>(this);
+  orders? = new Collection<TrafficOrderEntity>(this);
 
   @OneToMany('TrafficUserEntity', 'trafficSource')
-  trafficUsers = new Collection<any>(this);
+  trafficUsers? = new Collection<TrafficUserEntity>(this);
 
   @OneToMany('TrafficActionsEntity', 'trafficSource')
-  actions = new Collection<any>(this);
+  actions? = new Collection<TrafficActionsEntity>(this);
 
-  // @OneToMany('TrafficSourceCategoriesEntity', 'trafficSource')
-  // categories = new Collection<any>(this);
+  @OneToMany('TrafficSourceCategoriesEntity', 'trafficSource')
+  categories? = new Collection<TrafficSourceCategoriesEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt' | 'orders' | 'trafficUsers' | 'actions', 'isActive'>) {
+  constructor(data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt' | 'orders' | 'trafficUsers' | 'actions' | 'categories', 'isActive'>) {
     Object.assign(this, data);
   }
 }

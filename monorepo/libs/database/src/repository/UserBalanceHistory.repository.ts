@@ -89,8 +89,8 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     return transaction;
   }
 
-  async updateStatus(id: number, status: TransactionStatus): Promise<void> {
-    const transaction = await this.findOne(id);
+  async updateStatus(id: string, status: TransactionStatus): Promise<void> {
+    const transaction = await this.findOne({ id });
     if (transaction) {
       transaction.status = status;
       await this.em.flush();

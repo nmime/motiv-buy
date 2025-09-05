@@ -1,6 +1,6 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique, Enum } from '@mikro-orm/core';
-import { UserEntity } from '../User.entity';
-import { TrafficBuyerEntity } from '../TrafficBuyer.entity';
+import type { UserEntity } from '../User.entity';
+import type { TrafficBuyerEntity } from '../TrafficBuyer.entity';
 import { EntityConstructorData } from "../../type";
 
 export enum UserTrafficBuyerRole {
@@ -12,20 +12,26 @@ export enum UserTrafficBuyerRole {
 
 
 @Entity({ tableName: 'user_traffic_buyers' })
-@Index({ name: 'ix__user_traffic_buyers__user_id', properties: ['user'] })
-@Index({ name: 'ix__user_traffic_buyers__buyer_id', properties: ['trafficBuyer'] })
+@Index({ name: 'ix__user_traffic_buyers__user_id', properties: ['userId'] })
+@Index({ name: 'ix__user_traffic_buyers__buyer_id', properties: ['trafficBuyerId'] })
 @Index({ name: 'ix__user_traffic_buyers__role', properties: ['role'] })
 @Index({ name: 'ix__user_traffic_buyers__is_active', properties: ['isActive'] })
-@Unique({ name: 'uq__user_traffic_buyers__user_buyer', properties: ['user', 'trafficBuyer'] })
+@Unique({ name: 'uq__user_traffic_buyers__user_buyer', properties: ['userId', 'trafficBuyerId'] })
 export class UserTrafficBuyerEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
 
-  @ManyToOne('UserEntity', { fieldName: 'user_id' })
+  @Property({ type: 'uuid', fieldName: 'user_id' })
+  userId!: string;
+
+  @Property({ type: 'uuid', fieldName: 'traffic_buyer_id' })
+  trafficBuyerId!: string;
+
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
   user?: UserEntity;
 
-  @ManyToOne('TrafficBuyerEntity', { fieldName: 'traffic_buyer_id' })
+  @ManyToOne('TrafficBuyerEntity', { nullable: false, joinColumn: 'traffic_buyer_id', referenceColumnName: 'id' })
   trafficBuyer?: TrafficBuyerEntity;
 
   @Property({ type: 'varchar', length: 20, fieldName: 'role' })
@@ -41,8 +47,11 @@ export class UserTrafficBuyerEntity {
   @Property({ type: 'timestamptz', nullable: true, fieldName: 'assigned_at' })
   assignedAt?: Date;
 
-  @Property({ type: 'uuid', nullable: true, fieldName: 'assigned_by' })
-  assignedBy?: string;
+  @Property({ type: 'uuid', nullable: true, fieldName: 'assigned_by_id' })
+  assignedById?: string;
+
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'assigned_by_id', referenceColumnName: 'id' })
+  assignedBy?: UserEntity;
 
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
@@ -50,7 +59,7 @@ export class UserTrafficBuyerEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<UserTrafficBuyerEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive'>) {
+  constructor(data: EntityConstructorData<UserTrafficBuyerEntity, 'id' | 'createdAt' | 'updatedAt' | 'user' | 'trafficBuyer' | 'assignedBy', 'isActive'>) {
     Object.assign(this, data);
   }
 }

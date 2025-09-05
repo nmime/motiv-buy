@@ -43,7 +43,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     return trafficSource;
   }
 
-  async updateConfig(id: number, config: Record<string, any>): Promise<void> {
+  async updateConfig(id: string, config: Record<string, any>): Promise<void> {
     const source = await this.findOne({ id });
     if (source) {
       source.config = config;
@@ -51,7 +51,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     }
   }
 
-  async deactivateSource(id: number): Promise<void> {
+  async deactivateSource(id: string): Promise<void> {
     const source = await this.findOne({ id });
     if (source) {
       source.isActive = false;
@@ -59,7 +59,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     }
   }
 
-  async activateSource(id: number): Promise<void> {
+  async activateSource(id: string): Promise<void> {
     const source = await this.findOne({ id });
     if (source) {
       source.isActive = true;

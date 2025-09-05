@@ -1,10 +1,10 @@
 import { Entity, PrimaryKey, Property, ManyToOne, OneToMany, Collection, Index, Enum } from '@mikro-orm/core';
 import { EntityConstructorData } from "../type";
-import { UserEntity } from './User.entity';
-import { TrafficSourceEntity } from './TrafficSource.entity';
-import { TrafficBuyerEntity } from './TrafficBuyer.entity';
-import { TrafficUserEntity } from './TrafficUser.entity';
-import { TrafficActionsEntity } from './TrafficActions.entity';
+import type { UserEntity } from './User.entity';
+import type { TrafficSourceEntity } from './TrafficSource.entity';
+import type { TrafficBuyerEntity } from './TrafficBuyer.entity';
+import type { TrafficUserEntity } from './TrafficUser.entity';
+import type { TrafficActionsEntity } from './TrafficActions.entity';
 
 export enum TrafficOrderStatus {
   Pending = 'pending',
@@ -30,9 +30,14 @@ export enum TrafficOrderType {
 @Index({ name: 'ix__traffic_orders__status', properties: ['status'] })
 @Index({ name: 'ix__traffic_orders__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_orders__created_at', properties: ['createdAt'] })
+@Index({ name: 'ix__traffic_orders__creator_id', properties: ['creatorId'] })
+@Index({ name: 'ix__traffic_orders__traffic_source_id', properties: ['trafficSourceId'] })
+@Index({ name: 'ix__traffic_orders__traffic_buyer_id', properties: ['trafficBuyerId'] })
+@Index({ name: 'ix__traffic_orders__assigned_traffic_user_id', properties: ['assignedTrafficUserId'] })
+@Index({ name: 'ix__traffic_orders__created_by', properties: ['createdById'] })
 export class TrafficOrderEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
   @Property({ type: 'varchar', length: 64, unique: true, fieldName: 'order_id' })
   orderId!: string;
@@ -84,24 +89,38 @@ export class TrafficOrderEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
+  @Property({ type: 'uuid', fieldName: 'creator_id' })
+  creatorId!: string;
 
-  @ManyToOne('UserEntity', { fieldName: 'creator_id' })
+  @Property({ type: 'uuid', fieldName: 'traffic_source_id' })
+  trafficSourceId!: string;
+
+  @Property({ type: 'uuid', fieldName: 'traffic_buyer_id' })
+  trafficBuyerId!: string;
+
+  @Property({ type: 'uuid', nullable: true, fieldName: 'assigned_traffic_user_id' })
+  assignedTrafficUserId?: string;
+
+  @Property({ type: 'uuid', nullable: true, fieldName: 'created_by_id' })
+  createdById?: string;
+
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'creator_id', referenceColumnName: 'id' })
   creator?: UserEntity;
 
-  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
+  @ManyToOne('TrafficSourceEntity', { nullable: false, joinColumn: 'traffic_source_id', referenceColumnName: 'id' })
   trafficSource?: TrafficSourceEntity;
 
-  @ManyToOne('TrafficBuyerEntity', { fieldName: 'traffic_buyer_id' })
+  @ManyToOne('TrafficBuyerEntity', { nullable: false, joinColumn: 'traffic_buyer_id', referenceColumnName: 'id' })
   trafficBuyer?: TrafficBuyerEntity;
 
-  @ManyToOne('TrafficUserEntity', { nullable: true, fieldName: 'assigned_traffic_user_id' })
+  @ManyToOne('TrafficUserEntity', { nullable: true, joinColumn: 'assigned_traffic_user_id', referenceColumnName: 'id' })
   assignedTrafficUser?: TrafficUserEntity;
 
-  @ManyToOne('UserEntity', { nullable: true, fieldName: 'created_by' })
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'created_by_id', referenceColumnName: 'id' })
   createdBy?: UserEntity;
 
   @OneToMany('TrafficActionsEntity', 'trafficOrder')
-  actions = new Collection<TrafficActionsEntity>(this);
+  actions? = new Collection<TrafficActionsEntity>(this);
 
   constructor(data: EntityConstructorData<TrafficOrderEntity, 'id' | 'createdAt' | 'updatedAt' | 'actions', 'currentCount' | 'spentAmount'>) {
     Object.assign(this, data);

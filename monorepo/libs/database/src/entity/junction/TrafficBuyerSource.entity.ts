@@ -1,23 +1,29 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique } from '@mikro-orm/core';
-import { TrafficBuyerEntity } from '../TrafficBuyer.entity';
-import { TrafficSourceEntity } from '../TrafficSource.entity';
+import type { TrafficBuyerEntity } from '../TrafficBuyer.entity';
+import type { TrafficSourceEntity } from '../TrafficSource.entity';
 import { EntityConstructorData } from "../../type";
 
 
 @Entity({ tableName: 'traffic_buyer_sources' })
-@Index({ name: 'ix__traffic_buyer_sources__buyer_id', properties: ['trafficBuyer'] })
-@Index({ name: 'ix__traffic_buyer_sources__source_id', properties: ['trafficSource'] })
+@Index({ name: 'ix__traffic_buyer_sources__buyer_id', properties: ['trafficBuyerId'] })
+@Index({ name: 'ix__traffic_buyer_sources__source_id', properties: ['trafficSourceId'] })
 @Index({ name: 'ix__traffic_buyer_sources__is_active', properties: ['isActive'] })
-@Unique({ name: 'uq__traffic_buyer_sources__buyer_source', properties: ['trafficBuyer', 'trafficSource'] })
+@Unique({ name: 'uq__traffic_buyer_sources__buyer_source', properties: ['trafficBuyerId', 'trafficSourceId'] })
 export class TrafficBuyerSourceEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
 
-  @ManyToOne('TrafficBuyerEntity', { fieldName: 'traffic_buyer_id' })
+  @Property({ type: 'uuid', fieldName: 'traffic_buyer_id' })
+  trafficBuyerId!: string;
+
+  @Property({ type: 'uuid', fieldName: 'traffic_source_id' })
+  trafficSourceId!: string;
+
+  @ManyToOne('TrafficBuyerEntity', { nullable: false, joinColumn: 'traffic_buyer_id', referenceColumnName: 'id' })
   trafficBuyer?: TrafficBuyerEntity;
 
-  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
+  @ManyToOne('TrafficSourceEntity', { nullable: false, joinColumn: 'traffic_source_id', referenceColumnName: 'id' })
   trafficSource?: TrafficSourceEntity;
 
   @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
@@ -56,7 +62,7 @@ export class TrafficBuyerSourceEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<TrafficBuyerSourceEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive' | 'totalOrdersCompleted' | 'totalAmountSpent'>) {
+  constructor(data: EntityConstructorData<TrafficBuyerSourceEntity, 'id' | 'createdAt' | 'updatedAt' | 'trafficBuyer' | 'trafficSource', 'isActive' | 'totalOrdersCompleted' | 'totalAmountSpent'>) {
     Object.assign(this, data);
   }
 }

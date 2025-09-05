@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { TrafficOrderEntity } from './TrafficOrder.entity';
-import { TrafficSourceEntity } from './TrafficSource.entity';
 import { EntityConstructorData } from '../type';
+import type { TrafficOrderEntity } from './TrafficOrder.entity';
+import type { TrafficSourceEntity } from './TrafficSource.entity';
 
 export enum TrafficActionStatus {
   Pending = 'pending',
@@ -29,8 +29,8 @@ export enum TrafficActionType {
 @Index({ name: 'ix__traffic_actions__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_actions__scheduled_at', properties: ['scheduledAt'] })
 export class TrafficActionsEntity {
-  @PrimaryKey({ type: 'bigserial' })
-  id!: number;
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  id!: string;
 
   @Property({ type: 'varchar', length: 64, unique: true, fieldName: 'action_id' })
   actionId!: string;
@@ -77,12 +77,18 @@ export class TrafficActionsEntity {
   updatedAt: Date = new Date();
 
 
-  @ManyToOne('TrafficOrderEntity', { fieldName: 'traffic_order_id' })
+  @Property({ type: 'uuid', nullable: true, fieldName: 'traffic_order_id' })
   @Index()
+  trafficOrderId?: string;
+
+  @Property({ type: 'uuid', nullable: true, fieldName: 'traffic_source_id' })
+  @Index()
+  trafficSourceId?: string;
+
+  @ManyToOne('TrafficOrderEntity', { nullable: true, joinColumn: 'traffic_order_id', referenceColumnName: 'id' })
   trafficOrder?: TrafficOrderEntity;
 
-  @ManyToOne('TrafficSourceEntity', { fieldName: 'traffic_source_id' })
-  @Index()
+  @ManyToOne('TrafficSourceEntity', { nullable: true, joinColumn: 'traffic_source_id', referenceColumnName: 'id' })
   trafficSource?: TrafficSourceEntity;
 
   constructor(data: EntityConstructorData<TrafficActionsEntity, 'id' | 'createdAt' | 'updatedAt', 'reward'>) {
