@@ -20,7 +20,9 @@ export class HealthPrivateNetworkIpGuard implements CanActivate {
     const result =
       !!clientIp &&
       PrivateNetworkIps.some((allowedIp) =>
-        allowedIp.includes('/') ? clientIp.startsWith(allowedIp.split('/')[0].split('.').slice(0, 3).join('.')) : clientIp === allowedIp,
+        allowedIp.includes('/')
+          ? clientIp.startsWith(allowedIp.split('/')[0].split('.').slice(0, 3).join('.'))
+          : clientIp === allowedIp,
       );
 
     if (!result) {

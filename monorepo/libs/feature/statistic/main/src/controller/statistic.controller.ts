@@ -14,9 +14,7 @@ export class StatisticController {
   constructor(private readonly statisticService: StatisticService) {}
 
   @Get()
-  @ApiProblemExceptions([
-    [InternalException, { description: 'Internal server error occurred' }],
-  ])
+  @ApiProblemExceptions([[InternalException, { description: 'Internal server error occurred' }]])
   @ApiOperation({
     summary: 'Get traffic statistic',
     description: `Get statistic with optional filtering:
@@ -38,9 +36,7 @@ export class StatisticController {
   }
 
   @Get('token')
-  @ApiProblemExceptions([
-    [InternalException, { description: 'Internal server error occurred' }],
-  ])
+  @ApiProblemExceptions([[InternalException, { description: 'Internal server error occurred' }]])
   @ApiOperation({
     summary: 'Get share token for statistics',
     description: 'Generate a share token for public access to statistics',
@@ -49,9 +45,7 @@ export class StatisticController {
     status: 200,
     description: 'Share token generated successfully',
   })
-  async getStatisticToken(
-    @CurrentUserId() userId: string,
-  ): AsyncResult<StatisticTokenDto, InternalException> {
+  async getStatisticToken(@CurrentUserId() userId: string): AsyncResult<StatisticTokenDto, InternalException> {
     const result = await this.statisticService.generateShareToken(userId);
     return { success: true, data: result };
   }

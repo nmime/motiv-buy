@@ -10,7 +10,7 @@ export class UserRepositoryImpl {
 
   constructor(
     private readonly em: EntityManager,
-    private readonly userMapper: UserMapper
+    private readonly userMapper: UserMapper,
   ) {
     this.repository = this.em.getRepository(UserEntity);
   }
@@ -37,7 +37,7 @@ export class UserRepositoryImpl {
 
   async update(id: string, updateData: Partial<UserEntity>): Promise<UserResponseDto> {
     const user = await this.repository.findOneOrFail({ id });
-    
+
     Object.assign(user, updateData);
 
     await this.em.flush();
@@ -46,7 +46,7 @@ export class UserRepositoryImpl {
 
   async updateByTelegramId(telegramId: string, updateData: Partial<UserEntity>): Promise<UserResponseDto> {
     const user = await this.repository.findOneOrFail({ telegramId });
-    
+
     Object.assign(user, updateData);
 
     await this.em.flush();
@@ -88,18 +88,24 @@ export class UserRepositoryImpl {
     return await this.repository.getUserStats();
   }
 
-  async findAll(page: number, limit: number): Promise<{
+  async findAll(
+    page: number,
+    limit: number,
+  ): Promise<{
     users: UserResponseDto[];
     total: number;
   }> {
-    const [users, total] = await this.repository.findAndCount({}, {
-      limit,
-      offset: (page - 1) * limit
-    });
+    const [users, total] = await this.repository.findAndCount(
+      {},
+      {
+        limit,
+        offset: (page - 1) * limit,
+      },
+    );
 
     return {
       users: this.userMapper.toResponseArray(users),
-      total
+      total,
     };
   }
 }

@@ -1,5 +1,6 @@
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { TrafficSourceEntity, TrafficSourceType } from '../entity';
+import { TrafficSourceConfig } from '../type';
 
 export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntity> {
   constructor(em: EntityManager) {
@@ -33,17 +34,17 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     botToken?: string;
     botUsername?: string;
     telegramId?: string;
-    config?: Record<string, any>;
+    config?: TrafficSourceConfig;
   }): Promise<TrafficSourceEntity> {
     const trafficSource = new TrafficSourceEntity({
       ...data,
-      isActive: true
+      isActive: true,
     });
     await this.em.persistAndFlush(trafficSource);
     return trafficSource;
   }
 
-  async updateConfig(id: string, config: Record<string, any>): Promise<void> {
+  async updateConfig(id: string, config: TrafficSourceConfig): Promise<void> {
     const source = await this.findOne({ id });
     if (source) {
       source.config = config;
@@ -77,7 +78,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
       this.count(),
       this.count({ isActive: true }),
       this.count({ type: TrafficSourceType.Bot }),
-      this.count({ type: TrafficSourceType.BotWithToken })
+      this.count({ type: TrafficSourceType.BotWithToken }),
     ]);
 
     return { total, active, bots, botsWithToken };

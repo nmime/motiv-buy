@@ -1,5 +1,11 @@
-import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { UserRefLinkEntity, UserRefLinkType, UserRefPercentLevel1, UserRefPercentLevel2, UserRefPercentLevel3 } from '../entity/UserRefLink.entity';
+import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
+import {
+  UserRefLinkEntity,
+  UserRefLinkType,
+  UserRefPercentLevel1,
+  UserRefPercentLevel2,
+  UserRefPercentLevel3,
+} from '../entity/UserRefLink.entity';
 import { UserEntity } from '../entity';
 import { randomBytes } from 'crypto';
 
@@ -41,7 +47,8 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
     const level2Percent = refPercentLevel2 ?? UserRefLinkEntity.level1ToLevel2RefPercent(refPercentLevel1);
 
     const userRefLink = new UserRefLinkEntity({
-      userId,
+      user: ref(entityManager.getReference(UserEntity, userId)),
+      type,
       refCode: userRefCode,
       refPercentLevel1: refPercentLevel1.toString(),
       refPercentLevel2: level2Percent,
@@ -49,7 +56,6 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
       refCodeUniqueKey: userRefCode,
       defaultUniqueKey: isDefault ? userId : `${userId}_${this.generateUniqueKey()}`,
       isDefault,
-      type,
       isCustom,
       isDeleted: false,
     });
@@ -63,12 +69,11 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
   }
 
   async findDefaultByUserId(userId: string): Promise<UserRefLinkEntity | null> {
-    return this.findOne({ userId, isDeleted: false, isDefault: true });
+    return this.findOne({ user: userId, isDeleted: false, isDefault: true });
   }
 
   async getUserRefLinks(user: UserEntity): Promise<RefLinks> {
-    const ids = [user.refLinkLevel1, user.refLinkLevel2, user.refLinkLevel3]
-      .filter((id): id is string => Boolean(id));
+    const ids = [user.refLinkLevel1, user.refLinkLevel2, user.refLinkLevel3].filter((id): id is string => Boolean(id));
 
     if (ids.length === 0) {
       return { level1RefLink: null, level2RefLink: null, level3RefLink: null };
@@ -76,7 +81,7 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
 
     const links = await this.find({
       id: { $in: ids },
-      isDeleted: false
+      isDeleted: false,
     });
 
     const linkMap = new Map(links.map((l) => [l.id, l]));
@@ -117,7 +122,7 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
 
     const links = await this.find({
       id: { $in: [...allRefLinkIds] },
-      isDeleted: false
+      isDeleted: false,
     });
 
     const linkMap = new Map<string, UserRefLinkEntity>(links.map((link) => [link.id, link]));
@@ -134,7 +139,7 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
   }
 
   async findActiveByUserId(userId: string): Promise<UserRefLinkEntity[]> {
-    return this.find({ userId, isDeleted: false });
+    return this.find({ user: userId, isDeleted: false });
   }
 
   async softDelete(id: string, entityManager?: EntityManager): Promise<void> {
@@ -146,11 +151,11 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
     const randomArray = randomBytes(length);
-    
+
     for (let i = 0; i < length; i++) {
       result += chars[randomArray[i] % chars.length];
     }
-    
+
     return result;
   }
 

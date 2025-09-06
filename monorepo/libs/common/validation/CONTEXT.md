@@ -7,22 +7,26 @@ This library provides comprehensive validation utilities, custom decorators, and
 ## Key Components
 
 ### Core Validation
+
 - **ValidationModule** - Main NestJS module for validation configuration
 - **ValidationService** - Core validation service with common validation methods
 - **ValidationPipe** - Enhanced NestJS validation pipe with custom error formatting
 
 ### Custom Decorators
+
 - **Financial Validators** - Amount, currency, and financial operation validation
 - **Blockchain Validators** - Address validation for different blockchain networks
 - **Security Validators** - Password strength, token validation, rate limiting
 - **Business Logic Validators** - Custom business rules and constraints
 
 ### Exception Handling
+
 - **ValidationException** - Standardized validation error handling
 - **ValidationApiProblemException** - API-specific validation error responses
 - **FieldValidationError** - Field-level validation error details
 
 ### Validation Types
+
 - **ValidationTypes** - Common validation type definitions
 - **ValidationConstraints** - Reusable validation constraint definitions
 - **ValidationMessages** - Standardized validation error messages
@@ -30,6 +34,7 @@ This library provides comprehensive validation utilities, custom decorators, and
 ## Dependencies
 
 ### External Dependencies
+
 - `class-validator` - Decorator-based validation library
 - `class-transformer` - Object transformation utilities
 - `joi` - Schema validation for complex objects
@@ -38,6 +43,7 @@ This library provides comprehensive validation utilities, custom decorators, and
 - `web3-utils` - Ethereum address validation
 
 ### Internal Dependencies
+
 - `@app/common-exception` - Exception handling framework
 - `@app/common-shared` - Common types and constants
 - `@app/common-logger` - Validation logging
@@ -45,16 +51,19 @@ This library provides comprehensive validation utilities, custom decorators, and
 ## Integration Points
 
 ### API Validation
+
 - **Request Validation** - Automatic validation of all API requests
 - **Response Validation** - Ensure response data integrity
 - **Parameter Validation** - Query and path parameter validation
 
 ### Business Logic Validation
+
 - **Transaction Validation** - Financial transaction validation rules
 - **User Data Validation** - User registration and profile validation
 - **Trading Validation** - Trading order and market validation
 
 ### Security Validation
+
 - **Authentication Validation** - Token and credential validation
 - **Authorization Validation** - Permission and access validation
 - **Rate Limiting Validation** - Request rate validation
@@ -62,13 +71,9 @@ This library provides comprehensive validation utilities, custom decorators, and
 ## Usage Patterns
 
 ### Basic DTO Validation
+
 ```typescript
-import { 
-  IsValidAmount, 
-  IsValidCurrency, 
-  IsValidNetwork,
-  IsBlockchainAddress 
-} from '@app/common-validation';
+import { IsValidAmount, IsValidCurrency, IsValidNetwork, IsBlockchainAddress } from '@app/common-validation';
 
 export class TransferDto {
   @IsValidAmount()
@@ -96,6 +101,7 @@ export class TransferDto {
 ```
 
 ### Custom Business Validation
+
 ```typescript
 import { ValidationException } from '@app/common-validation';
 
@@ -131,11 +137,7 @@ export class TradingValidationService {
     await this.validateMarketHours(order.symbol);
   }
 
-  private async validateUserBalance(
-    userId: string,
-    symbol: string,
-    amount: string
-  ): Promise<void> {
+  private async validateUserBalance(userId: string, symbol: string, amount: string): Promise<void> {
     const balance = await this.getUserBalance(userId, symbol);
     if (Number(balance) < Number(amount)) {
       throw new ValidationException('INSUFFICIENT_BALANCE', {
@@ -150,6 +152,7 @@ export class TradingValidationService {
 ```
 
 ### Financial Amount Validation
+
 ```typescript
 import { registerDecorator, ValidationOptions } from 'class-validator';
 
@@ -163,22 +166,22 @@ export function IsValidAmount(validationOptions?: ValidationOptions) {
       validator: {
         validate(value: any) {
           if (typeof value !== 'string') return false;
-          
+
           // Check if it's a valid decimal number
           const numericRegex = /^\d+(\.\d+)?$/;
           if (!numericRegex.test(value)) return false;
-          
+
           // Check for reasonable precision (max 18 decimals)
           const parts = value.split('.');
           if (parts[1] && parts[1].length > 18) return false;
-          
+
           // Check for positive amount
           const amount = Number(value);
           if (amount <= 0) return false;
-          
+
           // Check for reasonable maximum (prevent overflow)
           if (amount > 1e15) return false;
-          
+
           return true;
         },
         defaultMessage() {
@@ -199,11 +202,9 @@ export function IsValidCurrency(validationOptions?: ValidationOptions) {
       validator: {
         validate(value: any) {
           if (typeof value !== 'string') return false;
-          
-          const supportedCurrencies = [
-            'USDT', 'TON', 'ETH', 'BTC', 'BNB', 'SOL', 'TRX', 'USD', 'EUR'
-          ];
-          
+
+          const supportedCurrencies = ['USDT', 'TON', 'ETH', 'BTC', 'BNB', 'SOL', 'TRX', 'USD', 'EUR'];
+
           return supportedCurrencies.includes(value.toUpperCase());
         },
         defaultMessage() {
@@ -216,6 +217,7 @@ export function IsValidCurrency(validationOptions?: ValidationOptions) {
 ```
 
 ### Blockchain Address Validation
+
 ```typescript
 import { isAddress } from 'web3-utils';
 import { validate as validateBitcoinAddress } from 'bitcoin-address-validation';
@@ -230,27 +232,27 @@ export function IsBlockchainAddress(validationOptions?: ValidationOptions) {
       validator: {
         validate(value: any, args: ValidationArguments) {
           if (typeof value !== 'string') return false;
-          
+
           const dto = args.object as any;
           const network = dto.network;
-          
+
           switch (network?.toUpperCase()) {
             case 'ETH':
             case 'BSC':
               return isAddress(value);
-              
+
             case 'BTC':
               return validateBitcoinAddress(value);
-              
+
             case 'TON':
               return this.validateTonAddress(value);
-              
+
             case 'SOL':
               return this.validateSolanaAddress(value);
-              
+
             case 'TRX':
               return this.validateTronAddress(value);
-              
+
             default:
               return false;
           }
@@ -283,6 +285,7 @@ function validateTronAddress(address: string): boolean {
 ```
 
 ### Validation Pipeline
+
 ```typescript
 import { ValidationPipe } from '@nestjs/common';
 import { ValidationApiProblemException } from '@app/common-validation';
@@ -295,7 +298,7 @@ export class CustomValidationPipe extends ValidationPipe {
       whitelist: true,
       forbidNonWhitelisted: true,
       exceptionFactory: (errors) => {
-        const formattedErrors = errors.map(error => ({
+        const formattedErrors = errors.map((error) => ({
           field: error.property,
           value: error.value,
           constraints: Object.values(error.constraints || {}),
@@ -313,7 +316,7 @@ export class CustomValidationPipe extends ValidationPipe {
   }
 
   private formatChildErrors(children: any[]): any[] {
-    return children.map(child => ({
+    return children.map((child) => ({
       field: child.property,
       value: child.value,
       constraints: Object.values(child.constraints || {}),
@@ -335,24 +338,33 @@ export class ValidationModule {}
 ```
 
 ### Complex Object Validation
+
 ```typescript
 import Joi from 'joi';
 
 @Injectable()
 export class ComplexValidationService {
   private readonly tradingOrderSchema = Joi.object({
-    symbol: Joi.string().required().pattern(/^[A-Z]+\/[A-Z]+$/),
+    symbol: Joi.string()
+      .required()
+      .pattern(/^[A-Z]+\/[A-Z]+$/),
     type: Joi.string().valid('market', 'limit', 'stop', 'stop-limit').required(),
     side: Joi.string().valid('buy', 'sell').required(),
-    amount: Joi.string().required().pattern(/^\d+(\.\d+)?$/),
+    amount: Joi.string()
+      .required()
+      .pattern(/^\d+(\.\d+)?$/),
     price: Joi.when('type', {
       is: Joi.string().valid('limit', 'stop-limit'),
-      then: Joi.string().required().pattern(/^\d+(\.\d+)?$/),
+      then: Joi.string()
+        .required()
+        .pattern(/^\d+(\.\d+)?$/),
       otherwise: Joi.forbidden(),
     }),
     stopPrice: Joi.when('type', {
       is: Joi.string().valid('stop', 'stop-limit'),
-      then: Joi.string().required().pattern(/^\d+(\.\d+)?$/),
+      then: Joi.string()
+        .required()
+        .pattern(/^\d+(\.\d+)?$/),
       otherwise: Joi.forbidden(),
     }),
     timeInForce: Joi.string().valid('GTC', 'IOC', 'FOK').default('GTC'),
@@ -366,7 +378,7 @@ export class ComplexValidationService {
     });
 
     if (error) {
-      const validationErrors = error.details.map(detail => ({
+      const validationErrors = error.details.map((detail) => ({
         field: detail.path.join('.'),
         message: detail.message,
         value: detail.context?.value,
@@ -385,16 +397,12 @@ export class ComplexValidationService {
 ## Exception Handling
 
 ### Validation Exception Classes
+
 ```typescript
 import { ApiProblemException } from '@app/common-exception';
 
 export class ValidationApiProblemException extends ApiProblemException {
-  constructor(problem: {
-    title: string;
-    detail: string;
-    status: number;
-    errors: ValidationError[];
-  }) {
+  constructor(problem: { title: string; detail: string; status: number; errors: ValidationError[] }) {
     super({
       ...problem,
       type: 'validation-error',
@@ -403,7 +411,7 @@ export class ValidationApiProblemException extends ApiProblemException {
   }
 
   static fromClassValidatorErrors(errors: any[]): ValidationApiProblemException {
-    const validationErrors = errors.map(error => ({
+    const validationErrors = errors.map((error) => ({
       field: error.property,
       value: error.value,
       constraints: Object.values(error.constraints || {}),
@@ -429,6 +437,7 @@ interface ValidationError {
 ## Configuration
 
 ### Validation Configuration
+
 ```typescript
 @Injectable()
 export class ValidationConfigService {
@@ -438,17 +447,17 @@ export class ValidationConfigService {
       strictMode: process.env.VALIDATION_STRICT_MODE === 'true',
       maxValidationErrors: parseInt(process.env.MAX_VALIDATION_ERRORS || '10'),
       validationTimeout: parseInt(process.env.VALIDATION_TIMEOUT || '5000'),
-      
+
       // Financial validation settings
       maxTransactionAmount: process.env.MAX_TRANSACTION_AMOUNT || '1000000',
       minTransactionAmount: process.env.MIN_TRANSACTION_AMOUNT || '0.000001',
       maxDecimalPlaces: parseInt(process.env.MAX_DECIMAL_PLACES || '18'),
-      
+
       // Security validation settings
       passwordMinLength: parseInt(process.env.PASSWORD_MIN_LENGTH || '8'),
       passwordRequireSpecialChar: process.env.PASSWORD_REQUIRE_SPECIAL === 'true',
       emailVerificationRequired: process.env.EMAIL_VERIFICATION_REQUIRED === 'true',
-      
+
       // Rate limiting
       validationRateLimit: parseInt(process.env.VALIDATION_RATE_LIMIT || '100'),
       validationRateWindow: parseInt(process.env.VALIDATION_RATE_WINDOW || '60000'),
@@ -475,16 +484,19 @@ interface ValidationConfig {
 ## Security Considerations
 
 ### Input Sanitization
+
 - **XSS Prevention** - Automatic HTML/script tag removal
 - **SQL Injection Prevention** - Parameterized query validation
 - **Path Traversal Prevention** - File path validation
 
 ### Financial Security
+
 - **Amount Validation** - Prevent precision attacks and overflow
 - **Currency Validation** - Whitelist supported currencies
 - **Transaction Limits** - Enforce minimum and maximum transaction amounts
 
 ### Rate Limiting
+
 - **Validation Rate Limiting** - Prevent validation spam attacks
 - **Error Rate Monitoring** - Monitor validation failure patterns
 - **Suspicious Pattern Detection** - Detect potential attack patterns
@@ -492,11 +504,13 @@ interface ValidationConfig {
 ## Performance Notes
 
 ### Optimization Strategies
+
 - **Validation Caching** - Cache validation results for repeated inputs
 - **Async Validation** - Non-blocking validation for complex rules
 - **Batch Validation** - Validate multiple objects efficiently
 
 ### Memory Management
+
 - **Validation Pool** - Reuse validation instances
 - **Error Object Pooling** - Reuse validation error objects
 - **Garbage Collection** - Proper cleanup of validation contexts
@@ -504,18 +518,21 @@ interface ValidationConfig {
 ## Development Notes
 
 ### Best Practices
+
 - Create reusable validation decorators for common patterns
 - Use TypeScript for type-safe validation rules
 - Implement comprehensive error messages for user experience
 - Test validation rules with edge cases and security scenarios
 
 ### Testing Strategies
+
 - Unit test all custom validation decorators
 - Integration test validation pipelines
 - Security test validation with malicious inputs
 - Performance test validation under load
 
 ### Extension Points
+
 - Add domain-specific validation decorators
 - Implement async validation for database lookups
 - Create validation middleware for specific use cases

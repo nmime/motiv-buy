@@ -5,7 +5,7 @@ import { ConfirmationService } from '../service/confirmation.service';
 
 /**
  * Migration Controller
- * 
+ *
  * Follows CLAUDE.md Controller → Service → Repository → Mapper pattern
  * Handles CLI input validation and response formatting
  */
@@ -13,7 +13,10 @@ export class MigrationController {
   private migrationService: MigrationService;
   private confirmationService: ConfirmationService;
 
-  constructor(private orm: MikroORM, private logger: Logger) {
+  constructor(
+    private orm: MikroORM,
+    private logger: Logger,
+  ) {
     this.migrationService = new MigrationService(orm, logger);
     this.confirmationService = new ConfirmationService(logger);
   }
@@ -32,13 +35,13 @@ export class MigrationController {
     }
 
     this.logger.info(`Creating ${type} migration: ${name}`);
-    
+
     const migrationPath = await this.migrationService.createMigration(name, type);
-    
-    this.logger.info('✅ Migration created successfully:', { 
-      name, 
-      type, 
-      path: migrationPath 
+
+    this.logger.info('✅ Migration created successfully:', {
+      name,
+      type,
+      path: migrationPath,
     });
   }
 
@@ -47,16 +50,16 @@ export class MigrationController {
    */
   async runMigrationsUp(toVersion?: string): Promise<void> {
     this.logger.info('Checking for pending migrations...');
-    
+
     const pendingMigrations = await this.migrationService.getPendingMigrations();
-    
+
     if (pendingMigrations.length === 0) {
       this.logger.info('✅ No pending migrations to run');
       return;
     }
 
     this.logger.info(`Found ${pendingMigrations.length} pending migration(s):`, {
-      migrations: pendingMigrations.map(m => m.name)
+      migrations: pendingMigrations.map((m) => m.name),
     });
 
     if (toVersion) {
@@ -64,10 +67,10 @@ export class MigrationController {
     }
 
     const result = await this.migrationService.runMigrationsUp(toVersion);
-    
+
     this.logger.info('✅ Migrations completed successfully:', {
       executed: result.executedMigrations,
-      time: result.executionTime
+      time: result.executionTime,
     });
   }
 
@@ -76,9 +79,9 @@ export class MigrationController {
    */
   async runMigrationsDown(toVersion?: string, steps?: number): Promise<void> {
     this.logger.info('Checking migration status for rollback...');
-    
+
     const executedMigrations = await this.migrationService.getExecutedMigrations();
-    
+
     if (executedMigrations.length === 0) {
       this.logger.info('✅ No migrations to rollback');
       return;
@@ -90,14 +93,14 @@ export class MigrationController {
       this.logger.warn(`⚠️  Rolling back to version: ${toVersion}`);
     } else {
       const rollbackCount = steps || 1;
-      migrationsToRollback = executedMigrations.slice(-rollbackCount).map(m => m.name);
+      migrationsToRollback = executedMigrations.slice(-rollbackCount).map((m) => m.name);
       this.logger.warn(`⚠️  Rolling back ${rollbackCount} migration(s)`);
     }
 
     this.logger.warn('Migrations to rollback:', { migrations: migrationsToRollback });
 
     const confirmed = await this.confirmationService.confirm(
-      'This operation may result in data loss. Do you want to continue?'
+      'This operation may result in data loss. Do you want to continue?',
     );
 
     if (!confirmed) {
@@ -106,10 +109,10 @@ export class MigrationController {
     }
 
     const result = await this.migrationService.runMigrationsDown(toVersion, steps);
-    
+
     this.logger.info('✅ Rollback completed successfully:', {
       rolledBack: result.rolledBackMigrations,
-      time: result.executionTime
+      time: result.executionTime,
     });
   }
 
@@ -118,26 +121,26 @@ export class MigrationController {
    */
   async getMigrationStatus(): Promise<void> {
     this.logger.info('Checking migration status...');
-    
+
     const status = await this.migrationService.getMigrationStatus();
-    
+
     this.logger.info('📊 Migration Status:', {
       executed: status.executedMigrations.length,
-      pending: status.pendingMigrations.length
+      pending: status.pendingMigrations.length,
     });
 
     if (status.executedMigrations.length > 0) {
       this.logger.info('✅ Executed migrations:', {
-        migrations: status.executedMigrations.map(m => ({
+        migrations: status.executedMigrations.map((m) => ({
           name: m.name,
-          executedAt: m.executedAt
-        }))
+          executedAt: m.executedAt,
+        })),
       });
     }
 
     if (status.pendingMigrations.length > 0) {
       this.logger.info('⏳ Pending migrations:', {
-        migrations: status.pendingMigrations.map(m => m.name)
+        migrations: status.pendingMigrations.map((m) => m.name),
       });
     } else {
       this.logger.info('✅ Database is up to date');
@@ -149,10 +152,10 @@ export class MigrationController {
    */
   async freshMigration(force?: boolean): Promise<void> {
     this.logger.warn('⚠️  Fresh migration will DROP ALL TABLES and rebuild the database!');
-    
+
     if (!force) {
       const confirmed = await this.confirmationService.confirm(
-        'This will PERMANENTLY DELETE all data. Are you sure you want to continue?'
+        'This will PERMANENTLY DELETE all data. Are you sure you want to continue?',
       );
 
       if (!confirmed) {
@@ -162,13 +165,13 @@ export class MigrationController {
     }
 
     this.logger.info('Starting fresh migration...');
-    
+
     const result = await this.migrationService.runFreshMigration();
-    
+
     this.logger.info('✅ Fresh migration completed successfully:', {
       droppedTables: result.droppedTables,
       executedMigrations: result.executedMigrations,
-      time: result.executionTime
+      time: result.executionTime,
     });
   }
 
@@ -181,12 +184,12 @@ export class MigrationController {
     } else {
       this.logger.info('Running all seeders...');
     }
-    
+
     const result = await this.migrationService.runSeeders(seederClass);
-    
+
     this.logger.info('✅ Seeding completed successfully:', {
       executed: result.executedSeeders,
-      time: result.executionTime
+      time: result.executionTime,
     });
   }
 }

@@ -1,6 +1,6 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from '../type';
-import type { UserEntity } from './User.entity';
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum, Ref } from '@mikro-orm/core';
+import { EntityConstructorData, assignEntityData } from '../type';
+import { UserEntity } from './User.entity';
 
 export enum UserRefLinkType {
   Promo = 'promo',
@@ -38,11 +38,8 @@ export class UserRefLinkEntity {
   @Property({ type: 'uuid', nullable: true, fieldName: 'source_id' })
   sourceId?: string;
 
-  @Property({ type: 'uuid', fieldName: 'user_id' })
-  userId!: string;
-
-  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
-  user?: UserEntity;
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })
+  user!: Ref<UserEntity>;
 
   @Property({ type: 'varchar', length: 50, fieldName: 'ref_code' })
   refCode!: string;
@@ -82,7 +79,16 @@ export class UserRefLinkEntity {
     return (num / 10).toString();
   }
 
-  constructor(data: EntityConstructorData<UserRefLinkEntity, 'id' | 'createdAt' | 'updatedAt', 'isDefault' | 'isCustom' | 'isDeleted'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<
+      UserRefLinkEntity,
+      'id' | 'createdAt' | 'updatedAt',
+      'isDefault' | 'isCustom' | 'isDeleted',
+      'user'
+    >,
+  ) {
+    assignEntityData(this, data, {
+      userId: { field: 'user', entityClass: UserEntity, required: true },
+    });
   }
 }

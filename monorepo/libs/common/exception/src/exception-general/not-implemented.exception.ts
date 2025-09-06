@@ -6,11 +6,7 @@ export class NotImplementedException extends Exception({
   problemType: 'not_implemented',
   title: 'Not Implemented',
 }) {
-  constructor(options?: {
-    title?: string;
-    detail?: string;
-    instance?: string;
-  }) {
+  constructor(options?: { title?: string; detail?: string; instance?: string }) {
     super({
       title: options?.title,
       detail: options?.detail ?? 'Feature not implemented',

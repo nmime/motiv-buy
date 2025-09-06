@@ -43,7 +43,7 @@ export class BotResponseDto {
 
   @ApiProperty({
     description: 'Money earned',
-    example: 2500.50,
+    example: 2500.5,
   })
   moneyEarned!: number;
 

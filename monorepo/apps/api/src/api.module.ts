@@ -18,10 +18,7 @@ import { StatisticMainModule } from '@app/feature-statistic-main';
     BalanceMainModule,
     StatisticMainModule,
   ],
-  controllers: [
-    HealthController,
-  ],
-  providers: [
-  ],
+  controllers: [HealthController],
+  providers: [],
 })
 export class ApiModule {}

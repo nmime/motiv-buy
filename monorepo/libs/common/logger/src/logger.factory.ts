@@ -52,7 +52,6 @@ function createLoggerMiddlewares(params: object, useExisting = false) {
   // Set the root logger using type assertion to bypass readonly restriction
   (PinoLogger as any).root = middleware.logger;
 
-
   return [middleware, bindLoggerMiddlewareFactory(useExisting)];
 }
 
@@ -125,7 +124,6 @@ function redactProtectedVariables<T>(obj: T): T {
     const copy = copyWithDepthLimit(obj, 5);
 
     return replaceProtectedVariables(copy);
-
   } catch (error: any) {
     return error?.message ?? 'Error while redacting protected variables';
   }
@@ -206,7 +204,7 @@ export function createLogger(config: { name: string }) {
           const requestId = cls.getId();
 
           const logData = { context, error, userId, appId, requestId };
-          
+
           // Use type assertion to bypass strict typing for custom logger method
           (method as any).apply(this, [logData, message, ...(params ?? [])]);
         },

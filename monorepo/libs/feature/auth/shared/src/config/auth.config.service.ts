@@ -32,12 +32,18 @@ export class AuthConfigService {
 
   get allowTgIds(): string[] {
     const tgIds = this.configService.get<string>('ALLOW_TO_ENTER_TG_IDS') ?? '';
-    return tgIds.split(',').map((id) => id.trim()).filter(Boolean);
+    return tgIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
   }
 
   get allowedDevIPs(): string[] {
     const ips = this.configService.get<string>('ALLOWED_IPS') ?? '127.0.0.1,::1';
-    return ips.split(',').map((ip) => ip.trim()).filter(Boolean);
+    return ips
+      .split(',')
+      .map((ip) => ip.trim())
+      .filter(Boolean);
   }
 
   get allowedIps(): string[] {

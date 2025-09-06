@@ -1,6 +1,6 @@
-import {EntityManager, EntityRepository} from '@mikro-orm/core';
-import {SettingType, UserSettingsEntity} from '../entity/UserSettings.entity';
-import {UserEntity} from '../entity/User.entity';
+import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
+import { SettingType, UserSettingsEntity } from '../entity/UserSettings.entity';
+import { UserEntity } from '../entity/User.entity';
 
 export class UserSettingsRepository extends EntityRepository<UserSettingsEntity> {
   constructor(em: EntityManager) {
@@ -29,16 +29,17 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     key: string,
     value: T,
     type: SettingType = SettingType.String,
-    description?: string
+    description?: string,
   ): Promise<UserSettingsEntity> {
     let setting = await this.findByUserAndKey(user, key);
 
     if (!setting) {
       setting = new UserSettingsEntity({
-        userId: user.id,
+        user: ref(this.em.getReference(UserEntity, user.id)),
         key,
         value: '',
-        type
+        type,
+        isActive: true,
       });
       if (description) setting.description = description;
       this.em.persist(setting);
@@ -83,43 +84,47 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     return result;
   }
 
-  async getUserSettingsWithMetadata(user: UserEntity): Promise<Record<string, {
-    value: unknown;
-    type: SettingType;
-    description?: string;
-    updatedAt: Date;
-  }>> {
+  async getUserSettingsWithMetadata(user: UserEntity): Promise<
+    Record<
+      string,
+      {
+        value: unknown;
+        type: SettingType;
+        description?: string;
+        updatedAt: Date;
+      }
+    >
+  > {
     const settings = await this.findByUser(user);
-    const result: Record<string, {
-      value: unknown;
-      type: SettingType;
-      description?: string;
-      updatedAt: Date;
-    }> = {};
+    const result: Record<
+      string,
+      {
+        value: unknown;
+        type: SettingType;
+        description?: string;
+        updatedAt: Date;
+      }
+    > = {};
 
     for (const setting of settings) {
       result[setting.key] = {
         value: setting.getValue(),
         type: setting.type,
         description: setting.description,
-        updatedAt: setting.updatedAt
+        updatedAt: setting.updatedAt,
       };
     }
 
     return result;
   }
 
-  async setNotificationPreference(
-    user: UserEntity,
-    notificationType: string,
-    enabled: boolean
-  ): Promise<void> {
+  async setNotificationPreference(user: UserEntity, notificationType: string, enabled: boolean): Promise<void> {
     await this.setSetting(
       user,
       `notifications.${notificationType}`,
       enabled,
       SettingType.Boolean,
-      `Enable/disable ${notificationType} notifications`
+      `Enable/disable ${notificationType} notifications`,
     );
   }
 
@@ -127,7 +132,7 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     const settings = await this.find({
       user,
       key: { $like: 'notifications.%' },
-      isActive: true
+      isActive: true,
     });
 
     const preferences: Record<string, boolean> = {};
@@ -141,16 +146,10 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
 
   async bulkSetSettings(
     user: UserEntity,
-    settings: Record<string, { value: unknown; type?: SettingType; description?: string }>
+    settings: Record<string, { value: unknown; type?: SettingType; description?: string }>,
   ): Promise<void> {
     for (const [key, config] of Object.entries(settings)) {
-      await this.setSetting(
-        user,
-        key,
-        config.value,
-        config.type || SettingType.String,
-        config.description
-      );
+      await this.setSetting(user, key, config.value, config.type || SettingType.String, config.description);
     }
   }
 }

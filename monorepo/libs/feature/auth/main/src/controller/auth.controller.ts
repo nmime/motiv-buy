@@ -5,11 +5,7 @@ import { ApiProblemExceptions } from '@app/common-exception';
 import { AsyncResult } from '@app/common-shared';
 import { AuthService } from '../service';
 import { AuthDevRequestDto, AuthResponseDto, TelegramWidgetAuthDto } from '../dto';
-import {
-  AppThrottlerGuard,
-  IpAuthGuard,
-  AuthResultDto,
-} from '@app/feature-auth-shared';
+import { AppThrottlerGuard, IpAuthGuard, AuthResultDto } from '@app/feature-auth-shared';
 import {
   NotInDevModeException,
   TmaDataValidationException,

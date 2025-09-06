@@ -1,76 +1,65 @@
 import { Module, Global } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { SqliteDriver } from '@mikro-orm/sqlite';
-import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
+import { ReflectMetadataProvider } from '@mikro-orm/core';
+import 'reflect-metadata';
 
 import { DatabaseService } from './service/database.service';
 import { getDatabaseConfig } from './config/database.config';
+import { createMikroOrmConfig } from './config/mikro-orm.config';
 import * as repositories from './repository';
 
-import { 
-  UserEntity, 
-  UserBalanceEntity, 
-  UserBalanceHistoryEntity, 
+import {
+  UserEntity,
+  UserBalanceEntity,
+  UserBalanceHistoryEntity,
   UserLastAuthEntity,
   UserRefLinkEntity,
-  UserSettingsEntity, 
+  UserSettingsEntity,
   UserSourceVisitEntity,
   TrafficSourceEntity,
-  // TrafficSourceCategoryEntity, // Temporarily commented out due to circular dependency
-  TrafficBuyerEntity, 
-  TrafficUserEntity, 
-  TrafficOrderEntity, 
-  TrafficActionsEntity 
+  TrafficBuyerEntity,
+  TrafficUserEntity,
+  TrafficOrderEntity,
+  TrafficActionsEntity,
 } from './entity';
+import { TrafficSourceCategoryEntity } from './entity/TrafficSourceCategory.entity';
+import { TrafficSourceCategoriesEntity } from './entity/junction/TrafficSourceCategories.entity';
 import {
   TrafficActionsUsersEntity,
   TrafficBuyerSourceEntity,
   TrafficBuyerUsersEntity,
   UserTrafficBuyerEntity,
   UserTrafficOrderEntity,
-  UserTrafficSourceEntity
-} from './entity';
+  UserTrafficSourceEntity,
+} from './entity/junction';
 
 const entityClasses = [
-  UserEntity, 
-  UserBalanceEntity, 
-  UserBalanceHistoryEntity, 
+  UserEntity,
+  UserBalanceEntity,
+  UserBalanceHistoryEntity,
   UserLastAuthEntity,
   UserRefLinkEntity,
   UserSettingsEntity,
   UserSourceVisitEntity,
   TrafficSourceEntity,
-  // TrafficSourceCategoryEntity, // Temporarily commented out due to circular dependency
-  TrafficBuyerEntity, 
-  TrafficUserEntity, 
-  TrafficOrderEntity, 
+  TrafficSourceCategoryEntity,
+  TrafficBuyerEntity,
+  TrafficUserEntity,
+  TrafficOrderEntity,
   TrafficActionsEntity,
   TrafficActionsUsersEntity,
   TrafficBuyerSourceEntity,
   TrafficBuyerUsersEntity,
   UserTrafficBuyerEntity,
   UserTrafficOrderEntity,
-  UserTrafficSourceEntity
+  UserTrafficSourceEntity,
+  TrafficSourceCategoriesEntity,
 ];
 
 @Global()
 @Module({
   imports: [
-    MikroOrmModule.forRoot({
-      driver: SqliteDriver,
-      dbName: process.env.DB_NAME || './dev.db',
-      entities: entityClasses,
-      metadataProvider: TsMorphMetadataProvider,
-      debug: process.env.NODE_ENV !== 'production',
-      autoLoadEntities: false,
-      migrations: {
-        path: './migrations',
-        tableName: 'mikro_orm_migrations',
-        transactional: true,
-        allOrNothing: true,
-        safe: false,
-      },
-    }),
+    MikroOrmModule.forRoot(createMikroOrmConfig(getDatabaseConfig())),
     MikroOrmModule.forFeature(entityClasses),
   ],
   providers: [
@@ -80,10 +69,6 @@ const entityClasses = [
     },
     ...Object.values(repositories),
   ],
-  exports: [
-    DatabaseService,
-    MikroOrmModule,
-    ...Object.values(repositories),
-  ],
+  exports: [DatabaseService, MikroOrmModule, ...Object.values(repositories)],
 })
 export class DatabaseModule {}

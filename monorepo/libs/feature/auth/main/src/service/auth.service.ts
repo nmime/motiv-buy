@@ -56,9 +56,11 @@ export class AuthService {
     const payload = this.packPayload(platformType, user.id);
     const jwtToken = await this.createJwt({ ...payload });
 
-    return Ok(new AuthResultDto({
-      token: jwtToken,
-    }));
+    return Ok(
+      new AuthResultDto({
+        token: jwtToken,
+      }),
+    );
   }
 
   async authTma(params: {
@@ -91,9 +93,7 @@ export class AuthService {
     }
 
     const validationParams = new URLSearchParams(
-      [...searchParams].filter(
-        ([key]) => key !== 'telegram_platform' && key !== 'telegram_version' && key !== 'timezone',
-      ),
+      [...searchParams].filter(([key]) => key !== 'telegram_platform' && key !== 'telegram_version'),
     );
 
     const success = validateWebAppData(this.configService.botToken, validationParams);
@@ -113,7 +113,6 @@ export class AuthService {
         startParam: searchParams.get('start_param') ?? undefined,
         telegramVersion: searchParams.get('telegram_version') ?? undefined,
         telegramPlatform: searchParams.get('telegram_platform') ?? undefined,
-        timezone: searchParams.get('timezone') ?? undefined,
       },
       platformType: app,
       ip,
@@ -164,7 +163,6 @@ export class AuthService {
         utmCampaign: dto.utmCampaign,
         utmContent: dto.utmContent,
         refCode: dto.refCode,
-        timezone: dto.timezone,
       },
       platformType: PlatformType.TelegramWidget,
       ip,
@@ -188,7 +186,6 @@ export class AuthService {
       utmCampaign?: string;
       utmContent?: string;
       refCode?: string;
-      timezone?: string;
     };
     platformType: PlatformType;
     ip: string;
@@ -203,7 +200,6 @@ export class AuthService {
       firstName: userData.firstName,
       lastName: userData.lastName,
       languageCode: userData.languageCode,
-      timezone: additionalParams.timezone,
       userSource: startParam,
       platformType,
       platformData: {
@@ -242,15 +238,17 @@ export class AuthService {
     const payload = this.packPayload(platformType, user.id);
     const jwtToken = await this.createJwt({ ...payload });
 
-    return Ok(new AuthResultDto({
-      token: jwtToken,
-    }));
+    return Ok(
+      new AuthResultDto({
+        token: jwtToken,
+      }),
+    );
   }
 
   async updateUserLastAuth(userId: string, telegramAuthParams: TelegramAuthParams): Promise<void> {
     try {
       const geo = telegramAuthParams.ip ? getGeoByIp(telegramAuthParams.ip) : undefined;
-      
+
       await this.userLastAuthRepository.upsertUserLastAuth({
         userId,
         ip: telegramAuthParams.ip,

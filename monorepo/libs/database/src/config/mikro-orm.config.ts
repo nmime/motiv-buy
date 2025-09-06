@@ -1,26 +1,69 @@
 import { type Options } from '@mikro-orm/core';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
-import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
+import { ReflectMetadataProvider } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
+import RedisCacheAdapter from 'mikro-orm-cache-adapter-redis';
+import 'reflect-metadata';
 import { DatabaseConfig } from './database.config';
-import { 
-  UserEntity, UserBalanceEntity, UserBalanceHistoryEntity, UserSettingsEntity,
-  TrafficSourceEntity, TrafficBuyerEntity, TrafficUserEntity, TrafficOrderEntity,
-  TrafficActionsEntity
-} from '../entity';
-import {
-  TrafficActionsUsersEntity, UserTrafficBuyerEntity, UserTrafficSourceEntity,
-  UserTrafficOrderEntity, TrafficBuyerSourceEntity, TrafficBuyerUsersEntity
-} from '../entity';
+import { getCacheConfig, type CacheConfig } from './cache.config';
 
-export function createMikroOrmConfig(config: DatabaseConfig): Options {
-  return {
+interface ExtendedOptions extends Options {
+  cache?: {
+    enabled: boolean;
+    adapter: typeof RedisCacheAdapter;
+    options: NonNullable<CacheConfig['options']>;
+  };
+}
+import {
+  UserEntity,
+  UserBalanceEntity,
+  UserBalanceHistoryEntity,
+  UserSettingsEntity,
+  UserLastAuthEntity,
+  UserRefLinkEntity,
+  UserSourceVisitEntity,
+  TrafficSourceEntity,
+  TrafficBuyerEntity,
+  TrafficUserEntity,
+  TrafficOrderEntity,
+  TrafficActionsEntity,
+} from '../entity';
+import { TrafficSourceCategoryEntity } from '../entity/TrafficSourceCategory.entity';
+import { TrafficSourceCategoriesEntity } from '../entity/junction/TrafficSourceCategories.entity';
+import {
+  TrafficActionsUsersEntity,
+  UserTrafficBuyerEntity,
+  UserTrafficSourceEntity,
+  UserTrafficOrderEntity,
+  TrafficBuyerSourceEntity,
+  TrafficBuyerUsersEntity,
+} from '../entity/junction';
+
+export function createMikroOrmConfig(config: DatabaseConfig): ExtendedOptions {
+  const cacheConfig = getCacheConfig();
+
+  const baseConfig: ExtendedOptions = {
     entities: [
-      UserEntity, UserBalanceEntity, UserBalanceHistoryEntity, UserSettingsEntity,
-      TrafficSourceEntity, TrafficBuyerEntity, TrafficUserEntity, TrafficOrderEntity,
+      UserEntity,
+      UserBalanceEntity,
+      UserBalanceHistoryEntity,
+      UserSettingsEntity,
+      UserLastAuthEntity,
+      UserRefLinkEntity,
+      UserSourceVisitEntity,
+      TrafficSourceEntity,
+      TrafficBuyerEntity,
+      TrafficUserEntity,
+      TrafficOrderEntity,
       TrafficActionsEntity,
-      TrafficActionsUsersEntity, UserTrafficBuyerEntity, UserTrafficSourceEntity,
-      UserTrafficOrderEntity, TrafficBuyerSourceEntity, TrafficBuyerUsersEntity
+      TrafficSourceCategoryEntity,
+      TrafficActionsUsersEntity,
+      UserTrafficBuyerEntity,
+      UserTrafficSourceEntity,
+      UserTrafficOrderEntity,
+      TrafficBuyerSourceEntity,
+      TrafficBuyerUsersEntity,
+      TrafficSourceCategoriesEntity,
     ],
     driver: PostgreSqlDriver,
     host: config.host,
@@ -28,7 +71,7 @@ export function createMikroOrmConfig(config: DatabaseConfig): Options {
     dbName: config.dbName,
     user: config.user,
     password: config.password,
-    metadataProvider: TsMorphMetadataProvider,
+    metadataProvider: ReflectMetadataProvider,
     debug: config.debug,
     extensions: [Migrator],
     migrations: {
@@ -47,5 +90,24 @@ export function createMikroOrmConfig(config: DatabaseConfig): Options {
       createForeignKeyConstraints: true,
       ignoreSchema: [],
     },
-  } as Options;
+  };
+
+  // Add cache configuration if enabled
+  if (cacheConfig.enabled && cacheConfig.options) {
+    baseConfig.cache = {
+      enabled: true,
+      adapter: RedisCacheAdapter,
+      options: {
+        host: cacheConfig.options.host || 'localhost',
+        port: cacheConfig.options.port || 6379,
+        password: cacheConfig.options.password,
+        db: cacheConfig.options.db || 0,
+        keyPrefix: cacheConfig.options.keyPrefix || 'mikro-orm-cache:',
+        ttl: cacheConfig.options.ttl || 30,
+        debugMode: cacheConfig.options.debugMode || false,
+      },
+    };
+  }
+
+  return baseConfig;
 }

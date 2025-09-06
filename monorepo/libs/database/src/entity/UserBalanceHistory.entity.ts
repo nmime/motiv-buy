@@ -1,7 +1,7 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum, Ref } from '@mikro-orm/core';
 import { CurrencyType } from './UserBalance.entity';
-import { EntityConstructorData } from '../type';
-import type { UserEntity } from './User.entity';
+import { EntityConstructorData, UserBalanceMetadata, assignEntityData } from '../type';
+import { UserEntity } from './User.entity';
 
 export enum TransactionType {
   Deposit = 'deposit',
@@ -13,14 +13,14 @@ export enum TransactionType {
   TradeBuy = 'trade_buy',
   TradeSell = 'trade_sell',
   ReferralBonus = 'referral_bonus',
-  AdminAdjustment = 'admin_adjustment'
+  AdminAdjustment = 'admin_adjustment',
 }
 
 export enum TransactionStatus {
   Pending = 'pending',
   Completed = 'completed',
   Failed = 'failed',
-  Cancelled = 'cancelled'
+  Cancelled = 'cancelled',
 }
 
 @Entity({ tableName: 'user_balance_history' })
@@ -34,11 +34,8 @@ export class UserBalanceHistoryEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
-  @Property({ type: 'uuid', fieldName: 'user_id' })
-  userId!: string;
-
-  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
-  user?: UserEntity;
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })
+  user!: Ref<UserEntity>;
 
   @Property({ type: 'varchar', length: 10, fieldName: 'currency' })
   @Enum(() => CurrencyType)
@@ -71,7 +68,7 @@ export class UserBalanceHistoryEntity {
   referenceId?: string;
 
   @Property({ type: 'json', nullable: true, fieldName: 'metadata' })
-  metadata?: Record<string, any>;
+  metadata?: UserBalanceMetadata;
 
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
@@ -79,7 +76,11 @@ export class UserBalanceHistoryEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<UserBalanceHistoryEntity, 'id' | 'createdAt' | 'updatedAt', 'status'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<UserBalanceHistoryEntity, 'id' | 'createdAt' | 'updatedAt', 'status', 'user'>,
+  ) {
+    assignEntityData(this, data, {
+      userId: { field: 'user', entityClass: UserEntity, required: true },
+    });
   }
 }

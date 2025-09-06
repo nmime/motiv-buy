@@ -5,14 +5,17 @@ import { MigrationController } from './migration.controller';
 
 /**
  * Migration CLI Command Registration
- * 
+ *
  * Follows CLAUDE.md Controller → Service → Repository → Mapper pattern
  * Acts as the CLI controller layer for migration operations
  */
 export class MigrationCLI {
   private controller: MigrationController;
 
-  constructor(private orm: MikroORM, private logger: Logger) {
+  constructor(
+    private orm: MikroORM,
+    private logger: Logger,
+  ) {
     this.controller = new MigrationController(orm, logger);
   }
 

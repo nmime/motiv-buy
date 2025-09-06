@@ -24,7 +24,7 @@ export class TransactionDto {
 
   @ApiProperty({
     description: 'Transaction amount',
-    example: 1500.50,
+    example: 1500.5,
   })
   amount!: number;
 

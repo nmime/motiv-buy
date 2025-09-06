@@ -9,5 +9,6 @@ export type PlatformDataMap = {
   [PlatformType.TelegramWidget]: Record<string, never>;
 };
 
-export type UserSourceVisitPlatformData<T extends PlatformType = PlatformType> = 
-  T extends keyof PlatformDataMap ? PlatformDataMap[T] : Record<string, unknown>;
+export type UserSourceVisitPlatformData<T extends PlatformType = PlatformType> = T extends keyof PlatformDataMap
+  ? PlatformDataMap[T]
+  : Record<string, unknown>;

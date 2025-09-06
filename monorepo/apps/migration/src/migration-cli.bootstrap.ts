@@ -10,7 +10,7 @@ import { logger } from './util/logger.util';
  */
 export async function bootstrap(): Promise<void> {
   const program = new Command();
-  
+
   program
     .name('migration-cli')
     .description('Database migration management tool for Motiv-Buy project')
@@ -19,16 +19,15 @@ export async function bootstrap(): Promise<void> {
   try {
     const dbConfig = getDatabaseConfig();
     const ormConfig = createMikroOrmConfig(dbConfig);
-    
-    logger.info('Initializing database connection...');\n    
+
+    logger.info('Initializing database connection...');
     const orm = await MikroORM.init(ormConfig);
-    
+
     const migrationCLI = new MigrationCLI(orm, logger);
-    
+
     migrationCLI.registerCommands(program);
-    
+
     await program.parseAsync(process.argv);
-    
   } catch (error) {
     logger.error('Failed to initialize migration CLI:', error);
     throw error;

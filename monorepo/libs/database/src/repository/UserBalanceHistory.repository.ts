@@ -1,69 +1,60 @@
-import {EntityManager, EntityRepository, QueryOrder, FilterQuery} from '@mikro-orm/core';
-import {TransactionStatus, TransactionType, UserBalanceHistoryEntity} from '../entity/UserBalanceHistory.entity';
-import {UserEntity} from '../entity/User.entity';
-import {CurrencyType} from '../entity/UserBalance.entity';
+import { EntityManager, EntityRepository, QueryOrder, FilterQuery, ref } from '@mikro-orm/core';
+import { TransactionStatus, TransactionType, UserBalanceHistoryEntity } from '../entity/UserBalanceHistory.entity';
+import { UserEntity } from '../entity/User.entity';
+import { CurrencyType } from '../entity/UserBalance.entity';
+import { UserBalanceMetadata } from '../type';
 
 export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHistoryEntity> {
   constructor(em: EntityManager) {
     super(em, UserBalanceHistoryEntity);
   }
 
-  async findByUser(
-    user: UserEntity,
-    limit: number = 50,
-    offset: number = 0
-  ): Promise<UserBalanceHistoryEntity[]> {
+  async findByUser(user: UserEntity, limit: number = 50, offset: number = 0): Promise<UserBalanceHistoryEntity[]> {
     return this.find(
       { user },
       {
         orderBy: { createdAt: QueryOrder.DESC },
         limit,
         offset,
-        populate: ['user']
-      }
+        populate: ['user'],
+      },
     );
   }
 
   async findByUserAndCurrency(
     user: UserEntity,
     currency: CurrencyType,
-    limit: number = 50
+    limit: number = 50,
   ): Promise<UserBalanceHistoryEntity[]> {
     return this.find(
       { user, currency },
       {
         orderBy: { createdAt: QueryOrder.DESC },
         limit,
-        populate: ['user']
-      }
+        populate: ['user'],
+      },
     );
   }
 
-  async findByTransactionType(
-    type: TransactionType,
-    limit: number = 50
-  ): Promise<UserBalanceHistoryEntity[]> {
+  async findByTransactionType(type: TransactionType, limit: number = 50): Promise<UserBalanceHistoryEntity[]> {
     return this.find(
       { type },
       {
         orderBy: { createdAt: QueryOrder.DESC },
         limit,
-        populate: ['user']
-      }
+        populate: ['user'],
+      },
     );
   }
 
-  async findByStatus(
-    status: TransactionStatus,
-    limit: number = 50
-  ): Promise<UserBalanceHistoryEntity[]> {
+  async findByStatus(status: TransactionStatus, limit: number = 50): Promise<UserBalanceHistoryEntity[]> {
     return this.find(
       { status },
       {
         orderBy: { createdAt: QueryOrder.DESC },
         limit,
-        populate: ['user']
-      }
+        populate: ['user'],
+      },
     );
   }
 
@@ -81,10 +72,23 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     description?: string;
     txHash?: string;
     referenceId?: string;
-    metadata?: Record<string, any>;
+    metadata?: UserBalanceMetadata;
     status?: TransactionStatus;
   }): Promise<UserBalanceHistoryEntity> {
-    const transaction = new UserBalanceHistoryEntity(data);
+    const userRef = this.em.getReference('UserEntity', data.userId);
+    const transaction = new UserBalanceHistoryEntity({
+      user: ref(userRef),
+      currency: data.currency,
+      type: data.type,
+      amount: data.amount,
+      balanceBefore: data.balanceBefore,
+      balanceAfter: data.balanceAfter,
+      description: data.description,
+      txHash: data.txHash,
+      referenceId: data.referenceId,
+      metadata: data.metadata,
+      status: data.status,
+    });
     await this.em.persistAndFlush(transaction);
     return transaction;
   }
@@ -100,7 +104,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
   async getTransactionStats(
     user?: UserEntity,
     currency?: CurrencyType,
-    days: number = 30
+    days: number = 30,
   ): Promise<{
     totalTransactions: number;
     totalVolume: string;
@@ -111,7 +115,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     dateFrom.setDate(dateFrom.getDate() - days);
 
     const conditions: FilterQuery<UserBalanceHistoryEntity> = {
-      createdAt: { $gte: dateFrom }
+      createdAt: { $gte: dateFrom },
     };
 
     if (user) conditions.user = user;
@@ -120,19 +124,28 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     const [total, successful, failed] = await Promise.all([
       this.count(conditions),
       this.count({ ...conditions, status: TransactionStatus.Completed }),
-      this.count({ ...conditions, status: TransactionStatus.Failed })
+      this.count({ ...conditions, status: TransactionStatus.Failed }),
     ]);
 
-    const volumeResult = await this.em.getConnection().execute(
-      'SELECT SUM(CAST(amount AS DECIMAL(20,8))) as volume FROM user_balance_history WHERE status = ? AND type IN (?, ?, ?, ?) AND created_at >= ?',
-      [TransactionStatus.Completed, TransactionType.Deposit, TransactionType.Withdrawal, TransactionType.TradeBuy, TransactionType.TradeSell, dateFrom]
-    );
+    const volumeResult = await this.em
+      .getConnection()
+      .execute(
+        'SELECT SUM(CAST(amount AS DECIMAL(20,8))) as volume FROM user_balance_history WHERE status = ? AND type IN (?, ?, ?, ?) AND created_at >= ?',
+        [
+          TransactionStatus.Completed,
+          TransactionType.Deposit,
+          TransactionType.Withdrawal,
+          TransactionType.TradeBuy,
+          TransactionType.TradeSell,
+          dateFrom,
+        ],
+      );
 
     return {
       totalTransactions: total,
       totalVolume: volumeResult[0]?.volume?.toString() || '0',
       successfulTransactions: successful,
-      failedTransactions: failed
+      failedTransactions: failed,
     };
   }
 
@@ -140,22 +153,19 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     telegramId: string,
     currency?: CurrencyType,
     type?: TransactionType,
-    limit: number = 50
+    limit: number = 50,
   ): Promise<UserBalanceHistoryEntity[]> {
     const conditions: FilterQuery<UserBalanceHistoryEntity> = {
-      user: { telegramId }
+      user: { telegramId },
     };
 
     if (currency) conditions.currency = currency;
     if (type) conditions.type = type;
 
-    return this.find(
-      conditions,
-      {
-        orderBy: { createdAt: QueryOrder.DESC },
-        limit,
-        populate: ['user']
-      }
-    );
+    return this.find(conditions, {
+      orderBy: { createdAt: QueryOrder.DESC },
+      limit,
+      populate: ['user'],
+    });
   }
 }

@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class BalanceDto {
   @ApiProperty({
     description: 'Current balance amount',
-    example: 15750.50,
+    example: 15750.5,
   })
   amount!: number;
 

@@ -26,7 +26,9 @@ export function Err<E>(error: E): { success: false; error: E } {
  * @param result The result to check
  * @returns True if result is successful
  */
-export function isOk<T, E>(result: { success: true; data: T } | { success: false; error: E }): result is { success: true; data: T } {
+export function isOk<T, E>(
+  result: { success: true; data: T } | { success: false; error: E },
+): result is { success: true; data: T } {
   return result.success === true;
 }
 
@@ -35,6 +37,8 @@ export function isOk<T, E>(result: { success: true; data: T } | { success: false
  * @param result The result to check
  * @returns True if result is error
  */
-export function isErr<T, E>(result: { success: true; data: T } | { success: false; error: E }): result is { success: false; error: E } {
+export function isErr<T, E>(
+  result: { success: true; data: T } | { success: false; error: E },
+): result is { success: false; error: E } {
   return result.success === false;
 }

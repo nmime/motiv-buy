@@ -1,60 +1,60 @@
 import { Entity, PrimaryKey, Property, Collection, OneToMany, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from "../type";
+import { EntityConstructorData, TrafficSourceCategoryMetadata } from '../type';
 import { LocalizedField } from '@app/common-shared';
-import { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategory.entity';
+import type { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategories.entity';
 
 export enum TopicCategory {
   // Basic controls
-  All = "All",
-  
+  All = 'All',
+
   // Main categories from first screen
-  Other = "Other",
-  Blogs = "Blogs",
-  News = "News",
-  Commerce = "Commerce",
-  Useful = "Useful",
-  Elders = "Elders",
-  Entertainment = "Entertainment",
-  Cryptocurrencies = "Cryptocurrencies",
-  Earnings = "Earnings",
-  Quotes = "Quotes",
-  Music = "Music",
-  Womens = "Womens",
-  Astrology = "Astrology",
-  Educational = "Educational",
-  Adult18Plus = "Adult18Plus",
-  Psychology = "Psychology",
-  Chats = "Chats",
-  Betting = "Betting",
-  CreativityAndDesign = "CreativityAndDesign",
-  NeuralNetworks = "NeuralNetworks",
-  
+  Other = 'Other',
+  Blogs = 'Blogs',
+  News = 'News',
+  Commerce = 'Commerce',
+  Useful = 'Useful',
+  Elders = 'Elders',
+  Entertainment = 'Entertainment',
+  Cryptocurrencies = 'Cryptocurrencies',
+  Earnings = 'Earnings',
+  Quotes = 'Quotes',
+  Music = 'Music',
+  Womens = 'Womens',
+  Astrology = 'Astrology',
+  Educational = 'Educational',
+  Adult18Plus = 'Adult18Plus',
+  Psychology = 'Psychology',
+  Chats = 'Chats',
+  Betting = 'Betting',
+  CreativityAndDesign = 'CreativityAndDesign',
+  NeuralNetworks = 'NeuralNetworks',
+
   // Additional categories from second screen
-  Sports = "Sports",
-  Auto = "Auto",
-  Movies = "Movies",
-  Health = "Health",
-  Travel = "Travel",
-  CookingFood = "CookingFood",
-  Tools = "Tools",
-  Communication = "Communication",
-  Mens = "Mens",
-  Technologies = "Technologies",
-  Downloads = "Downloads",
-  Auctions = "Auctions",
-  Video = "Video",
-  Trash = "Trash",
-  StickersThemes = "StickersThemes",
-  Economics = "Economics",
-  Spam = "Spam",
-  Dating = "Dating",
-  Subscriptions = "Subscriptions",
-  Applications = "Applications",
-  
+  Sports = 'Sports',
+  Auto = 'Auto',
+  Movies = 'Movies',
+  Health = 'Health',
+  Travel = 'Travel',
+  CookingFood = 'CookingFood',
+  Tools = 'Tools',
+  Communication = 'Communication',
+  Mens = 'Mens',
+  Technologies = 'Technologies',
+  Downloads = 'Downloads',
+  Auctions = 'Auctions',
+  Video = 'Video',
+  Trash = 'Trash',
+  StickersThemes = 'StickersThemes',
+  Economics = 'Economics',
+  Spam = 'Spam',
+  Dating = 'Dating',
+  Subscriptions = 'Subscriptions',
+  Applications = 'Applications',
+
   // Final categories from third screen
-  GaiTrafficPolice = "GaiTrafficPolice", // Russian traffic police
-  Gambling = "Gambling",
-  Folders = "Folders"
+  GaiTrafficPolice = 'GaiTrafficPolice', // Russian traffic police
+  Gambling = 'Gambling',
+  Folders = 'Folders',
 }
 
 /**
@@ -96,7 +96,7 @@ export class TrafficSourceCategoryEntity {
   isActive = true;
 
   @Property({ type: 'json', nullable: true, fieldName: 'metadata' })
-  metadata?: Record<string, any>;
+  metadata?: TrafficSourceCategoryMetadata;
 
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
@@ -104,10 +104,16 @@ export class TrafficSourceCategoryEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @OneToMany(() => TrafficSourceCategoriesEntity, 'category')
+  @OneToMany('TrafficSourceCategoriesEntity', 'category')
   trafficSources? = new Collection<TrafficSourceCategoriesEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficSourceCategoryEntity, 'id' | 'createdAt' | 'updatedAt' | 'trafficSources', 'sortOrder' | 'isActive'>) {
+  constructor(
+    data: EntityConstructorData<
+      TrafficSourceCategoryEntity,
+      'id' | 'createdAt' | 'updatedAt',
+      'sortOrder' | 'isActive'
+    >,
+  ) {
     Object.assign(this, data);
   }
 }

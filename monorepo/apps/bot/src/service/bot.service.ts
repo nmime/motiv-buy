@@ -5,7 +5,7 @@ import { UserService } from '@app/feature-user-main';
 
 /**
  * Bot Service
- * 
+ *
  * Main service for handling Telegram bot interactions.
  * Thin layer that delegates to domain services.
  */
@@ -16,13 +16,13 @@ export class BotService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
   ) {
     const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     if (!token) {
       throw new Error('TELEGRAM_BOT_TOKEN is required');
     }
-    
+
     this.bot = new Bot(token);
     this.setupHandlers();
   }
@@ -92,14 +92,14 @@ export class BotService {
           lastName: user.last_name,
           languageCode: user.language_code,
         });
-        
+
         this.logger.log(`New user registered: ${user.id}`);
       }
 
       await ctx.reply(
         `Welcome to Motiv-Buy! 🛍️\\n\\n` +
-        `Hello ${userRecord.firstName}! I'm here to help you with your shopping motivation.\\n\\n` +
-        `Use /help to see available commands.`
+          `Hello ${userRecord.firstName}! I'm here to help you with your shopping motivation.\\n\\n` +
+          `Use /help to see available commands.`,
       );
 
       await this.userService.updateLastActive(userRecord.id);
@@ -142,12 +142,9 @@ Contact our team if you need assistance.
       try {
         const userRecord = await this.userService.getUserByTelegramId(user.id.toString());
         await this.userService.updateLastActive(userRecord.id);
-      } catch (error) {
-      }
+      } catch (error) {}
 
-      await ctx.reply(
-        "I'm not sure how to help with that. Use /help to see available commands."
-      );
+      await ctx.reply("I'm not sure how to help with that. Use /help to see available commands.");
     } catch (error) {
       this.logger.error('Error handling message', error);
     }

@@ -9,7 +9,11 @@ export abstract class BaseException<DataType extends OptionalClassConstructor = 
 
   override cause?: Error;
 
-  data?: DataType extends undefined ? undefined : DataType extends abstract new (...args: any) => any ? InstanceType<DataType> : never;
+  data?: DataType extends undefined
+    ? undefined
+    : DataType extends abstract new (...args: any) => any
+      ? InstanceType<DataType>
+      : never;
 
   meta?: Record<string, unknown>;
 
@@ -29,7 +33,11 @@ export abstract class BaseException<DataType extends OptionalClassConstructor = 
     this.cause = props.cause;
 
     if ('data' in props) {
-      this.data = props.data as DataType extends undefined ? undefined : DataType extends abstract new (...args: any) => any ? InstanceType<DataType> : never;
+      this.data = props.data as DataType extends undefined
+        ? undefined
+        : DataType extends abstract new (...args: any) => any
+          ? InstanceType<DataType>
+          : never;
     }
 
     this.meta = props.meta;

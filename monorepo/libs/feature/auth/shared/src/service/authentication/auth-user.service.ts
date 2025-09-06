@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { 
-  UserRepository, 
-  UserEntity, 
-  UserSourceVisitEntity, 
-  UserLastAuthRepository,
-  PlatformType 
-} from '@app/database';
+import { UserRepository, UserEntity, UserSourceVisitEntity, UserLastAuthRepository, PlatformType } from '@app/database';
 import { getGeoByIp } from '../util';
 import { AuthCreateUserService } from './auth-create-user.service';
 import { AuthUserVisitService } from './auth-user-visit.service';
@@ -36,16 +30,13 @@ export class AuthUserService {
   ) {}
 
   async findOrCreateByWebAuth(
-    telegramAuthParams: TelegramAuthParams, 
-    options?: FindOrCreateOptions
+    telegramAuthParams: TelegramAuthParams,
+    options?: FindOrCreateOptions,
   ): Promise<UserEntity> {
     return (await this.findOrCreateWithVisit(telegramAuthParams, options)).user;
   }
 
-  async findOrCreateByBot(
-    telegramAuthParams: TelegramAuthParams, 
-    options?: FindOrCreateOptions
-  ): Promise<UserEntity> {
+  async findOrCreateByBot(telegramAuthParams: TelegramAuthParams, options?: FindOrCreateOptions): Promise<UserEntity> {
     const result = await this.findOrCreateWithVisit(telegramAuthParams, {
       trackUserVisit: false,
       trackAnalytics: false,
@@ -65,7 +56,7 @@ export class AuthUserService {
     options?: FindOrCreateOptions,
   ): Promise<{ user: UserEntity; visit?: UserSourceVisitEntity; isSignup: boolean }> {
     const em = this.usersRepository.getEntityManager();
-    
+
     return await em.transactional(async (entityManager: EntityManager) => {
       const sourceParams = telegramAuthParams.userSource
         ? this.getSourceParamsService.parseRequest(telegramAuthParams.userSource)
@@ -154,13 +145,15 @@ export class AuthUserService {
       geo = undefined;
     }
 
-    await this.userLastAuthRepository.upsertUserLastAuth({
-      userId,
-      ip: telegramAuthParams.ip,
-      country: geo?.country?.name || visit?.country || undefined,
-      city: geo?.city || visit?.city || undefined,
-      continent: geo?.continent || visit?.continent || undefined,
-    }, entityManager);
+    await this.userLastAuthRepository.upsertUserLastAuth(
+      {
+        userId,
+        ip: telegramAuthParams.ip,
+        country: geo?.country?.name || visit?.country || undefined,
+        city: geo?.city || visit?.city || undefined,
+        continent: geo?.continent || visit?.continent || undefined,
+      },
+      entityManager,
+    );
   }
-
 }

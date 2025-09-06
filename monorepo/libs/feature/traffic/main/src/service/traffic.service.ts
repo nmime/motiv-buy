@@ -17,7 +17,7 @@ import {
   BotStatus,
   BotAction,
   TrafficType,
-  OrderStatus
+  OrderStatus,
 } from '@app/feature-traffic-shared';
 
 /**
@@ -29,7 +29,7 @@ export class TrafficService implements ITrafficService {
     @InjectRepository(TrafficBuyer)
     private readonly botRepository: EntityRepository<TrafficBuyer>,
     @InjectRepository(TrafficOrder)
-    private readonly trafficOrderRepository: EntityRepository<TrafficOrder>
+    private readonly trafficOrderRepository: EntityRepository<TrafficOrder>,
   ) {}
 
   // Bot management methods
@@ -44,30 +44,28 @@ export class TrafficService implements ITrafficService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.TRAFFY_API_KEY}`
+          'Authorization': `Bearer ${process.env.TRAFFY_API_KEY}`,
         },
-        body: JSON.stringify({ username: dto.username })
+        body: JSON.stringify({ username: dto.username }),
       });
 
       if (!response.ok) {
         return {
           exists: false,
-          message: 'Ошибка при проверке бота через Traffy API'
+          message: 'Ошибка при проверке бота через Traffy API',
         };
       }
 
       const data = await response.json();
-      
+
       return {
         exists: data.exists,
-        message: data.exists 
-          ? 'Бот найден и готов к добавлению'
-          : 'Бот не найден в системе Traffy'
+        message: data.exists ? 'Бот найден и готов к добавлению' : 'Бот не найден в системе Traffy',
       };
     } catch (error) {
       return {
         exists: false,
-        message: 'Ошибка соединения с сервисом проверки ботов'
+        message: 'Ошибка соединения с сервисом проверки ботов',
       };
     }
   }
@@ -78,7 +76,7 @@ export class TrafficService implements ITrafficService {
   async createBot(userId: string, dto: CreateBotDto): Promise<BotCreationResponseDto> {
     // Check if user already has a bot with this name
     const existingBot = await this.botRepository.findOne({
-      where: { userId, name: dto.botUsername }
+      where: { userId, name: dto.botUsername },
     });
 
     if (existingBot) {
@@ -100,7 +98,7 @@ export class TrafficService implements ITrafficService {
       trafficSold: 0,
       moneyEarned: 0,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     const savedBot = await this.botRepository.save(bot);
@@ -112,7 +110,7 @@ export class TrafficService implements ITrafficService {
       botId: savedBot.id,
       status: BotStatus.PENDING_MODERATION,
       message: 'Бот создан и отправлен на модерацию. Вы получите уведомление о результатах проверки.',
-      estimatedModerationTime: '24-48 часов'
+      estimatedModerationTime: '24-48 часов',
     };
   }
 
@@ -122,7 +120,7 @@ export class TrafficService implements ITrafficService {
   async getBotSettings(userId: string, botId: string): Promise<BotSettingsDto> {
     const bot = await this._findUserBot(userId, botId);
     const settings = await this._getBotSettings(botId);
-    
+
     return {
       botId,
       enablePrivateMessages: settings.enablePrivateMessages,
@@ -131,7 +129,7 @@ export class TrafficService implements ITrafficService {
       maxPartnersPerDay: settings.maxPartnersPerDay,
       timerBetweenActions: settings.timerBetweenActions,
       excludedThemes: settings.excludedThemes,
-      isActive: settings.isActive
+      isActive: settings.isActive,
     };
   }
 
@@ -140,7 +138,7 @@ export class TrafficService implements ITrafficService {
    */
   async updateBotSettings(userId: string, botId: string, dto: UpdateBotSettingsDto): Promise<BotSettingsDto> {
     const bot = await this._findUserBot(userId, botId);
-    
+
     if (bot.status !== BotStatus.ACTIVE) {
       throw new BadRequestException('Настройки можно изменять только для активных ботов');
     }
@@ -193,17 +191,17 @@ export class TrafficService implements ITrafficService {
   async getUserBots(userId: string): Promise<BotResponseDto[]> {
     const bots = await this.botRepository.find({
       where: { userId },
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
 
-    return bots.map(bot => ({
+    return bots.map((bot) => ({
       id: bot.id,
       name: bot.name,
       trafficSold: bot.trafficSold,
       moneyEarned: bot.moneyEarned,
       status: bot.status,
       createdAt: bot.createdAt,
-      updatedAt: bot.updatedAt
+      updatedAt: bot.updatedAt,
     }));
   }
 
@@ -220,7 +218,7 @@ export class TrafficService implements ITrafficService {
       moneyEarned: bot.moneyEarned,
       status: bot.status,
       createdAt: bot.createdAt,
-      updatedAt: bot.updatedAt
+      updatedAt: bot.updatedAt,
     };
   }
 
@@ -236,26 +234,26 @@ export class TrafficService implements ITrafficService {
         trafficType: TrafficType.PRIVATE_MESSAGES,
         currentPrice: 0.05,
         availableAmount: 50000,
-        estimatedDeliveryHours: 24
+        estimatedDeliveryHours: 24,
       },
       {
         trafficType: TrafficType.GROUP_MESSAGES,
         currentPrice: 0.03,
         availableAmount: 100000,
-        estimatedDeliveryHours: 48
+        estimatedDeliveryHours: 48,
       },
       {
         trafficType: TrafficType.CHANNEL_SUBSCRIBERS,
         currentPrice: 0.15,
         availableAmount: 20000,
-        estimatedDeliveryHours: 72
+        estimatedDeliveryHours: 72,
       },
       {
         trafficType: TrafficType.POST_VIEWS,
         currentPrice: 0.01,
         availableAmount: 500000,
-        estimatedDeliveryHours: 12
-      }
+        estimatedDeliveryHours: 12,
+      },
     ];
   }
 
@@ -269,7 +267,7 @@ export class TrafficService implements ITrafficService {
     }
 
     const totalCost = dto.amount * dto.pricePerUnit;
-    
+
     // Check if user has sufficient balance (would integrate with balance service)
     // const hasBalance = await this.balanceService.checkBalance(userId, totalCost);
     // if (!hasBalance) {
@@ -290,7 +288,7 @@ export class TrafficService implements ITrafficService {
       progressPercentage: 0,
       estimatedCompletion: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     const savedOrder = await this.trafficOrderRepository.save(order);
@@ -307,10 +305,10 @@ export class TrafficService implements ITrafficService {
   async getUserTrafficOrders(userId: string): Promise<TrafficOrderResponseDto[]> {
     const orders = await this.trafficOrderRepository.find({
       where: { userId },
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
 
-    return orders.map(order => this._mapToOrderResponse(order));
+    return orders.map((order) => this._mapToOrderResponse(order));
   }
 
   /**
@@ -324,7 +322,11 @@ export class TrafficService implements ITrafficService {
   /**
    * Update traffic order
    */
-  async updateTrafficOrder(userId: string, orderId: string, dto: UpdateTrafficOrderDto): Promise<TrafficOrderResponseDto> {
+  async updateTrafficOrder(
+    userId: string,
+    orderId: string,
+    dto: UpdateTrafficOrderDto,
+  ): Promise<TrafficOrderResponseDto> {
     const order = await this._findUserOrder(userId, orderId);
 
     if (order.status === OrderStatus.COMPLETED || order.status === OrderStatus.CANCELLED) {
@@ -380,7 +382,7 @@ export class TrafficService implements ITrafficService {
 
   private async _findUserBot(userId: string, botId: string) {
     const bot = await this.botRepository.findOne({
-      where: { id: botId, userId }
+      where: { id: botId, userId },
     });
 
     if (!bot) {
@@ -392,7 +394,7 @@ export class TrafficService implements ITrafficService {
 
   private async _findUserOrder(userId: string, orderId: string) {
     const order = await this.trafficOrderRepository.findOne({
-      where: { id: orderId, userId }
+      where: { id: orderId, userId },
     });
 
     if (!order) {
@@ -411,7 +413,7 @@ export class TrafficService implements ITrafficService {
       maxPartnersPerDay: 10,
       timerBetweenActions: 60,
       excludedThemes: [],
-      isActive: false
+      isActive: false,
     };
   }
 
@@ -453,7 +455,7 @@ export class TrafficService implements ITrafficService {
       progressPercentage: order.progressPercentage,
       estimatedCompletion: order.estimatedCompletion,
       createdAt: order.createdAt,
-      updatedAt: order.updatedAt
+      updatedAt: order.updatedAt,
     };
   }
 }

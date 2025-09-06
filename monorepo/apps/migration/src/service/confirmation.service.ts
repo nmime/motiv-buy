@@ -3,7 +3,7 @@ import type { Logger } from '../type/logger.type';
 
 /**
  * User Confirmation Service
- * 
+ *
  * Handles interactive confirmation prompts for destructive operations
  * Following CLAUDE.md security-first principles
  */
@@ -21,7 +21,7 @@ export class ConfirmationService {
 
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     try {

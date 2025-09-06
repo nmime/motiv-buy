@@ -9,12 +9,8 @@ import { bootstrap } from '../migration-cli.bootstrap';
 
 async function main() {
   console.log('🧪 Testing Migration CLI...');
-  
-  process.argv = [
-    'node',
-    'migration-cli',
-    'status'
-  ];
+
+  process.argv = ['node', 'migration-cli', 'status'];
 
   try {
     await bootstrap();

@@ -5,6 +5,7 @@
 The auth feature is a comprehensive authentication and authorization system that provides secure user authentication, JWT token management, multi-platform integration, and advanced security controls. This feature supports multiple authentication methods including Telegram Mini App (TMA), Telegram Widget, and development authentication, with robust security measures including token validation, user blocking, and caching optimization.
 
 **Core Functionality:**
+
 - Multi-platform authentication (TMA, Telegram Widget, Development mode)
 - JWT token generation, validation, and lifecycle management
 - Advanced user session management with Redis caching
@@ -17,12 +18,14 @@ The auth feature is a comprehensive authentication and authorization system that
 ## Coding Standards
 
 ### Exception Handling
+
 - **All exceptions MUST use the Exception class from @app/common/exception**
 - Use `Exception({ kind: ExceptionKind.*, problemType: 'snake_case', title: 'Title' })`
 - Never use `throw new Error()` or `HttpException`
 - All exception types must map to appropriate ExceptionKind values
 
 Example:
+
 ```typescript
 export class BadTokenException extends Exception({
   kind: ExceptionKind.Unauthorized,
@@ -36,25 +39,29 @@ export class BadTokenException extends Exception({
 ```
 
 ### Enum Format Standards
+
 - **Keys**: CamelCase
 - **Values**: snake_case
 - No UPPER_CASE keys
 
 Example:
+
 ```typescript
 enum UserStatus {
   ActiveUser = 'active_user',
   InactiveUser = 'inactive_user',
-  BlockedUser = 'blocked_user'
+  BlockedUser = 'blocked_user',
 }
 ```
 
 ### Code Comments Policy
+
 - **No comments allowed in code**
 - Code must be self-documenting through clear naming
 - Use descriptive variable and function names instead of comments
 
 ### Project References
+
 - **No project-specific names in code**
 - Use generic terms like 'Application' instead of specific project names
 - Focus on functional naming rather than brand-specific terms
@@ -64,11 +71,13 @@ enum UserStatus {
 ### Module Structure
 
 **Main Authentication Module (`auth/main`):**
+
 - `AuthService` - Core authentication logic and user verification
 - `AuthController` - REST API endpoints for authentication operations
 - Integration with user repositories and bonus systems
 
 **Shared Authentication Module (`auth/shared`):**
+
 - Comprehensive authentication services and utilities
 - JWT strategies and guard systems
 - Caching services for performance optimization
@@ -77,6 +86,7 @@ enum UserStatus {
 ### Main Components
 
 **Core Authentication Services:**
+
 - `AuthService` - Primary authentication orchestration
 - `AuthJwtValidationService` - JWT token validation and verification
 - `AuthUserService` - User authentication and session management
@@ -84,12 +94,14 @@ enum UserStatus {
 - `AuthCompositeService` - Multi-strategy authentication coordination
 
 **Security and Validation Services:**
+
 - `AuthBlockedCacheService` - User blocking status caching
 - `AuthJwtCacheService` - JWT token caching and invalidation
 - `AuthJtiCacheService` - JWT ID tracking for token revocation
 - `UserTokensRevokeService` - Token lifecycle and revocation management
 
 **Specialized Services:**
+
 - `ExchangeTokenAuthService` - Trading platform authentication
 - `ExchangeJwtService` - Exchange-specific JWT handling
 - `AuthLegacyService` - Legacy authentication system compatibility
@@ -108,16 +120,17 @@ Authentication Request → Route Validation → Token Extraction → Strategy Se
 ## Public API Surface
 
 ### Main Module Exports
+
 ```typescript
 export { AuthMainModule } from './auth/main';
 export { AuthSharedModule } from './auth/shared';
 
 export { AuthService } from './auth/main/services';
-export { 
+export {
   AuthJwtValidationService,
   AuthUserService,
   AuthCompositeService,
-  ExchangeTokenAuthService
+  ExchangeTokenAuthService,
 } from './auth/shared/services';
 
 export * from './auth/shared/guards';
@@ -129,6 +142,7 @@ export * from './auth/shared/dto';
 ### Key Service APIs
 
 **Primary Authentication Interface:**
+
 ```typescript
 interface AuthService {
   authDev(userId: string): AsyncResult<AuthResultDto, AuthError>;
@@ -149,6 +163,7 @@ interface WidgetAuthParams {
 ```
 
 **JWT Validation Service:**
+
 ```typescript
 interface AuthJwtValidationService {
   validate(payload: AuthJwtPayloadDto): Promise<Result<UserData, AuthValidationError>>;
@@ -168,6 +183,7 @@ interface AuthJwtPayloadDto {
 ### Telegram Mini App (TMA) Authentication
 
 **TMA Integration Process:**
+
 ```typescript
 1. TMA Data Extraction → Parse Telegram Mini App initialization data
 2. Signature Validation → Verify Telegram bot token signature
@@ -177,6 +193,7 @@ interface AuthJwtPayloadDto {
 ```
 
 **TMA Data Validation:**
+
 ```typescript
 interface TmaValidationProcess {
   initDataValidation: {
@@ -202,6 +219,7 @@ interface TmaValidationProcess {
 ### Telegram Widget Authentication
 
 **Widget Authentication Flow:**
+
 ```typescript
 interface TelegramWidgetAuthDto {
   id: string;
@@ -215,9 +233,9 @@ interface TelegramWidgetAuthDto {
 
 const validateWidgetAuth = async (dto: TelegramWidgetAuthDto): Promise<WidgetValidationResult> => {
   const isValidHash = await verifyTelegramHash(dto, botToken);
-  const isValidTimestamp = (Date.now() / 1000 - dto.auth_date) < 86400;
+  const isValidTimestamp = Date.now() / 1000 - dto.auth_date < 86400;
   const isValidUserData = validateUserDataConsistency(dto);
-  
+
   return { isValid: isValidHash && isValidTimestamp && isValidUserData };
 };
 ```
@@ -225,6 +243,7 @@ const validateWidgetAuth = async (dto: TelegramWidgetAuthDto): Promise<WidgetVal
 ### Development Authentication
 
 **Development Mode Features:**
+
 ```typescript
 interface DevAuthConfiguration {
   enabled: boolean;
@@ -237,11 +256,11 @@ const authDev = async (userId: string, ip: string): Promise<AuthResult> => {
   if (!configService.isDev) {
     throw new NotInDevModeException();
   }
-  
+
   if (!isAllowedIP(ip)) {
     throw new UnauthorizedException('IP not allowed in dev mode');
   }
-  
+
   return await createDevSession(userId);
 };
 ```
@@ -251,6 +270,7 @@ const authDev = async (userId: string, ip: string): Promise<AuthResult> => {
 ### Comprehensive Token Architecture
 
 **JWT Payload Structure:**
+
 ```typescript
 interface AuthJwtPayloadDto {
   app: AuthJwtApp;
@@ -269,13 +289,14 @@ enum AuthJwtApp {
   Wallet = 'wallet',
   MainApp = 'main_app',
   Default = 'default',
-  TelegramWidget = 'telegram_widget'
+  TelegramWidget = 'telegram_widget',
 }
 ```
 
 ### Token Lifecycle Management
 
 **Token Generation Process:**
+
 ```typescript
 const generateJwtToken = async (user: User, app: AuthJwtApp): Promise<JwtTokenResult> => {
   const payload: AuthJwtPayloadDto = {
@@ -286,34 +307,35 @@ const generateJwtToken = async (user: User, app: AuthJwtApp): Promise<JwtTokenRe
     jti: generateUniqueJti(),
     premiumUntil: user.premiumUntil,
     language: user.language,
-    referralCode: user.referralCode
+    referralCode: user.referralCode,
   };
-  
+
   const token = await jwtService.signAsync(payload);
   await authJwtCacheService.cacheToken(payload.jti, payload, JWT_EXPIRATION_SECONDS);
-  
+
   return { token, payload };
 };
 ```
 
 **Token Validation Pipeline:**
+
 ```typescript
 const validateJwtToken = async (token: string): Promise<ValidationResult> => {
   try {
     const payload = await jwtService.verifyAsync<AuthJwtPayloadDto>(token);
-    
+
     const isRevoked = await authJtiCacheService.isTokenRevoked(payload.jti);
     if (isRevoked) {
       return { valid: false, reason: 'TOKEN_REVOKED' };
     }
-    
+
     const validationResult = await authJwtValidationService.validate(payload);
     if (validationResult.err) {
       return { valid: false, reason: validationResult.val.message };
     }
-    
+
     await authJwtCacheService.cacheValidation(payload.jti, validationResult.val);
-    
+
     return { valid: true, userData: validationResult.val };
   } catch (error) {
     return { valid: false, reason: 'INVALID_TOKEN' };
@@ -324,26 +346,26 @@ const validateJwtToken = async (token: string): Promise<ValidationResult> => {
 ## Integration Examples
 
 ### Basic Authentication Flow
+
 ```typescript
 import { AuthService, AuthJwtValidationService } from '@app/feature-auth-main';
 
 const authResult = await authService.authTma({
   url: 'https://app.example.com/?tgWebAppData=user%3D...',
   hostname: 'app.example.com',
-  ip: '192.168.1.1'
+  ip: '192.168.1.1',
 });
 
 if (authResult.ok) {
   const { token, user } = authResult.val;
   console.log('Authentication successful:', token);
-  
-  const userContext = await authJwtValidationService.validate(
-    jwt.decode(token) as AuthJwtPayloadDto
-  );
+
+  const userContext = await authJwtValidationService.validate(jwt.decode(token) as AuthJwtPayloadDto);
 }
 ```
 
 ### Guard Implementation
+
 ```typescript
 import { CompositeAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
 

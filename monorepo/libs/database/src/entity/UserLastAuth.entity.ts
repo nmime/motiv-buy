@@ -1,6 +1,6 @@
-import { Entity, Property, ManyToOne, Index, PrimaryKey, Unique } from '@mikro-orm/core';
-import { EntityConstructorData } from '../type';
-import type { UserEntity } from './User.entity';
+import { Entity, Property, OneToOne, Index, PrimaryKey, Unique, Ref } from '@mikro-orm/core';
+import { EntityConstructorData, assignEntityData } from '../type';
+import { UserEntity } from './User.entity';
 
 @Entity({ tableName: 'user_last_auth' })
 @Unique({ properties: ['user'] })
@@ -27,13 +27,12 @@ export class UserLastAuthEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @Property({ type: 'uuid', fieldName: 'user_id' })
-  userId!: string;
+  @OneToOne('UserEntity', { nullable: false, owner: true, joinColumn: 'user_id', ref: true })
+  user!: Ref<UserEntity>;
 
-  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
-  user?: UserEntity;
-
-  constructor(data: EntityConstructorData<UserLastAuthEntity, 'id' | 'createdAt' | 'updatedAt'>) {
-    Object.assign(this, data);
+  constructor(data: EntityConstructorData<UserLastAuthEntity, 'id' | 'createdAt' | 'updatedAt', never, 'user'>) {
+    assignEntityData(this, data, {
+      userId: { field: 'user', entityClass: UserEntity, required: true },
+    });
   }
 }

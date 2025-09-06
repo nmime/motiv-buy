@@ -32,6 +32,7 @@ cp .env.example .env
 ```
 
 Required environment variables:
+
 - `DB_HOST` - Database host
 - `DB_NAME` - Database name
 - `DB_USER` - Database user

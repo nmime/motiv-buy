@@ -1,12 +1,12 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from '../type';
-import type { UserEntity } from './User.entity';
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum, Ref } from '@mikro-orm/core';
+import { EntityConstructorData, assignEntityData } from '../type';
+import { UserEntity } from './User.entity';
 
 export enum SettingType {
   Boolean = 'boolean',
   String = 'string',
   Number = 'number',
-  Json = 'json'
+  Json = 'json',
 }
 
 export enum NotificationType {
@@ -14,7 +14,7 @@ export enum NotificationType {
   TradeNotifications = 'trade_notifications',
   ReferralNotifications = 'referral_notifications',
   SystemNotifications = 'system_notifications',
-  MarketingNotifications = 'marketing_notifications'
+  MarketingNotifications = 'marketing_notifications',
 }
 
 @Entity({ tableName: 'user_settings' })
@@ -26,11 +26,8 @@ export class UserSettingsEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
-  @Property({ type: 'uuid', fieldName: 'user_id' })
-  userId!: string;
-
-  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
-  user?: UserEntity;
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })
+  user!: Ref<UserEntity>;
 
   @Property({ type: 'varchar', length: 64, fieldName: 'key' })
   key!: string;
@@ -54,8 +51,17 @@ export class UserSettingsEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<UserSettingsEntity, 'id' | 'createdAt' | 'updatedAt' | 'getValue' | 'setValue', 'type' | 'isActive'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<
+      UserSettingsEntity,
+      'id' | 'createdAt' | 'updatedAt' | 'getValue' | 'setValue',
+      'type' | 'isActive',
+      'user'
+    >,
+  ) {
+    assignEntityData(this, data, {
+      userId: { field: 'user', entityClass: UserEntity, required: true },
+    });
   }
 
   getValue(): unknown {

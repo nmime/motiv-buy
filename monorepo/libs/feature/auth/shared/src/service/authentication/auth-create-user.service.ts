@@ -32,7 +32,7 @@ export class AuthCreateUserService {
     };
 
     const user = new UserEntity(userData);
-    
+
     await entityManager.persist(user);
     await entityManager.flush();
 

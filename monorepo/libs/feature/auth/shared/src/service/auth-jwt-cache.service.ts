@@ -20,11 +20,7 @@ export class AuthJwtCacheService {
       if (!key) return;
 
       const cacheKey = this.getJwtCacheKey(key);
-      await this.redis.setex(
-        cacheKey,
-        AuthConstant.CacheTtlJwt,
-        JSON.stringify(payload)
-      );
+      await this.redis.setex(cacheKey, AuthConstant.CacheTtlJwt, JSON.stringify(payload));
 
       await this.addToUserTokens(payload.userId, key);
     } catch (error) {
@@ -36,11 +32,11 @@ export class AuthJwtCacheService {
     try {
       const cacheKey = this.getJwtCacheKey(jti);
       const cached = await this.redis.get(cacheKey);
-      
+
       if (!cached) {
         return null;
       }
-      
+
       return JSON.parse(cached) as AuthJwtPayloadDto;
     } catch (error) {
       console.error('Failed to get JWT payload from cache:', error);
@@ -51,11 +47,7 @@ export class AuthJwtCacheService {
   async cacheValidation(jti: string, userData: UserData): Promise<void> {
     try {
       const cacheKey = this.getValidationCacheKey(jti);
-      await this.redis.setex(
-        cacheKey,
-        AuthConstant.CacheTtlJwt,
-        JSON.stringify(userData)
-      );
+      await this.redis.setex(cacheKey, AuthConstant.CacheTtlJwt, JSON.stringify(userData));
     } catch (error) {
       console.error('Failed to cache validation result:', error);
     }
@@ -65,11 +57,11 @@ export class AuthJwtCacheService {
     try {
       const cacheKey = this.getValidationCacheKey(jti);
       const cached = await this.redis.get(cacheKey);
-      
+
       if (!cached) {
         return null;
       }
-      
+
       return new UserData(JSON.parse(cached));
     } catch (error) {
       console.error('Failed to get cached validation:', error);
@@ -101,16 +93,12 @@ export class AuthJwtCacheService {
   private async addToUserTokens(userId: string, jti: string): Promise<void> {
     try {
       const cacheKey = this.getUserTokensKey(String(userId));
-      
+
       const existing = await this.getUserTokens(userId);
-      
+
       if (!existing.includes(jti)) {
         existing.push(jti);
-        await this.redis.setex(
-          cacheKey,
-          AuthConstant.CacheTtlJwt,
-          JSON.stringify(existing)
-        );
+        await this.redis.setex(cacheKey, AuthConstant.CacheTtlJwt, JSON.stringify(existing));
       }
     } catch (error) {
       console.error('Failed to add to user tokens:', error);

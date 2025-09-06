@@ -32,7 +32,7 @@ export class StatisticService implements IStatisticService {
   async getStatistic(userId: string, query: StatisticQueryDto): Promise<StatisticResponseDto> {
     let peopleCount = 0;
     let moneyAmount = 0;
-    
+
     if (query.type === 'sale') {
       // Get sale statistics
       const saleStats = await this.getSaleStatistics(Number(userId), query);
@@ -74,7 +74,10 @@ export class StatisticService implements IStatisticService {
     };
   }
 
-  private async getSaleStatistics(userId: number, query: StatisticQueryDto): Promise<{ peopleCount: number; moneyAmount: number }> {
+  private async getSaleStatistics(
+    userId: number,
+    query: StatisticQueryDto,
+  ): Promise<{ peopleCount: number; moneyAmount: number }> {
     const queryBuilder = this.trafficOrderRepository
       .createQueryBuilder('order')
       .where('order.sellerId = :userId', { userId })
@@ -93,17 +96,20 @@ export class StatisticService implements IStatisticService {
     }
 
     const orders = await queryBuilder.getMany();
-    
+
     // Get unique buyers count
-    const uniqueBuyerIds = [...new Set(orders.map(order => order.buyerId))];
-    
+    const uniqueBuyerIds = [...new Set(orders.map((order) => order.buyerId))];
+
     return {
       peopleCount: uniqueBuyerIds.length,
       moneyAmount: orders.reduce((sum, order) => sum + order.price, 0),
     };
   }
 
-  private async getPurchaseStatistics(userId: number, query: StatisticQueryDto): Promise<{ peopleCount: number; moneyAmount: number }> {
+  private async getPurchaseStatistics(
+    userId: number,
+    query: StatisticQueryDto,
+  ): Promise<{ peopleCount: number; moneyAmount: number }> {
     const queryBuilder = this.trafficOrderRepository
       .createQueryBuilder('order')
       .where('order.buyerId = :userId', { userId })
@@ -122,10 +128,10 @@ export class StatisticService implements IStatisticService {
     }
 
     const orders = await queryBuilder.getMany();
-    
+
     // Get unique sellers count
-    const uniqueSellerIds = [...new Set(orders.map(order => order.sellerId))];
-    
+    const uniqueSellerIds = [...new Set(orders.map((order) => order.sellerId))];
+
     return {
       peopleCount: uniqueSellerIds.length,
       moneyAmount: orders.reduce((sum, order) => sum + order.price, 0),

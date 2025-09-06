@@ -1,38 +1,46 @@
-import { EntityRepository } from '@mikro-orm/core';
-import { UserLastAuthEntity } from '../entity';
+import { EntityRepository, EntityManager, ref } from '@mikro-orm/core';
+import { UserLastAuthEntity, UserEntity } from '../entity';
 
 export class UserLastAuthRepository extends EntityRepository<UserLastAuthEntity> {
   /**
-   * Update or insert user last auth information
+   * Updates existing user auth info or creates new record if not exists
+   * Cleaner implementation using MikroORM's assign and persist pattern
    */
-  async upsertUserLastAuth(data: {
-    userId: string;
-    ip?: string;
-    country?: string;
-    city?: string;
-    continent?: string;
-  }): Promise<void> {
-    const existingAuth = await this.findOne({ userId: data.userId });
+  async upsertUserLastAuth(
+    data: {
+      userId: string;
+      ip?: string;
+      country?: string;
+      city?: string;
+      continent?: string;
+    },
+    entityManager?: EntityManager,
+  ): Promise<UserLastAuthEntity> {
+    const em = entityManager || this.em;
 
-    if (existingAuth) {
-      // Update existing record
-      existingAuth.ip = data.ip;
-      existingAuth.country = data.country;
-      existingAuth.city = data.city;
-      existingAuth.continent = data.continent;
-      existingAuth.updatedAt = new Date();
-      await this.em.persistAndFlush(existingAuth);
+    // Try to find existing record
+    let entity = await em.findOne(UserLastAuthEntity, { user: data.userId });
+
+    if (entity) {
+      em.assign(entity, {
+        ip: data.ip,
+        country: data.country,
+        city: data.city,
+        continent: data.continent,
+      });
     } else {
-      // Create new record
-      const newAuth = new UserLastAuthEntity(data);
-      await this.em.persistAndFlush(newAuth);
+      const userRef = em.getReference(UserEntity, data.userId);
+      entity = new UserLastAuthEntity({
+        user: ref(userRef),
+        ip: data.ip,
+        country: data.country,
+        city: data.city,
+        continent: data.continent,
+      });
+      em.persist(entity);
     }
-  }
 
-  /**
-   * Find user last auth by user ID
-   */
-  async findByUserId(userId: string): Promise<UserLastAuthEntity | null> {
-    return await this.findOne({ userId });
+    await em.flush();
+    return entity;
   }
 }

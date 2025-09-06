@@ -24,10 +24,10 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
 
   async findByPriceRange(minPrice: number, maxPrice: number): Promise<TrafficBuyerEntity[]> {
     const results = await this.em.find(TrafficBuyerEntity, {
-      isActive: true
+      isActive: true,
     });
-    
-    return results.filter(buyer => {
+
+    return results.filter((buyer) => {
       if (!buyer.pricePerMember) return false;
       const price = parseFloat(buyer.pricePerMember);
       return price >= minPrice && price <= maxPrice;
@@ -36,7 +36,7 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
 
   async findByMemberCapacity(minMembers?: number, maxMembers?: number): Promise<TrafficBuyerEntity[]> {
     const conditions: FilterQuery<TrafficBuyerEntity> = { isActive: true };
-    
+
     if (minMembers !== undefined) {
       conditions.minMembers = { $lte: minMembers };
     }
@@ -65,7 +65,7 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
       config: data.config ? JSON.parse(data.config) : undefined,
       pricePerMember: data.pricePerMember?.toString(),
       isActive: true,
-      requiresApproval: false
+      requiresApproval: false,
     });
     await this.em.persistAndFlush(trafficBuyer);
     return trafficBuyer;
@@ -120,7 +120,7 @@ export class TrafficBuyerRepository extends EntityRepository<TrafficBuyerEntity>
       this.count({ type: TrafficBuyerType.Group }),
       this.count({ type: TrafficBuyerType.Bot }),
       this.count({ type: TrafficBuyerType.WithChecking }),
-      this.count({ requiresApproval: true })
+      this.count({ requiresApproval: true }),
     ]);
 
     return { total, active, channels, groups, bots, withChecking, requiresApproval };

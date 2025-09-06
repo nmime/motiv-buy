@@ -33,7 +33,6 @@ export function ApiProblemExceptions(
 
   decorators.push(
     ...[...statusExceptionMap.entries()].map(([status, items]) => {
-
       const examples: { [key: string]: ApiResponseExamples } = {};
 
       const schemas = items.map(([exception, options]) => {

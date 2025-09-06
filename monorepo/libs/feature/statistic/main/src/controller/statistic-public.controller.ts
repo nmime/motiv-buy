@@ -11,9 +11,7 @@ export class StatisticPublicController {
   constructor(private readonly statisticService: StatisticService) {}
 
   @Get(':shareToken')
-  @ApiProblemExceptions([
-    [InternalException, { description: 'Internal server error occurred' }],
-  ])
+  @ApiProblemExceptions([[InternalException, { description: 'Internal server error occurred' }]])
   @ApiOperation({
     summary: 'Get shared statistic',
     description: 'Get statistic by share token (public access, no auth required)',

@@ -9,7 +9,7 @@ export class StatisticDataDto {
 
   @ApiProperty({
     description: 'Amount of money (earned for sales, spent for purchases)',
-    example: 15750.50,
+    example: 15750.5,
   })
   amount!: number;
 }

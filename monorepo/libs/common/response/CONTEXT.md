@@ -1,29 +1,34 @@
 # Response
 
 ## Purpose and Responsibilities
+
 The `response` library provides standardized response transformation and formatting for xRocket's API ecosystem. It ensures consistent response structures, handles error formatting, manages WebSocket responses, and provides decorators for automatic response transformation across all HTTP and WebSocket endpoints.
 
 ## Key Components
 
 ### ResponseTransformer
+
 - **Standard Format**: Transforms responses to consistent `{ data, error }` format
 - **Success Handling**: Formats successful responses with proper data structure
 - **Error Handling**: Standardizes error responses with consistent error format
 - **Null Safety**: Handles null/undefined data appropriately
 
 ### ProblemResponseTransformer
+
 - **RFC 7807 Compliance**: Implements Problem Details for HTTP APIs standard
 - **Error Standardization**: Converts exceptions to standardized problem format
 - **Status Code Mapping**: Maps internal errors to appropriate HTTP status codes
 - **Context Preservation**: Maintains error context and details
 
 ### WebSocketResponseTransformer
+
 - **WebSocket Format**: Specialized response format for WebSocket communications
 - **Event Handling**: Manages WebSocket event-based responses
 - **Real-time Updates**: Formats real-time data updates for WebSocket clients
 - **Error Broadcasting**: Handles error broadcasting over WebSocket connections
 
 ### UseTransformer Decorator
+
 - **Automatic Transformation**: Decorator for automatic response transformation
 - **Flexible Configuration**: Configurable transformation strategies
 - **Method-Level Control**: Fine-grained control over response transformation
@@ -32,33 +37,40 @@ The `response` library provides standardized response transformation and formatt
 ## Dependencies
 
 ### External Dependencies
+
 - `@nestjs/common` - NestJS core functionality
 - `rxjs` - Reactive programming for interceptors
 
 ### Internal Dependencies
+
 - None - Base response handling library
 
 ## Integration Points
 
 ### API Controllers
+
 Used across all HTTP controllers for:
+
 - **REST API Responses**: Standardized JSON responses
 - **Error Handling**: Consistent error response format
 - **Data Validation**: Response data validation and transformation
 - **Content Negotiation**: Format responses based on Accept headers
 
 ### WebSocket Gateways
+
 - **Real-time Updates**: Live data streaming responses
 - **Event Broadcasting**: Multi-client event distribution
 - **Error Notifications**: Real-time error notifications
 
 ### Microservice Communication
+
 - **Inter-Service Responses**: Standardized service-to-service responses
 - **RPC Call Formatting**: Consistent RPC response structures
 
 ## Usage Patterns
 
 ### HTTP Response Transformation
+
 ```typescript
 import { UseTransformer, ResponseTransformer } from '@app/common-response';
 
@@ -87,6 +99,7 @@ export class UserController {
 ```
 
 ### Problem Details Response
+
 ```typescript
 import { ProblemResponseTransformer } from '@app/common-response';
 
@@ -109,6 +122,7 @@ export class PaymentController {
 ```
 
 ### WebSocket Response Handling
+
 ```typescript
 import { WebSocketResponseTransformer } from '@app/common-response';
 
@@ -136,6 +150,7 @@ export class ExchangeGateway {
 ```
 
 ### Custom Response Transformation
+
 ```typescript
 import { ResponseTransformer } from '@app/common-response';
 
@@ -143,15 +158,15 @@ import { ResponseTransformer } from '@app/common-response';
 export class CustomResponseTransformer extends ResponseTransformer {
   transform(data: any, context: ExecutionContext) {
     const baseResponse = super.transform(data, context);
-    
+
     // Add custom metadata
     return {
       ...baseResponse,
       meta: {
         timestamp: new Date().toISOString(),
         version: '1.0',
-        requestId: context.getRequest().headers['x-request-id']
-      }
+        requestId: context.getRequest().headers['x-request-id'],
+      },
     };
   }
 }
@@ -166,6 +181,7 @@ export class ApiController {
 ## Configuration
 
 ### Response Format Configuration
+
 ```typescript
 interface StandardResponse<T> {
   data: T | null;
@@ -188,6 +204,7 @@ interface ProblemResponse {
 ```
 
 ### WebSocket Response Format
+
 ```typescript
 interface WebSocketResponse<T> {
   event: string;
@@ -200,11 +217,13 @@ interface WebSocketResponse<T> {
 ## Security Considerations
 
 ### Data Sanitization
+
 - **Output Encoding**: Automatic encoding of response data
 - **Sensitive Data**: Prevents sensitive data leakage in error responses
 - **Error Details**: Sanitizes error details in production
 
 ### Information Disclosure
+
 - **Stack Traces**: Removes stack traces from production error responses
 - **Internal Details**: Filters internal system information
 - **User Context**: Ensures user-specific data isolation
@@ -212,11 +231,13 @@ interface WebSocketResponse<T> {
 ## Performance Notes
 
 ### Response Caching
+
 - **Transformer Caching**: Cached transformer instances for performance
 - **Serialization**: Efficient JSON serialization
 - **Memory Management**: Proper cleanup of response objects
 
 ### Interceptor Efficiency
+
 - **Minimal Overhead**: Lightweight transformation logic
 - **Stream Processing**: Efficient handling of large response data
 - **Async Processing**: Non-blocking response transformation
@@ -224,12 +245,15 @@ interface WebSocketResponse<T> {
 ## Development Notes
 
 ### Architecture Pattern
+
 Implements **Response Facade** pattern:
+
 1. **Unified Interface**: Single interface for all response formats
 2. **Transformation Strategy**: Pluggable transformation strategies
 3. **Cross-Cutting Concerns**: Handles responses across all endpoints
 
 ### Response Standards
+
 ```typescript
 // Success Response
 {
@@ -257,6 +281,7 @@ Implements **Response Facade** pattern:
 ```
 
 ### Best Practices
+
 - **Consistent Format**: Always use standardized response format
 - **Error Handling**: Implement proper error transformation
 - **Validation**: Validate response data before transformation

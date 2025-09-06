@@ -1,6 +1,6 @@
 /**
  * Bot Application Bootstrap
- * 
+ *
  * Entry point for the Telegram bot service.
  * Configures Grammy bot with proper middleware and handlers.
  */
@@ -22,12 +22,12 @@ async function bootstrap() {
 
   Logger.log('🤖 Telegram Bot Application is running');
   Logger.log(`🌍 Environment: ${appConfig.nodeEnv}`);
-  
+
   process.once('SIGINT', () => botService.stop());
   process.once('SIGTERM', () => botService.stop());
 }
 
-bootstrap().catch(err => {
+bootstrap().catch((err) => {
   Logger.error('❌ Error starting bot application', err);
   process.exit(1);
 });

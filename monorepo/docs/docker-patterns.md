@@ -7,6 +7,7 @@ This document outlines the common Docker configuration patterns used across the 
 The project uses consistent environment variable patterns across all Docker Compose files:
 
 ### Core Project Variables
+
 ```env
 PROJECT_NAME=motiv-buy        # REQUIRED: Used for all container and resource naming
 ENV=dev|prod                  # Environment suffix for all resources
@@ -14,28 +15,37 @@ NODE_ENV=development|production # Node.js environment mode
 ```
 
 ### Service Naming Pattern
+
 All services follow the pattern: `{SERVICE_TYPE}-${ENV}`
+
 - Development: `postgres-dev`, `redis-dev`, `api-dev`, `bot-dev`
 - Production: `postgres-prod`, `redis-prod`, `api-prod`, `bot-prod`
 
 ### Container Naming Pattern
+
 All containers follow the pattern: `${PROJECT_NAME}-{SERVICE_TYPE}-${ENV}`
+
 - Development: `motiv-buy-postgres-dev`, `motiv-buy-redis-dev`
 - Production: `motiv-buy-postgres-prod`, `motiv-buy-redis-prod`
 
 ### Network Naming Pattern
+
 Networks follow the pattern: `${PROJECT_NAME}-network-${ENV}`
+
 - Development: `${PROJECT_NAME}-network-dev` (bridge name: `${PROJECT_NAME}-development`)
 - Production: `${PROJECT_NAME}-network-prod` (bridge name: `${PROJECT_NAME}-production`)
 
 ### Volume Naming Pattern
+
 Volumes follow the pattern: `${PROJECT_NAME}_{SERVICE}_{ENV}_data`
+
 - Development: `${PROJECT_NAME}_postgres_dev_data`, `${PROJECT_NAME}_redis_dev_data`
 - Production: `${PROJECT_NAME}_postgres_prod_data`, `${PROJECT_NAME}_redis_prod_data`
 
 ## YAML Anchors and Reusability
 
 ### Common Defaults
+
 ```yaml
 x-common-defaults: &common-defaults
   restart: unless-stopped
@@ -44,19 +54,21 @@ x-common-defaults: &common-defaults
 ```
 
 ### Health Check Patterns
+
 ```yaml
 x-healthcheck-fast: &healthcheck-fast
-  interval: 5s|10s    # 5s for dev, 10s for prod
+  interval: 5s|10s # 5s for dev, 10s for prod
   timeout: 3s
   retries: 5
 
 x-healthcheck-standard: &healthcheck-standard
-  interval: 10s|30s   # 10s for dev, 30s for prod
-  timeout: 5s|10s     # 5s for dev, 10s for prod
+  interval: 10s|30s # 10s for dev, 30s for prod
+  timeout: 5s|10s # 5s for dev, 10s for prod
   retries: 3
 ```
 
 ### Environment Variable Groups
+
 ```yaml
 x-common-env: &common-env
   NODE_ENV: ${NODE_ENV:-development}
@@ -67,8 +79,8 @@ x-db-env: &db-env
   DB_HOST: ${PROJECT_NAME:-motiv-buy}-postgres-${ENV:-dev}
   DB_PORT: 5432
   DB_NAME: ${PROJECT_NAME:-motiv-buy}_${NODE_ENV:-development}
-  DB_USER: ${PROJECT_NAME:-motiv}_${ENV:-dev}    # dev specific
-  DB_PASSWORD: ${ENV:-dev}_password_123          # dev specific
+  DB_USER: ${PROJECT_NAME:-motiv}_${ENV:-dev} # dev specific
+  DB_PASSWORD: ${ENV:-dev}_password_123 # dev specific
 
 x-redis-env: &redis-env
   REDIS_HOST: ${PROJECT_NAME:-motiv-buy}-redis-${ENV:-dev}
@@ -76,6 +88,7 @@ x-redis-env: &redis-env
 ```
 
 ### Resource Limits (Production Only)
+
 ```yaml
 x-api-resources: &api-resources
   resources:
@@ -99,6 +112,7 @@ x-bot-resources: &bot-resources
 ## Port Configuration
 
 ### Development Ports
+
 - PostgreSQL: `5432:5432`
 - Redis: `6379:6379`
 - API: `3000:3000`
@@ -107,6 +121,7 @@ x-bot-resources: &bot-resources
 - Mailcatcher: `1080:1080` (web), `1025:1025` (SMTP)
 
 ### Production Ports
+
 - PostgreSQL: `5433:5432` (external port different to avoid conflicts)
 - Redis: `6380:6379` (external port different to avoid conflicts)
 - API: `3001:3000` (external port different to avoid conflicts)
@@ -117,6 +132,7 @@ x-bot-resources: &bot-resources
 ## Environment-Specific Differences
 
 ### Development Environment
+
 - **Security**: `POSTGRES_HOST_AUTH_METHOD: trust`
 - **Passwords**: Simple, predictable passwords
 - **Volumes**: Source code mounted for hot reload
@@ -125,6 +141,7 @@ x-bot-resources: &bot-resources
 - **Profiles**: `admin-tools`, `dev-tools`, `migration` profiles available
 
 ### Production Environment
+
 - **Security**: `POSTGRES_HOST_AUTH_METHOD: md5`
 - **Passwords**: Secure, environment-variable based
 - **Volumes**: No source code mounts
@@ -135,6 +152,7 @@ x-bot-resources: &bot-resources
 ## Usage Examples
 
 ### Starting Development Environment
+
 ```bash
 # Use default development settings
 docker-compose -f docker-compose-dev.yml up
@@ -147,6 +165,7 @@ docker-compose -f docker-compose-dev.yml --profile admin-tools up
 ```
 
 ### Starting Production Environment
+
 ```bash
 # Basic production setup
 ENV=prod NODE_ENV=production docker-compose -f docker-compose-prod.yml up
@@ -159,6 +178,7 @@ ENV=prod NODE_ENV=production DB_USER=custom_user docker-compose -f docker-compos
 ```
 
 ### Environment Variable Override Examples
+
 ```bash
 # Custom ports for development
 DB_PORT_EXTERNAL=5434 API_PORT_EXTERNAL=3001 docker-compose -f docker-compose-dev.yml up

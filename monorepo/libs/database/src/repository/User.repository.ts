@@ -1,5 +1,5 @@
-import {EntityManager, EntityRepository} from '@mikro-orm/core';
-import {UserEntity, UserStatus} from '../entity';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
+import { UserEntity, UserStatus } from '../entity';
 
 export class UserRepository extends EntityRepository<UserEntity> {
   constructor(em: EntityManager) {
@@ -69,7 +69,7 @@ export class UserRepository extends EntityRepository<UserEntity> {
       this.count(),
       this.count({ status: UserStatus.Active }),
       this.count({ status: UserStatus.Restricted }),
-      this.count({ status: UserStatus.Banned })
+      this.count({ status: UserStatus.Banned }),
     ]);
 
     return { total, active, restricted, banned };

@@ -9,20 +9,20 @@ export class GetUserRefLinkService {
 
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly userRefLinkRepository: UserRefLinkRepository
+    private readonly userRefLinkRepository: UserRefLinkRepository,
   ) {}
 
   async resolveUserRefLink(sourceParams: SourceParameters): Promise<UserRefLink | null> {
     const { linkCode, refCode } = sourceParams;
     const code = refCode || linkCode;
-    
+
     if (!code) {
       return null;
     }
 
     try {
       const refLinkEntity = await this.userRefLinkRepository.findByRefCode(code);
-      
+
       if (refLinkEntity && !refLinkEntity.isDeleted) {
         return new UserRefLink({
           id: refLinkEntity.id,
@@ -54,7 +54,7 @@ export class GetUserRefLinkService {
   async resolveReferrerUserId(sourceParams: SourceParameters): Promise<string | undefined> {
     const { linkCode, refCode } = sourceParams;
     const code = refCode || linkCode;
-    
+
     if (!code) {
       return undefined;
     }

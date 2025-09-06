@@ -1,14 +1,14 @@
-import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from "../type";
-import type { UserEntity } from './User.entity';
+import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum, Ref } from '@mikro-orm/core';
+import { EntityConstructorData, TrafficSourceConfig, assignEntityData } from '../type';
+import { UserEntity } from './User.entity';
 import type { TrafficOrderEntity } from './TrafficOrder.entity';
 import type { TrafficUserEntity } from './TrafficUser.entity';
 import type { TrafficActionsEntity } from './TrafficActions.entity';
-import type { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategory.entity';
+import type { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategories.entity';
 
 export enum TrafficSourceType {
   Bot = 'bot',
-  BotWithToken = 'bot_with_token'
+  BotWithToken = 'bot_with_token',
 }
 
 @Entity({ tableName: 'traffic_sources' })
@@ -43,7 +43,7 @@ export class TrafficSourceEntity {
   isActive!: boolean;
 
   @Property({ type: 'json', nullable: true, fieldName: 'config' })
-  config?: Record<string, any>;
+  config?: TrafficSourceConfig;
 
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
@@ -51,11 +51,8 @@ export class TrafficSourceEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @Property({ type: 'uuid', nullable: true, fieldName: 'managed_by_id' })
-  managedById?: string;
-
-  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'managed_by_id', referenceColumnName: 'id' })
-  managedBy?: UserEntity;
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'managed_by_id', referenceColumnName: 'id', ref: true })
+  managedBy?: Ref<UserEntity>;
 
   @OneToMany('TrafficOrderEntity', 'trafficSource')
   orders? = new Collection<TrafficOrderEntity>(this);
@@ -69,7 +66,11 @@ export class TrafficSourceEntity {
   @OneToMany('TrafficSourceCategoriesEntity', 'trafficSource')
   categories? = new Collection<TrafficSourceCategoriesEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt' | 'orders' | 'trafficUsers' | 'actions' | 'categories', 'isActive'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive', 'managedBy'>,
+  ) {
+    assignEntityData(this, data, {
+      managedById: { field: 'managedBy', entityClass: UserEntity, required: false },
+    });
   }
 }

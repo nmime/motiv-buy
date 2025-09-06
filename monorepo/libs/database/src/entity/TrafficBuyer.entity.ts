@@ -1,13 +1,13 @@
-import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from "../type";
-import type { UserEntity } from './User.entity';
+import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum, Ref } from '@mikro-orm/core';
+import { EntityConstructorData, TrafficBuyerConfig, assignEntityData } from '../type';
+import { UserEntity } from './User.entity';
 import type { TrafficOrderEntity } from './TrafficOrder.entity';
 
 export enum TrafficBuyerType {
   Channel = 'channel',
   Group = 'group',
   Bot = 'bot',
-  WithChecking = 'with_checking'
+  WithChecking = 'with_checking',
 }
 
 @Entity({ tableName: 'traffic_buyers' })
@@ -53,7 +53,7 @@ export class TrafficBuyerEntity {
   maxMembers?: number;
 
   @Property({ type: 'json', nullable: true, fieldName: 'config' })
-  config?: Record<string, any>;
+  config?: TrafficBuyerConfig;
 
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
@@ -61,16 +61,22 @@ export class TrafficBuyerEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @Property({ type: 'uuid', nullable: true, fieldName: 'managed_by_id' })
-  managedById?: string;
-
-  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'managed_by_id', referenceColumnName: 'id' })
-  managedBy?: UserEntity;
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'managed_by_id', referenceColumnName: 'id', ref: true })
+  managedBy?: Ref<UserEntity>;
 
   @OneToMany('TrafficOrderEntity', 'trafficBuyer')
   orders? = new Collection<TrafficOrderEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficBuyerEntity, 'id' | 'createdAt' | 'updatedAt' | 'orders', 'isActive' | 'requiresApproval'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<
+      TrafficBuyerEntity,
+      'id' | 'createdAt' | 'updatedAt',
+      'isActive' | 'requiresApproval',
+      'managedBy'
+    >,
+  ) {
+    assignEntityData(this, data, {
+      managedById: { field: 'managedBy', entityClass: UserEntity, required: false },
+    });
   }
 }

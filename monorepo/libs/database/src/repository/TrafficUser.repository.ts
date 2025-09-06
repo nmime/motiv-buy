@@ -1,4 +1,4 @@
-import { EntityManager, EntityRepository } from '@mikro-orm/core';
+import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
 import { TrafficUserEntity, TrafficUserStatus, TrafficSourceEntity } from '../entity';
 
 export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
@@ -23,24 +23,24 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
   }
 
   async findAvailableBots(): Promise<TrafficUserEntity[]> {
-    return this.find({ 
+    return this.find({
       status: TrafficUserStatus.Active,
       isBot: true,
-      canJoinGroups: true 
+      canJoinGroups: true,
     });
   }
 
   async findByCompletionRate(minRate: number): Promise<TrafficUserEntity[]> {
-    return this.find({ 
+    return this.find({
       completionRate: { $gte: minRate.toString() },
-      status: TrafficUserStatus.Active 
+      status: TrafficUserStatus.Active,
     });
   }
 
   async findTopPerformers(limit: number = 10): Promise<TrafficUserEntity[]> {
     return this.find(
-      { status: TrafficUserStatus.Active }, 
-      { orderBy: { completionRate: 'DESC', totalEarnings: 'DESC' }, limit }
+      { status: TrafficUserStatus.Active },
+      { orderBy: { completionRate: 'DESC', totalEarnings: 'DESC' }, limit },
     );
   }
 
@@ -57,15 +57,20 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
     supportsInlineQueries?: boolean;
     trafficSourceId: string;
   }): Promise<TrafficUserEntity> {
-    const trafficSource = await this.em.findOneOrFail(TrafficSourceEntity, data.trafficSourceId);
+    const { trafficSourceId, ...entityData } = data;
+
     const trafficUser = new TrafficUserEntity({
-      ...data,
-      trafficSource,
+      ...entityData,
       isBot: data.isBot ?? true,
       canJoinGroups: data.canJoinGroups ?? true,
       canReceiveMessages: data.canReceiveMessages ?? false,
-      supportsInlineQueries: data.supportsInlineQueries ?? false
+      supportsInlineQueries: data.supportsInlineQueries ?? false,
+      totalOrdersParticipated: 0,
+      totalEarnings: '0',
+      completionRate: '0',
+      trafficSource: ref(this.em.getReference(TrafficSourceEntity, trafficSourceId)),
     });
+
     await this.em.persistAndFlush(trafficUser);
     return trafficUser;
   }
@@ -142,7 +147,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
       this.count({ status: TrafficUserStatus.Banned }),
       this.count({ status: TrafficUserStatus.Pending }),
       this.count({ isBot: true }),
-      this.count({ isBot: false })
+      this.count({ isBot: false }),
     ]);
 
     return { total, active, inactive, banned, pending, bots, humans };
@@ -154,12 +159,12 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
     totalOrdersCompleted: number;
   }> {
     const users = await this.findAll();
-    
+
     if (users.length === 0) {
       return {
         averageCompletionRate: 0,
         totalEarnings: 0,
-        totalOrdersCompleted: 0
+        totalOrdersCompleted: 0,
       };
     }
 
@@ -170,7 +175,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
     return {
       averageCompletionRate: totalCompletionRate / users.length,
       totalEarnings,
-      totalOrdersCompleted
+      totalOrdersCompleted,
     };
   }
 }

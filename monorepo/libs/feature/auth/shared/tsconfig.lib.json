@@ -11,12 +11,10 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "exclude": [
-    "jest.config.ts", 
-    "src/**/*.spec.ts", 
+    "jest.config.ts",
+    "src/**/*.spec.ts",
     "src/**/*.test.ts",
     "src/service/auth.service.ts",
     "src/service/source-register.service.ts",

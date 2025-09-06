@@ -2,7 +2,7 @@
 
 /**
  * Migration CLI Application
- * 
+ *
  * Domain-driven migration tool following CLAUDE.md patterns:
  * - Security-first approach with environment validation
  * - Clean architecture with dependency injection

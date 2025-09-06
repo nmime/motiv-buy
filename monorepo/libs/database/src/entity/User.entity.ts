@@ -94,7 +94,9 @@ export class UserEntity {
   @OneToMany('TrafficOrderEntity', 'createdBy')
   createdOrders? = new Collection<TrafficOrderEntity>(this);
 
-  constructor(data: EntityConstructorData<UserEntity, 'id' | 'createdAt' | 'updatedAt' | 'balances' | 'balanceHistory' | 'settings' | 'managedBuyers' | 'managedSources' | 'createdOrders', 'status' | 'role' | 'referralCount'>) {
+  constructor(
+    data: EntityConstructorData<UserEntity, 'id' | 'createdAt' | 'updatedAt', 'status' | 'role' | 'referralCount'>,
+  ) {
     Object.assign(this, data);
   }
 }

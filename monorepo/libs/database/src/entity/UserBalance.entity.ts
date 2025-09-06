@@ -1,14 +1,9 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from '../type';
-import type { UserEntity } from './User.entity';
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum, Ref } from '@mikro-orm/core';
+import { EntityConstructorData, assignEntityData } from '../type';
+import { UserEntity } from './User.entity';
 
 export enum CurrencyType {
-  USDT = 'USDT',
-  BTC = 'BTC',
-  ETH = 'ETH',
-  USD = 'USD',
-  EUR = 'EUR',
-  POINTS = 'POINTS'
+  RUB = 'RUB',
 }
 
 @Entity({ tableName: 'user_balances' })
@@ -19,11 +14,8 @@ export class UserBalanceEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
-  @Property({ type: 'uuid', fieldName: 'user_id' })
-  userId!: string;
-
-  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
-  user?: UserEntity;
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })
+  user!: Ref<UserEntity>;
 
   @Property({ type: 'varchar', length: 10, fieldName: 'currency' })
   @Enum(() => CurrencyType)
@@ -41,8 +33,17 @@ export class UserBalanceEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<UserBalanceEntity, 'id' | 'createdAt' | 'updatedAt' | 'getTotalBalance' | 'getAvailableBalance' | 'getLockedBalance'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<
+      UserBalanceEntity,
+      'id' | 'createdAt' | 'updatedAt' | 'getTotalBalance' | 'getAvailableBalance' | 'getLockedBalance',
+      never,
+      'user'
+    >,
+  ) {
+    assignEntityData(this, data, {
+      userId: { field: 'user', entityClass: UserEntity, required: true },
+    });
   }
 
   getTotalBalance(): string {

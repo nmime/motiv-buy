@@ -22,7 +22,7 @@ export class DatabaseService {
       this.orm = await MikroORM.init(mikroOrmConfig);
       this.isConnected = true;
       console.log('✅ Database connection established');
-      
+
       const migrator = this.orm.getMigrator();
       await migrator.up();
       console.log('✅ Database migrations applied');
@@ -60,19 +60,19 @@ export class DatabaseService {
     try {
       const em = this.getEntityManager();
       await em.getConnection().execute('SELECT 1');
-      
+
       return {
         status: 'healthy',
         connected: true,
         uptime: process.uptime(),
-        type: this.config.type
+        type: this.config.type,
       };
     } catch (error) {
       return {
         status: 'unhealthy',
         connected: false,
         uptime: process.uptime(),
-        type: this.config.type
+        type: this.config.type,
       };
     }
   }
@@ -104,10 +104,7 @@ export class DatabaseService {
     pending: Array<{ name: string }>;
   }> {
     const migrator = this.orm.getMigrator();
-    const [executed, pending] = await Promise.all([
-      migrator.getExecutedMigrations(),
-      migrator.getPendingMigrations()
-    ]);
+    const [executed, pending] = await Promise.all([migrator.getExecutedMigrations(), migrator.getPendingMigrations()]);
     return { executed, pending };
   }
 

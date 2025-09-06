@@ -4,7 +4,7 @@ import { DatabaseModule } from '@app/database';
 
 /**
  * Bot Application Module
- * 
+ *
  * Thin composition root that wires up domain modules for bot functionality.
  * No business logic should be implemented here.
  */
@@ -15,9 +15,7 @@ import { DatabaseModule } from '@app/database';
     }),
 
     DatabaseModule,
-
   ],
-  providers: [
-  ],
+  providers: [],
 })
 export class BotModule {}

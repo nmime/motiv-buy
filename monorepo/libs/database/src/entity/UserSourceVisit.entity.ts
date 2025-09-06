@@ -1,7 +1,7 @@
-import { Entity, Property, ManyToOne, Index, PrimaryKey, Enum } from '@mikro-orm/core';
+import { Entity, Property, ManyToOne, Index, PrimaryKey, Enum, Ref } from '@mikro-orm/core';
 import { PlatformType } from '../const';
-import { EntityConstructorData, UserSourceVisitPlatformData } from '../type';
-import type { UserEntity } from './User.entity';
+import { EntityConstructorData, UserSourceVisitPlatformData, assignEntityData } from '../type';
+import { UserEntity } from './User.entity';
 
 @Entity({ tableName: 'user_source_visits' })
 @Index({ name: 'ix__user_source_visits__created_at', properties: ['createdAt'] })
@@ -13,6 +13,12 @@ export class UserSourceVisitEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
+  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
+  createdAt!: Date;
+
+  @Property({ type: 'boolean', default: false, fieldName: 'is_signup' })
+  isSignup = false;
+
   @Property({ type: 'varchar', length: 20, fieldName: 'platform_type' })
   @Enum(() => PlatformType)
   platformType!: PlatformType;
@@ -20,7 +26,7 @@ export class UserSourceVisitEntity {
   @Property({ type: 'json', nullable: true, fieldName: 'platform_data' })
   platformData?: UserSourceVisitPlatformData;
 
-  @Property({ type: 'text', nullable: true, fieldName: 'params' })
+  @Property({ type: 'text', nullable: true })
   params?: string;
 
   @Property({ type: 'varchar', length: 255, nullable: true, fieldName: 'utm_source' })
@@ -41,43 +47,34 @@ export class UserSourceVisitEntity {
   @Property({ type: 'varchar', length: 255, nullable: true, fieldName: 'link_code' })
   linkCode?: string;
 
-  @Property({ type: 'varchar', length: 10, nullable: true, fieldName: 'language' })
+  @Property({ type: 'varchar', length: 10, nullable: true })
   language?: string;
 
   @Property({ type: 'varchar', length: 10, nullable: true, fieldName: 'telegram_language' })
   telegramLanguage?: string;
 
-  @Property({ type: 'varchar', length: 64, nullable: true, fieldName: 'continent' })
+  @Property({ type: 'varchar', length: 64, nullable: true })
   continent?: string;
 
-  @Property({ type: 'varchar', length: 64, nullable: true, fieldName: 'country' })
+  @Property({ type: 'varchar', length: 64, nullable: true })
   country?: string;
 
-  @Property({ type: 'varchar', length: 128, nullable: true, fieldName: 'city' })
+  @Property({ type: 'varchar', length: 128, nullable: true })
   city?: string;
 
-  @Property({ type: 'inet', nullable: true, fieldName: 'ip' })
+  @Property({ type: 'inet', nullable: true })
   ip?: string;
 
-  @Property({ type: 'boolean', default: false, fieldName: 'is_signup' })
-  isSignup: boolean = false;
+  @ManyToOne(() => UserEntity, { ref: true, nullable: false, joinColumn: 'user_id' })
+  user!: Ref<UserEntity>;
 
-  @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
-  createdAt: Date = new Date();
+  @ManyToOne(() => UserEntity, { ref: true, nullable: true, joinColumn: 'link_user_id' })
+  linkUser?: Ref<UserEntity>;
 
-  @Property({ type: 'uuid', nullable: true, fieldName: 'user_id' })
-  userId?: string;
-
-  @Property({ type: 'uuid', nullable: true, fieldName: 'link_user_id' })
-  linkUserId?: string;
-
-  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'user_id', referenceColumnName: 'id' })
-  user?: UserEntity;
-
-  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'link_user_id', referenceColumnName: 'id' })
-  linkUser?: UserEntity;
-
-  constructor(data: EntityConstructorData<UserSourceVisitEntity, 'id' | 'createdAt'>) {
-    Object.assign(this, data);
+  constructor(data: EntityConstructorData<UserSourceVisitEntity, 'id' | 'createdAt', 'isSignup', 'user' | 'linkUser'>) {
+    assignEntityData(this, data, {
+      userId: { field: 'user', entityClass: UserEntity, required: true },
+      linkUserId: { field: 'linkUser', entityClass: UserEntity, required: false },
+    });
   }
 }

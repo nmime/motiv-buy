@@ -47,11 +47,16 @@ export class RedisRateLimitService {
       }
       // Convert ts-results Result to AsyncResult format
       if ('ok' in actionResult && 'err' in actionResult) {
-        return actionResult.ok ? { success: true, data: actionResult.val } : { success: false, error: actionResult.val } as any;
+        return actionResult.ok
+          ? { success: true, data: actionResult.val }
+          : ({ success: false, error: actionResult.val } as any);
       }
       return actionResult as any;
     } catch (error: unknown) {
-      return { success: false, error: new InternalException({ detail: 'Error on executing rate limit', cause: unknownToError(error) }) };
+      return {
+        success: false,
+        error: new InternalException({ detail: 'Error on executing rate limit', cause: unknownToError(error) }),
+      };
     }
   }
 
@@ -102,7 +107,10 @@ export class RedisRateLimitService {
       );
 
       if (typeof count !== 'number') {
-        return { success: false, error: new InternalException({ detail: 'Error on executing sliding window rate limit' }) };
+        return {
+          success: false,
+          error: new InternalException({ detail: 'Error on executing sliding window rate limit' }),
+        };
       }
 
       if (count > limit) {
@@ -116,7 +124,7 @@ export class RedisRateLimitService {
       // Convert ts-results Result to AsyncResult format
       if (actionResult && typeof actionResult === 'object' && 'ok' in actionResult && 'err' in actionResult) {
         const result = actionResult as Result<OkType, ErrorType>;
-        return result.ok ? { success: true, data: result.val } : { success: false, error: result.val } as any;
+        return result.ok ? { success: true, data: result.val } : ({ success: false, error: result.val } as any);
       }
       return actionResult as any;
     } catch (error: unknown) {
@@ -125,7 +133,7 @@ export class RedisRateLimitService {
         error: new InternalException({
           detail: 'Error on executing sliding window rate limit',
           cause: unknownToError(error),
-        })
+        }),
       };
     }
   }

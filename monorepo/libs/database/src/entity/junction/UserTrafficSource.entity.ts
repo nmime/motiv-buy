@@ -1,37 +1,35 @@
-import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique, Enum } from '@mikro-orm/core';
-import type { UserEntity } from '../User.entity';
-import type { TrafficSourceEntity } from '../TrafficSource.entity';
-import { EntityConstructorData } from "../../type";
+import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique, Enum, Ref } from '@mikro-orm/core';
+import { UserEntity } from '../User.entity';
+import { TrafficSourceEntity } from '../TrafficSource.entity';
+import { EntityConstructorData, UserTrafficPermissions, assignEntityData } from '../../type';
 
 export enum UserTrafficSourceRole {
   Manager = 'manager',
   Administrator = 'administrator',
   Moderator = 'moderator',
-  Operator = 'operator'
+  Operator = 'operator',
 }
 
-
 @Entity({ tableName: 'user_traffic_sources' })
-@Index({ name: 'ix__user_traffic_sources__user_id', properties: ['userId'] })
-@Index({ name: 'ix__user_traffic_sources__source_id', properties: ['trafficSourceId'] })
+@Index({ name: 'ix__user_traffic_sources__user_id', properties: ['user'] })
+@Index({ name: 'ix__user_traffic_sources__source_id', properties: ['trafficSource'] })
 @Index({ name: 'ix__user_traffic_sources__role', properties: ['role'] })
 @Index({ name: 'ix__user_traffic_sources__is_active', properties: ['isActive'] })
-@Unique({ name: 'uq__user_traffic_sources__user_source', properties: ['userId', 'trafficSourceId'] })
+@Unique({ name: 'uq__user_traffic_sources__user_source', properties: ['user', 'trafficSource'] })
 export class UserTrafficSourceEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
-  @Property({ type: 'uuid', fieldName: 'user_id' })
-  userId!: string;
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })
+  user!: Ref<UserEntity>;
 
-  @Property({ type: 'uuid', fieldName: 'traffic_source_id' })
-  trafficSourceId!: string;
-
-  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id' })
-  user?: UserEntity;
-
-  @ManyToOne('TrafficSourceEntity', { nullable: false, joinColumn: 'traffic_source_id', referenceColumnName: 'id' })
-  trafficSource?: TrafficSourceEntity;
+  @ManyToOne('TrafficSourceEntity', {
+    nullable: false,
+    joinColumn: 'traffic_source_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
+  trafficSource!: Ref<TrafficSourceEntity>;
 
   @Property({ type: 'varchar', length: 20, fieldName: 'role' })
   @Enum(() => UserTrafficSourceRole)
@@ -41,16 +39,13 @@ export class UserTrafficSourceEntity {
   isActive = true;
 
   @Property({ type: 'json', nullable: true, fieldName: 'permissions' })
-  permissions?: Record<string, any>;
+  permissions?: UserTrafficPermissions;
 
   @Property({ type: 'timestamptz', nullable: true, fieldName: 'assigned_at' })
   assignedAt?: Date;
 
-  @Property({ type: 'uuid', nullable: true, fieldName: 'assigned_by_id' })
-  assignedById?: string;
-
-  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'assigned_by_id', referenceColumnName: 'id' })
-  assignedBy?: UserEntity;
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'assigned_by_id', referenceColumnName: 'id', ref: true })
+  assignedBy?: Ref<UserEntity>;
 
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt: Date = new Date();
@@ -58,7 +53,18 @@ export class UserTrafficSourceEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<UserTrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt' | 'user' | 'trafficSource' | 'assignedBy', 'isActive'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<
+      UserTrafficSourceEntity,
+      'id' | 'createdAt' | 'updatedAt',
+      'isActive',
+      'user' | 'trafficSource' | 'assignedBy'
+    >,
+  ) {
+    assignEntityData(this, data, {
+      userId: { field: 'user', entityClass: UserEntity, required: true },
+      trafficSourceId: { field: 'trafficSource', entityClass: TrafficSourceEntity, required: true },
+      assignedById: { field: 'assignedBy', entityClass: UserEntity, required: false },
+    });
   }
 }

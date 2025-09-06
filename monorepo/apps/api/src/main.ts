@@ -8,21 +8,21 @@ import { ApiModule } from './api.module';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     ApiModule,
-    new FastifyAdapter({ 
+    new FastifyAdapter({
       logger: true,
       disableRequestLogging: false,
-      trustProxy: true
-    })
+      trustProxy: true,
+    }),
   );
   const configService = app.get(ConfigService);
-  
+
   // Simple app config inline
   const appConfig = {
     apiPrefix: process.env.API_PREFIX || 'api',
     port: parseInt(process.env.PORT || '3000', 10),
     host: process.env.HOST || '0.0.0.0',
     nodeEnv: process.env.NODE_ENV || 'development',
-    corsEnabled: process.env.CORS_ENABLED !== 'false'
+    corsEnabled: process.env.CORS_ENABLED !== 'false',
   };
 
   app.setGlobalPrefix(appConfig.apiPrefix);
@@ -44,25 +44,21 @@ async function bootstrap() {
       .setVersion('1.0')
       .addBearerAuth()
       .build();
-    
+
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup(`${appConfig.apiPrefix}/docs`, app, document);
   }
 
   await app.listen(appConfig.port, appConfig.host);
-  
-  Logger.log(
-    `🚀 API Application is running on: http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}`
-  );
-  
+
+  Logger.log(`🚀 API Application is running on: http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}`);
+
   if (appConfig.nodeEnv !== 'production') {
-    Logger.log(
-      `📚 Swagger documentation: http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}/docs`
-    );
+    Logger.log(`📚 Swagger documentation: http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}/docs`);
   }
 }
 
-bootstrap().catch(err => {
+bootstrap().catch((err) => {
   Logger.error('❌ Error starting application', err);
   process.exit(1);
 });

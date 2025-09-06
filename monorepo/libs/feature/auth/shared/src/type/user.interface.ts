@@ -16,7 +16,6 @@ export interface IUserRepository {
   create(userData: Partial<User>): Promise<User>;
 }
 
-
 export interface CreateUserData {
   telegramId: string;
   firstName: string;

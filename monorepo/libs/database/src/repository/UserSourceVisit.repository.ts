@@ -1,4 +1,4 @@
-import { EntityManager, EntityRepository } from '@mikro-orm/core';
+import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
 import { UserSourceVisitEntity } from '../entity/UserSourceVisit.entity';
 import { PlatformType } from '../const';
 import { UserSourceVisitPlatformData } from '../type';
@@ -9,7 +9,7 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
   }
 
   async createVisit(data: {
-    userId?: string;
+    userId: string;
     platformType: PlatformType;
     platformData?: UserSourceVisitPlatformData;
     params?: string;
@@ -28,7 +28,16 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
     ip?: string;
     isSignup?: boolean;
   }): Promise<UserSourceVisitEntity> {
-    const visit = new UserSourceVisitEntity({ ...data, isSignup: data.isSignup ?? false });
+    const { userId, linkUserId, ...visitData } = data;
+    const userRef = ref(this.em.getReference('UserEntity', userId));
+    const linkUserRef = linkUserId ? ref(this.em.getReference('UserEntity', linkUserId)) : undefined;
+
+    const visit = new UserSourceVisitEntity({
+      userId,
+      linkUserId,
+      isSignup: data.isSignup,
+      ...visitData,
+    });
     await this.em.persistAndFlush(visit);
     return visit;
   }
@@ -57,10 +66,7 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
     total: number;
     signups: number;
   }> {
-    const [total, signups] = await Promise.all([
-      this.count(),
-      this.count({ isSignup: true }),
-    ]);
+    const [total, signups] = await Promise.all([this.count(), this.count({ isSignup: true })]);
 
     return { total, signups };
   }

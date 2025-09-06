@@ -1,14 +1,14 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from '../type';
-import type { TrafficOrderEntity } from './TrafficOrder.entity';
-import type { TrafficSourceEntity } from './TrafficSource.entity';
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum, Ref } from '@mikro-orm/core';
+import { EntityConstructorData, TrafficActionData, assignEntityData } from '../type';
+import { TrafficOrderEntity } from './TrafficOrder.entity';
+import { TrafficSourceEntity } from './TrafficSource.entity';
 
 export enum TrafficActionStatus {
   Pending = 'pending',
   InProgress = 'in_progress',
   Completed = 'completed',
   Failed = 'failed',
-  Cancelled = 'cancelled'
+  Cancelled = 'cancelled',
 }
 
 export enum TrafficActionType {
@@ -20,7 +20,7 @@ export enum TrafficActionType {
   React = 'react',
   Comment = 'comment',
   Share = 'share',
-  Vote = 'vote'
+  Vote = 'vote',
 }
 
 @Entity({ tableName: 'traffic_actions' })
@@ -50,7 +50,7 @@ export class TrafficActionsEntity {
   targetUrl?: string;
 
   @Property({ type: 'json', nullable: true, fieldName: 'action_data' })
-  actionData?: Record<string, any>;
+  actionData?: TrafficActionData;
 
   @Property({ type: 'decimal', precision: 10, scale: 4, default: '0', fieldName: 'reward' })
   reward = '0';
@@ -76,22 +76,35 @@ export class TrafficActionsEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-
-  @Property({ type: 'uuid', nullable: true, fieldName: 'traffic_order_id' })
+  @ManyToOne('TrafficOrderEntity', {
+    nullable: true,
+    joinColumn: 'traffic_order_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
   @Index()
-  trafficOrderId?: string;
+  trafficOrder?: Ref<TrafficOrderEntity>;
 
-  @Property({ type: 'uuid', nullable: true, fieldName: 'traffic_source_id' })
+  @ManyToOne('TrafficSourceEntity', {
+    nullable: false,
+    joinColumn: 'traffic_source_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
   @Index()
-  trafficSourceId?: string;
+  trafficSource!: Ref<TrafficSourceEntity>;
 
-  @ManyToOne('TrafficOrderEntity', { nullable: true, joinColumn: 'traffic_order_id', referenceColumnName: 'id' })
-  trafficOrder?: TrafficOrderEntity;
-
-  @ManyToOne('TrafficSourceEntity', { nullable: true, joinColumn: 'traffic_source_id', referenceColumnName: 'id' })
-  trafficSource?: TrafficSourceEntity;
-
-  constructor(data: EntityConstructorData<TrafficActionsEntity, 'id' | 'createdAt' | 'updatedAt', 'reward'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<
+      TrafficActionsEntity,
+      'id' | 'createdAt' | 'updatedAt',
+      'reward',
+      'trafficOrder' | 'trafficSource'
+    >,
+  ) {
+    assignEntityData(this, data, {
+      trafficOrderId: { field: 'trafficOrder', entityClass: TrafficOrderEntity, required: false },
+      trafficSourceId: { field: 'trafficSource', entityClass: TrafficSourceEntity, required: true },
+    });
   }
 }

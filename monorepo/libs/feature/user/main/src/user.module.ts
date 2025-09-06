@@ -11,10 +11,7 @@ import { UserMapper } from './mapper';
 @Module({
   imports: [DatabaseModule],
   controllers: [UserController],
-  providers: [
-    UserService,
-    UserMapper,
-  ],
+  providers: [UserService, UserMapper],
   exports: [UserService],
 })
 export class UserMainModule {}

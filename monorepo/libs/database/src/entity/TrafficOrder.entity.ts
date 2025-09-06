@@ -1,9 +1,9 @@
-import { Entity, PrimaryKey, Property, ManyToOne, OneToMany, Collection, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from "../type";
-import type { UserEntity } from './User.entity';
-import type { TrafficSourceEntity } from './TrafficSource.entity';
-import type { TrafficBuyerEntity } from './TrafficBuyer.entity';
-import type { TrafficUserEntity } from './TrafficUser.entity';
+import { Entity, PrimaryKey, Property, ManyToOne, OneToMany, Collection, Index, Enum, Ref } from '@mikro-orm/core';
+import { EntityConstructorData, TrafficOrderRequirements, assignEntityData } from '../type';
+import { UserEntity } from './User.entity';
+import { TrafficSourceEntity } from './TrafficSource.entity';
+import { TrafficBuyerEntity } from './TrafficBuyer.entity';
+import { TrafficUserEntity } from './TrafficUser.entity';
 import type { TrafficActionsEntity } from './TrafficActions.entity';
 
 export enum TrafficOrderStatus {
@@ -12,7 +12,7 @@ export enum TrafficOrderStatus {
   Completed = 'completed',
   Cancelled = 'cancelled',
   Failed = 'failed',
-  InProgress = 'in_progress'
+  InProgress = 'in_progress',
 }
 
 export enum TrafficOrderType {
@@ -22,7 +22,7 @@ export enum TrafficOrderType {
   Subscribe = 'subscribe',
   Unsubscribe = 'unsubscribe',
   React = 'react',
-  Comment = 'comment'
+  Comment = 'comment',
 }
 
 @Entity({ tableName: 'traffic_orders' })
@@ -30,11 +30,11 @@ export enum TrafficOrderType {
 @Index({ name: 'ix__traffic_orders__status', properties: ['status'] })
 @Index({ name: 'ix__traffic_orders__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_orders__created_at', properties: ['createdAt'] })
-@Index({ name: 'ix__traffic_orders__creator_id', properties: ['creatorId'] })
-@Index({ name: 'ix__traffic_orders__traffic_source_id', properties: ['trafficSourceId'] })
-@Index({ name: 'ix__traffic_orders__traffic_buyer_id', properties: ['trafficBuyerId'] })
-@Index({ name: 'ix__traffic_orders__assigned_traffic_user_id', properties: ['assignedTrafficUserId'] })
-@Index({ name: 'ix__traffic_orders__created_by', properties: ['createdById'] })
+@Index({ name: 'ix__traffic_orders__creator_id', properties: ['creator'] })
+@Index({ name: 'ix__traffic_orders__traffic_source_id', properties: ['trafficSource'] })
+@Index({ name: 'ix__traffic_orders__traffic_buyer_id', properties: ['trafficBuyer'] })
+@Index({ name: 'ix__traffic_orders__assigned_traffic_user_id', properties: ['assignedTrafficUser'] })
+@Index({ name: 'ix__traffic_orders__created_by', properties: ['createdBy'] })
 export class TrafficOrderEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
@@ -72,7 +72,7 @@ export class TrafficOrderEntity {
   targetUrl?: string;
 
   @Property({ type: 'json', nullable: true, fieldName: 'requirements' })
-  requirements?: Record<string, any>;
+  requirements?: TrafficOrderRequirements;
 
   @Property({ type: 'timestamptz', nullable: true, fieldName: 'start_date' })
   startDate?: Date;
@@ -89,40 +89,53 @@ export class TrafficOrderEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @Property({ type: 'uuid', fieldName: 'creator_id' })
-  creatorId!: string;
+  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'creator_id', referenceColumnName: 'id', ref: true })
+  creator!: Ref<UserEntity>;
 
-  @Property({ type: 'uuid', fieldName: 'traffic_source_id' })
-  trafficSourceId!: string;
+  @ManyToOne('TrafficSourceEntity', {
+    nullable: false,
+    joinColumn: 'traffic_source_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
+  trafficSource!: Ref<TrafficSourceEntity>;
 
-  @Property({ type: 'uuid', fieldName: 'traffic_buyer_id' })
-  trafficBuyerId!: string;
+  @ManyToOne('TrafficBuyerEntity', {
+    nullable: false,
+    joinColumn: 'traffic_buyer_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
+  trafficBuyer!: Ref<TrafficBuyerEntity>;
 
-  @Property({ type: 'uuid', nullable: true, fieldName: 'assigned_traffic_user_id' })
-  assignedTrafficUserId?: string;
+  @ManyToOne('TrafficUserEntity', {
+    nullable: true,
+    joinColumn: 'assigned_traffic_user_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
+  assignedTrafficUser?: Ref<TrafficUserEntity>;
 
-  @Property({ type: 'uuid', nullable: true, fieldName: 'created_by_id' })
-  createdById?: string;
-
-  @ManyToOne('UserEntity', { nullable: false, joinColumn: 'creator_id', referenceColumnName: 'id' })
-  creator?: UserEntity;
-
-  @ManyToOne('TrafficSourceEntity', { nullable: false, joinColumn: 'traffic_source_id', referenceColumnName: 'id' })
-  trafficSource?: TrafficSourceEntity;
-
-  @ManyToOne('TrafficBuyerEntity', { nullable: false, joinColumn: 'traffic_buyer_id', referenceColumnName: 'id' })
-  trafficBuyer?: TrafficBuyerEntity;
-
-  @ManyToOne('TrafficUserEntity', { nullable: true, joinColumn: 'assigned_traffic_user_id', referenceColumnName: 'id' })
-  assignedTrafficUser?: TrafficUserEntity;
-
-  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'created_by_id', referenceColumnName: 'id' })
-  createdBy?: UserEntity;
+  @ManyToOne('UserEntity', { nullable: true, joinColumn: 'created_by_id', referenceColumnName: 'id', ref: true })
+  createdBy?: Ref<UserEntity>;
 
   @OneToMany('TrafficActionsEntity', 'trafficOrder')
   actions? = new Collection<TrafficActionsEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficOrderEntity, 'id' | 'createdAt' | 'updatedAt' | 'actions', 'currentCount' | 'spentAmount'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<
+      TrafficOrderEntity,
+      'id' | 'createdAt' | 'updatedAt',
+      'currentCount' | 'spentAmount',
+      'creator' | 'trafficSource' | 'trafficBuyer' | 'assignedTrafficUser' | 'createdBy'
+    >,
+  ) {
+    assignEntityData(this, data, {
+      creatorId: { field: 'creator', entityClass: UserEntity, required: true },
+      trafficSourceId: { field: 'trafficSource', entityClass: TrafficSourceEntity, required: true },
+      trafficBuyerId: { field: 'trafficBuyer', entityClass: TrafficBuyerEntity, required: true },
+      assignedTrafficUserId: { field: 'assignedTrafficUser', entityClass: TrafficUserEntity, required: false },
+      createdById: { field: 'createdBy', entityClass: UserEntity, required: false },
+    });
   }
 }

@@ -1,20 +1,20 @@
-import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum } from '@mikro-orm/core';
-import { EntityConstructorData } from '../type';
-import type { TrafficSourceEntity } from './TrafficSource.entity';
+import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum, Ref } from '@mikro-orm/core';
+import { EntityConstructorData, assignEntityData } from '../type';
+import { TrafficSourceEntity } from './TrafficSource.entity';
 import type { TrafficOrderEntity } from './TrafficOrder.entity';
 
 export enum TrafficUserStatus {
   Active = 'active',
   Inactive = 'inactive',
   Banned = 'banned',
-  Pending = 'pending'
+  Pending = 'pending',
 }
 
 @Entity({ tableName: 'traffic_users' })
 @Index({ name: 'ix__traffic_users__telegram_id', properties: ['telegramId'] })
 @Index({ name: 'ix__traffic_users__username', properties: ['username'] })
 @Index({ name: 'ix__traffic_users__status', properties: ['status'] })
-@Index({ name: 'ix__traffic_users__traffic_source_id', properties: ['trafficSourceId'] })
+@Index({ name: 'ix__traffic_users__traffic_source_id', properties: ['trafficSource'] })
 export class TrafficUserEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
@@ -71,16 +71,34 @@ export class TrafficUserEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  @Property({ type: 'uuid', fieldName: 'traffic_source_id' })
-  trafficSourceId!: string;
-
-  @ManyToOne('TrafficSourceEntity', { nullable: false, joinColumn: 'traffic_source_id', referenceColumnName: 'id' })
-  trafficSource?: TrafficSourceEntity;
+  @ManyToOne('TrafficSourceEntity', {
+    nullable: false,
+    joinColumn: 'traffic_source_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
+  trafficSource!: Ref<TrafficSourceEntity>;
 
   @OneToMany('TrafficOrderEntity', 'assignedTrafficUser')
   assignedOrders? = new Collection<TrafficOrderEntity>(this);
 
-  constructor(data: EntityConstructorData<TrafficUserEntity, 'id' | 'createdAt' | 'updatedAt' | 'joinedAt' | 'assignedOrders', 'totalOrdersParticipated' | 'totalEarnings' | 'completionRate' | 'isBot' | 'canJoinGroups' | 'canReceiveMessages' | 'supportsInlineQueries' | 'status'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<
+      TrafficUserEntity,
+      'id' | 'createdAt' | 'updatedAt' | 'joinedAt',
+      | 'totalOrdersParticipated'
+      | 'totalEarnings'
+      | 'completionRate'
+      | 'isBot'
+      | 'canJoinGroups'
+      | 'canReceiveMessages'
+      | 'supportsInlineQueries'
+      | 'status',
+      'trafficSource'
+    >,
+  ) {
+    assignEntityData(this, data, {
+      trafficSourceId: { field: 'trafficSource', entityClass: TrafficSourceEntity, required: true },
+    });
   }
 }

@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
+import { EntityManager, Reference } from '@mikro-orm/core';
 import { GetSourceParamsService, SourceParameters } from './get-source-params.service';
-import { UserSourceVisitEntity, PlatformType } from '@app/database';
+import { UserSourceVisitEntity, PlatformType, UserEntity } from '@app/database';
+import { TelegramAuthParams } from '../../dto';
 
 export interface VisitDataParams {
   userId: string;
@@ -15,25 +16,6 @@ export interface VisitDataParams {
   continent?: string;
   ip?: string;
   isSignup?: boolean;
-}
-
-interface LocalTelegramAuthParams {
-  telegramId: string;
-  firstName: string;
-  lastName?: string;
-  username?: string;
-  photoUrl?: string;
-  authDate?: number;
-  referrer?: string;
-  languageCode?: string;
-  timezone?: string;
-  userSource?: string;
-  masterAccountId?: string;
-  masterAccountName?: string;
-  ip?: string;
-  platformType: PlatformType;
-  platformData?: any;
-  sourceParams?: SourceParameters;
 }
 
 @Injectable()
@@ -60,10 +42,9 @@ export class SourceRegisterService {
     sourceParams?: SourceParameters,
     userRefLink?: { userId: string },
   ): UserSourceVisitEntity {
-    const linkUserId = userRefLink?.userId;
-
     return new UserSourceVisitEntity({
-      user: userId,
+      userId: userId,
+      linkUserId: userRefLink?.userId,
       platformType,
       platformData,
       params,
@@ -73,7 +54,6 @@ export class SourceRegisterService {
       utmContent: sourceParams?.utmContent,
       linkType: sourceParams?.linkType,
       linkCode: sourceParams?.linkCode,
-      linkUser: linkUserId,
       language,
       telegramLanguage,
       country,
@@ -84,7 +64,10 @@ export class SourceRegisterService {
     });
   }
 
-  getAnalyticsProperties(visit: UserSourceVisitEntity, telegramAuthParams?: LocalTelegramAuthParams): Record<string, unknown> {
+  getAnalyticsProperties(
+    visit: UserSourceVisitEntity,
+    telegramAuthParams?: TelegramAuthParams,
+  ): Record<string, unknown> {
     const visitObj = Object.entries(visit as unknown as Record<string, unknown>).filter(
       ([key]) => !this.excludedFields.includes(key),
     );

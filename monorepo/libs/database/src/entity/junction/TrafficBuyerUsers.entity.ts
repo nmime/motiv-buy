@@ -1,30 +1,32 @@
-import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique } from '@mikro-orm/core';
-import type { TrafficBuyerEntity } from '../TrafficBuyer.entity';
-import type { TrafficUserEntity } from '../TrafficUser.entity';
-import { EntityConstructorData } from "../../type";
-
+import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique, Ref } from '@mikro-orm/core';
+import { TrafficBuyerEntity } from '../TrafficBuyer.entity';
+import { TrafficUserEntity } from '../TrafficUser.entity';
+import { EntityConstructorData, assignEntityData } from '../../type';
 
 @Entity({ tableName: 'traffic_buyer_users' })
-@Index({ name: 'ix__traffic_buyer_users__buyer_id', properties: ['trafficBuyerId'] })
-@Index({ name: 'ix__traffic_buyer_users__user_id', properties: ['trafficUserId'] })
+@Index({ name: 'ix__traffic_buyer_users__buyer_id', properties: ['trafficBuyer'] })
+@Index({ name: 'ix__traffic_buyer_users__user_id', properties: ['trafficUser'] })
 @Index({ name: 'ix__traffic_buyer_users__is_blocked', properties: ['isBlocked'] })
-@Unique({ name: 'uq__traffic_buyer_users__buyer_user', properties: ['trafficBuyerId', 'trafficUserId'] })
+@Unique({ name: 'uq__traffic_buyer_users__buyer_user', properties: ['trafficBuyer', 'trafficUser'] })
 export class TrafficBuyerUsersEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
+  @ManyToOne('TrafficBuyerEntity', {
+    nullable: false,
+    joinColumn: 'traffic_buyer_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
+  trafficBuyer!: Ref<TrafficBuyerEntity>;
 
-  @Property({ type: 'uuid', fieldName: 'traffic_buyer_id' })
-  trafficBuyerId!: string;
-
-  @Property({ type: 'uuid', fieldName: 'traffic_user_id' })
-  trafficUserId!: string;
-
-  @ManyToOne('TrafficBuyerEntity', { nullable: false, joinColumn: 'traffic_buyer_id', referenceColumnName: 'id' })
-  trafficBuyer?: TrafficBuyerEntity;
-
-  @ManyToOne('TrafficUserEntity', { nullable: false, joinColumn: 'traffic_user_id', referenceColumnName: 'id' })
-  trafficUser?: TrafficUserEntity;
+  @ManyToOne('TrafficUserEntity', {
+    nullable: false,
+    joinColumn: 'traffic_user_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
+  trafficUser!: Ref<TrafficUserEntity>;
 
   @Property({ type: 'boolean', default: true, fieldName: 'can_view' })
   canView = true;
@@ -56,7 +58,17 @@ export class TrafficBuyerUsersEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  constructor(data: EntityConstructorData<TrafficBuyerUsersEntity, 'id' | 'createdAt' | 'updatedAt' | 'trafficBuyer' | 'trafficUser', 'canView' | 'canContact' | 'isBlocked' | 'totalInteractions' | 'totalOrdersShared'>) {
-    Object.assign(this, data);
+  constructor(
+    data: EntityConstructorData<
+      TrafficBuyerUsersEntity,
+      'id' | 'createdAt' | 'updatedAt',
+      'canView' | 'canContact' | 'isBlocked' | 'totalInteractions' | 'totalOrdersShared',
+      'trafficBuyer' | 'trafficUser'
+    >,
+  ) {
+    assignEntityData(this, data, {
+      trafficBuyerId: { field: 'trafficBuyer', entityClass: TrafficBuyerEntity, required: true },
+      trafficUserId: { field: 'trafficUser', entityClass: TrafficUserEntity, required: true },
+    });
   }
 }

@@ -1,22 +1,5 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  UseGuards,
-  HttpCode,
-  HttpStatus
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { CurrentUserId, JwtAuthGuard, UnauthorizedException } from '@app/feature-auth-shared';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
@@ -62,11 +45,13 @@ export class TrafficController {
       type: 'object',
       properties: {
         exists: { type: 'boolean' },
-        message: { type: 'string' }
-      }
-    }
+        message: { type: 'string' },
+      },
+    },
   })
-  async validateBot(@Body() dto: BotValidationDto): AsyncResult<any, ClientDataProblemValidationException | InternalException> {
+  async validateBot(
+    @Body() dto: BotValidationDto,
+  ): AsyncResult<any, ClientDataProblemValidationException | InternalException> {
     const result = await this.trafficService.validateBot(dto);
     return { success: true, data: result };
   }
@@ -93,7 +78,9 @@ export class TrafficController {
     description: 'List of user bots',
     type: [BotResponseDto],
   })
-  async getUserBots(@CurrentUserId() userId: string): AsyncResult<BotResponseDto[], UnauthorizedException | InternalException> {
+  async getUserBots(
+    @CurrentUserId() userId: string,
+  ): AsyncResult<BotResponseDto[], UnauthorizedException | InternalException> {
     const result = await this.trafficService.getUserBots(userId);
     return { success: true, data: result };
   }
@@ -156,9 +143,9 @@ export class TrafficController {
     schema: {
       type: 'object',
       properties: {
-        message: { type: 'string' }
-      }
-    }
+        message: { type: 'string' },
+      },
+    },
   })
   async performBotAction(
     @CurrentUserId() userId: string,
@@ -205,7 +192,9 @@ export class TrafficController {
     description: 'List of user traffic orders',
     type: [TrafficOrderResponseDto],
   })
-  async getUserTrafficOrders(@CurrentUserId() userId: string): AsyncResult<TrafficOrderResponseDto[], UnauthorizedException | InternalException> {
+  async getUserTrafficOrders(
+    @CurrentUserId() userId: string,
+  ): AsyncResult<TrafficOrderResponseDto[], UnauthorizedException | InternalException> {
     const result = await this.trafficService.getUserTrafficOrders(userId);
     return { success: true, data: result };
   }
@@ -252,9 +241,9 @@ export class TrafficController {
     schema: {
       type: 'object',
       properties: {
-        message: { type: 'string' }
-      }
-    }
+        message: { type: 'string' },
+      },
+    },
   })
   @HttpCode(HttpStatus.OK)
   async cancelTrafficOrder(

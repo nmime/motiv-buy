@@ -1,5 +1,12 @@
-import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { TrafficOrderEntity, TrafficOrderStatus, TrafficOrderType, TrafficSourceEntity, TrafficBuyerEntity, TrafficUserEntity } from '../entity';
+import { EntityManager, EntityRepository, Reference, ref } from '@mikro-orm/core';
+import {
+  TrafficOrderEntity,
+  TrafficOrderStatus,
+  TrafficOrderType,
+  TrafficSourceEntity,
+  TrafficBuyerEntity,
+  TrafficUserEntity,
+} from '../entity';
 import { UserEntity } from '../entity';
 
 export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity> {
@@ -12,7 +19,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   }
 
   async findByCreator(creatorId: string): Promise<TrafficOrderEntity[]> {
-    return this.find({ creatorId });
+    return this.find({ creator: creatorId });
   }
 
   async findByStatus(status: TrafficOrderStatus): Promise<TrafficOrderEntity[]> {
@@ -24,8 +31,8 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   }
 
   async findActiveOrders(): Promise<TrafficOrderEntity[]> {
-    return this.find({ 
-      status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] } 
+    return this.find({
+      status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
     });
   }
 
@@ -34,21 +41,21 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   }
 
   async findByTrafficSource(trafficSourceId: string): Promise<TrafficOrderEntity[]> {
-    return this.find({ trafficSourceId });
+    return this.find({ trafficSource: trafficSourceId });
   }
 
   async findByTrafficBuyer(trafficBuyerId: string): Promise<TrafficOrderEntity[]> {
-    return this.find({ trafficBuyerId });
+    return this.find({ trafficBuyer: trafficBuyerId });
   }
 
   async findByAssignedUser(trafficUserId: string): Promise<TrafficOrderEntity[]> {
-    return this.find({ assignedTrafficUserId: trafficUserId });
+    return this.find({ assignedTrafficUser: trafficUserId });
   }
 
   async findOrdersByBudgetRange(minBudget: number, maxBudget: number): Promise<TrafficOrderEntity[]> {
     const results = await this.findAll();
-    
-    return results.filter(order => {
+
+    return results.filter((order) => {
       if (!order.totalBudget) return false;
       const budget = parseFloat(order.totalBudget);
       return budget >= minBudget && budget <= maxBudget;
@@ -56,8 +63,8 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   }
 
   async findOrdersByDateRange(startDate: Date, endDate: Date): Promise<TrafficOrderEntity[]> {
-    return this.find({ 
-      createdAt: { $gte: startDate, $lte: endDate } 
+    return this.find({
+      createdAt: { $gte: startDate, $lte: endDate },
     });
   }
 
@@ -67,23 +74,41 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     targetCount: number;
     pricePerAction: number;
     totalBudget: number;
-    creatorId: string;
-    trafficSourceId: string;
-    trafficBuyerId: string;
+    creator: Reference<UserEntity>;
+    trafficSource: Reference<TrafficSourceEntity>;
+    trafficBuyer: Reference<TrafficBuyerEntity>;
     description?: string;
     targetUrl?: string;
     requirements?: string;
     startDate?: Date;
     endDate?: Date;
-    assignedTrafficUserId?: string;
+    assignedTrafficUser?: Reference<TrafficUserEntity>;
   }): Promise<TrafficOrderEntity> {
+    const {
+      totalBudget,
+      pricePerAction,
+      requirements,
+      creator,
+      trafficSource,
+      trafficBuyer,
+      assignedTrafficUser,
+      ...otherData
+    } = data;
+
     const order = new TrafficOrderEntity({
-      ...data,
-      totalBudget: data.totalBudget.toString(),
-      pricePerAction: data.pricePerAction.toString(),
-      requirements: typeof data.requirements === 'string' ? JSON.parse(data.requirements) : data.requirements,
-      status: TrafficOrderStatus.Pending
+      ...otherData,
+      creator: creator as any,
+      trafficSource: trafficSource as any,
+      trafficBuyer: trafficBuyer as any,
+      assignedTrafficUser: assignedTrafficUser as any,
+      totalBudget: totalBudget.toString(),
+      pricePerAction: pricePerAction.toString(),
+      requirements: typeof requirements === 'string' ? JSON.parse(requirements) : requirements,
+      status: TrafficOrderStatus.Pending,
+      currentCount: 0,
+      spentAmount: '0',
     });
+
     await this.em.persistAndFlush(order);
     return order;
   }
@@ -122,7 +147,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   async assignUser(orderId: string, trafficUserId: string): Promise<void> {
     const order = await this.findByOrderId(orderId);
     if (order) {
-      order.assignedTrafficUserId = trafficUserId;
+      order.assignedTrafficUser = ref(this.em.getReference(TrafficUserEntity, trafficUserId));
       order.status = TrafficOrderStatus.InProgress;
       await this.em.flush();
     }
@@ -131,7 +156,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   async unassignUser(orderId: string): Promise<void> {
     const order = await this.findByOrderId(orderId);
     if (order) {
-      order.assignedTrafficUserId = undefined;
+      order.assignedTrafficUser = undefined;
       order.status = TrafficOrderStatus.Pending;
       await this.em.flush();
     }
@@ -148,16 +173,14 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     totalBudget: number;
     totalSpent: number;
   }> {
-    const [
-      total, pending, active, inProgress, completed, cancelled, failed
-    ] = await Promise.all([
+    const [total, pending, active, inProgress, completed, cancelled, failed] = await Promise.all([
       this.count(),
       this.count({ status: TrafficOrderStatus.Pending }),
       this.count({ status: TrafficOrderStatus.Active }),
       this.count({ status: TrafficOrderStatus.InProgress }),
       this.count({ status: TrafficOrderStatus.Completed }),
       this.count({ status: TrafficOrderStatus.Cancelled }),
-      this.count({ status: TrafficOrderStatus.Failed })
+      this.count({ status: TrafficOrderStatus.Failed }),
     ]);
 
     const orders = await this.findAll();
@@ -165,8 +188,15 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     const totalSpent = orders.reduce((sum, order) => sum + parseFloat(order.spentAmount || '0'), 0);
 
     return {
-      total, pending, active, inProgress, completed, cancelled, failed,
-      totalBudget, totalSpent
+      total,
+      pending,
+      active,
+      inProgress,
+      completed,
+      cancelled,
+      failed,
+      totalBudget,
+      totalSpent,
     };
   }
 
@@ -186,17 +216,14 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
       this.count({ type: TrafficOrderType.Subscribe }),
       this.count({ type: TrafficOrderType.Unsubscribe }),
       this.count({ type: TrafficOrderType.React }),
-      this.count({ type: TrafficOrderType.Comment })
+      this.count({ type: TrafficOrderType.Comment }),
     ]);
 
     return { join, leave, view, subscribe, unsubscribe, react, comment };
   }
 
   async getCompletionRate(): Promise<number> {
-    const [total, completed] = await Promise.all([
-      this.count(),
-      this.count({ status: TrafficOrderStatus.Completed })
-    ]);
+    const [total, completed] = await Promise.all([this.count(), this.count({ status: TrafficOrderStatus.Completed })]);
 
     return total > 0 ? (completed / total) * 100 : 0;
   }

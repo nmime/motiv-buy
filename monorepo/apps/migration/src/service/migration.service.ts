@@ -1,23 +1,21 @@
 import { MikroORM } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
 import type { Logger } from '../type/logger.type';
-import type { 
-  MigrationResult, 
-  MigrationStatus, 
-  FreshMigrationResult,
-  SeederResult
-} from '../type/migration.type';
+import type { MigrationResult, MigrationStatus, FreshMigrationResult, SeederResult } from '../type/migration.type';
 
 /**
  * Migration Service
- * 
+ *
  * Core business logic for database migrations
  * Following CLAUDE.md Service → Repository pattern
  */
 export class MigrationService {
   private migrator: Migrator;
 
-  constructor(private orm: MikroORM, private logger: Logger) {
+  constructor(
+    private orm: MikroORM,
+    private logger: Logger,
+  ) {
     this.migrator = this.orm.getMigrator();
   }
 
@@ -28,14 +26,14 @@ export class MigrationService {
     try {
       const timestamp = Date.now();
       const migrationName = `${timestamp}-${type}-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
-      
+
       const migration = await this.migrator.createMigration(migrationName);
-      
-      this.logger.debug('Migration file created:', { 
-        name: migrationName, 
-        path: migration.fileName 
+
+      this.logger.debug('Migration file created:', {
+        name: migrationName,
+        path: migration.fileName,
       });
-      
+
       return migration.fileName;
     } catch (error) {
       this.logger.error('Failed to create migration:', error);
@@ -49,7 +47,7 @@ export class MigrationService {
   async getPendingMigrations(): Promise<Array<{ name: string }>> {
     try {
       const pending = await this.migrator.getPendingMigrations();
-      return pending.map(migration => ({ name: migration.name }));
+      return pending.map((migration) => ({ name: migration.name }));
     } catch (error) {
       this.logger.error('Failed to get pending migrations:', error);
       throw new Error(`Failed to retrieve pending migrations: ${error.message}`);
@@ -62,9 +60,9 @@ export class MigrationService {
   async getExecutedMigrations(): Promise<Array<{ name: string; executedAt: Date }>> {
     try {
       const executed = await this.migrator.getExecutedMigrations();
-      return executed.map(migration => ({
+      return executed.map((migration) => ({
         name: migration.name,
-        executedAt: migration.executedAt || new Date()
+        executedAt: migration.executedAt || new Date(),
       }));
     } catch (error) {
       this.logger.error('Failed to get executed migrations:', error);
@@ -77,14 +75,14 @@ export class MigrationService {
    */
   async runMigrationsUp(toVersion?: string): Promise<MigrationResult> {
     const startTime = Date.now();
-    
+
     try {
       const result = await this.migrator.up({ to: toVersion });
       const executionTime = Date.now() - startTime;
-      
+
       return {
-        executedMigrations: result.map(m => m.name),
-        executionTime: `${executionTime}ms`
+        executedMigrations: result.map((m) => m.name),
+        executionTime: `${executionTime}ms`,
       };
     } catch (error) {
       this.logger.error('Migration up failed:', error);
@@ -98,13 +96,13 @@ export class MigrationService {
   async getMigrationsToRollback(toVersion: string): Promise<string[]> {
     try {
       const executed = await this.getExecutedMigrations();
-      const targetIndex = executed.findIndex(m => m.name.includes(toVersion));
-      
+      const targetIndex = executed.findIndex((m) => m.name.includes(toVersion));
+
       if (targetIndex === -1) {
         throw new Error(`Migration version ${toVersion} not found`);
       }
-      
-      return executed.slice(targetIndex + 1).map(m => m.name);
+
+      return executed.slice(targetIndex + 1).map((m) => m.name);
     } catch (error) {
       this.logger.error('Failed to determine rollback migrations:', error);
       throw error;
@@ -116,22 +114,22 @@ export class MigrationService {
    */
   async runMigrationsDown(toVersion?: string, steps?: number): Promise<MigrationResult> {
     const startTime = Date.now();
-    
+
     try {
       let result;
-      
+
       if (toVersion) {
         result = await this.migrator.down({ to: toVersion });
       } else {
         const rollbackSteps = steps || 1;
         result = await this.migrator.down({ migrations: rollbackSteps });
       }
-      
+
       const executionTime = Date.now() - startTime;
-      
+
       return {
-        rolledBackMigrations: result.map(m => m.name),
-        executionTime: `${executionTime}ms`
+        rolledBackMigrations: result.map((m) => m.name),
+        executionTime: `${executionTime}ms`,
       };
     } catch (error) {
       this.logger.error('Migration down failed:', error);
@@ -144,14 +142,11 @@ export class MigrationService {
    */
   async getMigrationStatus(): Promise<MigrationStatus> {
     try {
-      const [executed, pending] = await Promise.all([
-        this.getExecutedMigrations(),
-        this.getPendingMigrations()
-      ]);
+      const [executed, pending] = await Promise.all([this.getExecutedMigrations(), this.getPendingMigrations()]);
 
       return {
         executedMigrations: executed,
-        pendingMigrations: pending
+        pendingMigrations: pending,
       };
     } catch (error) {
       this.logger.error('Failed to get migration status:', error);
@@ -164,22 +159,22 @@ export class MigrationService {
    */
   async runFreshMigration(): Promise<FreshMigrationResult> {
     const startTime = Date.now();
-    
+
     try {
       const generator = this.orm.getSchemaGenerator();
-      
+
       this.logger.info('Dropping all tables...');
       await generator.dropSchema();
-      
+
       this.logger.info('Running fresh migrations...');
       const migrationResult = await this.migrator.up();
-      
+
       const executionTime = Date.now() - startTime;
-      
+
       return {
         droppedTables: true,
-        executedMigrations: migrationResult.map(m => m.name),
-        executionTime: `${executionTime}ms`
+        executedMigrations: migrationResult.map((m) => m.name),
+        executionTime: `${executionTime}ms`,
       };
     } catch (error) {
       this.logger.error('Fresh migration failed:', error);
@@ -192,15 +187,15 @@ export class MigrationService {
    */
   async runSeeders(seederClass?: string): Promise<SeederResult> {
     const startTime = Date.now();
-    
+
     try {
       this.logger.info('Seeder functionality not implemented yet');
-      
+
       const executionTime = Date.now() - startTime;
-      
+
       return {
         executedSeeders: seederClass ? [seederClass] : [],
-        executionTime: `${executionTime}ms`
+        executionTime: `${executionTime}ms`,
       };
     } catch (error) {
       this.logger.error('Seeding failed:', error);

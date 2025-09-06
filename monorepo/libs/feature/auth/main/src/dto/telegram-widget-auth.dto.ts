@@ -100,12 +100,4 @@ export class TelegramWidgetAuthDto {
   @IsString()
   @IsOptional()
   refCode?: string;
-
-  @ApiProperty({
-    description: 'Timezone',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  timezone?: string;
 }

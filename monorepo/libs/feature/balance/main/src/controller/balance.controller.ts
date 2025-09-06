@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Query, Body, UseGuards, createParamDecorator, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Query,
+  Body,
+  UseGuards,
+  createParamDecorator,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { BalanceService } from '../service/balance.service';
@@ -10,15 +20,13 @@ import { AsyncResult } from '@app/common-shared';
 // Local guards and decorators to avoid cross-library imports
 export const JwtAuthGuard = AuthGuard('jwt');
 
-export const CurrentUserId = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
-    if (!request.user?.id) {
-      throw new UnauthorizedException('User not authenticated');
-    }
-    return request.user.id;
-  },
-);
+export const CurrentUserId = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
+  const request = ctx.switchToHttp().getRequest();
+  if (!request.user?.id) {
+    throw new UnauthorizedException('User not authenticated');
+  }
+  return request.user.id;
+});
 
 @ApiTags('balance')
 @Controller('balance')
@@ -41,7 +49,9 @@ export class BalanceController {
     status: 200,
     description: 'Balance retrieved successfully',
   })
-  async getBalance(@CurrentUserId() userId: string): AsyncResult<BalanceDto, UnauthorizedException | InternalException> {
+  async getBalance(
+    @CurrentUserId() userId: string,
+  ): AsyncResult<BalanceDto, UnauthorizedException | InternalException> {
     const result = await this.balanceService.getBalance(userId);
     return { success: true, data: result };
   }
@@ -87,7 +97,10 @@ export class BalanceController {
   async requestDeposit(
     @Body() request: DepositRequestDto,
     @CurrentUserId() userId: string,
-  ): AsyncResult<{ paymentUrl: string }, UnauthorizedException | ClientDataProblemValidationException | InternalException> {
+  ): AsyncResult<
+    { paymentUrl: string },
+    UnauthorizedException | ClientDataProblemValidationException | InternalException
+  > {
     const result = await this.balanceService.requestDeposit(userId, request);
     return { success: true, data: result };
   }
@@ -113,7 +126,10 @@ export class BalanceController {
   async requestWithdrawal(
     @Body() request: WithdrawalRequestDto,
     @CurrentUserId() userId: string,
-  ): AsyncResult<{ transactionId: string }, UnauthorizedException | ClientDataProblemValidationException | InternalException> {
+  ): AsyncResult<
+    { transactionId: string },
+    UnauthorizedException | ClientDataProblemValidationException | InternalException
+  > {
     const result = await this.balanceService.requestWithdrawal(userId, request);
     return { success: true, data: result };
   }

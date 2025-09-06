@@ -7,12 +7,7 @@ export class InternalException extends Exception({
   problemType: 'internal_error',
   title: 'Internal Error',
 }) {
-  constructor(options?: {
-    title?: string;
-    detail?: string;
-    instance?: string;
-    cause?: unknown;
-  }) {
+  constructor(options?: { title?: string; detail?: string; instance?: string; cause?: unknown }) {
     super({
       title: options?.title,
       detail: options?.detail ?? 'An internal error occurred',

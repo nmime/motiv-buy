@@ -64,7 +64,8 @@
     "tslib": "^2.8.1",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.42.0",
-    "typescript-transform-paths": "^3.5.5"
+    "typescript-transform-paths": "^3.5.5",
+    "ts-morph": "^26.0.0"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
@@ -78,7 +79,6 @@
     "@mikro-orm/nestjs": "^6.1.1",
     "@mikro-orm/postgresql": "^6.5.1",
     "@mikro-orm/reflection": "^6.5.1",
-    "@mikro-orm/sqlite": "^6.5.1",
     "@nestjs/bull": "^11.0.3",
     "@nestjs/config": "^4.0.2",
     "@nestjs/jwt": "^11.0.0",
@@ -105,6 +105,7 @@
     "grammy": "^1.38.1",
     "ioredis": "^5.7.0",
     "joi": "^18.0.1",
+    "mikro-orm-cache-adapter-redis": "^4.0.0",
     "nestjs-cls": "^6.0.1",
     "nestjs-i18n": "^10.5.1",
     "nestjs-pino": "^4.4.0",
