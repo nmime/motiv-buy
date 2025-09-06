@@ -17,7 +17,14 @@ export const DatabaseConfigSchema = z.object({
       safe: z.boolean().default(false),
       emit: z.enum(['ts', 'js']).default('ts'),
     })
-    .default({}),
+    .default({
+      path: './src/migrations',
+      tableName: 'migrations',
+      transactional: true,
+      allOrNothing: false,
+      safe: false,
+      emit: 'ts' as const,
+    }),
 });
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>;

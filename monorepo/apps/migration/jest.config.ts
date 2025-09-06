@@ -1,6 +1,5 @@
-/* eslint-disable */
 export default {
-  displayName: 'migration-cli',
+  displayName: 'migration',
   preset: '../../jest.preset.js',
   testEnvironment: 'node',
   transform: {
@@ -8,7 +7,16 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/apps/migration',
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/main.ts', '!src/**/*.spec.ts', '!src/**/*.test.ts'],
+  testMatch: [
+    '<rootDir>/src/**/*.(test|spec).{js,ts}',
+    '<rootDir>/test/**/*.(test|spec).{js,ts}',
+  ],
+  collectCoverageFrom: [
+    'src/**/*.{js,ts}',
+    '!src/**/*.d.ts',
+    '!src/main.ts',
+    '!src/**/*.config.{js,ts}',
+  ],
   coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {
     global: {
@@ -18,4 +26,6 @@ export default {
       statements: 80,
     },
   },
+  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  testTimeout: 30000,
 };

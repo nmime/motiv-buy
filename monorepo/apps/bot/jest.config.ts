@@ -7,4 +7,16 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/apps/bot',
+  testMatch: [
+    '<rootDir>/src/**/*.(test|spec).{js,ts}',
+    '<rootDir>/test/**/*.(test|spec).{js,ts}',
+  ],
+  collectCoverageFrom: [
+    'src/**/*.{js,ts}',
+    '!src/**/*.d.ts',
+    '!src/main.ts',
+    '!src/**/*.config.{js,ts}',
+  ],
+  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  testTimeout: 30000,
 };

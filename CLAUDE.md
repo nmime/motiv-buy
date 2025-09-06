@@ -6,17 +6,77 @@
 - **Architecture Pattern:** Domain-driven design with modular architecture
 - **Development Strategy:** Test-Driven Development with comprehensive testing and documentation
 
-## 2. Domain-Driven Architecture & Project Structure
+## 2. Domain-Driven Architecture & Monorepo Structure
 
 **⚠️ CRITICAL: AI agents MUST read the [Project Structure documentation](/docs/ai-context/project-structure.md) before attempting any task to understand the complete technology stack, file tree and project organization.**
 
-### Monorepo Structure
-**Root Directory**: `app/` (monorepo root containing all applications and libraries)
+### Monorepo Architecture Overview
+This is a **Nx-powered TypeScript monorepo** with comprehensive testing, linting, and build orchestration.
 
-**Applications**: Located in `apps/`
-- **`apps/api/`** – HTTP API service with NestJS, business logic orchestration
-- **`apps/bot/`** – Telegram bot application with Grammy framework
-- **`apps/migration/`** – Database migration scripts and data transformation utilities
+**Root Directory**: `/monorepo/` (contains all applications and libraries)
+- **Workspace Management**: Nx for task orchestration, dependency management, and build optimization
+- **Package Management**: pnpm with workspace support for efficient dependency handling
+- **Testing Strategy**: Jest with coverage reporting across all apps and libraries
+- **Code Quality**: ESLint, Prettier, and TypeScript strict mode enforcement
+
+### Applications Architecture
+**Applications Directory**: `apps/`
+- **`apps/api/`** – NestJS HTTP API service
+  - Business logic orchestration layer
+  - RESTful endpoints with OpenAPI documentation
+  - Authentication, authorization, and request validation
+  - Fastify adapter for high performance
+
+- **`apps/bot/`** – Telegram Bot Application
+  - Grammy framework for bot interactions
+  - Event-driven message handling
+  - Integration with business domains via service composition
+
+- **`apps/migration/`** – Database Management
+  - MikroORM migration scripts
+  - Data transformation utilities
+  - Schema evolution and rollback capabilities
+
+### Libraries Architecture
+**Libraries Directory**: `libs/`
+
+#### Core Infrastructure (`libs/database/`)
+- **Database Layer**: MikroORM entities, repositories, and configuration
+- **Connection Management**: PostgreSQL with connection pooling
+- **Migration System**: Automated schema evolution with rollback support
+
+#### Common Utilities (`libs/common/`)
+- **`libs/common/shared/`** – Cross-domain utilities and types
+- **`libs/common/exception/`** – Centralized error handling patterns
+- **`libs/common/validation/`** – Input validation and sanitization
+- **`libs/common/redis/`** – Caching and session management
+- **`libs/common/logger/`** – Structured logging with correlation IDs
+- **`libs/common/health/`** – Health checks and monitoring
+- **`libs/common/response/`** – Standardized API response formats
+- **`libs/common/bull/`** – Queue processing and background jobs
+- **`libs/common/intl/`** – Internationalization support
+
+#### Business Domains (`libs/feature/`)
+Each domain follows the **main/shared** split pattern:
+- **`libs/feature/auth/`** – Authentication and authorization
+  - `main/` – Core auth business logic, strategies, guards
+  - `shared/` – DTOs, interfaces, and reusable auth utilities
+
+- **`libs/feature/user/`** – User management and profiles  
+  - `main/` – User business logic, profile management
+  - `shared/` – User DTOs, validation schemas
+
+- **`libs/feature/balance/`** – Financial balance and transactions
+  - `main/` – Balance calculation, transaction processing
+  - `shared/` – Financial types and validation
+
+- **`libs/feature/traffic/`** – Traffic source tracking and analytics
+  - `main/` – Analytics processing, source attribution
+  - `shared/` – Traffic types and tracking schemas
+
+- **`libs/feature/statistic/`** – Metrics and reporting
+  - `main/` – Statistical calculations, report generation  
+  - `shared/` – Metric definitions and report types
 
 ### Fundamental Development Principles
 
@@ -161,19 +221,205 @@ When using the Task tool to spawn sub-agents, the core project context is automa
 - Implementing new integrations or features with third-party tools
 - Troubleshooting library-specific issues
 
-## 6. Post-Task Completion Protocol
+## 6. Advanced Claude Code Techniques
+
+### 🧠 Think Mode for Complex Problems
+**Trigger Extended Reasoning:** Use "think" in your prompts to activate Claude Code's architectural reasoning mode.
+
+**Amateur Approach:**
+```
+How do I implement user authentication?
+```
+
+**Professional Approach:**  
+```
+I need to think through building a secure, scalable user authentication system for our NestJS API with PostgreSQL. Consider JWT vs sessions, password hashing strategies, rate limiting, MFA support, and how this integrates with our existing domain architecture. Analyze security implications and provide architectural trade-offs.
+```
+
+### 🔍 Intelligent Code Search & Analysis
+**Leverage Claude Code as a code archaeologist** that identifies patterns, relationships, and technical debt across your entire monorepo.
+
+**Professional Command:**
+```
+Analyze our entire monorepo and identify all authentication-related logic, including direct implementations, middleware, guards, decorators, and any hardcoded auth checks. Map relationships between different auth implementations, identify inconsistencies in our auth patterns, and flag potential security vulnerabilities or code duplication. Focus on the NestJS app and feature libraries.
+```
+
+### ⚡ Natural Language Git Workflows
+**Transform Git from manual commands to intelligent automation** that understands context and best practices.
+
+**Professional Workflow:**
+```
+Create a feature branch for implementing OAuth2 with Google. Implement the complete flow including redirect handling, token management, and user session persistence. Follow our team's commit conventions with descriptive messages for each logical change, then create a pull request with proper documentation and request review from the security team.
+```
+
+**Advanced Git Operations:**
+```
+Analyze our current branch, identify any code that violates our ESLint rules or TypeScript strict mode, fix violations, then rebase commits for clean history. Check if any dependencies need security updates and handle those in separate commits with proper documentation.
+```
+
+### 🛡️ Defensive Coding Strategies
+**Weaponize Claude Code's paranoia** to build bulletproof systems that anticipate failure.
+
+**Professional Command:**
+```
+Using TDD principles, write comprehensive tests for our payment processing system that handles network failures, invalid payment data, rate limiting, idempotency, partial payments, and webhook retry logic. Then implement the service to pass all tests. Include proper structured logging, circuit breaker patterns, and graceful degradation strategies.
+```
+
+### 🔄 Multi-Repository Refactoring Operations
+**Execute architectural changes across multiple files and domains** while maintaining system integrity.
+
+**Professional Refactoring:**
+```
+Our user management is scattered across the user domain, auth domain, and database layers. Consolidate this into a proper domain-driven design with clear boundaries. Create user aggregates, repositories, and domain services. Update all existing code in apps/api and apps/bot to use the new architecture. Ensure backward compatibility and create migration scripts for any data structure changes.
+```
+
+### 📖 Context-Aware Documentation
+**Generate documentation that teaches architecture**, not just API signatures.
+
+**Professional Documentation Command:**
+```
+Analyze our entire authentication system across all domains and create comprehensive documentation that explains architectural decisions, security considerations, data flow between NestJS modules, potential failure points, and integration patterns with our Telegram bot. Include sequence diagrams for the complete auth flow and troubleshooting guides for common issues.
+```
+
+### 🎯 Advanced Prompting Framework
+
+**Structure every complex request using this framework:**
+
+```
+Context: [Our NestJS/PostgreSQL monorepo with domain-driven architecture]
+
+Constraints: [TypeScript strict mode, security-first, no breaking changes]  
+
+Goal: [Specific, measurable outcome]
+
+Format: [Exactly how you want the response structured]
+
+Examples: [Show what good/bad solutions look like]
+
+Validation: [How to verify the solution works]
+
+Now solve [specific problem] following this framework.
+```
+
+### 🔄 Cross-Language Integration  
+**Preserve business logic while optimizing for each language's strengths.**
+
+**Professional Cross-Language Command:**
+```
+We need to migrate our user statistics processing from our TypeScript implementation to Go for performance. Analyze our current service in libs/feature/statistic, identify core business logic, then redesign using Go's concurrency patterns. Maintain the same API contracts, improve performance using goroutines, and ensure our NestJS API can seamlessly integrate with the Go service.
+```
+
+### 🏗️ Natural Language Architecture Planning
+**Use Claude Code for upfront architectural thinking** that prevents disasters before code is written.
+
+**Architectural Planning Command:**
+```
+I need to architect a real-time messaging system that integrates with our existing user authentication and scales to handle 10K concurrent users. Think through: WebSocket connection management, message persistence strategies, user presence tracking, message ordering guarantees, integration with our PostgreSQL database, caching strategies with Redis, horizontal scaling approaches, and monitoring requirements. Create a comprehensive architecture document with implementation phases.
+```
+
+### 🔧 Custom MCP Server Chains
+**Chain MCP servers for autonomous development pipelines:**
+
+**Example MCP Configuration:**
+```
+{
+  "mcpServers": {
+    "codeAnalysis": {
+      "command": "node",
+      "args": ["./mcp-servers/monorepo-analyzer.js"]
+    },
+    "testRunner": {
+      "command": "node", 
+      "args": ["./mcp-servers/nx-test-runner.js"]
+    },
+    "securityScanner": {
+      "command": "node",
+      "args": ["./mcp-servers/security-audit.js"]
+    },
+    "deploymentPipeline": {
+      "command": "node",
+      "args": ["./mcp-servers/deploy-orchestrator.js"]
+    }
+  }
+}
+```
+
+**One-Shot Automation Command:**
+```
+Analyze our monorepo for security vulnerabilities, run automated tests on any fixes, update dependencies with security patches, commit changes with proper documentation, deploy to staging with our NX build pipeline, execute security scans on deployed version, and if everything passes, deploy to production with rollback strategies.
+```
+
+### 📋 Team Coding Standards Evolution
+**Turn Claude Code into an intelligent standards authority** that educates and evolves with your team.
+
+**Standards Authority Setup:**
+```
+Establish Claude Code as our team's coding standards authority for our NestJS monorepo. Understand our specific patterns: how we structure domain modules, our custom decorators, our error handling with our exception library, our database repository patterns, and our testing strategies with Jest. For every piece of code generated, follow these standards and explain why these patterns exist and when to deviate.
+```
+
+**Standards Evolution:**
+```
+Analyze patterns across our recent commits in the monorepo and identify emerging conventions that aren't documented. Suggest updates to our coding guidelines based on what the team naturally gravitates toward, and highlight inconsistencies where different developers solve similar problems in conflicting ways across our domains.
+```
+
+### 🧪 Monorepo Testing & Quality Architecture
+**Comprehensive testing setup across all apps and libraries with Jest, TypeScript, and Nx orchestration.**
+
+#### Testing Commands
+```bash
+# Test all projects
+npm run test
+
+# Test specific project types
+npm run test:apps      # Test only applications
+npm run test:libs      # Test only libraries
+
+# Development testing
+npm run test:watch     # Watch mode for development
+npm run test:coverage  # Generate coverage reports
+
+# Efficient testing
+npm run test:affected  # Test only affected projects
+```
+
+#### Quality Assurance Pipeline
+```bash
+# Full quality check pipeline
+npm run build && npm run typecheck && npm run lint && npm run test
+
+# Affected-only pipeline (faster)
+npm run build:affected && npm run typecheck:affected && npm run lint:affected && npm run test:affected
+```
+
+#### Monorepo Quality Standards
+- **Code Coverage**: Individual Jest configs per app/library
+- **Type Safety**: TypeScript strict mode across all projects
+- **Code Quality**: ESLint with consistent rules across domains
+- **Build Verification**: Nx dependency graph validation
+- **Integration Testing**: Cross-domain interaction verification
+
+## 7. Post-Task Completion Protocol
 After completing any coding task, follow this checklist:
 
-### 1. Type Safety & Quality Checks
-Run the appropriate commands based on what was modified:
-- **TypeScript**: Run linting commands
-- **Type Checking**: Run `tsc --noEmit`
-- **Testing**: Run unit tests
-- **Build**: Verify build success
+### 1. Monorepo Quality Checks
+Run commands based on what was modified:
+- **Build Verification**: `npm run build` or `npm run build:affected`
+- **Type Checking**: `npm run typecheck` or `npm run typecheck:affected`  
+- **Linting**: `npm run lint` or `npm run lint:affected`
+- **Testing**: `npm run test` or `npm run test:affected`
+- **Integration**: Verify cross-domain dependencies still work
 
-### 2. Verification
-- Ensure all type checks pass before considering the task complete
-- If type errors are found, fix them before marking the task as done
+### 2. Domain Integrity Verification
+- Ensure domain boundaries are respected
+- Verify no business logic leaked into shared libraries
+- Check that apps remain thin composition layers
+- Validate repository contracts are maintained
+
+### 3. Security & Performance
+- Run security linting if auth/security code changed
+- Verify no secrets in code or config files
+- Check that performance-critical paths maintain efficiency
+- Ensure proper error handling and logging
 
 ---
 
