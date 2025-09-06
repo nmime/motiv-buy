@@ -1,10 +1,5 @@
 export default {
-  displayName: 'features-auth-main',
+  displayName: 'feature-auth-main',
   preset: '../../../../jest.preset.js',
-  testEnvironment: 'node',
-  transform: {
-    '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
-  },
-  moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../../../coverage/libs/feature/auth/main',
 };
