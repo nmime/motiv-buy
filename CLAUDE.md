@@ -162,6 +162,7 @@ Each domain follows the **main/shared** split pattern:
 - Use well defined sub-directories to keep things organized and scalable
 - Structure projects with clear folder hierarchies and consistent naming conventions
 - Import/export properly - design for reusability and maintainability
+- **Index files**: Every subfolder MUST have an index.ts file using `export * from './filename'` pattern for clean imports
 
 ### TypeScript Types (REQUIRED)
 
