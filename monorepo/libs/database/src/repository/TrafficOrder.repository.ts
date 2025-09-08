@@ -4,7 +4,7 @@ import {
   TrafficOrderStatus,
   TrafficOrderType,
   TrafficSourceEntity,
-  TrafficBuyerEntity,
+  TrafficTargetEntity,
   TrafficUserEntity,
 } from '../entity';
 import { UserEntity } from '../entity';
@@ -44,8 +44,8 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     return this.find({ trafficSource: trafficSourceId });
   }
 
-  async findByTrafficBuyer(trafficBuyerId: string): Promise<TrafficOrderEntity[]> {
-    return this.find({ trafficBuyer: trafficBuyerId });
+  async findByTrafficTarget(trafficTargetId: string): Promise<TrafficOrderEntity[]> {
+    return this.find({ trafficTarget: trafficTargetId });
   }
 
   async findByAssignedUser(trafficUserId: string): Promise<TrafficOrderEntity[]> {
@@ -76,7 +76,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     totalBudget: number;
     creator: Reference<UserEntity>;
     trafficSource: Reference<TrafficSourceEntity>;
-    trafficBuyer: Reference<TrafficBuyerEntity>;
+    trafficTarget: Reference<TrafficTargetEntity>;
     description?: string;
     targetUrl?: string;
     requirements?: string;
@@ -90,7 +90,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
       requirements,
       creator,
       trafficSource,
-      trafficBuyer,
+      trafficTarget,
       assignedTrafficUser,
       ...otherData
     } = data;
@@ -99,7 +99,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
       ...otherData,
       creator: creator as any,
       trafficSource: trafficSource as any,
-      trafficBuyer: trafficBuyer as any,
+      trafficTarget: trafficTarget as any,
       assignedTrafficUser: assignedTrafficUser as any,
       totalBudget: totalBudget.toString(),
       pricePerAction: pricePerAction.toString(),

@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { TrafficController } from './controller';
 import { TrafficService } from './service';
-import { TrafficBuyerEntity, TrafficOrderEntity, TrafficSourceEntity, TrafficUserEntity } from '@app/database';
+import { TrafficTargetEntity, TrafficOrderEntity, TrafficSourceEntity, TrafficUserEntity } from '@app/database';
 
 @Module({
   imports: [
-    MikroOrmModule.forFeature([TrafficBuyerEntity, TrafficOrderEntity, TrafficSourceEntity, TrafficUserEntity]),
+    MikroOrmModule.forFeature([TrafficTargetEntity, TrafficOrderEntity, TrafficSourceEntity, TrafficUserEntity]),
   ],
   controllers: [TrafficController],
   providers: [TrafficService],

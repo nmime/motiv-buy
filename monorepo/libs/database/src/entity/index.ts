@@ -9,7 +9,7 @@ export * from './UserSourceVisit.entity';
 
 // Traffic entities
 export * from './TrafficActions.entity';
-export * from './TrafficBuyer.entity';
+export * from './TrafficTarget.entity';
 export * from './TrafficOrder.entity';
 export * from './TrafficSource.entity';
 export * from './TrafficSourceCategory.entity';

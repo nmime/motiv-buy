@@ -24,8 +24,37 @@ lerna-debug.log*
 .temp
 .tmp
 
+
+# WebStorm/JetBrains IDE settings
+# Ignore most .idea files but keep shareable configurations
+.idea/*
+!.idea/codeStyles/
+!.idea/runConfigurations/
+!.idea/inspectionProfiles/
+!.idea/jsLinters/
+!.idea/prettier.xml
+!.idea/eslintrc.xml
+
+# WebStorm specific files
+*.iml
+*.iws
+*.ipr
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+
+# Nx
+**/.nx/cache
+**/.nx/installation
+**/.nx/workspace-data
+
+# Claude Flow
+**/.claude-flow
+
 # Claude Flow generated files
-.claude-flow/
 .claude/settings.local.json
 .mcp.json
 claude-flow.config.json
@@ -49,25 +78,3 @@ claude-flow
 claude-flow.bat
 claude-flow.ps1
 hive-mind-prompt-*.txt
-
-.nx
-
-# WebStorm/JetBrains IDE settings
-# Ignore most .idea files but keep shareable configurations
-.idea/*
-!.idea/codeStyles/
-!.idea/runConfigurations/
-!.idea/inspectionProfiles/
-!.idea/jsLinters/
-!.idea/prettier.xml
-!.idea/eslintrc.xml
-
-# WebStorm specific files
-*.iml
-*.iws
-*.ipr
-
-# OS files
-.DS_Store
-Thumbs.db
-Desktop.ini

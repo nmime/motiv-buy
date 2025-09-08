@@ -3,7 +3,7 @@ import { EntityConstructorData } from '../type';
 import type { UserBalanceEntity } from './UserBalance.entity';
 import type { UserBalanceHistoryEntity } from './UserBalanceHistory.entity';
 import type { UserSettingsEntity } from './UserSettings.entity';
-import type { TrafficBuyerEntity } from './TrafficBuyer.entity';
+import type { TrafficTargetEntity } from './TrafficTarget.entity';
 import type { TrafficSourceEntity } from './TrafficSource.entity';
 import type { TrafficOrderEntity } from './TrafficOrder.entity';
 
@@ -85,8 +85,8 @@ export class UserEntity {
   @OneToMany('UserSettingsEntity', 'user')
   settings? = new Collection<UserSettingsEntity>(this);
 
-  @OneToMany('TrafficBuyerEntity', 'managedBy')
-  managedBuyers? = new Collection<TrafficBuyerEntity>(this);
+  @OneToMany('TrafficTargetEntity', 'managedBy')
+  managedTargets? = new Collection<TrafficTargetEntity>(this);
 
   @OneToMany('TrafficSourceEntity', 'managedBy')
   managedSources? = new Collection<TrafficSourceEntity>(this);

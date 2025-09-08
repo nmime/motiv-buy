@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { TrafficOrderRepository, TrafficBuyerRepository, UserSourceVisitRepository } from '@app/database';
+import { TrafficOrderRepository, TrafficTargetRepository, UserSourceVisitRepository } from '@app/database';
 
 // Local interfaces to avoid cross-library imports
 interface StatisticQueryDto {
@@ -25,7 +25,7 @@ interface IStatisticService {
 export class StatisticService implements IStatisticService {
   constructor(
     private readonly trafficOrderRepository: TrafficOrderRepository,
-    private readonly trafficBuyerRepository: TrafficBuyerRepository,
+    private readonly trafficTargetRepository: TrafficTargetRepository,
     private readonly userSourceVisitRepository: UserSourceVisitRepository,
   ) {}
 

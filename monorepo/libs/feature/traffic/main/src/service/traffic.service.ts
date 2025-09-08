@@ -26,8 +26,8 @@ import {
 @Injectable()
 export class TrafficService implements ITrafficService {
   constructor(
-    @InjectRepository(TrafficBuyer)
-    private readonly botRepository: EntityRepository<TrafficBuyer>,
+    @InjectRepository(TrafficTarget)
+    private readonly botRepository: EntityRepository<TrafficTarget>,
     @InjectRepository(TrafficOrder)
     private readonly trafficOrderRepository: EntityRepository<TrafficOrder>,
   ) {}
@@ -461,4 +461,4 @@ export class TrafficService implements ITrafficService {
 }
 
 // Import actual entities from database lib
-import { TrafficBuyerEntity as TrafficBuyer, TrafficOrderEntity as TrafficOrder } from '@app/database';
+import { TrafficTargetEntity as TrafficTarget, TrafficOrderEntity as TrafficOrder } from '@app/database';

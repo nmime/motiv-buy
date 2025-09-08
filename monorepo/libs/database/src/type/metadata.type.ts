@@ -28,7 +28,7 @@ export interface TrafficOrderRequirements {
   [key: string]: unknown;
 }
 
-export interface TrafficBuyerConfig {
+export interface TrafficTargetConfig {
   apiKey?: string;
   webhookUrl?: string;
   maxConcurrentOrders?: number;
@@ -69,7 +69,7 @@ export interface UserTrafficPermissions {
   [key: string]: unknown;
 }
 
-export interface UserTrafficBuyerPermissions {
+export interface UserTrafficTargetPermissions {
   canCreateCampaigns?: boolean;
   canViewReports?: boolean;
   canManagePayments?: boolean;
@@ -78,7 +78,7 @@ export interface UserTrafficBuyerPermissions {
   [key: string]: unknown;
 }
 
-export interface TrafficBuyerSourceContract {
+export interface TrafficTargetSourceContract {
   commissionRate?: number;
   paymentTerms?: string;
   minimumVolume?: number;

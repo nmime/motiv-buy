@@ -2,7 +2,7 @@ import { Entity, PrimaryKey, Property, ManyToOne, OneToMany, Collection, Index, 
 import { EntityConstructorData, TrafficOrderRequirements, assignEntityData } from '../type';
 import { UserEntity } from './User.entity';
 import { TrafficSourceEntity } from './TrafficSource.entity';
-import { TrafficBuyerEntity } from './TrafficBuyer.entity';
+import { TrafficTargetEntity } from './TrafficTarget.entity';
 import { TrafficUserEntity } from './TrafficUser.entity';
 import type { TrafficActionsEntity } from './TrafficActions.entity';
 
@@ -32,7 +32,7 @@ export enum TrafficOrderType {
 @Index({ name: 'ix__traffic_orders__created_at', properties: ['createdAt'] })
 @Index({ name: 'ix__traffic_orders__creator_id', properties: ['creator'] })
 @Index({ name: 'ix__traffic_orders__traffic_source_id', properties: ['trafficSource'] })
-@Index({ name: 'ix__traffic_orders__traffic_buyer_id', properties: ['trafficBuyer'] })
+@Index({ name: 'ix__traffic_orders__traffic_target_id', properties: ['trafficTarget'] })
 @Index({ name: 'ix__traffic_orders__assigned_traffic_user_id', properties: ['assignedTrafficUser'] })
 @Index({ name: 'ix__traffic_orders__created_by', properties: ['createdBy'] })
 export class TrafficOrderEntity {
@@ -100,13 +100,13 @@ export class TrafficOrderEntity {
   })
   trafficSource!: Ref<TrafficSourceEntity>;
 
-  @ManyToOne('TrafficBuyerEntity', {
+  @ManyToOne('TrafficTargetEntity', {
     nullable: false,
-    joinColumn: 'traffic_buyer_id',
+    joinColumn: 'traffic_target_id',
     referenceColumnName: 'id',
     ref: true,
   })
-  trafficBuyer!: Ref<TrafficBuyerEntity>;
+  trafficTarget!: Ref<TrafficTargetEntity>;
 
   @ManyToOne('TrafficUserEntity', {
     nullable: true,
@@ -127,13 +127,13 @@ export class TrafficOrderEntity {
       TrafficOrderEntity,
       'id' | 'createdAt' | 'updatedAt',
       'currentCount' | 'spentAmount',
-      'creator' | 'trafficSource' | 'trafficBuyer' | 'assignedTrafficUser' | 'createdBy'
+      'creator' | 'trafficSource' | 'trafficTarget' | 'assignedTrafficUser' | 'createdBy'
     >,
   ) {
     assignEntityData(this, data, {
       creatorId: { field: 'creator', entityClass: UserEntity, required: true },
       trafficSourceId: { field: 'trafficSource', entityClass: TrafficSourceEntity, required: true },
-      trafficBuyerId: { field: 'trafficBuyer', entityClass: TrafficBuyerEntity, required: true },
+      trafficTargetId: { field: 'trafficTarget', entityClass: TrafficTargetEntity, required: true },
       assignedTrafficUserId: { field: 'assignedTrafficUser', entityClass: TrafficUserEntity, required: false },
       createdById: { field: 'createdBy', entityClass: UserEntity, required: false },
     });
