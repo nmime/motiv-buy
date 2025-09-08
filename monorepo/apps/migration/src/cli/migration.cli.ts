@@ -1,14 +1,7 @@
 import { Command } from 'commander';
 import { MikroORM } from '@mikro-orm/core';
-import type { Logger } from '../type/logger.type';
+import { Logger } from '@nestjs/common';
 import { MigrationController } from './migration.controller';
-
-/**
- * Migration CLI Command Registration
- *
- * Follows CLAUDE.md Controller → Service → Repository → Mapper pattern
- * Acts as the CLI controller layer for migration operations
- */
 export class MigrationCLI {
   private controller: MigrationController;
 
@@ -19,9 +12,6 @@ export class MigrationCLI {
     this.controller = new MigrationController(orm, logger);
   }
 
-  /**
-   * Register all available CLI commands
-   */
   registerCommands(program: Command): void {
     this.registerCreateCommand(program);
     this.registerUpCommand(program);

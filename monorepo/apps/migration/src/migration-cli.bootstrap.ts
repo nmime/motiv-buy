@@ -1,13 +1,9 @@
 import { Command } from 'commander';
 import { MikroORM } from '@mikro-orm/core';
-import { getDatabaseConfig, createMikroOrmConfig } from '../../../libs/database/src';
-import { MigrationCLI } from './cli/migration.cli';
-import { logger } from './util/logger.util';
+import { getDatabaseConfig, createMikroOrmConfig } from '@app/database';
+import { MigrationCLI } from './cli';
+import { logger } from './util';
 
-/**
- * Bootstrap the migration CLI application
- * Follows CLAUDE.md security-first and error handling principles
- */
 export async function bootstrap(): Promise<void> {
   const program = new Command();
 
@@ -20,7 +16,7 @@ export async function bootstrap(): Promise<void> {
     const dbConfig = getDatabaseConfig();
     const ormConfig = createMikroOrmConfig(dbConfig);
 
-    logger.info('Initializing database connection...');
+    logger.log('Initializing database connection...');
     const orm = await MikroORM.init(ormConfig);
 
     const migrationCLI = new MigrationCLI(orm, logger);

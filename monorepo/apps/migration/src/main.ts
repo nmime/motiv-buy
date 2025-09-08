@@ -1,14 +1,7 @@
 #!/usr/bin/env node
 
-/**
- * Migration CLI Application
- *
- * Domain-driven migration tool following CLAUDE.md patterns:
- * - Security-first approach with environment validation
- * - Clean architecture with dependency injection
- * - Comprehensive error handling and logging
- * - SPARC methodology compliance
- */
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env' });
 
 import { bootstrap } from './migration-cli.bootstrap';
 import { logger } from './util';

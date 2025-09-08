@@ -1,18 +1,8 @@
 import * as readline from 'readline';
-import type { Logger } from '../type/logger.type';
-
-/**
- * User Confirmation Service
- *
- * Handles interactive confirmation prompts for destructive operations
- * Following CLAUDE.md security-first principles
- */
+import { Logger } from '@nestjs/common';
 export class ConfirmationService {
   constructor(private logger: Logger) {}
 
-  /**
-   * Prompt user for confirmation
-   */
   async confirm(message: string): Promise<boolean> {
     if (!process.stdin.isTTY) {
       this.logger.warn('Non-interactive environment detected. Use --force flag for automated operations.');

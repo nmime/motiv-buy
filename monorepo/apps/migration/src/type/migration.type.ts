@@ -1,7 +1,3 @@
-/**
- * Migration operation result types
- * Following CLAUDE.md TypeScript type safety principles
- */
 
 export interface MigrationResult {
   executedMigrations?: string[];
