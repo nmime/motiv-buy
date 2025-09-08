@@ -9,7 +9,7 @@
 x-common-defaults: &common-defaults
   restart: unless-stopped
   networks:
-    - ${PROJECT_NAME}-network-dev
+    - motiv-buy-network-dev
 
 # Common healthcheck configurations
 x-healthcheck-fast: &healthcheck-fast
@@ -51,7 +51,7 @@ x-app-volumes: &app-volumes
 services:
   # PostgreSQL Database
   postgres-dev:
-    image: postgres:16-alpine
+    image: postgres:18rc1-alpine
     container_name: ${PROJECT_NAME}-postgres-dev
     <<: *common-defaults
     environment:
@@ -60,7 +60,7 @@ services:
       POSTGRES_PASSWORD: dev_password_123
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
-      - ${PROJECT_NAME}_postgres_dev_data:/var/lib/postgresql/data
+      - motiv_buy_postgres_dev_data:/var/lib/postgresql/data
       - ./scripts/init-db-dev.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
       - ./scripts/seed-dev-data.sql:/docker-entrypoint-initdb.d/seed-data.sql:ro
     ports:
@@ -76,7 +76,7 @@ services:
     <<: *common-defaults
     command: redis-server --save 20 1 --loglevel warning
     volumes:
-      - ${PROJECT_NAME}_redis_dev_data:/data
+      - motiv_buy_redis_dev_data:/data
     ports:
       - '${REDIS_PORT:-6379}:6379'
     healthcheck:
@@ -156,7 +156,7 @@ services:
       PGADMIN_CONFIG_SERVER_MODE: 'False'
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
     volumes:
-      - ${PROJECT_NAME}_pgadmin_dev_data:/var/lib/pgadmin
+      - motiv_buy_pgadmin_dev_data:/var/lib/pgadmin
       - ./config/pgadmin/servers.json:/pgadmin4/servers.json:ro
     ports:
       - '${PGADMIN_PORT:-8080}:80'
@@ -233,18 +233,18 @@ services:
 # ==========================================
 
 networks:
-  ${PROJECT_NAME}-network-dev:
+  motiv-buy-network-dev:
     driver: bridge
-    name: ${PROJECT_NAME}-${NODE_ENV:-development}
+    name: motiv-buy-development
 
 # ==========================================
 # VOLUMES
 # ==========================================
 
 volumes:
-  ${PROJECT_NAME}_postgres_dev_data:
-    name: ${PROJECT_NAME}-postgres-dev-data
-  ${PROJECT_NAME}_redis_dev_data:
-    name: ${PROJECT_NAME}-redis-dev-data
-  ${PROJECT_NAME}_pgadmin_dev_data:
-    name: ${PROJECT_NAME}-pgadmin-dev-data
+  motiv_buy_postgres_dev_data:
+    name: motiv-buy-postgres-dev-data
+  motiv_buy_redis_dev_data:
+    name: motiv-buy-redis-dev-data
+  motiv_buy_pgadmin_dev_data:
+    name: motiv-buy-pgadmin-dev-data

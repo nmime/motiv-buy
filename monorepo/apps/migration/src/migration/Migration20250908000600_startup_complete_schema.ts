@@ -9,31 +9,13 @@ import { Migration } from '@mikro-orm/migrations';
 export class Migration20250908000600_startup_complete_schema extends Migration {
 
   async up(): Promise<void> {
-    // Enable UUID v7 generation function
-    this.addSql('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
-    
-    // Create uuid v7 generation function
-    this.addSql(`
-      CREATE OR REPLACE FUNCTION gen_random_uuid_v7() RETURNS uuid
-      LANGUAGE plpgsql
-      AS $$
-      BEGIN
-        RETURN encode(
-          decode(
-            lpad(to_hex(floor(extract(epoch from clock_timestamp()) * 1000)::bigint), 12, '0') ||
-            encode(gen_random_bytes(10), 'hex'),
-            'hex'
-          ),
-          'base64'
-        )::uuid;
-      END;
-      $$;
-    `);
+    // PostgreSQL 18+ has native UUID v7 support with uuidv7() function
+    // No extensions needed for native UUID v7 support
 
     // 1. Create users table
     this.addSql(`
       CREATE TABLE users (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         telegram_id bigint UNIQUE NOT NULL,
         username varchar(32),
         first_name varchar(64) NOT NULL,
@@ -62,7 +44,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 2. Create user_balances table
     this.addSql(`
       CREATE TABLE user_balances (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         balance decimal(15,4) NOT NULL DEFAULT 0,
         reserved decimal(15,4) NOT NULL DEFAULT 0,
@@ -78,7 +60,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 3. Create user_balance_history table
     this.addSql(`
       CREATE TABLE user_balance_history (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         amount decimal(15,4) NOT NULL,
         previous_balance decimal(15,4) NOT NULL,
@@ -97,7 +79,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 4. Create user_settings table
     this.addSql(`
       CREATE TABLE user_settings (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid UNIQUE NOT NULL,
         notifications_enabled boolean NOT NULL DEFAULT true,
         language varchar(10) NOT NULL DEFAULT 'en',
@@ -114,7 +96,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 5. Create user_last_auth table
     this.addSql(`
       CREATE TABLE user_last_auth (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid UNIQUE NOT NULL,
         ip_address inet,
         user_agent text,
@@ -131,7 +113,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 6. Create user_ref_links table
     this.addSql(`
       CREATE TABLE user_ref_links (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         ref_code varchar(32) UNIQUE NOT NULL,
         clicks integer NOT NULL DEFAULT 0,
@@ -150,7 +132,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 7. Create user_source_visits table
     this.addSql(`
       CREATE TABLE user_source_visits (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         source varchar(100) NOT NULL,
         medium varchar(50),
@@ -172,7 +154,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 8. Create traffic_sources table
     this.addSql(`
       CREATE TABLE traffic_sources (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         name varchar(255) NOT NULL,
         description text,
         type varchar(20) NOT NULL,
@@ -195,7 +177,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 9. Create traffic_source_categories table
     this.addSql(`
       CREATE TABLE traffic_source_categories (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         name varchar(100) UNIQUE NOT NULL,
         slug varchar(100) UNIQUE NOT NULL,
         description text,
@@ -215,7 +197,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 10. Create traffic_targets table (formerly traffic_buyers)
     this.addSql(`
       CREATE TABLE traffic_targets (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         name varchar(255) NOT NULL,
         description text,
         type varchar(20) NOT NULL,
@@ -241,7 +223,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 11. Create traffic_users table
     this.addSql(`
       CREATE TABLE traffic_users (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         telegram_id bigint UNIQUE NOT NULL,
         username varchar(32),
         first_name varchar(64),
@@ -265,7 +247,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 12. Create traffic_orders table
     this.addSql(`
       CREATE TABLE traffic_orders (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         order_id varchar(64) UNIQUE NOT NULL,
         type varchar(20) NOT NULL,
         status varchar(20) NOT NULL,
@@ -303,7 +285,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // 13. Create traffic_actions table
     this.addSql(`
       CREATE TABLE traffic_actions (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_order_id uuid NOT NULL,
         action_type varchar(20) NOT NULL,
         status varchar(20) NOT NULL,
@@ -329,7 +311,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // traffic_source_categories junction table
     this.addSql(`
       CREATE TABLE traffic_source_categories_junction (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_source_id uuid NOT NULL,
         traffic_source_category_id uuid NOT NULL,
         is_primary boolean NOT NULL DEFAULT false,
@@ -345,7 +327,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // traffic_target_sources junction table
     this.addSql(`
       CREATE TABLE traffic_target_sources (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_target_id uuid NOT NULL,
         traffic_source_id uuid NOT NULL,
         is_active boolean NOT NULL DEFAULT true,
@@ -371,7 +353,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // traffic_target_users junction table
     this.addSql(`
       CREATE TABLE traffic_target_users (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_target_id uuid NOT NULL,
         traffic_user_id uuid NOT NULL,
         can_view boolean NOT NULL DEFAULT true,
@@ -395,7 +377,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // user_traffic_targets junction table
     this.addSql(`
       CREATE TABLE user_traffic_targets (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         traffic_target_id uuid NOT NULL,
         role varchar(20) NOT NULL,
@@ -417,7 +399,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // user_traffic_sources junction table
     this.addSql(`
       CREATE TABLE user_traffic_sources (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         traffic_source_id uuid NOT NULL,
         role varchar(20) NOT NULL,
@@ -439,7 +421,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // user_traffic_orders junction table
     this.addSql(`
       CREATE TABLE user_traffic_orders (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         traffic_order_id uuid NOT NULL,
         role varchar(20) NOT NULL,
@@ -460,7 +442,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     // traffic_actions_users junction table
     this.addSql(`
       CREATE TABLE traffic_actions_users (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_action_id uuid NOT NULL,
         traffic_user_id uuid NOT NULL,
         role varchar(20) NOT NULL,
@@ -605,8 +587,6 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     this.addSql('DROP TABLE IF EXISTS user_balances CASCADE;');
     this.addSql('DROP TABLE IF EXISTS users CASCADE;');
 
-    // Drop UUID function and extension
-    this.addSql('DROP FUNCTION IF EXISTS gen_random_uuid_v7();');
-    this.addSql('DROP EXTENSION IF EXISTS "uuid-ossp";');
+    // PostgreSQL 18 native UUID v7 - no extensions to drop
   }
 }

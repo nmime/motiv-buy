@@ -66,7 +66,7 @@ x-bot-resources: &bot-resources
 services:
   # PostgreSQL Database
   postgres-prod:
-    image: postgres:16-alpine
+    image: postgres:18rc1-alpine
     container_name: ${PROJECT_NAME}-postgres-prod
     <<: *common-defaults
     environment:
