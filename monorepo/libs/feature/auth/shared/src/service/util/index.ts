@@ -1,1 +1,0 @@
-export { getGeoByIp, type GeoLocation } from '../../source/util/geoip.util';

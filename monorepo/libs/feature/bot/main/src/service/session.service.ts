@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SessionInterface, SessionData } from '@app/feature-bot-shared';
 import { RedisCacheService } from '@app/common-redis';
-import { AsyncResult, Ok, Err } from '@app/common-shared';
+import { AsyncResult } from '@app/common-shared';
+import { Ok, Err } from 'ts-results';
 
 /**
  * Session Service

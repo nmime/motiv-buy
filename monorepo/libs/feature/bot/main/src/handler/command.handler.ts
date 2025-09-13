@@ -6,7 +6,8 @@ import { BalanceService } from '@app/feature-balance-main';
 import { UserService } from '@app/feature-user-main';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
-import { AsyncResult, Ok, Err } from '@app/common-shared';
+import { AsyncResult } from '@app/common-shared';
+import { Ok, Err } from 'ts-results';
 
 /**
  * Command Handler

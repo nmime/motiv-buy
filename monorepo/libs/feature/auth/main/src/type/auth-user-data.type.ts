@@ -1,4 +1,4 @@
-export interface AuthUserDataDto {
+export interface AuthUserData {
   id: string;
   first_name: string;
   last_name?: string;

@@ -6,7 +6,8 @@ import { AuthConfigService, AuthUserService } from '@app/feature-auth-shared';
 import { PlatformType } from '@app/database';
 import { SessionService } from './session.service';
 import { MenuService } from './menu.service';
-import { AsyncResult, Ok, Err } from '@app/common-shared';
+import { AsyncResult } from '@app/common-shared';
+import { Ok, Err } from 'ts-results';
 
 /**
  * Extended Grammy Context with session support

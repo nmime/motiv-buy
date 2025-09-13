@@ -2,4 +2,6 @@ export type ClassConstructor<T = {}> = new (...args: any[]) => T;
 
 export type OptionalClassConstructor<T = {}> = ClassConstructor<T> | undefined;
 
-export type AsyncResult<T, E = Error> = Promise<{ success: true; data: T } | { success: false; error: E }>;
+import { Result } from 'ts-results';
+
+export type AsyncResult<T, E> = Promise<Result<T, E>>;

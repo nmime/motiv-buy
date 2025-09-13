@@ -3,10 +3,10 @@ import { IsBoolean, IsOptional } from 'class-validator';
 
 export class NotificationSettingsDto {
   @ApiProperty({ description: 'Enable notifications when order limits are reached' })
-  limitNotificationsEnabled: boolean;
+  limitNotificationsEnabled!: boolean;
 
   @ApiProperty({ description: 'Enable notifications for account inactivity' })
-  inactivityNotificationsEnabled: boolean;
+  inactivityNotificationsEnabled!: boolean;
 }
 
 export class UpdateNotificationSettingsDto {

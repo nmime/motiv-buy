@@ -22,5 +22,3 @@ export class UserRefLink {
     Object.assign(this, data);
   }
 }
-
-export class UserRefLinkDto extends UserRefLink {}

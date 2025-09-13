@@ -3,7 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { URL } from 'url';
 import { v4 as uuidV4 } from 'uuid';
 import { checkSignature, validateWebAppData } from '@grammyjs/validator';
-import { AsyncResult, Ok, Err } from '@app/common-shared';
+import { AsyncResult } from '@app/common-shared';
+import { Ok, Err } from 'ts-results';
 import {
   AuthConfigService,
   AuthJwtCacheService,
@@ -21,7 +22,8 @@ import {
 } from '@app/common-exception';
 import { UserRepository, UserLastAuthRepository, UserStatus, UserRole, UserEntity } from '@app/database';
 import { PlatformType } from '@app/database';
-import { AuthUserDataDto, TelegramWidgetAuthDto } from '../dto';
+import { TelegramWidgetAuthDto } from '../dto';
+import { AuthUserData } from '../type';
 
 @Injectable()
 export class AuthService {
@@ -77,9 +79,9 @@ export class AuthService {
       return Err(new TmaDataValidationException('Data validation failed'));
     }
 
-    let userData: AuthUserDataDto;
+    let userData: AuthUserData;
     try {
-      userData = JSON.parse(userSearchParam) as AuthUserDataDto;
+      userData = JSON.parse(userSearchParam) as AuthUserData;
     } catch (e) {
       return Err(new TmaDataValidationException('Data validation failed'));
     }

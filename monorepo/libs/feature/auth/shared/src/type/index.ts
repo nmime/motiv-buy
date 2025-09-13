@@ -1,3 +1,3 @@
-export * from './authenticated-request.type';
-export * from './auth-result.interface';
-export * from './user.interface';
+export * from './telegram-auth.params';
+export * from './user-data';
+export * from './user-ref-link';
