@@ -22,9 +22,21 @@ describe('MenuType Enum', () => {
 
     it('should have all expected enum keys', () => {
       const expectedKeys = [
-        'Main', 'Profile', 'Settings', 'Auth', 'Balance',
-        'Traffic', 'Statistics', 'Help', 'Admin', 'Campaign',
-        'Withdrawal', 'Referral', 'Notifications', 'Verification', 'Error'
+        'Main',
+        'Profile',
+        'Settings',
+        'Auth',
+        'Balance',
+        'Traffic',
+        'Statistics',
+        'Help',
+        'Admin',
+        'Campaign',
+        'Withdrawal',
+        'Referral',
+        'Notifications',
+        'Verification',
+        'Error',
       ];
 
       const actualKeys = Object.keys(MenuType);
@@ -35,7 +47,7 @@ describe('MenuType Enum', () => {
     it('should have unique values', () => {
       const values = Object.values(MenuType);
       const uniqueValues = [...new Set(values)];
-      
+
       expect(values).toHaveLength(uniqueValues.length);
     });
   });
@@ -77,7 +89,7 @@ describe('MenuType Enum', () => {
   describe('Enum Iteration', () => {
     it('should be iterable as values', () => {
       const values = Object.values(MenuType);
-      
+
       expect(values).toContain('main');
       expect(values).toContain('profile');
       expect(values).toContain('settings');
@@ -86,16 +98,14 @@ describe('MenuType Enum', () => {
 
     it('should be iterable as entries', () => {
       const entries = Object.entries(MenuType);
-      
+
       expect(entries).toContainEqual(['Main', 'main']);
       expect(entries).toContainEqual(['Profile', 'profile']);
       expect(entries).toContainEqual(['Settings', 'settings']);
     });
 
     it('should support mapping operations', () => {
-      const menuLabels = Object.values(MenuType).map(value => 
-        value.charAt(0).toUpperCase() + value.slice(1)
-      );
+      const menuLabels = Object.values(MenuType).map((value) => value.charAt(0).toUpperCase() + value.slice(1));
 
       expect(menuLabels).toContain('Main');
       expect(menuLabels).toContain('Profile');
@@ -151,16 +161,9 @@ describe('MenuType Enum', () => {
 
   describe('Edge Cases', () => {
     it('should handle enum in arrays correctly', () => {
-      const publicMenus = [
-        MenuType.Main,
-        MenuType.Help,
-        MenuType.Auth,
-      ];
+      const publicMenus = [MenuType.Main, MenuType.Help, MenuType.Auth];
 
-      const restrictedMenus = [
-        MenuType.Admin,
-        MenuType.Settings,
-      ];
+      const restrictedMenus = [MenuType.Admin, MenuType.Settings];
 
       expect(publicMenus).toHaveLength(3);
       expect(restrictedMenus).toHaveLength(2);
@@ -176,14 +179,13 @@ describe('MenuType Enum', () => {
         [MenuType.Main, 'Main Menu'],
         [MenuType.Profile, 'User Profile'],
       ]);
+
       expect(menuMap.get(MenuType.Main)).toBe('Main Menu');
     });
 
     it('should support filtering operations', () => {
       const allMenus = Object.values(MenuType);
-      const userMenus = allMenus.filter(menu => 
-        ![MenuType.Admin, MenuType.Error].includes(menu)
-      );
+      const userMenus = allMenus.filter((menu) => ![MenuType.Admin, MenuType.Error].includes(menu));
 
       expect(userMenus).not.toContain(MenuType.Admin);
       expect(userMenus).not.toContain(MenuType.Error);

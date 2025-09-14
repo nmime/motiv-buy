@@ -27,6 +27,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     }
 
     await this.em.flush();
+
     return userBalance;
   }
 
@@ -36,12 +37,15 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
       userBalance.balance = newBalance;
       await this.em.flush();
     }
+
     return userBalance;
   }
 
   async lockBalance(user: UserEntity, currency: CurrencyType, amount: string): Promise<boolean> {
     const userBalance = await this.findByUserAndCurrency(user.id, currency);
-    if (!userBalance) return false;
+    if (!userBalance) {
+      return false;
+    }
 
     const availableBalance = parseFloat(userBalance.balance);
     const lockAmount = parseFloat(amount);
@@ -50,6 +54,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
       userBalance.balance = (availableBalance - lockAmount).toString();
       userBalance.lockedBalance = (parseFloat(userBalance.lockedBalance) + lockAmount).toString();
       await this.em.flush();
+
       return true;
     }
 
@@ -58,7 +63,9 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
 
   async unlockBalance(user: UserEntity, currency: CurrencyType, amount: string): Promise<boolean> {
     const userBalance = await this.findByUserAndCurrency(user.id, currency);
-    if (!userBalance) return false;
+    if (!userBalance) {
+      return false;
+    }
 
     const lockedAmount = parseFloat(userBalance.lockedBalance);
     const unlockAmount = parseFloat(amount);
@@ -67,6 +74,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
       userBalance.lockedBalance = (lockedAmount - unlockAmount).toString();
       userBalance.balance = (parseFloat(userBalance.balance) + unlockAmount).toString();
       await this.em.flush();
+
       return true;
     }
 

@@ -153,17 +153,13 @@ describe('AuthComposer', () => {
         mockAuthService.getAuthState.mockResolvedValue({ step: 'initial' });
 
         // Simulate registration command handler
-        const registrationHandler = mockComposer.command.mock.calls
-          .find(call => call[0] === 'register')?.[1];
+        const registrationHandler = mockComposer.command.mock.calls.find((call) => call[0] === 'register')?.[1];
 
         if (registrationHandler) {
           await registrationHandler(ctx);
         }
 
-        expect(ctx.reply).toHaveBeenCalledWith(
-          expect.stringContaining('registration'),
-          expect.any(Object)
-        );
+        expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('registration'), expect.any(Object));
       });
 
       it('should validate registration data', async () => {
@@ -201,10 +197,7 @@ describe('AuthComposer', () => {
         await authComposer.sendVerificationCode(ctx, email);
 
         expect(mockAuthService.sendVerificationCode).toHaveBeenCalledWith(email);
-        expect(ctx.reply).toHaveBeenCalledWith(
-          expect.stringContaining('verification code'),
-          expect.any(Object)
-        );
+        expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('verification code'), expect.any(Object));
       });
 
       it('should verify registration code', async () => {
@@ -217,6 +210,7 @@ describe('AuthComposer', () => {
           email: 'test@example.com',
           code: '123456',
         });
+
         mockAuthService.verifyCode.mockResolvedValue({ success: true });
 
         await authComposer.verifyRegistrationCode(ctx);
@@ -230,17 +224,13 @@ describe('AuthComposer', () => {
         const ctx = createMockContext();
         mockSessionService.get.mockResolvedValue(null);
 
-        const loginHandler = mockComposer.command.mock.calls
-          .find(call => call[0] === 'login')?.[1];
+        const loginHandler = mockComposer.command.mock.calls.find((call) => call[0] === 'login')?.[1];
 
         if (loginHandler) {
           await loginHandler(ctx);
         }
 
-        expect(ctx.reply).toHaveBeenCalledWith(
-          expect.stringContaining('login'),
-          expect.any(Object)
-        );
+        expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('login'), expect.any(Object));
       });
 
       it('should authenticate user credentials', async () => {
@@ -259,7 +249,7 @@ describe('AuthComposer', () => {
         expect(mockAuthService.loginUser).toHaveBeenCalledWith(credentials);
         expect(mockSessionService.set).toHaveBeenCalledWith(
           expect.stringContaining('auth'),
-          expect.objectContaining({ authenticated: true })
+          expect.objectContaining({ authenticated: true }),
         );
       });
 
@@ -271,10 +261,7 @@ describe('AuthComposer', () => {
 
         await authComposer.authenticateUser(ctx, credentials);
 
-        expect(ctx.reply).toHaveBeenCalledWith(
-          expect.stringContaining('Invalid credentials'),
-          expect.any(Object)
-        );
+        expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Invalid credentials'), expect.any(Object));
       });
 
       it('should handle rate limiting', async () => {
@@ -284,10 +271,7 @@ describe('AuthComposer', () => {
         const rateLimited = await authComposer.checkRateLimit(ctx);
 
         expect(rateLimited).toBe(true);
-        expect(ctx.reply).toHaveBeenCalledWith(
-          expect.stringContaining('Too many login attempts'),
-          expect.any(Object)
-        );
+        expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Too many login attempts'), expect.any(Object));
       });
     });
 
@@ -296,8 +280,7 @@ describe('AuthComposer', () => {
         const ctx = createMockContext();
         mockSessionService.get.mockResolvedValue({ authenticated: true, userId: '123' });
 
-        const logoutHandler = mockComposer.command.mock.calls
-          .find(call => call[0] === 'logout')?.[1];
+        const logoutHandler = mockComposer.command.mock.calls.find((call) => call[0] === 'logout')?.[1];
 
         if (logoutHandler) {
           await logoutHandler(ctx);
@@ -313,13 +296,9 @@ describe('AuthComposer', () => {
 
         await authComposer.logoutUser(ctx, userId);
 
-        expect(mockSessionService.delete).toHaveBeenCalledWith(
-          expect.stringContaining(userId)
-        );
-        expect(ctx.reply).toHaveBeenCalledWith(
-          expect.stringContaining('logged out'),
-          expect.any(Object)
-        );
+        expect(mockSessionService.delete).toHaveBeenCalledWith(expect.stringContaining(userId));
+
+        expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('logged out'), expect.any(Object));
       });
     });
   });
@@ -332,12 +311,12 @@ describe('AuthComposer', () => {
 
         for (let i = 0; i < states.length - 1; i++) {
           mockSessionService.get.mockResolvedValue({ step: states[i] });
-          
+
           await authComposer.transitionState(ctx, states[i + 1]);
 
           expect(mockSessionService.set).toHaveBeenCalledWith(
             expect.any(String),
-            expect.objectContaining({ step: states[i + 1] })
+            expect.objectContaining({ step: states[i + 1] }),
           );
         }
       });
@@ -380,7 +359,7 @@ describe('AuthComposer', () => {
         expect(mockSessionService.set).toHaveBeenCalledWith(
           expect.stringContaining('auth'),
           authState,
-          600 // 10 minutes TTL
+          600, // 10 minutes TTL
         );
       });
     });
@@ -400,7 +379,7 @@ describe('AuthComposer', () => {
           expect.objectContaining({
             step: 'password',
             email: 'user@example.com',
-          })
+          }),
         );
       });
 
@@ -413,10 +392,7 @@ describe('AuthComposer', () => {
 
         await authComposer.handleEmailInput(ctx);
 
-        expect(ctx.reply).toHaveBeenCalledWith(
-          expect.stringContaining('valid email'),
-          expect.any(Object)
-        );
+        expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('valid email'), expect.any(Object));
       });
 
       it('should handle password collection step', async () => {
@@ -436,7 +412,7 @@ describe('AuthComposer', () => {
           expect.objectContaining({
             step: 'confirmation',
             password: expect.any(String), // Should be hashed
-          })
+          }),
         );
       });
 
@@ -452,10 +428,7 @@ describe('AuthComposer', () => {
 
           await authComposer.handlePasswordInput(ctx);
 
-          expect(ctx.reply).toHaveBeenCalledWith(
-            expect.stringContaining('Password must'),
-            expect.any(Object)
-          );
+          expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Password must'), expect.any(Object));
         }
       });
     });
@@ -472,8 +445,9 @@ describe('AuthComposer', () => {
         },
       });
 
-      const callbackHandler = mockComposer.callbackQuery.mock.calls
-        .find(call => call[0].toString() === '/^auth:/')?.[1];
+      const callbackHandler = mockComposer.callbackQuery.mock.calls.find(
+        (call) => call[0].toString() === '/^auth:/',
+      )?.[1];
 
       if (callbackHandler) {
         await callbackHandler(ctx);
@@ -499,7 +473,7 @@ describe('AuthComposer', () => {
         expect.objectContaining({
           step: 'email',
           method: 'email',
-        })
+        }),
       );
     });
 
@@ -515,10 +489,7 @@ describe('AuthComposer', () => {
 
       await authComposer.handleAuthCallback(ctx, 'login', 'credentials');
 
-      expect(ctx.editMessageText).toHaveBeenCalledWith(
-        expect.stringContaining('Enter your email'),
-        expect.any(Object)
-      );
+      expect(ctx.editMessageText).toHaveBeenCalledWith(expect.stringContaining('Enter your email'), expect.any(Object));
     });
 
     it('should handle auth cancellation', async () => {
@@ -534,27 +505,25 @@ describe('AuthComposer', () => {
       await authComposer.handleAuthCallback(ctx, 'cancel');
 
       expect(mockSessionService.delete).toHaveBeenCalled();
-      expect(ctx.editMessageText).toHaveBeenCalledWith(
-        expect.stringContaining('cancelled'),
-        expect.any(Object)
-      );
+      expect(ctx.editMessageText).toHaveBeenCalledWith(expect.stringContaining('cancelled'), expect.any(Object));
     });
   });
 
   describe('Integration Tests', () => {
     it('should complete full registration flow', async () => {
       const ctx = createMockContext();
-      
+
       // Step 1: Start registration
       mockSessionService.get.mockResolvedValueOnce(null);
-      const registrationHandler = mockComposer.command.mock.calls
-        .find(call => call[0] === 'register')?.[1];
-      
-      if (registrationHandler) await registrationHandler(ctx);
+      const registrationHandler = mockComposer.command.mock.calls.find((call) => call[0] === 'register')?.[1];
+
+      if (registrationHandler) {
+        await registrationHandler(ctx);
+      }
 
       // Step 2: Enter email
       mockSessionService.get.mockResolvedValueOnce({ step: 'email' });
-      ctx.message!.text = 'user@example.com';
+      ctx.message.text = 'user@example.com';
       await authComposer.handleEmailInput(ctx);
 
       // Step 3: Enter password
@@ -562,7 +531,8 @@ describe('AuthComposer', () => {
         step: 'password',
         email: 'user@example.com',
       });
-      ctx.message!.text = 'SecurePass123!';
+
+      ctx.message.text = 'SecurePass123!';
       await authComposer.handlePasswordInput(ctx);
 
       // Step 4: Verify code
@@ -570,14 +540,15 @@ describe('AuthComposer', () => {
         step: 'verification',
         email: 'user@example.com',
       });
+
       mockAuthService.verifyCode.mockResolvedValue({ success: true });
-      ctx.message!.text = '123456';
+      ctx.message.text = '123456';
       await authComposer.verifyRegistrationCode(ctx);
 
       expect(mockAuthService.registerUser).toHaveBeenCalled();
       expect(mockSessionService.set).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ authenticated: true })
+        expect.objectContaining({ authenticated: true }),
       );
     });
 
@@ -586,10 +557,11 @@ describe('AuthComposer', () => {
 
       // Step 1: Start login
       mockSessionService.get.mockResolvedValueOnce(null);
-      const loginHandler = mockComposer.command.mock.calls
-        .find(call => call[0] === 'login')?.[1];
-      
-      if (loginHandler) await loginHandler(ctx);
+      const loginHandler = mockComposer.command.mock.calls.find((call) => call[0] === 'login')?.[1];
+
+      if (loginHandler) {
+        await loginHandler(ctx);
+      }
 
       // Step 2: Enter credentials
       mockSessionService.get.mockResolvedValueOnce({ step: 'credentials' });
@@ -607,7 +579,7 @@ describe('AuthComposer', () => {
       expect(mockAuthService.loginUser).toHaveBeenCalled();
       expect(mockSessionService.set).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ authenticated: true })
+        expect.objectContaining({ authenticated: true }),
       );
     });
 
@@ -621,7 +593,7 @@ describe('AuthComposer', () => {
       expect(mockBotService.sendMessage).not.toHaveBeenCalledWith(
         expect.any(Number),
         expect.stringContaining('Please log in'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -636,10 +608,7 @@ describe('AuthComposer', () => {
         password: 'password123',
       });
 
-      expect(ctx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('network error'),
-        expect.any(Object)
-      );
+      expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('network error'), expect.any(Object));
     });
 
     it('should handle session corruption', async () => {
@@ -651,7 +620,7 @@ describe('AuthComposer', () => {
       expect(mockSessionService.delete).toHaveBeenCalled();
       expect(mockSessionService.set).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ step: 'initial' })
+        expect.objectContaining({ step: 'initial' }),
       );
     });
 
@@ -661,10 +630,7 @@ describe('AuthComposer', () => {
 
       await authComposer.getAuthState(ctx);
 
-      expect(ctx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('temporarily unavailable'),
-        expect.any(Object)
-      );
+      expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('temporarily unavailable'), expect.any(Object));
     });
   });
 
@@ -678,13 +644,9 @@ describe('AuthComposer', () => {
 
       await authComposer.regenerateSession(ctx);
 
-      expect(mockSessionService.delete).toHaveBeenCalledWith(
-        expect.stringContaining(oldSessionId)
-      );
-      expect(mockSessionService.set).toHaveBeenCalledWith(
-        expect.stringContaining(newSessionId),
-        expect.any(Object)
-      );
+      expect(mockSessionService.delete).toHaveBeenCalledWith(expect.stringContaining(oldSessionId));
+
+      expect(mockSessionService.set).toHaveBeenCalledWith(expect.stringContaining(newSessionId), expect.any(Object));
     });
 
     it('should enforce session timeouts', async () => {
@@ -720,7 +682,7 @@ describe('AuthComposer', () => {
         expect.any(String),
         expect.objectContaining({
           email: 'user@example.com', // XSS attempt removed
-        })
+        }),
       );
     });
   });
@@ -741,13 +703,13 @@ describe('AuthComposer', () => {
     });
 
     it('should handle concurrent auth requests', async () => {
-      const contexts = Array(10).fill(null).map((_, i) =>
-        createMockContext({ from: { ...createMockContext().from, id: i } })
-      );
+      const contexts = Array(10)
+        .fill(null)
+        .map((_, i) => createMockContext({ from: { ...createMockContext().from, id: i } }));
 
       mockSessionService.get.mockResolvedValue({ step: 'initial' });
 
-      const promises = contexts.map(ctx => authComposer.getAuthState(ctx));
+      const promises = contexts.map((ctx) => authComposer.getAuthState(ctx));
       const results = await Promise.all(promises);
 
       expect(results).toHaveLength(10);
@@ -789,10 +751,9 @@ describe('AuthComposer', () => {
 
       await authComposer.handleAuthCallback(ctx, 'invalid', 'format');
 
-      expect(ctx.answerCallbackQuery).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid action'),
-        { show_alert: true }
-      );
+      expect(ctx.answerCallbackQuery).toHaveBeenCalledWith(expect.stringContaining('Invalid action'), {
+        show_alert: true,
+      });
     });
 
     it('should handle empty message text', async () => {
@@ -804,10 +765,7 @@ describe('AuthComposer', () => {
 
       await authComposer.handleEmailInput(ctx);
 
-      expect(ctx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Please enter'),
-        expect.any(Object)
-      );
+      expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Please enter'), expect.any(Object));
     });
 
     it('should handle very long input', async () => {
@@ -820,10 +778,7 @@ describe('AuthComposer', () => {
 
       await authComposer.handleEmailInput(ctx);
 
-      expect(ctx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('too long'),
-        expect.any(Object)
-      );
+      expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('too long'), expect.any(Object));
     });
 
     it('should handle unicode characters', async () => {
@@ -839,7 +794,7 @@ describe('AuthComposer', () => {
       // Should handle international domain names
       expect(mockSessionService.set).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ email: unicodeEmail })
+        expect.objectContaining({ email: unicodeEmail }),
       );
     });
   });

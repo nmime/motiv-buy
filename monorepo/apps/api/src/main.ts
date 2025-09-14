@@ -14,6 +14,7 @@ async function bootstrap() {
       trustProxy: true,
     }),
   );
+
   const configService = app.get(ConfigService);
 
   // Simple app config inline

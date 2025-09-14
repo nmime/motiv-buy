@@ -82,6 +82,7 @@ export function assignEntityData(
         config.entityClass as new (...args: unknown[]) => object,
         idValue as string,
       );
+
       processedKeys.add(idKey);
     } else if (config.required) {
       throw new Error(`Required relation '${config.field}' or '${idKey}' is missing`);

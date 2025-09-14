@@ -37,7 +37,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
     });
   }
 
-  async findTopPerformers(limit: number = 10): Promise<TrafficUserEntity[]> {
+  async findTopPerformers(limit = 10): Promise<TrafficUserEntity[]> {
     return this.find(
       { status: TrafficUserStatus.Active },
       { orderBy: { completionRate: 'DESC', totalEarnings: 'DESC' }, limit },
@@ -72,6 +72,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
     });
 
     await this.em.persistAndFlush(trafficUser);
+
     return trafficUser;
   }
 

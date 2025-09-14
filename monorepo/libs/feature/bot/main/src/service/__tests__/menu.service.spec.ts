@@ -81,10 +81,7 @@ describe('MenuService', () => {
     } as any;
 
     module = await Test.createTestingModule({
-      providers: [
-        MenuService,
-        { provide: SessionService, useValue: mockSessionService },
-      ],
+      providers: [MenuService, { provide: SessionService, useValue: mockSessionService }],
     }).compile();
 
     service = module.get<MenuService>(MenuService);
@@ -98,6 +95,7 @@ describe('MenuService', () => {
     if (module) {
       await module.close();
     }
+
     jest.clearAllMocks();
   });
 
@@ -117,134 +115,140 @@ describe('MenuService', () => {
     it('should generate main menu correctly', () => {
       const menu = service.generateMenu(MenuType.Main, mockCtx);
 
-      expect(menu).toEqual(expect.objectContaining({
-        type: MenuType.Main,
-        title: expect.stringContaining('Welcome, Test!'),
-        description: expect.any(String),
-        buttons: expect.arrayContaining([
-          expect.arrayContaining([
-            expect.objectContaining({ text: '📈 Statistics', callbackData: 'menu:statistics' }),
-            expect.objectContaining({ text: '💰 Balance', callbackData: 'menu:balance' }),
+      expect(menu).toEqual(
+        expect.objectContaining({
+          type: MenuType.Main,
+          title: expect.stringContaining('Welcome, Test!'),
+          description: expect.any(String),
+          buttons: expect.arrayContaining([
+            expect.arrayContaining([
+              expect.objectContaining({ text: '📈 Statistics', callbackData: 'menu:statistics' }),
+              expect.objectContaining({ text: '💰 Balance', callbackData: 'menu:balance' }),
+            ]),
           ]),
-        ]),
-        isInline: true,
-      }));
+          isInline: true,
+        }),
+      );
     });
 
     it('should generate profile menu correctly', () => {
       const menu = service.generateMenu(MenuType.Profile, mockCtx);
 
-      expect(menu).toEqual(expect.objectContaining({
-        type: MenuType.Profile,
-        title: 'Your Profile 👤',
-        buttons: expect.arrayContaining([
-          expect.arrayContaining([
-            expect.objectContaining({ text: '📝 Edit Info', callbackData: 'profile:edit' }),
+      expect(menu).toEqual(
+        expect.objectContaining({
+          type: MenuType.Profile,
+          title: 'Your Profile 👤',
+          buttons: expect.arrayContaining([
+            expect.arrayContaining([expect.objectContaining({ text: '📝 Edit Info', callbackData: 'profile:edit' })]),
           ]),
-        ]),
-        isInline: true,
-      }));
+          isInline: true,
+        }),
+      );
     });
 
     it('should generate settings menu correctly', () => {
       const menu = service.generateMenu(MenuType.Settings, mockCtx);
 
-      expect(menu).toEqual(expect.objectContaining({
-        type: MenuType.Settings,
-        title: 'Settings ⚙️',
-        buttons: expect.arrayContaining([
-          expect.arrayContaining([
-            expect.objectContaining({ text: '🌍 Language', callbackData: 'settings:language' }),
+      expect(menu).toEqual(
+        expect.objectContaining({
+          type: MenuType.Settings,
+          title: 'Settings ⚙️',
+          buttons: expect.arrayContaining([
+            expect.arrayContaining([
+              expect.objectContaining({ text: '🌍 Language', callbackData: 'settings:language' }),
+            ]),
           ]),
-        ]),
-        isInline: true,
-      }));
+          isInline: true,
+        }),
+      );
     });
 
     it('should generate balance menu correctly', () => {
       const menu = service.generateMenu(MenuType.Balance, mockCtx);
 
-      expect(menu).toEqual(expect.objectContaining({
-        type: MenuType.Balance,
-        title: 'Balance & Earnings 💰',
-        buttons: expect.arrayContaining([
-          expect.arrayContaining([
-            expect.objectContaining({ text: '💵 Current Balance', callbackData: 'balance:current' }),
+      expect(menu).toEqual(
+        expect.objectContaining({
+          type: MenuType.Balance,
+          title: 'Balance & Earnings 💰',
+          buttons: expect.arrayContaining([
+            expect.arrayContaining([
+              expect.objectContaining({ text: '💵 Current Balance', callbackData: 'balance:current' }),
+            ]),
           ]),
-        ]),
-        isInline: true,
-      }));
+          isInline: true,
+        }),
+      );
     });
 
     it('should generate traffic menu correctly', () => {
       const menu = service.generateMenu(MenuType.Traffic, mockCtx);
 
-      expect(menu).toEqual(expect.objectContaining({
-        type: MenuType.Traffic,
-        title: 'Traffic Management 🎯',
-        buttons: expect.arrayContaining([
-          expect.arrayContaining([
-            expect.objectContaining({ text: '📉 Live Stats', callbackData: 'traffic:live' }),
+      expect(menu).toEqual(
+        expect.objectContaining({
+          type: MenuType.Traffic,
+          title: 'Traffic Management 🎯',
+          buttons: expect.arrayContaining([
+            expect.arrayContaining([expect.objectContaining({ text: '📉 Live Stats', callbackData: 'traffic:live' })]),
           ]),
-        ]),
-      }));
+        }),
+      );
     });
 
     it('should generate statistics menu correctly', () => {
       const menu = service.generateMenu(MenuType.Statistics, mockCtx);
 
-      expect(menu).toEqual(expect.objectContaining({
-        type: MenuType.Statistics,
-        title: 'Statistics 📈',
-        buttons: expect.arrayContaining([
-          expect.arrayContaining([
-            expect.objectContaining({ text: '📈 Overview', callbackData: 'stats:overview' }),
+      expect(menu).toEqual(
+        expect.objectContaining({
+          type: MenuType.Statistics,
+          title: 'Statistics 📈',
+          buttons: expect.arrayContaining([
+            expect.arrayContaining([expect.objectContaining({ text: '📈 Overview', callbackData: 'stats:overview' })]),
           ]),
-        ]),
-      }));
+        }),
+      );
     });
 
     it('should generate help menu correctly', () => {
       const menu = service.generateMenu(MenuType.Help, mockCtx);
 
-      expect(menu).toEqual(expect.objectContaining({
-        type: MenuType.Help,
-        title: 'Help & Support ❓',
-        buttons: expect.arrayContaining([
-          expect.arrayContaining([
-            expect.objectContaining({ text: '📝 FAQ', callbackData: 'help:faq' }),
+      expect(menu).toEqual(
+        expect.objectContaining({
+          type: MenuType.Help,
+          title: 'Help & Support ❓',
+          buttons: expect.arrayContaining([
+            expect.arrayContaining([expect.objectContaining({ text: '📝 FAQ', callbackData: 'help:faq' })]),
           ]),
-        ]),
-      }));
+        }),
+      );
     });
 
     it('should generate admin menu correctly', () => {
       const menu = service.generateMenu(MenuType.Admin, mockCtx);
 
-      expect(menu).toEqual(expect.objectContaining({
-        type: MenuType.Admin,
-        title: 'Admin Panel 🔧',
-        buttons: expect.arrayContaining([
-          expect.arrayContaining([
-            expect.objectContaining({ text: '📈 System Stats', callbackData: 'admin:stats' }),
+      expect(menu).toEqual(
+        expect.objectContaining({
+          type: MenuType.Admin,
+          title: 'Admin Panel 🔧',
+          buttons: expect.arrayContaining([
+            expect.arrayContaining([expect.objectContaining({ text: '📈 System Stats', callbackData: 'admin:stats' })]),
           ]),
-        ]),
-      }));
+        }),
+      );
     });
 
     it('should generate default menu for unknown types', () => {
       const unknownType = 'unknown' as MenuType;
       const menu = service.generateMenu(unknownType, mockCtx);
 
-      expect(menu).toEqual(expect.objectContaining({
-        type: unknownType,
-        title: 'Menu',
-        buttons: expect.arrayContaining([
-          expect.arrayContaining([
-            expect.objectContaining({ text: '⬅️ Back to Main', callbackData: 'menu:main' }),
+      expect(menu).toEqual(
+        expect.objectContaining({
+          type: unknownType,
+          title: 'Menu',
+          buttons: expect.arrayContaining([
+            expect.arrayContaining([expect.objectContaining({ text: '⬅️ Back to Main', callbackData: 'menu:main' })]),
           ]),
-        ]),
-      }));
+        }),
+      );
     });
 
     it('should handle context without user data', () => {
@@ -272,8 +276,9 @@ describe('MenuService', () => {
           navigationState: expect.objectContaining({
             currentLocation: MenuType.Profile,
           }),
-        })
+        }),
       );
+
       expect(mockCtx.replyWithHTML).toHaveBeenCalled();
     });
 
@@ -300,9 +305,7 @@ describe('MenuService', () => {
 
       await service.navigateToMenu(mockCtx, MenuType.Profile);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        'Failed to navigate to menu. Please try again.'
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('Failed to navigate to menu. Please try again.');
     });
 
     it('should update navigation state correctly', async () => {
@@ -319,7 +322,7 @@ describe('MenuService', () => {
             currentLocation: MenuType.Profile,
             history: expect.arrayContaining([MenuType.Settings]),
           }),
-        })
+        }),
       );
     });
 
@@ -479,9 +482,7 @@ describe('MenuService', () => {
           { text: 'Button 1', callbackData: 'action:1' },
           { text: 'Button 2', callbackData: 'action:2' },
         ],
-        [
-          { text: 'URL Button', callbackData: 'url:test', url: 'https://example.com' },
-        ],
+        [{ text: 'URL Button', callbackData: 'url:test', url: 'https://example.com' }],
       ];
 
       const keyboard = (service as any).createInlineKeyboard(buttons);
@@ -582,9 +583,9 @@ describe('MenuService', () => {
     });
 
     it('should handle multiple concurrent menu generations', () => {
-      const promises = Array(10).fill(null).map(() => 
-        service.generateMenu(MenuType.Main, mockCtx)
-      );
+      const promises = Array(10)
+        .fill(null)
+        .map(() => service.generateMenu(MenuType.Main, mockCtx));
 
       const results = Promise.all(promises);
 
@@ -600,9 +601,9 @@ describe('MenuService', () => {
     });
 
     it('should handle concurrent navigation requests', async () => {
-      const promises = Array(5).fill(null).map(() => 
-        service.navigateToMenu(mockCtx, MenuType.Profile)
-      );
+      const promises = Array(5)
+        .fill(null)
+        .map(() => service.navigateToMenu(mockCtx, MenuType.Profile));
 
       await Promise.all(promises);
 
@@ -622,9 +623,7 @@ describe('MenuService', () => {
 
       await service.navigateToMenu(mockCtx, MenuType.Profile);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        'Failed to navigate to menu. Please try again.'
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('Failed to navigate to menu. Please try again.');
     });
 
     it('should handle menu formatting errors', () => {
@@ -669,18 +668,18 @@ describe('MenuService', () => {
     it('should maintain navigation consistency', async () => {
       // Navigate to profile
       await service.navigateToMenu(mockCtx, MenuType.Profile);
-      
+
       // Navigate to settings
       await service.navigateToMenu(mockCtx, MenuType.Settings);
-      
+
       // Go back should return to profile
       const session = createMockSession();
       session.data.navigationState.history = [MenuType.Profile];
       mockSessionService.getSession.mockResolvedValue(session);
-      
+
       const navigateToMenuSpy = jest.spyOn(service, 'navigateToMenu').mockResolvedValue();
       await service.goBack(mockCtx);
-      
+
       expect(navigateToMenuSpy).toHaveBeenCalledWith(mockCtx, MenuType.Profile);
     });
   });

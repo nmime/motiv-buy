@@ -9,7 +9,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     super(em, UserBalanceHistoryEntity);
   }
 
-  async findByUser(user: UserEntity, limit: number = 50, offset: number = 0): Promise<UserBalanceHistoryEntity[]> {
+  async findByUser(user: UserEntity, limit = 50, offset = 0): Promise<UserBalanceHistoryEntity[]> {
     return this.find(
       { user },
       {
@@ -24,7 +24,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
   async findByUserAndCurrency(
     user: UserEntity,
     currency: CurrencyType,
-    limit: number = 50,
+    limit = 50,
   ): Promise<UserBalanceHistoryEntity[]> {
     return this.find(
       { user, currency },
@@ -36,7 +36,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     );
   }
 
-  async findByTransactionType(type: TransactionType, limit: number = 50): Promise<UserBalanceHistoryEntity[]> {
+  async findByTransactionType(type: TransactionType, limit = 50): Promise<UserBalanceHistoryEntity[]> {
     return this.find(
       { type },
       {
@@ -47,7 +47,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     );
   }
 
-  async findByStatus(status: TransactionStatus, limit: number = 50): Promise<UserBalanceHistoryEntity[]> {
+  async findByStatus(status: TransactionStatus, limit = 50): Promise<UserBalanceHistoryEntity[]> {
     return this.find(
       { status },
       {
@@ -89,7 +89,9 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
       metadata: data.metadata,
       status: data.status,
     });
+
     await this.em.persistAndFlush(transaction);
+
     return transaction;
   }
 
@@ -104,7 +106,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
   async getTransactionStats(
     user?: UserEntity,
     currency?: CurrencyType,
-    days: number = 30,
+    days = 30,
   ): Promise<{
     totalTransactions: number;
     totalVolume: string;
@@ -118,8 +120,13 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
       createdAt: { $gte: dateFrom },
     };
 
-    if (user) conditions.user = user;
-    if (currency) conditions.currency = currency;
+    if (user) {
+      conditions.user = user;
+    }
+
+    if (currency) {
+      conditions.currency = currency;
+    }
 
     const [total, successful, failed] = await Promise.all([
       this.count(conditions),
@@ -153,14 +160,19 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
     telegramId: string,
     currency?: CurrencyType,
     type?: TransactionType,
-    limit: number = 50,
+    limit = 50,
   ): Promise<UserBalanceHistoryEntity[]> {
     const conditions: FilterQuery<UserBalanceHistoryEntity> = {
       user: { telegramId },
     };
 
-    if (currency) conditions.currency = currency;
-    if (type) conditions.type = type;
+    if (currency) {
+      conditions.currency = currency;
+    }
+
+    if (type) {
+      conditions.type = type;
+    }
 
     return this.find(conditions, {
       orderBy: { createdAt: QueryOrder.DESC },

@@ -6,7 +6,7 @@ export class UnauthorizedException extends Exception({
   problemType: 'unauthorized',
   title: 'Unauthorized',
 }) {
-  constructor(message: string = 'Unauthorized') {
+  constructor(message = 'Unauthorized') {
     super({
       detail: message,
     });

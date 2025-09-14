@@ -1,43 +1,38 @@
 import { Injectable } from '@nestjs/common';
-import { UserEntity, UserRole, UserStatus } from '@app/database';
-
-interface UserResponseDto {
-  id: string;
-  telegramId: string;
-  firstName: string;
-  lastName?: string;
-  username?: string;
-  status: UserStatus;
-  languageCode?: string;
-  referredBy?: string;
-  referralCount: number;
-  role: UserRole;
-  createdAt: Date;
-  updatedAt: Date;
-  lastActiveAt?: Date;
-}
+import { UserEntity } from '@app/database';
+import { UserResponseDto, ReferralStatsDto, ReferralLinkDto, NotificationSettingsDto } from '../dto';
+import { UserReferralData, ReferralStatsData, ReferralLinkData, NotificationSettingsData } from '../type';
 
 @Injectable()
 export class UserMapper {
-  toResponse(user: UserEntity): UserResponseDto {
+  toResponse(user: UserEntity, referralData: UserReferralData): UserResponseDto {
     return {
       id: user.id,
-      telegramId: user.telegramId,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      name: user.firstName,
       username: user.username,
-      status: user.status,
-      languageCode: user.languageCode,
-      referredBy: user.referredBy,
-      referralCount: user.referralCount,
-      role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      lastActiveAt: user.lastActiveAt,
+      language: user.languageCode,
+      referral: referralData,
     };
   }
 
-  toResponseArray(users: UserEntity[]): UserResponseDto[] {
-    return users.map((user) => this.toResponse(user));
+  toReferralStats(data: ReferralStatsData): ReferralStatsDto {
+    return {
+      totalReferrals: data.totalReferrals,
+      totalEarnings: data.totalEarnings,
+    };
+  }
+
+  toReferralLink(data: ReferralLinkData): ReferralLinkDto {
+    return {
+      telegramMessage: data.telegramMessage,
+      link: data.link,
+    };
+  }
+
+  toNotificationSettings(data: NotificationSettingsData): NotificationSettingsDto {
+    return {
+      limitNotificationsEnabled: data.limitNotificationsEnabled,
+      inactivityNotificationsEnabled: data.inactivityNotificationsEnabled,
+    };
   }
 }

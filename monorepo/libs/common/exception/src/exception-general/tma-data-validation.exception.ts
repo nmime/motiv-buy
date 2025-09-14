@@ -6,7 +6,7 @@ export class TmaDataValidationException extends Exception({
   problemType: 'tma_data_validation_failed',
   title: 'TMA Data Validation Failed',
 }) {
-  constructor(message: string = 'TMA data validation failed') {
+  constructor(message = 'TMA data validation failed') {
     super({
       detail: message,
     });

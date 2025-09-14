@@ -81,11 +81,11 @@ describe('CallbackHandler', () => {
       },
       preferences: {
         language: 'en',
-        notifications: { 
-          enablePush: true, 
-          enableEmail: false, 
-          enableSms: false, 
-          categories: { balance: true, campaigns: false } 
+        notifications: {
+          enablePush: true,
+          enableEmail: false,
+          enableSms: false,
+          categories: { balance: true, campaigns: false },
         },
         display: { theme: 'auto', timezone: 'UTC', dateFormat: 'DD/MM/YYYY', numberFormat: 'en-US' },
         privacy: { shareAnalytics: true, shareUsageData: true, allowDataExport: true },
@@ -101,9 +101,9 @@ describe('CallbackHandler', () => {
   });
 
   const createMockBalance = () => ({
-    availableAmount: 100.50,
-    pendingAmount: 25.00,
-    totalEarned: 500.00,
+    availableAmount: 100.5,
+    pendingAmount: 25.0,
+    totalEarned: 500.0,
     lastTransactionAt: new Date('2023-06-01'),
   });
 
@@ -164,6 +164,7 @@ describe('CallbackHandler', () => {
     if (module) {
       await module.close();
     }
+
     jest.clearAllMocks();
   });
 
@@ -192,8 +193,9 @@ describe('CallbackHandler', () => {
               lastCallback: 'test:callback',
             }),
           }),
-        })
+        }),
       );
+
       expect(mockCtx.answerCallbackQuery).toHaveBeenCalled();
     });
 
@@ -210,27 +212,28 @@ describe('CallbackHandler', () => {
 
       await handler.processCallbackQuery(mockCtx);
 
-      expect(Logger.prototype.warn).toHaveBeenCalledWith(
-        'Callback query received without data',
-        expect.any(Object)
-      );
+      expect(Logger.prototype.warn).toHaveBeenCalledWith('Callback query received without data', expect.any(Object));
     });
 
     it('should handle callback processing errors', async () => {
-      const routeCallbackSpy = jest.spyOn(handler as any, 'routeCallback').mockRejectedValue(new Error('Processing failed'));
+      const routeCallbackSpy = jest
+        .spyOn(handler as any, 'routeCallback')
+        .mockRejectedValue(new Error('Processing failed'));
 
       await handler.processCallbackQuery(mockCtx);
 
       expect(mockCtx.answerCallbackQuery).toHaveBeenCalledWith('Something went wrong. Please try again.');
       expect(mockCtx.reply).toHaveBeenCalledWith(
         expect.stringContaining('Callback error: Processing failed'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
     it('should handle answer callback query errors', async () => {
       mockCtx.answerCallbackQuery.mockRejectedValue(new Error('Answer failed'));
-      const routeCallbackSpy = jest.spyOn(handler as any, 'routeCallback').mockRejectedValue(new Error('Processing failed'));
+      const routeCallbackSpy = jest
+        .spyOn(handler as any, 'routeCallback')
+        .mockRejectedValue(new Error('Processing failed'));
 
       await handler.processCallbackQuery(mockCtx);
 
@@ -238,7 +241,7 @@ describe('CallbackHandler', () => {
         'Failed to answer callback query',
         expect.objectContaining({
           answerError: 'Answer failed',
-        })
+        }),
       );
     });
 
@@ -282,7 +285,7 @@ describe('CallbackHandler', () => {
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
         expect.stringContaining('Profile editing is coming soon'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -307,10 +310,7 @@ describe('CallbackHandler', () => {
 
       await handler.processCallbackQuery(mockCtx);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Contact Support'),
-        expect.any(Object)
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Contact Support'), expect.any(Object));
     });
 
     it('should route back callbacks', async () => {
@@ -340,6 +340,7 @@ describe('CallbackHandler', () => {
         maxHistoryLength: 5,
         canGoBack: false,
       });
+
       mockCtx.callbackQuery!.data = 'refresh';
 
       await handler.processCallbackQuery(mockCtx);
@@ -364,7 +365,7 @@ describe('CallbackHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
   });
@@ -406,7 +407,7 @@ describe('CallbackHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       expect(mockSessionService.createSession).toHaveBeenCalledWith(
@@ -416,7 +417,7 @@ describe('CallbackHandler', () => {
             currentStep: 'registered',
             context: { justRegistered: true },
           }),
-        })
+        }),
       );
     });
 
@@ -449,7 +450,7 @@ describe('CallbackHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -461,7 +462,7 @@ describe('CallbackHandler', () => {
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
         expect.stringContaining('❌ Registration failed due to a technical error'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -476,12 +477,10 @@ describe('CallbackHandler', () => {
         expect.objectContaining({
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.arrayContaining([
-              expect.arrayContaining([
-                expect.objectContaining({ text: '🚀 Start Over' }),
-              ]),
+              expect.arrayContaining([expect.objectContaining({ text: '🚀 Start Over' })]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -495,12 +494,10 @@ describe('CallbackHandler', () => {
         expect.objectContaining({
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.arrayContaining([
-              expect.arrayContaining([
-                expect.objectContaining({ text: '🚀 Start' }),
-              ]),
+              expect.arrayContaining([expect.objectContaining({ text: '🚀 Start' })]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -541,7 +538,7 @@ describe('CallbackHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       const statsCall = mockCtx.replyWithHTML.mock.calls[0];
@@ -580,7 +577,7 @@ describe('CallbackHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -613,12 +610,10 @@ describe('CallbackHandler', () => {
         expect.objectContaining({
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.arrayContaining([
-              expect.arrayContaining([
-                expect.objectContaining({ text: '🔕 Disable Push' }),
-              ]),
+              expect.arrayContaining([expect.objectContaining({ text: '🔕 Disable Push' })]),
             ]),
           }),
-        })
+        }),
       );
 
       const settingsCall = mockCtx.replyWithHTML.mock.calls[0];
@@ -647,7 +642,7 @@ describe('CallbackHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -661,12 +656,10 @@ describe('CallbackHandler', () => {
         expect.objectContaining({
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.arrayContaining([
-              expect.arrayContaining([
-                expect.objectContaining({ text: '⬅️ Back' }),
-              ]),
+              expect.arrayContaining([expect.objectContaining({ text: '⬅️ Back' })]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -682,12 +675,10 @@ describe('CallbackHandler', () => {
         expect.objectContaining({
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.arrayContaining([
-              expect.arrayContaining([
-                expect.objectContaining({ text: '📊❌ Disable Analytics' }),
-              ]),
+              expect.arrayContaining([expect.objectContaining({ text: '📊❌ Disable Analytics' })]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -719,7 +710,7 @@ describe('CallbackHandler', () => {
           preferences: {
             language: 'es',
           },
-        })
+        }),
       );
 
       expect(mockCtx.reply).toHaveBeenCalledWith('🌍 Language changed to Español');
@@ -776,8 +767,9 @@ describe('CallbackHandler', () => {
               categories: {},
             },
           },
-        })
+        }),
       );
+
       expect(mockCtx.reply).toHaveBeenCalledWith('🔔 Notification settings have been reset to defaults.');
     });
 
@@ -798,8 +790,9 @@ describe('CallbackHandler', () => {
               shareAnalytics: true,
             }),
           }),
-        })
+        }),
       );
+
       expect(mockCtx.reply).toHaveBeenCalledWith('⚙️ All preferences have been reset to defaults.');
     });
 
@@ -813,8 +806,9 @@ describe('CallbackHandler', () => {
         expect.objectContaining({
           cache: {},
           formData: {},
-        })
+        }),
       );
+
       expect(mockCtx.reply).toHaveBeenCalledWith('🧹 Cache has been cleared successfully.');
     });
 
@@ -851,7 +845,7 @@ describe('CallbackHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       const faqCall = mockCtx.replyWithHTML.mock.calls[0];
@@ -873,14 +867,14 @@ describe('CallbackHandler', () => {
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.arrayContaining([
               expect.arrayContaining([
-                expect.objectContaining({ 
-                  text: '💬 Telegram Support', 
-                  url: 'https://t.me/motivbuy_support' 
+                expect.objectContaining({
+                  text: '💬 Telegram Support',
+                  url: 'https://t.me/motivbuy_support',
                 }),
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -894,12 +888,10 @@ describe('CallbackHandler', () => {
         expect.objectContaining({
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.arrayContaining([
-              expect.arrayContaining([
-                expect.objectContaining({ text: '🚀 Getting Started' }),
-              ]),
+              expect.arrayContaining([expect.objectContaining({ text: '🚀 Getting Started' })]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -919,7 +911,7 @@ describe('CallbackHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       const updatesCall = mockCtx.reply.mock.calls[0];
@@ -955,12 +947,10 @@ describe('CallbackHandler', () => {
         expect.objectContaining({
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.arrayContaining([
-              expect.arrayContaining([
-                expect.objectContaining({ text: '⬅️ Back to Balance' }),
-              ]),
+              expect.arrayContaining([expect.objectContaining({ text: '⬅️ Back to Balance' })]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -1059,7 +1049,7 @@ describe('CallbackHandler', () => {
       await handler.processCallbackQuery(mockCtx);
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
-        'Executing command: /help\n\nPlease use the actual /help command instead.'
+        'Executing command: /help\n\nPlease use the actual /help command instead.',
       );
     });
   });
@@ -1089,7 +1079,7 @@ describe('CallbackHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -1102,7 +1092,7 @@ describe('CallbackHandler', () => {
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
         'Sorry, something went wrong. Please try again or return to the main menu.',
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -1118,7 +1108,7 @@ describe('CallbackHandler', () => {
         expect.objectContaining({
           originalError: 'Test callback error',
           replyError: 'Reply failed',
-        })
+        }),
       );
     });
   });
@@ -1144,7 +1134,7 @@ describe('CallbackHandler', () => {
             }),
             isActive: true,
           }),
-        })
+        }),
       );
     });
 
@@ -1174,17 +1164,12 @@ describe('CallbackHandler', () => {
     });
 
     it('should handle concurrent callback processing', async () => {
-      const callbacks = [
-        'menu:profile',
-        'settings:language',
-        'help:contact',
-        'balance:current',
-        'stats:overview',
-      ];
+      const callbacks = ['menu:profile', 'settings:language', 'help:contact', 'balance:current', 'stats:overview'];
 
-      const promises = callbacks.map(callbackData => {
+      const promises = callbacks.map((callbackData) => {
         const ctx = createMockBotContext();
         ctx.callbackQuery!.data = callbackData;
+
         return handler.processCallbackQuery(ctx);
       });
 
@@ -1238,10 +1223,7 @@ describe('CallbackHandler', () => {
 
       await handler.processCallbackQuery(mockCtx);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Unknown action: ""'),
-        expect.any(Object)
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Unknown action: ""'), expect.any(Object));
     });
 
     it('should handle malformed callback data', async () => {
@@ -1251,7 +1233,7 @@ describe('CallbackHandler', () => {
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
         expect.stringContaining('Unknown action: "invalid"'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 

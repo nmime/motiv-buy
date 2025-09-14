@@ -4,46 +4,46 @@ import { Transform, Type } from 'class-transformer';
 
 /**
  * Session Data DTO
- * 
+ *
  * Data Transfer Object for session data operations.
  * Handles session creation, updates, and validation.
- * 
+ *
  * @class SessionDataDto
  */
 export class SessionDataDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'User identifier',
-    example: '123456789' 
+    example: '123456789',
   })
   @IsString()
   userId!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Session data payload',
     type: Object,
-    example: { 
+    example: {
       conversationState: { currentStep: 'profile_setup' },
-      preferences: { language: 'en' }
-    } 
+      preferences: { language: 'en' },
+    },
   })
   @IsOptional()
   @IsObject()
   data?: Record<string, any>;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Session expiration date',
     required: false,
-    example: '2024-12-31T23:59:59Z' 
+    example: '2024-12-31T23:59:59Z',
   })
   @IsOptional()
   @Type(() => Date)
   @IsDate()
   expiresAt?: Date;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Session metadata',
     required: false,
-    type: Object 
+    type: Object,
   })
   @IsOptional()
   @IsObject()
@@ -56,32 +56,32 @@ export class SessionDataDto {
 
 /**
  * Update Session DTO
- * 
+ *
  * DTO for session update operations.
  */
 export class UpdateSessionDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Session data to update',
-    type: Object 
+    type: Object,
   })
   @IsOptional()
   @IsObject()
   data?: Record<string, any>;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Whether to extend session expiration',
     required: false,
-    example: true 
+    example: true,
   })
   @IsOptional()
   @IsBoolean()
   extendExpiration?: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Merge strategy for data updates',
     required: false,
     enum: ['merge', 'replace'],
-    example: 'merge' 
+    example: 'merge',
   })
   @IsOptional()
   @IsString()
@@ -94,43 +94,43 @@ export class UpdateSessionDto {
 
 /**
  * Session Response DTO
- * 
+ *
  * Response object for session operations.
  */
 export class SessionResponseDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'User identifier',
-    example: '123456789' 
+    example: '123456789',
   })
   userId!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Session data',
-    type: Object 
+    type: Object,
   })
   data!: Record<string, any>;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Session creation timestamp',
-    example: '2024-01-01T00:00:00Z' 
+    example: '2024-01-01T00:00:00Z',
   })
   createdAt!: Date;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Session last update timestamp',
-    example: '2024-01-01T12:00:00Z' 
+    example: '2024-01-01T12:00:00Z',
   })
   updatedAt!: Date;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Session expiration timestamp',
-    example: '2024-12-31T23:59:59Z' 
+    example: '2024-12-31T23:59:59Z',
   })
   expiresAt!: Date;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Whether session is valid',
-    example: true 
+    example: true,
   })
   isValid!: boolean;
 
@@ -141,37 +141,37 @@ export class SessionResponseDto {
 
 /**
  * Conversation State DTO
- * 
+ *
  * DTO for conversation state management.
  */
 export class ConversationStateDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Current conversation step',
-    example: 'waiting_for_phone' 
+    example: 'waiting_for_phone',
   })
   @IsString()
   currentStep!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Available next steps',
     type: [String],
-    example: ['verify_phone', 'change_phone'] 
+    example: ['verify_phone', 'change_phone'],
   })
   @IsOptional()
   availableSteps?: string[];
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Conversation context',
     type: Object,
-    example: { phoneNumber: '+1234567890', attempts: 1 } 
+    example: { phoneNumber: '+1234567890', attempts: 1 },
   })
   @IsOptional()
   @IsObject()
   context?: Record<string, any>;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Whether conversation is active',
-    example: true 
+    example: true,
   })
   @IsBoolean()
   isActive!: boolean;

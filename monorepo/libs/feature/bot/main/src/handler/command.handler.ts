@@ -11,11 +11,11 @@ import { Ok, Err } from 'ts-results';
 
 /**
  * Command Handler
- * 
+ *
  * Handles all bot commands including user registration, authentication,
  * and primary bot functionality. Processes slash commands and provides
  * appropriate responses with menu navigation and user feedback.
- * 
+ *
  * @class CommandHandler
  */
 @Injectable()
@@ -33,7 +33,7 @@ export class CommandHandler {
 
   /**
    * Process incoming bot command
-   * 
+   *
    * @param ctx - Bot context containing message and user information
    * @param command - Command type to process
    * @returns Promise<void>
@@ -49,11 +49,12 @@ export class CommandHandler {
       // Ensure user context exists for most commands
       if (!ctx.from && command !== BotCommand.Start) {
         await this.sendAuthenticationRequired(ctx);
+
         return;
       }
 
       const userId = ctx.from?.id?.toString();
-      
+
       // Update user session with command activity
       if (userId) {
         await this.updateUserActivity(userId, command);
@@ -128,6 +129,7 @@ export class CommandHandler {
         userId: ctx.from?.id,
         stack: error instanceof Error ? error.stack : undefined,
       });
+
       await this.handleCommandError(error as Error, ctx, command);
     }
   }
@@ -143,16 +145,16 @@ export class CommandHandler {
       // Check if user exists and create session
       if (userId) {
         const existingUser = await this.authUserService.findByPlatformId(userId);
-        
+
         if (existingUser) {
           // Existing user - welcome back
           await ctx.replyWithHTML(
             `<b>Welcome back, ${userName}! 👋</b>\n\n` +
-            `Great to see you again! Your account is ready to use.\n\n` +
-            `✅ Account: Active\n` +
-            `📱 Platform: Telegram Bot\n` +
-            `🆔 ID: ${userId}\n\n` +
-            `Use the menu below to access your dashboard:`,
+              `Great to see you again! Your account is ready to use.\n\n` +
+              `✅ Account: Active\n` +
+              `📱 Platform: Telegram Bot\n` +
+              `🆔 ID: ${userId}\n\n` +
+              `Use the menu below to access your dashboard:`,
             {
               reply_markup: {
                 inline_keyboard: [
@@ -164,39 +166,35 @@ export class CommandHandler {
                     { text: '📈 Statistics', callback_data: 'menu:statistics' },
                     { text: '⚙️ Settings', callback_data: 'menu:settings' },
                   ],
-                  [
-                    { text: '❓ Help', callback_data: 'menu:help' },
-                  ],
+                  [{ text: '❓ Help', callback_data: 'menu:help' }],
                 ],
               },
-            }
+            },
           );
         } else {
           // New user - registration flow
           await ctx.replyWithHTML(
             `<b>Welcome to MotivBuy! 🚀</b>\n\n` +
-            `Hello <b>${userName}</b>, I'm your personal traffic campaign assistant!\n\n` +
-            `🎯 <b>What I can help you with:</b>\n` +
-            `• Track your traffic campaign performance\n` +
-            `• Monitor earnings and balance in real-time\n` +
-            `• Manage multiple traffic sources\n` +
-            `• Generate detailed analytics reports\n` +
-            `• Handle withdrawals and payments\n` +
-            `• Optimize your campaigns for better results\n\n` +
-            `Let's get you set up! 🛠️`,
+              `Hello <b>${userName}</b>, I'm your personal traffic campaign assistant!\n\n` +
+              `🎯 <b>What I can help you with:</b>\n` +
+              `• Track your traffic campaign performance\n` +
+              `• Monitor earnings and balance in real-time\n` +
+              `• Manage multiple traffic sources\n` +
+              `• Generate detailed analytics reports\n` +
+              `• Handle withdrawals and payments\n` +
+              `• Optimize your campaigns for better results\n\n` +
+              `Let's get you set up! 🛠️`,
             {
               reply_markup: {
                 inline_keyboard: [
-                  [
-                    { text: '✅ Complete Setup', callback_data: 'auth:register' },
-                  ],
+                  [{ text: '✅ Complete Setup', callback_data: 'auth:register' }],
                   [
                     { text: '📋 Main Menu', callback_data: 'menu:main' },
                     { text: '❓ Help', callback_data: 'menu:help' },
                   ],
                 ],
               },
-            }
+            },
           );
         }
 
@@ -205,9 +203,9 @@ export class CommandHandler {
           conversationState: {
             currentStep: 'authenticated',
             availableSteps: ['main_menu', 'registration'],
-            context: { 
+            context: {
               firstVisit: !existingUser,
-              authenticated: !!existingUser 
+              authenticated: !!existingUser,
             },
             isActive: true,
             startedAt: new Date(),
@@ -219,11 +217,11 @@ export class CommandHandler {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
-      
+
       await ctx.reply(
         `Welcome to MotivBuy! 🚀\n\n` +
-        `I'm here to help you manage your traffic campaigns and earnings.\n\n` +
-        `Use /menu to see available options or /help for assistance.`
+          `I'm here to help you manage your traffic campaigns and earnings.\n\n` +
+          `Use /menu to see available options or /help for assistance.`,
       );
     }
   }
@@ -285,9 +283,7 @@ export class CommandHandler {
             { text: '📞 Contact Support', callback_data: 'help:contact' },
             { text: '📚 FAQ', callback_data: 'help:faq' },
           ],
-          [
-            { text: '📋 Main Menu', callback_data: 'menu:main' },
-          ],
+          [{ text: '📋 Main Menu', callback_data: 'menu:main' }],
         ],
       },
     });
@@ -297,8 +293,10 @@ export class CommandHandler {
    * Handle /profile command - navigate to profile menu
    */
   private async handleProfileCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
-    
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
+
     await this.menuService.navigateToMenu(ctx, MenuType.Profile);
   }
 
@@ -306,8 +304,10 @@ export class CommandHandler {
    * Handle /settings command - navigate to settings menu
    */
   private async handleSettingsCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
-    
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
+
     await this.menuService.navigateToMenu(ctx, MenuType.Settings);
   }
 
@@ -315,22 +315,27 @@ export class CommandHandler {
    * Handle /balance command - show balance information
    */
   private async handleBalanceCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
 
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     try {
       // Get user balance information
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
       // Get balance details
       const balance = await this.balanceService.getUserBalance(user.id);
-      
+
       const balanceText = `
 <b>💰 Your Balance</b>
 
@@ -358,9 +363,7 @@ export class CommandHandler {
               { text: '📊 Analytics', callback_data: 'balance:analytics' },
               { text: '🔄 Refresh', callback_data: 'balance:current' },
             ],
-            [
-              { text: '⬅️ Back', callback_data: 'menu:main' },
-            ],
+            [{ text: '⬅️ Back', callback_data: 'menu:main' }],
           ],
         },
       });
@@ -369,7 +372,7 @@ export class CommandHandler {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
-      
+
       await ctx.reply('Unable to fetch balance information. Please try again later.');
     }
   }
@@ -378,8 +381,10 @@ export class CommandHandler {
    * Handle /stats command - navigate to statistics menu
    */
   private async handleStatsCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
-    
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
+
     await this.menuService.navigateToMenu(ctx, MenuType.Statistics);
   }
 
@@ -387,8 +392,10 @@ export class CommandHandler {
    * Handle /campaign command - navigate to campaign menu
    */
   private async handleCampaignCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
-    
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
+
     await this.menuService.navigateToMenu(ctx, MenuType.Campaign);
   }
 
@@ -396,8 +403,10 @@ export class CommandHandler {
    * Handle /withdraw command - navigate to withdrawal menu
    */
   private async handleWithdrawCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
-    
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
+
     await this.menuService.navigateToMenu(ctx, MenuType.Withdrawal);
   }
 
@@ -405,8 +414,10 @@ export class CommandHandler {
    * Handle /referral command - navigate to referral menu
    */
   private async handleReferralCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
-    
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
+
     await this.menuService.navigateToMenu(ctx, MenuType.Referral);
   }
 
@@ -414,8 +425,10 @@ export class CommandHandler {
    * Handle /traffic command - navigate to traffic menu
    */
   private async handleTrafficCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
-    
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
+
     await this.menuService.navigateToMenu(ctx, MenuType.Traffic);
   }
 
@@ -423,15 +436,20 @@ export class CommandHandler {
    * Handle /admin command - admin panel access (restricted)
    */
   private async handleAdminCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
 
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     try {
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user || !user.isAdmin) {
         await ctx.reply('❌ Access denied. Admin privileges required.');
+
         return;
       }
 
@@ -441,7 +459,7 @@ export class CommandHandler {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
-      
+
       await ctx.reply('❌ Unable to verify admin access. Please try again later.');
     }
   }
@@ -451,7 +469,7 @@ export class CommandHandler {
    */
   private async handleCancelCommand(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    
+
     if (userId) {
       // Clear any ongoing operations from session
       await this.sessionService.updateSession(userId, {
@@ -466,16 +484,11 @@ export class CommandHandler {
       });
     }
 
-    await ctx.reply(
-      '❌ Operation cancelled.\n\nReturning to main menu...',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '📋 Main Menu', callback_data: 'menu:main' }],
-          ],
-        },
-      }
-    );
+    await ctx.reply('❌ Operation cancelled.\n\nReturning to main menu...', {
+      reply_markup: {
+        inline_keyboard: [[{ text: '📋 Main Menu', callback_data: 'menu:main' }]],
+      },
+    });
   }
 
   /**
@@ -518,16 +531,12 @@ Weekend: Limited support available
     await ctx.replyWithHTML(supportText, {
       reply_markup: {
         inline_keyboard: [
-          [
-            { text: '💬 Contact Support', url: 'https://t.me/motivbuy_support' },
-          ],
+          [{ text: '💬 Contact Support', url: 'https://t.me/motivbuy_support' }],
           [
             { text: '📚 FAQ', callback_data: 'help:faq' },
             { text: '🐛 Report Bug', callback_data: 'help:bug_report' },
           ],
-          [
-            { text: '⬅️ Back', callback_data: 'menu:main' },
-          ],
+          [{ text: '⬅️ Back', callback_data: 'menu:main' }],
         ],
       },
     });
@@ -560,9 +569,7 @@ Select your preferred language:
             { text: '🇷🇺 Русский', callback_data: 'settings:language:ru' },
             { text: '🇨🇳 中文', callback_data: 'settings:language:zh' },
           ],
-          [
-            { text: '⬅️ Back to Settings', callback_data: 'menu:settings' },
-          ],
+          [{ text: '⬅️ Back to Settings', callback_data: 'menu:settings' }],
         ],
       },
     });
@@ -572,7 +579,9 @@ Select your preferred language:
    * Handle /verify command - account verification
    */
   private async handleVerifyCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
 
     const verificationText = `
 <b>✅ Account Verification</b>
@@ -605,12 +614,8 @@ Verify your account to unlock all features:
             { text: '📧 Verify Email', callback_data: 'verify:email' },
             { text: '📱 Verify Phone', callback_data: 'verify:phone' },
           ],
-          [
-            { text: '🆔 Identity Verification', callback_data: 'verify:identity' },
-          ],
-          [
-            { text: '⬅️ Back', callback_data: 'menu:profile' },
-          ],
+          [{ text: '🆔 Identity Verification', callback_data: 'verify:identity' }],
+          [{ text: '⬅️ Back', callback_data: 'menu:profile' }],
         ],
       },
     });
@@ -620,7 +625,9 @@ Verify your account to unlock all features:
    * Handle /export command - data export
    */
   private async handleExportCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
 
     const exportText = `
 <b>📥 Data Export</b>
@@ -653,12 +660,8 @@ Export your data in various formats:
             { text: '🎯 Traffic Reports', callback_data: 'export:traffic' },
             { text: '📋 Account Summary', callback_data: 'export:summary' },
           ],
-          [
-            { text: '📦 Full Archive', callback_data: 'export:full' },
-          ],
-          [
-            { text: '⬅️ Back', callback_data: 'menu:settings' },
-          ],
+          [{ text: '📦 Full Archive', callback_data: 'export:full' }],
+          [{ text: '⬅️ Back', callback_data: 'menu:settings' }],
         ],
       },
     });
@@ -668,7 +671,9 @@ Export your data in various formats:
    * Handle /reset command - reset account data
    */
   private async handleResetCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
 
     const resetText = `
 <b>🔄 Reset Account Data</b>
@@ -695,19 +700,13 @@ Export your data in various formats:
     await ctx.replyWithHTML(resetText, {
       reply_markup: {
         inline_keyboard: [
-          [
-            { text: '🗂️ Reset Session Data', callback_data: 'reset:session' },
-          ],
+          [{ text: '🗂️ Reset Session Data', callback_data: 'reset:session' }],
           [
             { text: '🔔 Reset Notifications', callback_data: 'reset:notifications' },
             { text: '⚙️ Reset Preferences', callback_data: 'reset:preferences' },
           ],
-          [
-            { text: '🧹 Clear Cache', callback_data: 'reset:cache' },
-          ],
-          [
-            { text: '❌ Cancel', callback_data: 'menu:settings' },
-          ],
+          [{ text: '🧹 Clear Cache', callback_data: 'reset:cache' }],
+          [{ text: '❌ Cancel', callback_data: 'menu:settings' }],
         ],
       },
     });
@@ -717,15 +716,20 @@ Export your data in various formats:
    * Handle /status command - show account status
    */
   private async handleStatusCommand(ctx: BotContext): Promise<void> {
-    if (!this.checkAuthentication(ctx)) return;
+    if (!this.checkAuthentication(ctx)) {
+      return;
+    }
 
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     try {
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -765,9 +769,7 @@ Export your data in various formats:
       await ctx.replyWithHTML(statusText, {
         reply_markup: {
           inline_keyboard: [
-            [
-              { text: '🔄 Refresh Status', callback_data: 'status:refresh' },
-            ],
+            [{ text: '🔄 Refresh Status', callback_data: 'status:refresh' }],
             [
               { text: '⚙️ Settings', callback_data: 'menu:settings' },
               { text: '📋 Main Menu', callback_data: 'menu:main' },
@@ -780,7 +782,7 @@ Export your data in various formats:
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
-      
+
       await ctx.reply('Unable to fetch status information. Please try again later.');
     }
   }
@@ -789,40 +791,31 @@ Export your data in various formats:
    * Handle unknown command
    */
   private async handleUnknownCommand(ctx: BotContext, command: BotCommand): Promise<void> {
-    await ctx.reply(
-      `I don't understand the command "${command}". 🤔\n\n` +
-      'Here are some commands you can try:',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '❓ Help', callback_data: 'menu:help' },
-              { text: '📋 Main Menu', callback_data: 'menu:main' },
-            ],
-            [
-              { text: '💰 Balance', callback_data: 'menu:balance' },
-              { text: '📈 Statistics', callback_data: 'menu:statistics' },
-            ],
+    await ctx.reply(`I don't understand the command "${command}". 🤔\n\n` + 'Here are some commands you can try:', {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '❓ Help', callback_data: 'menu:help' },
+            { text: '📋 Main Menu', callback_data: 'menu:main' },
           ],
-        },
-      }
-    );
+          [
+            { text: '💰 Balance', callback_data: 'menu:balance' },
+            { text: '📈 Statistics', callback_data: 'menu:statistics' },
+          ],
+        ],
+      },
+    });
   }
 
   /**
    * Send authentication required message
    */
   private async sendAuthenticationRequired(ctx: BotContext): Promise<void> {
-    await ctx.reply(
-      '🔒 Authentication required.\n\nPlease use /start to begin.',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '🚀 Start Bot', callback_data: 'auth:start' }],
-          ],
-        },
-      }
-    );
+    await ctx.reply('🔒 Authentication required.\n\nPlease use /start to begin.', {
+      reply_markup: {
+        inline_keyboard: [[{ text: '🚀 Start Bot', callback_data: 'auth:start' }]],
+      },
+    });
   }
 
   /**
@@ -830,7 +823,7 @@ Export your data in various formats:
    */
   private async handleCommandError(error: Error, ctx: BotContext, command: BotCommand): Promise<void> {
     const userId = ctx.from?.id;
-    
+
     // Log error details
     this.logger.error('Command processing error', {
       command,
@@ -840,9 +833,10 @@ Export your data in various formats:
     });
 
     // Send user-friendly error message
-    const errorMessage = process.env.NODE_ENV === 'development' 
-      ? `Error processing command /${command}: ${error.message}`
-      : 'Sorry, something went wrong processing your request. Please try again or contact support if the problem persists.';
+    const errorMessage =
+      process.env.NODE_ENV === 'development'
+        ? `Error processing command /${command}: ${error.message}`
+        : 'Sorry, something went wrong processing your request. Please try again or contact support if the problem persists.';
 
     try {
       await ctx.reply(errorMessage, {
@@ -852,9 +846,7 @@ Export your data in various formats:
               { text: '🔄 Try Again', callback_data: `command:${command}` },
               { text: '📋 Main Menu', callback_data: 'menu:main' },
             ],
-            [
-              { text: '🆘 Support', callback_data: 'help:contact' },
-            ],
+            [{ text: '🆘 Support', callback_data: 'help:contact' }],
           ],
         },
       });
@@ -874,8 +866,10 @@ Export your data in various formats:
   private async checkAuthentication(ctx: BotContext): Promise<boolean> {
     if (!ctx.from?.id) {
       await this.sendAuthenticationRequired(ctx);
+
       return false;
     }
+
     return true;
   }
 
@@ -887,7 +881,7 @@ Export your data in various formats:
       await this.sessionService.updateSession(userId, {
         conversationState: {
           currentStep: `command_${command}`,
-          context: { 
+          context: {
             lastCommand: command,
             lastCommandAt: new Date().toISOString(),
           },

@@ -104,9 +104,9 @@ describe('MenuHandler', () => {
   });
 
   const createMockBalance = () => ({
-    availableAmount: 100.50,
-    pendingAmount: 25.00,
-    totalEarned: 500.00,
+    availableAmount: 100.5,
+    pendingAmount: 25.0,
+    totalEarned: 500.0,
     lastTransactionAt: new Date('2023-06-01'),
   });
 
@@ -162,6 +162,7 @@ describe('MenuHandler', () => {
     if (module) {
       await module.close();
     }
+
     jest.clearAllMocks();
   });
 
@@ -189,8 +190,9 @@ describe('MenuHandler', () => {
           navigationState: expect.objectContaining({
             currentLocation: MenuType.Profile,
           }),
-        })
+        }),
       );
+
       expect(mockCtx.replyWithHTML).toHaveBeenCalled();
     });
 
@@ -230,7 +232,7 @@ describe('MenuHandler', () => {
               navigationType: 'direct',
             }),
           }),
-        })
+        }),
       );
     });
 
@@ -261,7 +263,7 @@ describe('MenuHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
   });
@@ -297,6 +299,7 @@ describe('MenuHandler', () => {
         maxHistoryLength: 5,
         canGoBack: false,
       });
+
       const navigateToMenuSpy = jest.spyOn(handler, 'navigateToMenu').mockResolvedValue();
 
       await handler.handleMenuAction(mockCtx, 'refresh');
@@ -322,9 +325,7 @@ describe('MenuHandler', () => {
     it('should handle unhandled actions', async () => {
       await handler.handleMenuAction(mockCtx, 'unknown:action');
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Action "unknown" is not implemented yet')
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Action "unknown" is not implemented yet'));
     });
 
     it('should handle action processing errors', async () => {
@@ -356,7 +357,7 @@ describe('MenuHandler', () => {
               lastActionParams: ['action'],
             }),
           }),
-        })
+        }),
       );
     });
   });
@@ -424,7 +425,7 @@ describe('MenuHandler', () => {
             currentLocation: MenuType.Profile,
             history: [MenuType.Settings],
           }),
-        })
+        }),
       );
     });
 
@@ -436,6 +437,7 @@ describe('MenuHandler', () => {
         maxHistoryLength: 5,
         canGoBack: false,
       });
+
       const navigateToMenuSpy = jest.spyOn(handler, 'navigateToMenu').mockResolvedValue();
 
       await handler.goBack(mockCtx);
@@ -465,7 +467,7 @@ describe('MenuHandler', () => {
               clearedAt: expect.any(String),
             }),
           }),
-        })
+        }),
       );
     });
   });
@@ -485,14 +487,14 @@ describe('MenuHandler', () => {
       mockBalanceService.getUserBalance.mockResolvedValue(balance);
 
       // Access private method for testing
-      const generateDynamicMenu = (handler as any).generateDynamicMenu;
+      const { generateDynamicMenu } = handler as any;
       const menuConfig = await generateDynamicMenu.call(handler, mockCtx, MenuType.Main);
 
       expect(menuConfig.title).toContain('$100.50');
       expect(menuConfig.metadata).toEqual(
         expect.objectContaining({
-          userBalance: 100.50,
-        })
+          userBalance: 100.5,
+        }),
       );
     });
 
@@ -502,7 +504,7 @@ describe('MenuHandler', () => {
       mockAuthUserService.findByPlatformId.mockResolvedValue(user);
       mockBalanceService.getUserBalance.mockResolvedValue(balance);
 
-      const generateDynamicMenu = (handler as any).generateDynamicMenu;
+      const { generateDynamicMenu } = handler as any;
       const menuConfig = await generateDynamicMenu.call(handler, mockCtx, MenuType.Balance);
 
       expect(menuConfig.description).toContain('$100.50');
@@ -514,7 +516,7 @@ describe('MenuHandler', () => {
       const user = mockUserData;
       mockAuthUserService.findByPlatformId.mockResolvedValue(user);
 
-      const generateDynamicMenu = (handler as any).generateDynamicMenu;
+      const { generateDynamicMenu } = handler as any;
       const menuConfig = await generateDynamicMenu.call(handler, mockCtx, MenuType.Profile);
 
       expect(menuConfig.description).toContain('Test User');
@@ -527,7 +529,7 @@ describe('MenuHandler', () => {
       const session = createMockSession();
       mockSessionService.getSession.mockResolvedValue(session);
 
-      const generateDynamicMenu = (handler as any).generateDynamicMenu;
+      const { generateDynamicMenu } = handler as any;
       const menuConfig = await generateDynamicMenu.call(handler, mockCtx, MenuType.Settings);
 
       expect(menuConfig.description).toContain('English');
@@ -539,7 +541,7 @@ describe('MenuHandler', () => {
     it('should return base menu on enhancement errors', async () => {
       mockAuthUserService.findByPlatformId.mockRejectedValue(new Error('User not found'));
 
-      const generateDynamicMenu = (handler as any).generateDynamicMenu;
+      const { generateDynamicMenu } = handler as any;
       const menuConfig = await generateDynamicMenu.call(handler, mockCtx, MenuType.Main);
 
       // Should return the base menu from menuService
@@ -552,7 +554,7 @@ describe('MenuHandler', () => {
         throw new Error('Menu generation failed');
       });
 
-      const generateDynamicMenu = (handler as any).generateDynamicMenu;
+      const { generateDynamicMenu } = handler as any;
       const menuConfig = await generateDynamicMenu.call(handler, mockCtx, MenuType.Main);
 
       // Should return the fallback menu
@@ -569,7 +571,7 @@ describe('MenuHandler', () => {
     });
 
     it('should process balance actions', async () => {
-      const processMenuAction = (handler as any).processMenuAction;
+      const { processMenuAction } = handler as any;
       const result = await processMenuAction.call(handler, mockCtx, 'balance', ['current']);
 
       expect(result).toEqual({
@@ -580,7 +582,7 @@ describe('MenuHandler', () => {
     });
 
     it('should process profile actions', async () => {
-      const processMenuAction = (handler as any).processMenuAction;
+      const { processMenuAction } = handler as any;
       const result = await processMenuAction.call(handler, mockCtx, 'profile', ['edit']);
 
       expect(result).toEqual({
@@ -590,7 +592,7 @@ describe('MenuHandler', () => {
     });
 
     it('should process settings actions', async () => {
-      const processMenuAction = (handler as any).processMenuAction;
+      const { processMenuAction } = handler as any;
       const result = await processMenuAction.call(handler, mockCtx, 'settings', ['notifications']);
 
       expect(result).toEqual({
@@ -600,7 +602,7 @@ describe('MenuHandler', () => {
     });
 
     it('should process stats actions', async () => {
-      const processMenuAction = (handler as any).processMenuAction;
+      const { processMenuAction } = handler as any;
       const result = await processMenuAction.call(handler, mockCtx, 'stats', ['overview']);
 
       expect(result).toEqual({
@@ -610,7 +612,7 @@ describe('MenuHandler', () => {
     });
 
     it('should process traffic actions', async () => {
-      const processMenuAction = (handler as any).processMenuAction;
+      const { processMenuAction } = handler as any;
       const result = await processMenuAction.call(handler, mockCtx, 'traffic', ['live']);
 
       expect(result).toEqual({
@@ -620,7 +622,7 @@ describe('MenuHandler', () => {
     });
 
     it('should process help actions', async () => {
-      const processMenuAction = (handler as any).processMenuAction;
+      const { processMenuAction } = handler as any;
       const result = await processMenuAction.call(handler, mockCtx, 'help', ['contact']);
 
       expect(result).toEqual({
@@ -630,7 +632,7 @@ describe('MenuHandler', () => {
     });
 
     it('should handle unknown actions', async () => {
-      const processMenuAction = (handler as any).processMenuAction;
+      const { processMenuAction } = handler as any;
       const result = await processMenuAction.call(handler, mockCtx, 'unknown', []);
 
       expect(result).toEqual({
@@ -656,7 +658,7 @@ describe('MenuHandler', () => {
       });
 
       const menuConfig = createMockMenuConfig();
-      const formatMenuText = (handler as any).formatMenuText;
+      const { formatMenuText } = handler as any;
       const result = await formatMenuText.call(handler, mockCtx, menuConfig);
 
       expect(result).toContain('<b>Test Menu</b>');
@@ -673,7 +675,7 @@ describe('MenuHandler', () => {
       });
 
       const menuConfig = createMockMenuConfig();
-      const formatMenuText = (handler as any).formatMenuText;
+      const { formatMenuText } = handler as any;
       const result = await formatMenuText.call(handler, mockCtx, menuConfig);
 
       expect(result).toContain('<b>Test Menu</b>');
@@ -682,8 +684,8 @@ describe('MenuHandler', () => {
     });
 
     it('should handle menu display names correctly', async () => {
-      const getMenuDisplayName = (handler as any).getMenuDisplayName;
-      
+      const { getMenuDisplayName } = handler as any;
+
       expect(getMenuDisplayName.call(handler, MenuType.Main)).toBe('Main');
       expect(getMenuDisplayName.call(handler, MenuType.Profile)).toBe('Profile');
       expect(getMenuDisplayName.call(handler, MenuType.Statistics)).toBe('Statistics');
@@ -698,12 +700,10 @@ describe('MenuHandler', () => {
           { text: 'Button 1', callbackData: 'action:1' },
           { text: 'Button 2', callbackData: 'action:2' },
         ],
-        [
-          { text: 'URL Button', callbackData: 'url:test', url: 'https://example.com' },
-        ],
+        [{ text: 'URL Button', callbackData: 'url:test', url: 'https://example.com' }],
       ];
 
-      const createInlineKeyboard = (handler as any).createInlineKeyboard;
+      const { createInlineKeyboard } = handler as any;
       const keyboard = createInlineKeyboard.call(handler, buttons);
 
       expect(keyboard).toBeDefined();
@@ -723,7 +723,7 @@ describe('MenuHandler', () => {
       process.env.NODE_ENV = 'development';
       const error = new Error('Test menu error');
 
-      const handleMenuError = (handler as any).handleMenuError;
+      const { handleMenuError } = handler as any;
       await handleMenuError.call(handler, mockCtx, error, MenuType.Profile);
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
@@ -732,7 +732,7 @@ describe('MenuHandler', () => {
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.any(Array),
           }),
-        })
+        }),
       );
     });
 
@@ -740,12 +740,12 @@ describe('MenuHandler', () => {
       process.env.NODE_ENV = 'production';
       const error = new Error('Test menu error');
 
-      const handleMenuError = (handler as any).handleMenuError;
+      const { handleMenuError } = handler as any;
       await handleMenuError.call(handler, mockCtx, error, MenuType.Profile);
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
         'Sorry, there was a problem loading the menu. Please try again.',
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -753,25 +753,22 @@ describe('MenuHandler', () => {
       process.env.NODE_ENV = 'development';
       const error = new Error('Test action error');
 
-      const handleActionError = (handler as any).handleActionError;
+      const { handleActionError } = handler as any;
       await handleActionError.call(handler, mockCtx, error, 'test:action');
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        'Action error: Test action error',
-        expect.any(Object)
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('Action error: Test action error', expect.any(Object));
     });
 
     it('should handle action errors in production', async () => {
       process.env.NODE_ENV = 'production';
       const error = new Error('Test action error');
 
-      const handleActionError = (handler as any).handleActionError;
+      const { handleActionError } = handler as any;
       await handleActionError.call(handler, mockCtx, error, 'test:action');
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
         'Sorry, that action failed. Please try again or return to the main menu.',
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -779,7 +776,7 @@ describe('MenuHandler', () => {
       const error = new Error('Test menu error');
       mockCtx.reply.mockRejectedValueOnce(new Error('Reply failed'));
 
-      const handleMenuError = (handler as any).handleMenuError;
+      const { handleMenuError } = handler as any;
       await handleMenuError.call(handler, mockCtx, error, MenuType.Profile);
 
       expect(Logger.prototype.error).toHaveBeenCalledWith(
@@ -787,7 +784,7 @@ describe('MenuHandler', () => {
         expect.objectContaining({
           originalError: 'Test menu error',
           replyError: 'Reply failed',
-        })
+        }),
       );
     });
   });
@@ -802,9 +799,9 @@ describe('MenuHandler', () => {
     });
 
     it('should handle concurrent navigation requests', async () => {
-      const promises = Array(5).fill(null).map(() => 
-        handler.navigateToMenu(mockCtx, MenuType.Profile)
-      );
+      const promises = Array(5)
+        .fill(null)
+        .map(() => handler.navigateToMenu(mockCtx, MenuType.Profile));
 
       await Promise.all(promises);
 
@@ -822,17 +819,9 @@ describe('MenuHandler', () => {
     it('should handle multiple action processing', async () => {
       mockSessionService.getSession.mockResolvedValue(createMockSession());
 
-      const actions = [
-        'menu:profile',
-        'menu:settings',
-        'balance:current',
-        'stats:overview',
-        'help:contact',
-      ];
+      const actions = ['menu:profile', 'menu:settings', 'balance:current', 'stats:overview', 'help:contact'];
 
-      const promises = actions.map(action => 
-        handler.handleMenuAction(mockCtx, action)
-      );
+      const promises = actions.map((action) => handler.handleMenuAction(mockCtx, action));
 
       await Promise.all(promises);
 
@@ -941,7 +930,7 @@ describe('MenuHandler', () => {
       await handler.handleMenuAction(mockCtx, 'invalid-callback-data');
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Action "invalid-callback-data" is not implemented yet')
+        expect.stringContaining('Action "invalid-callback-data" is not implemented yet'),
       );
     });
 

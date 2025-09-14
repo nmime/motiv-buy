@@ -1,12 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { UserRepository, UserEntity, UserSourceVisitEntity, UserLastAuthRepository, PlatformType } from '@app/database';
-import { getGeoByIp } from '../util';
+import { UserRepository, UserEntity, UserSourceVisitEntity, UserLastAuthRepository } from '@app/database';
 import { AuthCreateUserService } from './auth-create-user.service';
 import { AuthUserVisitService } from './auth-user-visit.service';
-import { GetSourceParamsService, GetUserRefLinkService, SourceRegisterService } from '../../source';
-import { TelegramAuthParams } from '../../dto';
-import { UserRefLink } from '../../dto';
+import { GetSourceParamsService, GetUserRefLinkService, SourceRegisterService, getGeoByIp } from '../../source';
+import { TelegramAuthParams, UserRefLink } from '../../type';
 
 interface FindOrCreateOptions {
   trackUserVisit?: boolean;
@@ -45,10 +43,6 @@ export class AuthUserService {
     });
 
     return result.user;
-  }
-
-  determineLanguage(languageCode: string | undefined) {
-    return this.createUserService.determineLanguage(languageCode);
   }
 
   private async findOrCreateWithVisit(
@@ -122,6 +116,7 @@ export class AuthUserService {
       }
 
       const currentValue = user[key as keyof UserEntity];
+
       return currentValue !== value;
     });
 

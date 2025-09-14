@@ -1,10 +1,10 @@
-export interface SocketResponseDto<T = any> {
+export interface SocketResponseDto<T = unknown> {
   event: string;
   data: T;
   timestamp: number;
 }
 
-export interface SocketResultResponseDto<T = any> extends SocketResponseDto<T> {
+export interface SocketResultResponseDto<T = unknown> extends SocketResponseDto<T> {
   success: boolean;
   error?: string;
 }

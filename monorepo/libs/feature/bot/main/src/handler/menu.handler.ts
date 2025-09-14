@@ -11,11 +11,11 @@ import { InlineKeyboard } from 'grammy';
 
 /**
  * Menu Handler
- * 
+ *
  * Handles menu interactions, navigation state management, and dynamic
  * menu content generation. Processes menu button presses and manages
  * navigation history with breadcrumbs.
- * 
+ *
  * @class MenuHandler
  */
 @Injectable()
@@ -35,17 +35,21 @@ export class MenuHandler {
 
   /**
    * Handle menu navigation request
-   * 
+   *
    * @param ctx - Bot context
    * @param menuType - Target menu type
    * @param options - Navigation options
    * @returns Promise<void>
    */
-  async navigateToMenu(ctx: BotContext, menuType: MenuType, options?: {
-    updateHistory?: boolean;
-    clearBreadcrumb?: boolean;
-    customData?: Record<string, any>;
-  }): Promise<void> {
+  async navigateToMenu(
+    ctx: BotContext,
+    menuType: MenuType,
+    options?: {
+      updateHistory?: boolean;
+      clearBreadcrumb?: boolean;
+      customData?: Record<string, any>;
+    },
+  ): Promise<void> {
     try {
       this.logger.debug(`Navigating to menu: ${menuType}`, {
         userId: ctx.from?.id,
@@ -55,26 +59,27 @@ export class MenuHandler {
 
       if (!ctx.from?.id) {
         await ctx.reply('🔒 Authentication required to access menus.');
+
         return;
       }
 
       const userId = ctx.from.id.toString();
-      
+
       // Update navigation state
       await this.updateNavigationState(userId, menuType, options);
 
       // Generate dynamic menu content
       const menuConfig = await this.generateDynamicMenu(ctx, menuType);
-      
+
       // Create inline keyboard
       const keyboard = this.createInlineKeyboard(menuConfig.buttons);
-      
+
       // Format menu text with personalization
       const menuText = await this.formatMenuText(ctx, menuConfig);
-      
+
       // Send or edit message with menu
       await this.sendMenuMessage(ctx, menuText, keyboard, menuConfig);
-      
+
       this.logger.debug(`Successfully navigated to menu: ${menuType}`, {
         userId,
         menuType,
@@ -85,14 +90,14 @@ export class MenuHandler {
         userId: ctx.from?.id,
         menuType,
       });
-      
+
       await this.handleMenuError(ctx, error as Error, menuType);
     }
   }
 
   /**
    * Handle menu action (button press)
-   * 
+   *
    * @param ctx - Bot context with callback query
    * @param callbackData - Callback data from button press
    * @returns Promise<void>
@@ -106,12 +111,13 @@ export class MenuHandler {
 
       if (!ctx.from?.id) {
         await ctx.reply('🔒 Authentication required.');
+
         return;
       }
 
       const userId = ctx.from.id.toString();
       const [action, ...params] = callbackData.split(':');
-      
+
       // Process menu action
       const actionResult = await this.processMenuAction(ctx, action, params);
 
@@ -120,7 +126,7 @@ export class MenuHandler {
         if (actionResult.nextMenu) {
           await this.navigateToMenu(ctx, actionResult.nextMenu);
         }
-        
+
         if (actionResult.message) {
           await ctx.reply(actionResult.message);
         }
@@ -140,35 +146,29 @@ export class MenuHandler {
           await this.handleActionData(ctx, actionResult.data);
         }
       } else {
-        await ctx.reply(
-          actionResult.message || '❌ Action failed. Please try again.',
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '📋 Main Menu', callback_data: 'menu:main' }],
-              ],
-            },
-          }
-        );
+        await ctx.reply(actionResult.message || '❌ Action failed. Please try again.', {
+          reply_markup: {
+            inline_keyboard: [[{ text: '📋 Main Menu', callback_data: 'menu:main' }]],
+          },
+        });
       }
-      
+
       // Update session with action activity
       await this.updateSessionActivity(userId, action, params);
-      
     } catch (error) {
       this.logger.error(`Error handling menu action: ${callbackData}`, {
         error: error instanceof Error ? error.message : String(error),
         userId: ctx.from?.id,
         callbackData,
       });
-      
+
       await this.handleActionError(ctx, error as Error, callbackData);
     }
   }
 
   /**
    * Get user's menu navigation state
-   * 
+   *
    * @param userId - User identifier
    * @returns Promise<MenuNavigation | null>
    */
@@ -180,7 +180,7 @@ export class MenuHandler {
       }
 
       const navState = session.data.navigationState;
-      
+
       return {
         currentMenu: navState.currentLocation as MenuType,
         history: (navState.history as MenuType[]) || [],
@@ -192,36 +192,39 @@ export class MenuHandler {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return null;
     }
   }
 
   /**
    * Navigate back to previous menu
-   * 
+   *
    * @param ctx - Bot context
    * @returns Promise<void>
    */
   async goBack(ctx: BotContext): Promise<void> {
     if (!ctx.from?.id) {
       await ctx.reply('🔒 Authentication required.');
+
       return;
     }
 
     const userId = ctx.from.id.toString();
     const navigation = await this.getMenuNavigation(userId);
-    
+
     if (!navigation || !navigation.canGoBack || navigation.history.length === 0) {
       await this.navigateToMenu(ctx, MenuType.Main);
+
       return;
     }
 
     // Get previous menu from history
     const previousMenu = navigation.history[navigation.history.length - 1];
-    
+
     // Remove the last item from history
     const updatedHistory = navigation.history.slice(0, -1);
-    
+
     // Update session with new navigation state
     await this.sessionService.updateSession(userId, {
       navigationState: {
@@ -233,13 +236,13 @@ export class MenuHandler {
         },
       },
     });
-    
+
     await this.navigateToMenu(ctx, previousMenu, { updateHistory: false });
   }
 
   /**
    * Clear navigation history
-   * 
+   *
    * @param userId - User identifier
    * @returns Promise<void>
    */
@@ -255,7 +258,7 @@ export class MenuHandler {
           },
         },
       });
-      
+
       this.logger.debug(`Navigation history cleared for user: ${userId}`);
     } catch (error) {
       this.logger.error(`Error clearing navigation history for user: ${userId}`, {
@@ -272,11 +275,11 @@ export class MenuHandler {
    */
   private async generateDynamicMenu(ctx: BotContext, menuType: MenuType): Promise<MenuConfig> {
     const userId = ctx.from?.id?.toString();
-    
+
     try {
       // Get base menu config
       const baseConfig = this.menuService.generateMenu(menuType, ctx);
-      
+
       // Enhance with dynamic data
       switch (menuType) {
         case MenuType.Main:
@@ -300,7 +303,7 @@ export class MenuHandler {
         userId,
         menuType,
       });
-      
+
       // Return basic menu on error
       return this.menuService.generateMenu(menuType, ctx);
     }
@@ -311,18 +314,22 @@ export class MenuHandler {
    */
   private async enhanceMainMenu(ctx: BotContext, baseConfig: MenuConfig): Promise<MenuConfig> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return baseConfig;
+    if (!userId) {
+      return baseConfig;
+    }
 
     try {
       const user = await this.authUserService.findByPlatformId(userId);
-      if (!user) return baseConfig;
+      if (!user) {
+        return baseConfig;
+      }
 
       const balance = await this.balanceService.getUserBalance(user.id);
       const hasNotifications = false; // TODO: Check for unread notifications
-      
+
       // Update title with balance info
       const enhancedTitle = `${baseConfig.title}\n💰 Balance: $${balance.availableAmount.toFixed(2)}${hasNotifications ? '\n🔔 New notifications' : ''}`;
-      
+
       return {
         ...baseConfig,
         title: enhancedTitle,
@@ -337,6 +344,7 @@ export class MenuHandler {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return baseConfig;
     }
   }
@@ -346,14 +354,18 @@ export class MenuHandler {
    */
   private async enhanceBalanceMenu(ctx: BotContext, baseConfig: MenuConfig): Promise<MenuConfig> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return baseConfig;
+    if (!userId) {
+      return baseConfig;
+    }
 
     try {
       const user = await this.authUserService.findByPlatformId(userId);
-      if (!user) return baseConfig;
+      if (!user) {
+        return baseConfig;
+      }
 
       const balance = await this.balanceService.getUserBalance(user.id);
-      
+
       // Update description with current balance info
       const enhancedDescription = `
 Current Balance: $${balance.availableAmount.toFixed(2)}
@@ -362,7 +374,7 @@ Pending: $${balance.pendingAmount.toFixed(2)}
 
 Last updated: ${new Date().toLocaleTimeString()}
 `;
-      
+
       return {
         ...baseConfig,
         description: enhancedDescription,
@@ -377,6 +389,7 @@ Last updated: ${new Date().toLocaleTimeString()}
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return baseConfig;
     }
   }
@@ -386,11 +399,15 @@ Last updated: ${new Date().toLocaleTimeString()}
    */
   private async enhanceProfileMenu(ctx: BotContext, baseConfig: MenuConfig): Promise<MenuConfig> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return baseConfig;
+    if (!userId) {
+      return baseConfig;
+    }
 
     try {
       const user = await this.authUserService.findByPlatformId(userId);
-      if (!user) return baseConfig;
+      if (!user) {
+        return baseConfig;
+      }
 
       const enhancedDescription = `
 Name: ${user.firstName} ${user.lastName || ''}
@@ -399,7 +416,7 @@ Status: ${user.isActive ? '✅ Active' : '❌ Inactive'}
 Verified: ${user.isVerified ? '✅ Verified' : '❌ Unverified'}
 Member since: ${new Date(user.createdAt).toLocaleDateString()}
 `;
-      
+
       return {
         ...baseConfig,
         description: enhancedDescription,
@@ -413,6 +430,7 @@ Member since: ${new Date(user.createdAt).toLocaleDateString()}
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return baseConfig;
     }
   }
@@ -422,11 +440,15 @@ Member since: ${new Date(user.createdAt).toLocaleDateString()}
    */
   private async enhanceStatisticsMenu(ctx: BotContext, baseConfig: MenuConfig): Promise<MenuConfig> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return baseConfig;
+    if (!userId) {
+      return baseConfig;
+    }
 
     try {
       const user = await this.authUserService.findByPlatformId(userId);
-      if (!user) return baseConfig;
+      if (!user) {
+        return baseConfig;
+      }
 
       // Get basic statistics (implement these methods in StatisticService)
       const todayStats = {
@@ -443,7 +465,7 @@ Member since: ${new Date(user.createdAt).toLocaleDateString()}
 
 Last updated: ${new Date().toLocaleTimeString()}
 `;
-      
+
       return {
         ...baseConfig,
         description: enhancedDescription,
@@ -457,6 +479,7 @@ Last updated: ${new Date().toLocaleTimeString()}
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return baseConfig;
     }
   }
@@ -466,11 +489,15 @@ Last updated: ${new Date().toLocaleTimeString()}
    */
   private async enhanceTrafficMenu(ctx: BotContext, baseConfig: MenuConfig): Promise<MenuConfig> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return baseConfig;
+    if (!userId) {
+      return baseConfig;
+    }
 
     try {
       const user = await this.authUserService.findByPlatformId(userId);
-      if (!user) return baseConfig;
+      if (!user) {
+        return baseConfig;
+      }
 
       // Get traffic source count (implement this method in TrafficService)
       const activeSources = 0; // await this.trafficService.getActiveSourceCount(user.id);
@@ -484,7 +511,7 @@ Last updated: ${new Date().toLocaleTimeString()}
 
 Monitor and optimize your traffic performance.
 `;
-      
+
       return {
         ...baseConfig,
         description: enhancedDescription,
@@ -499,6 +526,7 @@ Monitor and optimize your traffic performance.
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return baseConfig;
     }
   }
@@ -508,7 +536,9 @@ Monitor and optimize your traffic performance.
    */
   private async enhanceSettingsMenu(ctx: BotContext, baseConfig: MenuConfig): Promise<MenuConfig> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return baseConfig;
+    if (!userId) {
+      return baseConfig;
+    }
 
     try {
       const session = await this.sessionService.getSession(userId);
@@ -523,7 +553,7 @@ Monitor and optimize your traffic performance.
 
 Customize your bot experience.
 `;
-      
+
       return {
         ...baseConfig,
         description: enhancedDescription,
@@ -537,6 +567,7 @@ Customize your bot experience.
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return baseConfig;
     }
   }
@@ -546,59 +577,61 @@ Customize your bot experience.
    */
   private async processMenuAction(ctx: BotContext, action: string, params: string[]): Promise<MenuActionResult> {
     const userId = ctx.from?.id?.toString();
-    
+
     switch (action) {
       case 'menu':
         return {
           success: true,
           nextMenu: params[0] as MenuType,
         };
-      
+
       case 'back':
         await this.goBack(ctx);
+
         return { success: true };
-      
+
       case 'refresh':
-        const currentNav = await this.getMenuNavigation(userId!);
+        const currentNav = await this.getMenuNavigation(userId);
+
         return {
           success: true,
           nextMenu: currentNav?.currentMenu || MenuType.Main,
           message: '🔄 Menu refreshed',
         };
-      
+
       case 'close':
         return {
           success: true,
           closeMenu: true,
           message: 'Menu closed.',
         };
-      
+
       // Handle specific menu actions
       case 'balance':
         return await this.handleBalanceAction(ctx, params[0]);
-      
+
       case 'profile':
         return await this.handleProfileAction(ctx, params[0]);
-      
+
       case 'settings':
         return await this.handleSettingsAction(ctx, params[0]);
-      
+
       case 'stats':
         return await this.handleStatsAction(ctx, params[0]);
-      
+
       case 'traffic':
         return await this.handleTrafficAction(ctx, params[0]);
-      
+
       case 'help':
         return await this.handleHelpAction(ctx, params[0]);
-      
+
       default:
         this.logger.warn(`Unhandled menu action: ${action}`, {
           userId,
           action,
           params,
         });
-        
+
         return {
           success: false,
           message: `Action "${action}" is not implemented yet. Please try again or contact support.`,
@@ -643,7 +676,9 @@ Customize your bot experience.
    */
   private async handleSettingsAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return { success: false, message: 'Authentication required.' };
+    if (!userId) {
+      return { success: false, message: 'Authentication required.' };
+    }
 
     switch (subAction) {
       case 'notifications':
@@ -705,9 +740,9 @@ Customize your bot experience.
       case 'faq':
         return { success: false, message: '📚 FAQ section coming soon!' };
       case 'contact':
-        return { 
-          success: true, 
-          message: '📞 Contact support at @motivbuy_support or support@motivbuy.com' 
+        return {
+          success: true,
+          message: '📞 Contact support at @motivbuy_support or support@motivbuy.com',
         };
       case 'tutorials':
         return { success: false, message: '📚 Tutorials coming soon!' };
@@ -719,43 +754,47 @@ Customize your bot experience.
   /**
    * Update navigation state in session
    */
-  private async updateNavigationState(userId: string, menuType: MenuType, options?: {
-    updateHistory?: boolean;
-    clearBreadcrumb?: boolean;
-    customData?: Record<string, any>;
-  }): Promise<void> {
+  private async updateNavigationState(
+    userId: string,
+    menuType: MenuType,
+    options?: {
+      updateHistory?: boolean;
+      clearBreadcrumb?: boolean;
+      customData?: Record<string, any>;
+    },
+  ): Promise<void> {
     try {
       const session = await this.sessionService.getSession(userId);
       const currentState = session?.data.navigationState;
-      
+
       const shouldUpdateHistory = options?.updateHistory !== false;
       const shouldClearBreadcrumb = options?.clearBreadcrumb === true;
-      
+
       let newHistory = shouldClearBreadcrumb ? [] : [...(currentState?.history || [])];
       let newBreadcrumb = shouldClearBreadcrumb ? [] : [...(currentState?.breadcrumb || [])];
-      
+
       // Add current location to history if different and updating history
       if (shouldUpdateHistory && currentState?.currentLocation && currentState.currentLocation !== menuType) {
         newHistory.push(currentState.currentLocation as MenuType);
-        
+
         // Limit history size
         if (newHistory.length > this.MAX_BREADCRUMB_LENGTH) {
           newHistory = newHistory.slice(-this.MAX_BREADCRUMB_LENGTH);
         }
       }
-      
+
       // Update breadcrumb
       if (!shouldClearBreadcrumb) {
         if (!newBreadcrumb.includes(menuType)) {
           newBreadcrumb.push(menuType);
         }
-        
+
         // Limit breadcrumb size
         if (newBreadcrumb.length > this.MAX_BREADCRUMB_LENGTH) {
           newBreadcrumb = newBreadcrumb.slice(-this.MAX_BREADCRUMB_LENGTH);
         }
       }
-      
+
       await this.sessionService.updateSession(userId, {
         navigationState: {
           currentLocation: menuType,
@@ -784,20 +823,20 @@ Customize your bot experience.
   private async formatMenuText(ctx: BotContext, menuConfig: MenuConfig): Promise<string> {
     const userId = ctx.from?.id?.toString();
     let text = `<b>${menuConfig.title}</b>\n`;
-    
+
     // Add breadcrumb navigation if available
     if (userId) {
       const navigation = await this.getMenuNavigation(userId);
       if (navigation && navigation.history.length > 0) {
-        const breadcrumbText = navigation.history.map(menu => this.getMenuDisplayName(menu)).join(' › ');
+        const breadcrumbText = navigation.history.map((menu) => this.getMenuDisplayName(menu)).join(' › ');
         text += `\n<i>📍 ${breadcrumbText} › ${this.getMenuDisplayName(navigation.currentMenu)}</i>\n`;
       }
     }
-    
+
     if (menuConfig.description) {
       text += `\n${menuConfig.description}\n`;
     }
-    
+
     return text;
   }
 
@@ -822,7 +861,7 @@ Customize your bot experience.
       [MenuType.Verification]: 'Verification',
       [MenuType.Error]: 'Error',
     };
-    
+
     return displayNames[menuType] || menuType;
   }
 
@@ -831,10 +870,12 @@ Customize your bot experience.
    */
   private createInlineKeyboard(buttons: any[][]): InlineKeyboard {
     const keyboard = new InlineKeyboard();
-    
+
     buttons.forEach((row, index) => {
-      if (index > 0) keyboard.row();
-      
+      if (index > 0) {
+        keyboard.row();
+      }
+
       row.forEach((button) => {
         if (button.url) {
           keyboard.url(button.text, button.url);
@@ -843,14 +884,19 @@ Customize your bot experience.
         }
       });
     });
-    
+
     return keyboard;
   }
 
   /**
    * Send menu message (new or edit existing)
    */
-  private async sendMenuMessage(ctx: BotContext, text: string, keyboard: InlineKeyboard, config: MenuConfig): Promise<void> {
+  private async sendMenuMessage(
+    ctx: BotContext,
+    text: string,
+    keyboard: InlineKeyboard,
+    config: MenuConfig,
+  ): Promise<void> {
     const options = {
       reply_markup: keyboard,
       parse_mode: 'HTML' as const,
@@ -870,7 +916,7 @@ Customize your bot experience.
         menuType: config.type,
         userId: ctx.from?.id,
       });
-      
+
       // Fallback to regular reply if edit fails
       try {
         await ctx.replyWithHTML(text, options);
@@ -891,7 +937,7 @@ Customize your bot experience.
       userId: ctx.from?.id,
       data,
     });
-    
+
     // This can be extended for specific data handling needs
   }
 
@@ -903,7 +949,7 @@ Customize your bot experience.
       await this.sessionService.updateSession(userId, {
         conversationState: {
           currentStep: `menu_action_${action}`,
-          context: { 
+          context: {
             lastAction: action,
             lastActionParams: params,
             lastActionAt: new Date().toISOString(),
@@ -926,7 +972,7 @@ Customize your bot experience.
    */
   private async handleMenuError(ctx: BotContext, error: Error, menuType: MenuType): Promise<void> {
     const userId = ctx.from?.id;
-    
+
     this.logger.error('Menu navigation error', {
       menuType,
       userId,
@@ -934,9 +980,10 @@ Customize your bot experience.
       stack: error.stack,
     });
 
-    const errorMessage = process.env.NODE_ENV === 'development' 
-      ? `Menu error: ${error.message}`
-      : 'Sorry, there was a problem loading the menu. Please try again.';
+    const errorMessage =
+      process.env.NODE_ENV === 'development'
+        ? `Menu error: ${error.message}`
+        : 'Sorry, there was a problem loading the menu. Please try again.';
 
     try {
       await ctx.reply(errorMessage, {
@@ -946,9 +993,7 @@ Customize your bot experience.
               { text: '🏠 Main Menu', callback_data: 'menu:main' },
               { text: '🔄 Try Again', callback_data: `menu:${menuType}` },
             ],
-            [
-              { text: '🆘 Support', callback_data: 'help:contact' },
-            ],
+            [{ text: '🆘 Support', callback_data: 'help:contact' }],
           ],
         },
       });
@@ -965,7 +1010,7 @@ Customize your bot experience.
    */
   private async handleActionError(ctx: BotContext, error: Error, callbackData: string): Promise<void> {
     const userId = ctx.from?.id;
-    
+
     this.logger.error('Menu action error', {
       callbackData,
       userId,
@@ -973,9 +1018,10 @@ Customize your bot experience.
       stack: error.stack,
     });
 
-    const errorMessage = process.env.NODE_ENV === 'development' 
-      ? `Action error: ${error.message}`
-      : 'Sorry, that action failed. Please try again or return to the main menu.';
+    const errorMessage =
+      process.env.NODE_ENV === 'development'
+        ? `Action error: ${error.message}`
+        : 'Sorry, that action failed. Please try again or return to the main menu.';
 
     try {
       await ctx.reply(errorMessage, {

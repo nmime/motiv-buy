@@ -61,6 +61,7 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
     });
 
     await entityManager.persistAndFlush(userRefLink);
+
     return userRefLink;
   }
 
@@ -101,9 +102,11 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
       if (user.refLinkLevel1) {
         allRefLinkIds.add(user.refLinkLevel1);
       }
+
       if (user.refLinkLevel2) {
         allRefLinkIds.add(user.refLinkLevel2);
       }
+
       if (user.refLinkLevel3) {
         allRefLinkIds.add(user.refLinkLevel3);
       }
@@ -117,6 +120,7 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
           level3RefLink: null,
         };
       }
+
       return result;
     }
 
@@ -147,7 +151,7 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
     await em.nativeUpdate(UserRefLinkEntity, { id }, { isDeleted: true });
   }
 
-  private generateRefCode(length: number = 10): string {
+  private generateRefCode(length = 10): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
     const randomArray = randomBytes(length);

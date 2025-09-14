@@ -18,29 +18,29 @@ export class UserLastAuthRepository extends EntityRepository<UserLastAuthEntity>
   ): Promise<UserLastAuthEntity> {
     const em = entityManager || this.em;
 
-    // Try to find existing record
+    const authData = {
+      ip: data.ip,
+      country: data.country,
+      city: data.city,
+      continent: data.continent,
+    };
+
     let entity = await em.findOne(UserLastAuthEntity, { user: data.userId });
 
     if (entity) {
-      em.assign(entity, {
-        ip: data.ip,
-        country: data.country,
-        city: data.city,
-        continent: data.continent,
-      });
+      em.assign(entity, authData);
     } else {
       const userRef = em.getReference(UserEntity, data.userId);
       entity = new UserLastAuthEntity({
         user: ref(userRef),
-        ip: data.ip,
-        country: data.country,
-        city: data.city,
-        continent: data.continent,
+        ...authData,
       });
+
       em.persist(entity);
     }
 
     await em.flush();
+
     return entity;
   }
 }

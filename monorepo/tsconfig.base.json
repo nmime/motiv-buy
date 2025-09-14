@@ -33,6 +33,8 @@
       "@app/feature-auth-shared": ["libs/feature/auth/shared/src/index.ts"],
       "@app/feature-balance-main": ["libs/feature/balance/main/src/index.ts"],
       "@app/feature-balance-shared": ["libs/feature/balance/shared/src/index.ts"],
+      "@app/feature-bot-main": ["libs/feature/bot/main/src/index.ts"],
+      "@app/feature-bot-shared": ["libs/feature/bot/shared/src/index.ts"],
       "@app/feature-statistic-main": ["libs/feature/statistic/main/src/index.ts"],
       "@app/feature-statistic-shared": ["libs/feature/statistic/shared/src/index.ts"],
       "@app/feature-traffic-main": ["libs/feature/traffic/main/src/index.ts"],

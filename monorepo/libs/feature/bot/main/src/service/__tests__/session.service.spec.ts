@@ -75,10 +75,7 @@ describe('SessionService', () => {
     } as any;
 
     module = await Test.createTestingModule({
-      providers: [
-        SessionService,
-        { provide: RedisCacheService, useValue: mockRedisCacheService },
-      ],
+      providers: [SessionService, { provide: RedisCacheService, useValue: mockRedisCacheService }],
     }).compile();
 
     service = module.get<SessionService>(SessionService);
@@ -92,6 +89,7 @@ describe('SessionService', () => {
     if (module) {
       await module.close();
     }
+
     jest.clearAllMocks();
   });
 
@@ -107,26 +105,28 @@ describe('SessionService', () => {
 
       const session = await service.createSession(mockUserId);
 
-      expect(session).toEqual(expect.objectContaining({
-        userId: mockUserId,
-        data: expect.objectContaining({
-          conversationState: expect.objectContaining({
-            currentStep: 'initial',
-            isActive: false,
+      expect(session).toEqual(
+        expect.objectContaining({
+          userId: mockUserId,
+          data: expect.objectContaining({
+            conversationState: expect.objectContaining({
+              currentStep: 'initial',
+              isActive: false,
+            }),
+            preferences: expect.objectContaining({
+              language: 'en',
+            }),
           }),
-          preferences: expect.objectContaining({
-            language: 'en',
-          }),
+          createdAt: expect.any(Date),
+          updatedAt: expect.any(Date),
+          expiresAt: expect.any(Date),
         }),
-        createdAt: expect.any(Date),
-        updatedAt: expect.any(Date),
-        expiresAt: expect.any(Date),
-      }));
+      );
 
       expect(mockRedisCacheService.setHash).toHaveBeenCalledWith(
         mockSessionKey,
         { session: expect.any(Object) },
-        24 * 60 * 60 // Default TTL
+        24 * 60 * 60, // Default TTL
       );
     });
 
@@ -155,11 +155,7 @@ describe('SessionService', () => {
 
       const session = await service.createSession(mockUserId, undefined, customTtl);
 
-      expect(mockRedisCacheService.setHash).toHaveBeenCalledWith(
-        mockSessionKey,
-        expect.any(Object),
-        customTtl
-      );
+      expect(mockRedisCacheService.setHash).toHaveBeenCalledWith(mockSessionKey, expect.any(Object), customTtl);
 
       const expectedExpiry = new Date(Date.now() + customTtl * 1000);
       expect(session.expiresAt.getTime()).toBeCloseTo(expectedExpiry.getTime(), -3);
@@ -180,13 +176,15 @@ describe('SessionService', () => {
 
       const session = await service.getSession(mockUserId);
 
-      expect(session).toEqual(expect.objectContaining({
-        userId: mockUserId,
-        data: expect.any(Object),
-        createdAt: expect.any(Date),
-        updatedAt: expect.any(Date),
-        expiresAt: expect.any(Date),
-      }));
+      expect(session).toEqual(
+        expect.objectContaining({
+          userId: mockUserId,
+          data: expect.any(Object),
+          createdAt: expect.any(Date),
+          updatedAt: expect.any(Date),
+          expiresAt: expect.any(Date),
+        }),
+      );
 
       expect(mockRedisCacheService.getHash).toHaveBeenCalledWith(mockSessionKey);
     });
@@ -274,7 +272,7 @@ describe('SessionService', () => {
       expect(mockRedisCacheService.setHash).toHaveBeenCalledWith(
         mockSessionKey,
         { session: expect.any(Object) },
-        24 * 60 * 60 // Default TTL
+        24 * 60 * 60, // Default TTL
       );
     });
 
@@ -352,11 +350,7 @@ describe('SessionService', () => {
       const customTtl = 1800; // 30 minutes
       await service.updateSession(mockUserId, {}, customTtl);
 
-      expect(mockRedisCacheService.setHash).toHaveBeenCalledWith(
-        mockSessionKey,
-        expect.any(Object),
-        customTtl
-      );
+      expect(mockRedisCacheService.setHash).toHaveBeenCalledWith(mockSessionKey, expect.any(Object), customTtl);
     });
 
     it('should handle update errors', async () => {
@@ -437,7 +431,7 @@ describe('SessionService', () => {
             expiresAt: expect.any(Date),
           }),
         }),
-        expect.any(Number)
+        expect.any(Number),
       );
     });
 
@@ -458,7 +452,7 @@ describe('SessionService', () => {
       const success = await service.extendSession(mockUserId, extensionMs);
 
       expect(success).toBe(true);
-      
+
       const setHashCall = mockRedisCacheService.setHash.mock.calls[0];
       const ttlSeconds = setHashCall[2];
       expect(ttlSeconds).toBeLessThanOrEqual(7 * 24 * 60 * 60); // Max 7 days
@@ -529,11 +523,19 @@ describe('SessionService', () => {
       mockRedisCacheService.getHash.mockResolvedValue({ session: createMockSession() });
       mockRedisCacheService.setHash.mockResolvedValue(undefined);
 
-      const operations = Array(10).fill(null).map((_, i) => {
-        if (i % 3 === 0) return service.createSession(`user${i}`);
-        if (i % 3 === 1) return service.getSession(`user${i}`);
-        return service.updateSession(`user${i}`, { custom: { test: i } });
-      });
+      const operations = Array(10)
+        .fill(null)
+        .map((_, i) => {
+          if (i % 3 === 0) {
+            return service.createSession(`user${i}`);
+          }
+
+          if (i % 3 === 1) {
+            return service.getSession(`user${i}`);
+          }
+
+          return service.updateSession(`user${i}`, { custom: { test: i } });
+        });
 
       const results = await Promise.all(operations);
 
@@ -553,7 +555,9 @@ describe('SessionService', () => {
     it('should handle large session data efficiently', async () => {
       const largeInitialData: Partial<SessionData> = {
         cache: Object.fromEntries(
-          Array(1000).fill(null).map((_, i) => [`key${i}`, `value${i}`])
+          Array(1000)
+            .fill(null)
+            .map((_, i) => [`key${i}`, `value${i}`]),
         ),
       };
 
@@ -620,14 +624,14 @@ describe('SessionService', () => {
       mockRedisCacheService.getHash.mockResolvedValue({ session: existingSession });
       mockRedisCacheService.setHash.mockResolvedValue(undefined);
 
-      const updates = Array(5).fill(null).map((_, i) => 
-        service.updateSession(mockUserId, { custom: { update: i } })
-      );
+      const updates = Array(5)
+        .fill(null)
+        .map((_, i) => service.updateSession(mockUserId, { custom: { update: i } }));
 
       const results = await Promise.all(updates);
 
       expect(results).toHaveLength(5);
-      results.forEach(result => expect(result).toBeDefined());
+      results.forEach((result) => expect(result).toBeDefined());
     });
   });
 
@@ -640,7 +644,7 @@ describe('SessionService', () => {
       expect(mockRedisCacheService.setHash).toHaveBeenCalledWith(
         'bot:session:123456789',
         expect.any(Object),
-        expect.any(Number)
+        expect.any(Number),
       );
     });
 
@@ -655,7 +659,7 @@ describe('SessionService', () => {
         expect.stringContaining('Failed to retrieve session'),
         expect.objectContaining({
           userId: mockUserId,
-        })
+        }),
       );
     });
   });

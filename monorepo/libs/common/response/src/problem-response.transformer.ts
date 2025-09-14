@@ -97,9 +97,17 @@ export class ProblemResponseTransformer implements NestInterceptor, ExceptionFil
     const request = context.getRequest<Request>();
     const acceptLang = request.headers['accept-language'];
     const xLang = request.headers['x-language'];
-    const langHeader = Array.isArray(acceptLang)
-      ? acceptLang[0]
-      : acceptLang || (Array.isArray(xLang) ? xLang[0] : xLang) || 'en';
+    let langHeader: string = 'en';
+    if (Array.isArray(acceptLang)) {
+      langHeader = acceptLang[0] || 'en';
+    } else if (acceptLang) {
+      langHeader = acceptLang;
+    } else if (Array.isArray(xLang)) {
+      langHeader = xLang[0] || 'en';
+    } else if (typeof xLang === 'string') {
+      langHeader = xLang;
+    }
+
     const lang = getLang(langHeader);
 
     const traceId = this.generateTraceId();

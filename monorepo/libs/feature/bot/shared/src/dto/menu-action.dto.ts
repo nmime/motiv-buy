@@ -4,58 +4,58 @@ import { MenuActionType } from '../type/callback-data.interface';
 
 /**
  * Menu Action DTO
- * 
+ *
  * Data Transfer Object for menu action requests and responses.
  * Validates menu action parameters and ensures type safety.
- * 
+ *
  * @class MenuActionDto
  */
 export class MenuActionDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Menu action type',
     enum: MenuActionType,
-    example: MenuActionType.Navigate 
+    example: MenuActionType.Navigate,
   })
   @IsEnum(MenuActionType)
   action!: MenuActionType;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Target menu identifier',
     required: false,
-    example: 'main_menu' 
+    example: 'main_menu',
   })
   @IsOptional()
   @IsString()
   menuId?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Action parameters',
     required: false,
     type: Object,
-    example: { page: 1, filter: 'active' } 
+    example: { page: 1, filter: 'active' },
   })
   @IsOptional()
   @IsObject()
   params?: Record<string, any>;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'User identifier',
-    example: '123456789' 
+    example: '123456789',
   })
   @IsString()
   userId!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Chat identifier',
-    example: '-987654321' 
+    example: '-987654321',
   })
   @IsString()
   chatId!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Message identifier',
     required: false,
-    example: 12345 
+    example: 12345,
   })
   @IsOptional()
   @IsString()
@@ -68,38 +68,38 @@ export class MenuActionDto {
 
 /**
  * Menu Action Response DTO
- * 
+ *
  * Response object for menu actions.
  */
 export class MenuActionResponseDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Whether action was successful',
-    example: true 
+    example: true,
   })
   success!: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Action result message',
     required: false,
-    example: 'Menu updated successfully' 
+    example: 'Menu updated successfully',
   })
   @IsOptional()
   @IsString()
   message?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Next menu to navigate to',
     required: false,
-    example: 'profile_menu' 
+    example: 'profile_menu',
   })
   @IsOptional()
   @IsString()
   nextMenu?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Additional response data',
     required: false,
-    type: Object 
+    type: Object,
   })
   @IsOptional()
   @IsObject()

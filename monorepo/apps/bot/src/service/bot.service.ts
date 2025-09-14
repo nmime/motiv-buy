@@ -79,7 +79,9 @@ export class BotService {
   private async handleStartCommand(ctx: Context): Promise<void> {
     try {
       const user = ctx.from;
-      if (!user) return;
+      if (!user) {
+        return;
+      }
 
       let userRecord;
       try {
@@ -137,7 +139,9 @@ Contact our team if you need assistance.
   private async handleMessage(ctx: Context): Promise<void> {
     try {
       const user = ctx.from;
-      if (!user) return;
+      if (!user) {
+        return;
+      }
 
       try {
         const userRecord = await this.userService.getUserByTelegramId(user.id.toString());

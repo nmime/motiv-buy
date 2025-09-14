@@ -56,8 +56,12 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     const results = await this.findAll();
 
     return results.filter((order) => {
-      if (!order.totalBudget) return false;
+      if (!order.totalBudget) {
+        return false;
+      }
+
       const budget = parseFloat(order.totalBudget);
+
       return budget >= minBudget && budget <= maxBudget;
     });
   }
@@ -110,6 +114,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     });
 
     await this.em.persistAndFlush(order);
+
     return order;
   }
 
@@ -120,6 +125,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
       if (status === TrafficOrderStatus.Completed) {
         order.completedAt = new Date();
       }
+
       await this.em.flush();
     }
   }
@@ -132,6 +138,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
         order.status = TrafficOrderStatus.Completed;
         order.completedAt = new Date();
       }
+
       await this.em.flush();
     }
   }

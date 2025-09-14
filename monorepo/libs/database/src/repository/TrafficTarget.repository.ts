@@ -28,8 +28,12 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
     });
 
     return results.filter((target) => {
-      if (!target.pricePerMember) return false;
+      if (!target.pricePerMember) {
+        return false;
+      }
+
       const price = parseFloat(target.pricePerMember);
+
       return price >= minPrice && price <= maxPrice;
     });
   }
@@ -40,6 +44,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
     if (minMembers !== undefined) {
       conditions.minMembers = { $lte: minMembers };
     }
+
     if (maxMembers !== undefined) {
       conditions.maxMembers = { $gte: maxMembers };
     }
@@ -67,7 +72,9 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
       isActive: true,
       requiresApproval: false,
     });
+
     await this.em.persistAndFlush(trafficTarget);
+
     return trafficTarget;
   }
 
@@ -82,8 +89,14 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   async updateMemberLimits(id: string, minMembers?: number, maxMembers?: number): Promise<void> {
     const target = await this.findOne({ id });
     if (target) {
-      if (minMembers !== undefined) target.minMembers = minMembers;
-      if (maxMembers !== undefined) target.maxMembers = maxMembers;
+      if (minMembers !== undefined) {
+        target.minMembers = minMembers;
+      }
+
+      if (maxMembers !== undefined) {
+        target.maxMembers = maxMembers;
+      }
+
       await this.em.flush();
     }
   }

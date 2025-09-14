@@ -2,26 +2,26 @@ import { MenuButton, MenuConfig } from '../type';
 
 /**
  * Keyboard Utility
- * 
+ *
  * Utility functions for creating and manipulating bot keyboards.
  * Provides helpers for inline keyboards, reply keyboards, and button layouts.
- * 
+ *
  * @class KeyboardUtil
  */
 export class KeyboardUtil {
   /**
    * Create inline keyboard from menu configuration
-   * 
+   *
    * @param menuConfig - Menu configuration object
    * @returns Inline keyboard markup
    */
   static createInlineKeyboard(menuConfig: MenuConfig): any {
-    const inlineKeyboard = menuConfig.buttons.map(row => 
-      row.map(button => ({
+    const inlineKeyboard = menuConfig.buttons.map((row) =>
+      row.map((button) => ({
         text: button.text,
         callback_data: button.callbackData,
         url: button.url,
-      }))
+      })),
     );
 
     return {
@@ -31,7 +31,7 @@ export class KeyboardUtil {
 
   /**
    * Create reply keyboard from buttons
-   * 
+   *
    * @param buttons - Array of button rows
    * @param options - Keyboard options
    * @returns Reply keyboard markup
@@ -42,11 +42,9 @@ export class KeyboardUtil {
       resizeKeyboard?: boolean;
       oneTimeKeyboard?: boolean;
       selective?: boolean;
-    } = {}
+    } = {},
   ): any {
-    const keyboard = buttons.map(row => 
-      row.map(text => ({ text }))
-    );
+    const keyboard = buttons.map((row) => row.map((text) => ({ text })));
 
     return {
       keyboard,
@@ -58,17 +56,13 @@ export class KeyboardUtil {
 
   /**
    * Create pagination keyboard
-   * 
+   *
    * @param currentPage - Current page number
    * @param totalPages - Total number of pages
    * @param baseCallbackData - Base callback data for pagination
    * @returns Inline keyboard with pagination controls
    */
-  static createPaginationKeyboard(
-    currentPage: number,
-    totalPages: number,
-    baseCallbackData: string
-  ): any {
+  static createPaginationKeyboard(currentPage: number, totalPages: number, baseCallbackData: string): any {
     const buttons: any[] = [];
 
     // Previous page button
@@ -100,7 +94,7 @@ export class KeyboardUtil {
 
   /**
    * Create confirmation keyboard
-   * 
+   *
    * @param confirmCallback - Callback for confirm action
    * @param cancelCallback - Callback for cancel action
    * @param confirmText - Text for confirm button
@@ -110,8 +104,8 @@ export class KeyboardUtil {
   static createConfirmationKeyboard(
     confirmCallback: string,
     cancelCallback: string,
-    confirmText: string = '✅ Confirm',
-    cancelText: string = '❌ Cancel'
+    confirmText = '✅ Confirm',
+    cancelText = '❌ Cancel',
   ): any {
     return {
       inline_keyboard: [
@@ -125,17 +119,13 @@ export class KeyboardUtil {
 
   /**
    * Create numbered list keyboard
-   * 
+   *
    * @param items - Array of items
    * @param baseCallback - Base callback data
    * @param itemsPerRow - Number of items per row
    * @returns Keyboard with numbered items
    */
-  static createNumberedListKeyboard(
-    items: string[],
-    baseCallback: string,
-    itemsPerRow: number = 3
-  ): any {
+  static createNumberedListKeyboard(items: string[], baseCallback: string, itemsPerRow = 3): any {
     const buttons: any[][] = [];
     let currentRow: any[] = [];
 
@@ -159,11 +149,11 @@ export class KeyboardUtil {
 
   /**
    * Remove keyboard markup
-   * 
+   *
    * @param selective - Whether removal is selective
    * @returns Remove keyboard markup
    */
-  static removeKeyboard(selective: boolean = false): any {
+  static removeKeyboard(selective = false): any {
     return {
       remove_keyboard: true,
       selective,
@@ -172,7 +162,7 @@ export class KeyboardUtil {
 
   /**
    * Create back and home navigation keyboard
-   * 
+   *
    * @param backCallback - Back button callback
    * @param homeCallback - Home button callback
    * @param includeBack - Whether to include back button
@@ -180,10 +170,10 @@ export class KeyboardUtil {
    * @returns Navigation keyboard
    */
   static createNavigationKeyboard(
-    backCallback: string = 'back',
-    homeCallback: string = 'menu:main',
-    includeBack: boolean = true,
-    includeHome: boolean = true
+    backCallback = 'back',
+    homeCallback = 'menu:main',
+    includeBack = true,
+    includeHome = true,
   ): any {
     const buttons: any[] = [];
 
@@ -208,14 +198,14 @@ export class KeyboardUtil {
 
   /**
    * Merge multiple keyboard markups
-   * 
+   *
    * @param keyboards - Array of keyboard markups to merge
    * @returns Merged keyboard markup
    */
   static mergeKeyboards(...keyboards: any[]): any {
     const mergedButtons: any[][] = [];
 
-    keyboards.forEach(keyboard => {
+    keyboards.forEach((keyboard) => {
       if (keyboard?.inline_keyboard) {
         mergedButtons.push(...keyboard.inline_keyboard);
       }

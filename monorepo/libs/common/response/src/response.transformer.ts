@@ -10,7 +10,7 @@ import {
   Logger,
   NestInterceptor,
 } from '@nestjs/common';
-import { catchError, map, Observable, of } from 'rxjs';
+import { catchError, map, Observable } from 'rxjs';
 import { Result } from 'ts-results';
 import { Response } from 'express';
 
@@ -32,6 +32,7 @@ export class ResponseTransformer implements NestInterceptor, ExceptionFilter {
           if (!result.ok) {
             throw result.val;
           }
+
           return result.val;
         }
 
@@ -63,6 +64,7 @@ export class ResponseTransformer implements NestInterceptor, ExceptionFilter {
         error: error.name,
         timestamp: new Date().toISOString(),
       });
+
       return;
     }
 

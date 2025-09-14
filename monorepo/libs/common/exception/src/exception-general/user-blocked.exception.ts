@@ -6,7 +6,7 @@ export class UserBlockedException extends Exception({
   problemType: 'user_blocked',
   title: 'User Blocked',
 }) {
-  constructor(message: string = 'You are blocked') {
+  constructor(message = 'You are blocked') {
     super({
       detail: message,
     });

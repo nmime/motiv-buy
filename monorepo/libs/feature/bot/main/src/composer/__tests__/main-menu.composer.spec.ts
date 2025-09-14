@@ -86,9 +86,9 @@ describe('MainMenuComposer', () => {
   });
 
   const createMockBalance = () => ({
-    availableAmount: 100.50,
-    pendingAmount: 25.00,
-    totalEarned: 500.00,
+    availableAmount: 100.5,
+    pendingAmount: 25.0,
+    totalEarned: 500.0,
     lastTransactionAt: new Date('2023-06-01'),
   });
 
@@ -131,6 +131,7 @@ describe('MainMenuComposer', () => {
     if (module) {
       await module.close();
     }
+
     jest.clearAllMocks();
   });
 
@@ -170,9 +171,9 @@ describe('MainMenuComposer', () => {
           description: 'Balance: $100.50 • Account not verified ⚠️',
           buttons: expect.arrayContaining([
             expect.arrayContaining([
-              expect.objectContaining({ 
+              expect.objectContaining({
                 text: '💰 Balance ($100.50)',
-                metadata: expect.objectContaining({ feature: 'balance', hasData: true })
+                metadata: expect.objectContaining({ feature: 'balance', hasData: true }),
               }),
             ]),
           ]),
@@ -182,7 +183,7 @@ describe('MainMenuComposer', () => {
             hasBalance: true,
             isVerified: false,
           }),
-        })
+        }),
       );
     });
 
@@ -197,7 +198,7 @@ describe('MainMenuComposer', () => {
           title: 'Welcome, User! 🚀',
           description: 'Choose an option from the menu below:',
           isInline: true,
-        })
+        }),
       );
     });
 
@@ -210,7 +211,7 @@ describe('MainMenuComposer', () => {
         expect.objectContaining({
           type: MenuType.Main,
           title: 'Welcome, Test! 🚀',
-        })
+        }),
       );
     });
 
@@ -229,12 +230,12 @@ describe('MainMenuComposer', () => {
       expect(menuConfig.buttons).toEqual(
         expect.arrayContaining([
           expect.arrayContaining([
-            expect.objectContaining({ 
+            expect.objectContaining({
               text: '👤 Profile ✅',
-              metadata: expect.objectContaining({ verified: true })
+              metadata: expect.objectContaining({ verified: true }),
             }),
           ]),
-        ])
+        ]),
       );
     });
   });
@@ -263,14 +264,12 @@ describe('MainMenuComposer', () => {
               expect.objectContaining({ text: '🚀 New Campaign' }),
               expect.objectContaining({ text: '📈 View Stats' }),
             ]),
-            expect.arrayContaining([
-              expect.objectContaining({ text: '📋 Recent Actions' }),
-            ]),
+            expect.arrayContaining([expect.objectContaining({ text: '📋 Recent Actions' })]),
           ]),
           metadata: expect.objectContaining({
             recentActionsCount: 2,
           }),
-        })
+        }),
       );
     });
 
@@ -288,7 +287,7 @@ describe('MainMenuComposer', () => {
               expect.objectContaining({ text: '💰 Check Balance' }),
             ]),
           ]),
-        })
+        }),
       );
     });
   });
@@ -321,13 +320,14 @@ describe('MainMenuComposer', () => {
       expect(customizedMenu.buttons).toEqual(
         expect.arrayContaining([
           expect.arrayContaining([
-            expect.objectContaining({ 
+            expect.objectContaining({
               text: '👑 Premium Analytics',
-              metadata: expect.objectContaining({ feature: 'premium' })
+              metadata: expect.objectContaining({ feature: 'premium' }),
             }),
           ]),
-        ])
+        ]),
       );
+
       expect(customizedMenu.metadata?.customized).toBe(true);
     });
 
@@ -340,12 +340,12 @@ describe('MainMenuComposer', () => {
       expect(customizedMenu.buttons).toEqual(
         expect.arrayContaining([
           expect.arrayContaining([
-            expect.objectContaining({ 
+            expect.objectContaining({
               text: '🔧 Admin Panel',
-              metadata: expect.objectContaining({ feature: 'admin', restricted: true })
+              metadata: expect.objectContaining({ feature: 'admin', restricted: true }),
             }),
           ]),
-        ])
+        ]),
       );
     });
 
@@ -368,16 +368,14 @@ describe('MainMenuComposer', () => {
 
       // Should change Statistics to Analytics for users with ID % 100 < 50
       expect(customizedMenu.buttons[0]).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ text: '📊 Analytics' }),
-        ])
+        expect.arrayContaining([expect.objectContaining({ text: '📊 Analytics' })]),
       );
     });
 
     it('should handle customization errors', async () => {
       const user = { ...mockUserData };
       const session = createMockSession();
-      
+
       // Mock an error in role permissions
       jest.spyOn(composer as any, 'applyRolePermissions').mockRejectedValue(new Error('Permission error'));
 
@@ -394,9 +392,7 @@ describe('MainMenuComposer', () => {
       baseMenu = {
         type: MenuType.Main,
         title: 'Base Menu',
-        buttons: [
-          [{ text: 'Button 1', callbackData: 'test:1' }],
-        ],
+        buttons: [[{ text: 'Button 1', callbackData: 'test:1' }]],
         isInline: true,
       };
     });
@@ -410,16 +406,16 @@ describe('MainMenuComposer', () => {
       expect(menuWithNav.buttons).toEqual(
         expect.arrayContaining([
           expect.arrayContaining([
-            expect.objectContaining({ 
+            expect.objectContaining({
               text: '◀️ Back',
-              metadata: expect.objectContaining({ action: 'navigation', type: 'back' })
+              metadata: expect.objectContaining({ action: 'navigation', type: 'back' }),
             }),
-            expect.objectContaining({ 
+            expect.objectContaining({
               text: '🏠 Home',
-              metadata: expect.objectContaining({ action: 'navigation', type: 'home' })
+              metadata: expect.objectContaining({ action: 'navigation', type: 'home' }),
             }),
           ]),
-        ])
+        ]),
       );
     });
 
@@ -431,12 +427,12 @@ describe('MainMenuComposer', () => {
       expect(menuWithNav.buttons).toEqual(
         expect.arrayContaining([
           expect.arrayContaining([
-            expect.objectContaining({ 
+            expect.objectContaining({
               text: '📍 Menu Path',
-              metadata: expect.objectContaining({ action: 'navigation', type: 'breadcrumb' })
+              metadata: expect.objectContaining({ action: 'navigation', type: 'breadcrumb' }),
             }),
           ]),
-        ])
+        ]),
       );
     });
 
@@ -451,16 +447,16 @@ describe('MainMenuComposer', () => {
       expect(menuWithNav.buttons).toEqual(
         expect.arrayContaining([
           expect.arrayContaining([
-            expect.objectContaining({ 
+            expect.objectContaining({
               text: '◀️ Back',
-              callbackData: 'custom:back'
+              callbackData: 'custom:back',
             }),
-            expect.objectContaining({ 
+            expect.objectContaining({
               text: '🏠 Home',
-              callbackData: 'custom:home'
+              callbackData: 'custom:home',
             }),
           ]),
-        ])
+        ]),
       );
     });
 
@@ -482,9 +478,7 @@ describe('MainMenuComposer', () => {
             { text: 'Button 1', callbackData: 'action:1' },
             { text: 'Button 2', callbackData: 'action:2' },
           ],
-          [
-            { text: 'URL Button', callbackData: 'url:test', url: 'https://example.com' },
-          ],
+          [{ text: 'URL Button', callbackData: 'url:test', url: 'https://example.com' }],
         ],
         isInline: true,
       };
@@ -515,14 +509,14 @@ describe('MainMenuComposer', () => {
     });
 
     it('should handle concurrent menu compositions', async () => {
-      const promises = Array(5).fill(null).map(() => 
-        composer.composeMainMenu(mockCtx)
-      );
+      const promises = Array(5)
+        .fill(null)
+        .map(() => composer.composeMainMenu(mockCtx));
 
       const results = await Promise.all(promises);
 
       expect(results).toHaveLength(5);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.type).toBe(MenuType.Main);
       });
     });
@@ -564,7 +558,7 @@ describe('MainMenuComposer', () => {
     });
 
     it('should generate localized greeting for different languages', async () => {
-      const getPersonalizedGreeting = (composer as any).getPersonalizedGreeting;
+      const { getPersonalizedGreeting } = composer as any;
 
       expect(getPersonalizedGreeting.call(composer, 'Test', 'en')).toBe('Welcome back, Test! 🚀');
       expect(getPersonalizedGreeting.call(composer, 'Test', 'es')).toBe('¡Bienvenido de vuelta, Test! 🚀');
@@ -574,17 +568,19 @@ describe('MainMenuComposer', () => {
     });
 
     it('should generate appropriate menu description', () => {
-      const getMainMenuDescription = (composer as any).getMainMenuDescription;
+      const { getMainMenuDescription } = composer as any;
       const balance = createMockBalance();
 
       // With verified user and balance
       const verifiedUser = { ...mockUserData, isVerified: true };
-      expect(getMainMenuDescription.call(composer, verifiedUser, balance))
-        .toBe('Balance: $100.50 • Account verified ✅');
+      expect(getMainMenuDescription.call(composer, verifiedUser, balance)).toBe(
+        'Balance: $100.50 • Account verified ✅',
+      );
 
       // With unverified user and balance
-      expect(getMainMenuDescription.call(composer, mockUserData, balance))
-        .toBe('Balance: $100.50 • Account not verified ⚠️');
+      expect(getMainMenuDescription.call(composer, mockUserData, balance)).toBe(
+        'Balance: $100.50 • Account not verified ⚠️',
+      );
 
       // Without user
       expect(getMainMenuDescription.call(composer)).toBe('Please register to access all features.');

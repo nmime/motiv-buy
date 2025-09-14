@@ -2,12 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { UserRepository, UserEntity } from '@app/database';
 import { Language, defaultLanguage } from '@app/common-shared';
-import { TelegramAuthParams } from '../../dto';
-import { UserRefLink } from '../../dto';
-
-const isLanguage = (value: any): value is Language => {
-  return Object.values(Language).includes(value);
-};
+import { TelegramAuthParams, UserRefLink } from '../../type';
 
 @Injectable()
 export class AuthCreateUserService {
@@ -40,6 +35,10 @@ export class AuthCreateUserService {
   }
 
   determineLanguage(languageCode: string | undefined): Language {
+    const isLanguage = (value: any): value is Language => {
+      return Object.values(Language).includes(value);
+    };
+
     return isLanguage(languageCode) ? languageCode : defaultLanguage;
   }
 

@@ -30,6 +30,7 @@ export class BalanceService implements IBalanceService {
     if (!balance) {
       // Create initial balance if not exists
       const newBalance = await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.RUB, '0');
+
       return { amount: parseFloat(newBalance.balance), currency: 'RUB' };
     }
 

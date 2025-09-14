@@ -38,7 +38,9 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
       isSignup: data.isSignup,
       ...visitData,
     });
+
     await this.em.persistAndFlush(visit);
+
     return visit;
   }
 
@@ -46,7 +48,7 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
     return this.find({ user: userId });
   }
 
-  async findRecentVisits(limit: number = 10): Promise<UserSourceVisitEntity[]> {
+  async findRecentVisits(limit = 10): Promise<UserSourceVisitEntity[]> {
     return this.find({}, { orderBy: { createdAt: 'DESC' }, limit });
   }
 

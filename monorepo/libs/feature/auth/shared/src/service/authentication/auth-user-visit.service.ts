@@ -1,10 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { UserSourceVisitEntity, UserSourceVisitPlatformData, PlatformType } from '@app/database';
-import { getGeoByIp } from '../util';
-import { SourceParameters, SourceRegisterService, VisitDataParams } from '../../source';
-import { TelegramAuthParams } from '../../dto';
-import { UserRefLink } from '../../dto/user-ref-link.dto';
+import { UserSourceVisitEntity } from '@app/database';
+import { SourceParameters, SourceRegisterService, VisitDataParams, getGeoByIp } from '../../source';
+import { TelegramAuthParams, UserRefLink } from '../../type';
 
 @Injectable()
 export class AuthUserVisitService {
@@ -60,6 +58,7 @@ export class AuthUserVisitService {
       return getGeoByIp(ip) ?? undefined;
     } catch (error) {
       this.logger.error('Error while getting geo by ip', { ip, error });
+
       return undefined;
     }
   }

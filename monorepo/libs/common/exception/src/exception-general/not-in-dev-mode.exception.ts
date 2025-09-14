@@ -6,7 +6,7 @@ export class NotInDevModeException extends Exception({
   problemType: 'not_in_dev_mode',
   title: 'Not In Development Mode',
 }) {
-  constructor(message: string = 'Not in development mode') {
+  constructor(message = 'Not in development mode') {
     super({
       detail: message,
     });

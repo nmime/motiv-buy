@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Err, Ok, Result } from 'ts-results';
 import { UserRepository, UserRole, UserStatus, UserEntity } from '@app/database';
-import { AuthJwtPayloadDto, UserData } from '../dto';
+import { AuthJwtPayloadDto } from '../dto';
+import { UserData } from '../type';
 import { BadTokenException, UserBlockedException, UserNotFoundException } from '@app/common-exception';
 import { AuthConfigService } from '../config';
 

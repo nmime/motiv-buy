@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@app/database';
-import { StatisticController } from './controller/statistic.controller';
-import { StatisticService } from './service/statistic.service';
+import { StatisticController, StatisticPublicController } from './controller';
+import { StatisticService } from './service';
+import { StatisticRepository } from './repository';
+import { StatisticMapper } from './mapper';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [StatisticController],
-  providers: [StatisticService],
-  exports: [StatisticService],
+  controllers: [StatisticController, StatisticPublicController],
+  providers: [StatisticService, StatisticRepository, StatisticMapper],
+  exports: [StatisticService, StatisticRepository, StatisticMapper],
 })
 export class StatisticMainModule {}

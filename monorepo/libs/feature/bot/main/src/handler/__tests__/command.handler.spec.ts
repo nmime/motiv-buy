@@ -56,9 +56,9 @@ describe('CommandHandler', () => {
   });
 
   const createMockBalance = () => ({
-    availableAmount: 100.50,
-    pendingAmount: 25.00,
-    totalEarned: 500.00,
+    availableAmount: 100.5,
+    pendingAmount: 25.0,
+    totalEarned: 500.0,
     lastTransactionAt: new Date('2023-06-01'),
   });
 
@@ -112,6 +112,7 @@ describe('CommandHandler', () => {
     if (module) {
       await module.close();
     }
+
     jest.clearAllMocks();
   });
 
@@ -140,8 +141,9 @@ describe('CommandHandler', () => {
           reply_markup: expect.objectContaining({
             inline_keyboard: expect.any(Array),
           }),
-        })
+        }),
       );
+
       expect(mockSessionService.createSession).toHaveBeenCalledWith(
         mockUserId,
         expect.objectContaining({
@@ -151,7 +153,7 @@ describe('CommandHandler', () => {
               authenticated: true,
             }),
           }),
-        })
+        }),
       );
     });
 
@@ -173,8 +175,9 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
+
       expect(mockSessionService.createSession).toHaveBeenCalledWith(
         mockUserId,
         expect.objectContaining({
@@ -184,7 +187,7 @@ describe('CommandHandler', () => {
               authenticated: false,
             }),
           }),
-        })
+        }),
       );
     });
 
@@ -193,9 +196,7 @@ describe('CommandHandler', () => {
 
       await handler.processCommand(mockCtx, BotCommand.Start);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Welcome to MotivBuy!')
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Welcome to MotivBuy!'));
     });
 
     it('should handle start command without user context', async () => {
@@ -230,7 +231,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       const helpCall = mockCtx.replyWithHTML.mock.calls[0];
@@ -260,7 +261,7 @@ describe('CommandHandler', () => {
 
       expect(mockAuthUserService.findByPlatformId).toHaveBeenCalledWith(mockUserId);
       expect(mockBalanceService.getUserBalance).toHaveBeenCalledWith(mockUserData.id);
-      
+
       expect(mockCtx.replyWithHTML).toHaveBeenCalledWith(
         expect.stringContaining('💰 Your Balance'),
         expect.objectContaining({
@@ -274,14 +275,14 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       const balanceCall = mockCtx.replyWithHTML.mock.calls[0];
       const balanceText = balanceCall[0];
 
       expect(balanceText).toContain('$100.50'); // Available balance
-      expect(balanceText).toContain('$25.00');  // Pending balance
+      expect(balanceText).toContain('$25.00'); // Pending balance
       expect(balanceText).toContain('$500.00'); // Total earned
     });
 
@@ -290,9 +291,7 @@ describe('CommandHandler', () => {
 
       await handler.processCommand(mockCtx, BotCommand.Balance);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        'User not found. Please use /start to register.'
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('User not found. Please use /start to register.');
     });
 
     it('should handle balance service errors', async () => {
@@ -301,9 +300,7 @@ describe('CommandHandler', () => {
 
       await handler.processCommand(mockCtx, BotCommand.Balance);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        'Unable to fetch balance information. Please try again later.'
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('Unable to fetch balance information. Please try again later.');
     });
 
     it('should require authentication', async () => {
@@ -311,9 +308,7 @@ describe('CommandHandler', () => {
 
       await handler.processCommand(mockCtx, BotCommand.Balance);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        '🔒 Authentication required.\n\nPlease use /start to begin.'
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('🔒 Authentication required.\n\nPlease use /start to begin.');
     });
   });
 
@@ -336,9 +331,7 @@ describe('CommandHandler', () => {
       await handler.processCommand(mockCtx, BotCommand.Profile);
 
       expect(mockMenuService.navigateToMenu).not.toHaveBeenCalled();
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Authentication required')
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Authentication required'));
     });
   });
 
@@ -386,9 +379,7 @@ describe('CommandHandler', () => {
 
       await handler.processCommand(mockCtx, BotCommand.Admin);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        '❌ Unable to verify admin access. Please try again later.'
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('❌ Unable to verify admin access. Please try again later.');
     });
   });
 
@@ -410,7 +401,7 @@ describe('CommandHandler', () => {
             context: { cancelled: true },
           }),
           formData: {},
-        })
+        }),
       );
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
@@ -426,7 +417,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -436,9 +427,7 @@ describe('CommandHandler', () => {
       await handler.processCommand(mockCtx, BotCommand.Cancel);
 
       expect(mockSessionService.updateSession).not.toHaveBeenCalled();
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('❌ Operation cancelled')
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('❌ Operation cancelled'));
     });
   });
 
@@ -465,7 +454,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       const supportCall = mockCtx.replyWithHTML.mock.calls[0];
@@ -517,7 +506,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       const statusCall = mockCtx.replyWithHTML.mock.calls[0];
@@ -535,9 +524,7 @@ describe('CommandHandler', () => {
 
       await handler.processCommand(mockCtx, BotCommand.Status);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        'Unable to fetch status information. Please try again later.'
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('Unable to fetch status information. Please try again later.');
     });
   });
 
@@ -568,7 +555,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
   });
@@ -596,7 +583,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       const verifyCall = mockCtx.replyWithHTML.mock.calls[0];
@@ -631,7 +618,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
   });
@@ -659,7 +646,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
 
       const resetCall = mockCtx.replyWithHTML.mock.calls[0];
@@ -700,7 +687,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
   });
@@ -724,7 +711,7 @@ describe('CommandHandler', () => {
           command: BotCommand.Profile,
           userId: parseInt(mockUserId),
           error: 'Test error',
-        })
+        }),
       );
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
@@ -740,7 +727,7 @@ describe('CommandHandler', () => {
               ]),
             ]),
           }),
-        })
+        }),
       );
     });
 
@@ -752,7 +739,7 @@ describe('CommandHandler', () => {
 
       expect(mockCtx.reply).toHaveBeenCalledWith(
         expect.stringContaining('Sorry, something went wrong processing your request'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -767,7 +754,7 @@ describe('CommandHandler', () => {
         expect.objectContaining({
           originalError: 'Test error',
           replyError: 'Reply failed',
-        })
+        }),
       );
     });
   });
@@ -792,7 +779,7 @@ describe('CommandHandler', () => {
               lastCommandAt: expect.any(String),
             }),
           }),
-        })
+        }),
       );
     });
 
@@ -834,9 +821,7 @@ describe('CommandHandler', () => {
       const result = await checkAuth.call(handler, mockCtx);
 
       expect(result).toBe(false);
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('🔒 Authentication required')
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('🔒 Authentication required'));
     });
   });
 
@@ -848,17 +833,9 @@ describe('CommandHandler', () => {
     });
 
     it('should handle concurrent command processing', async () => {
-      const commands = [
-        BotCommand.Help,
-        BotCommand.Menu,
-        BotCommand.Stats,
-        BotCommand.Traffic,
-        BotCommand.Campaign,
-      ];
+      const commands = [BotCommand.Help, BotCommand.Menu, BotCommand.Stats, BotCommand.Traffic, BotCommand.Campaign];
 
-      const promises = commands.map(command => 
-        handler.processCommand(mockCtx, command)
-      );
+      const promises = commands.map((command) => handler.processCommand(mockCtx, command));
 
       await Promise.all(promises);
 

@@ -25,8 +25,10 @@ export class ClientDataProblemValidationDto {
   })
   errors!: ValidationErrorResponse;
 
-  constructor(data: ClientDataProblemValidationDto) {
-    Object.assign(this, data);
+  constructor(...args: unknown[]) {
+    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+      Object.assign(this, args[0]);
+    }
   }
 }
 

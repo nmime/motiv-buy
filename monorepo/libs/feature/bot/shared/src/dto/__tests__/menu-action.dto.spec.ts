@@ -23,7 +23,7 @@ describe('MenuActionDto', () => {
       } as any);
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'action')).toBe(true);
+      expect(errors.some((e) => e.property === 'action')).toBe(true);
     });
 
     it('should require userId field', async () => {
@@ -33,7 +33,7 @@ describe('MenuActionDto', () => {
       } as any);
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'userId')).toBe(true);
+      expect(errors.some((e) => e.property === 'userId')).toBe(true);
     });
 
     it('should require chatId field', async () => {
@@ -43,7 +43,7 @@ describe('MenuActionDto', () => {
       } as any);
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'chatId')).toBe(true);
+      expect(errors.some((e) => e.property === 'chatId')).toBe(true);
     });
 
     it('should validate action enum values', async () => {
@@ -54,7 +54,7 @@ describe('MenuActionDto', () => {
       });
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'action')).toBe(true);
+      expect(errors.some((e) => e.property === 'action')).toBe(true);
     });
 
     it('should allow optional fields', async () => {
@@ -80,7 +80,7 @@ describe('MenuActionDto', () => {
       });
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'menuId')).toBe(true);
+      expect(errors.some((e) => e.property === 'menuId')).toBe(true);
     });
 
     it('should validate params as object when provided', async () => {
@@ -92,7 +92,7 @@ describe('MenuActionDto', () => {
       });
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'params')).toBe(true);
+      expect(errors.some((e) => e.property === 'params')).toBe(true);
     });
 
     it('should validate messageId as string when provided', async () => {
@@ -104,7 +104,7 @@ describe('MenuActionDto', () => {
       });
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'messageId')).toBe(true);
+      expect(errors.some((e) => e.property === 'messageId')).toBe(true);
     });
   });
 
@@ -198,7 +198,7 @@ describe('MenuActionResponseDto', () => {
       } as any);
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'success')).toBe(true);
+      expect(errors.some((e) => e.property === 'success')).toBe(true);
     });
 
     it('should allow all optional fields', async () => {
@@ -217,7 +217,7 @@ describe('MenuActionResponseDto', () => {
       });
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'message')).toBe(true);
+      expect(errors.some((e) => e.property === 'message')).toBe(true);
     });
 
     it('should validate nextMenu as string when provided', async () => {
@@ -227,7 +227,7 @@ describe('MenuActionResponseDto', () => {
       });
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'nextMenu')).toBe(true);
+      expect(errors.some((e) => e.property === 'nextMenu')).toBe(true);
     });
 
     it('should validate data as object when provided', async () => {
@@ -237,7 +237,7 @@ describe('MenuActionResponseDto', () => {
       });
 
       const errors = await validate(dto);
-      expect(errors.some(e => e.property === 'data')).toBe(true);
+      expect(errors.some((e) => e.property === 'data')).toBe(true);
     });
   });
 
@@ -288,7 +288,10 @@ describe('MenuActionResponseDto', () => {
         success: true,
         message: 'Complex operation completed',
         data: {
-          results: [{ id: 1, name: 'Item 1' }, { id: 2, name: 'Item 2' }],
+          results: [
+            { id: 1, name: 'Item 1' },
+            { id: 2, name: 'Item 2' },
+          ],
           pagination: { page: 1, total: 2, hasNext: false },
           metadata: { timestamp: '2023-01-01T00:00:00Z', version: '1.0' },
         },
@@ -303,14 +306,19 @@ describe('MenuActionResponseDto', () => {
     it('should validate DTOs under performance threshold', async () => {
       const start = performance.now();
 
-      const dtos = Array(100).fill(null).map((_, i) => new MenuActionDto({
-        action: MenuActionType.Navigate,
-        menuId: `menu-${i}`,
-        userId: i.toString(),
-        chatId: `-${i}`,
-      }));
+      const dtos = Array(100)
+        .fill(null)
+        .map(
+          (_, i) =>
+            new MenuActionDto({
+              action: MenuActionType.Navigate,
+              menuId: `menu-${i}`,
+              userId: i.toString(),
+              chatId: `-${i}`,
+            }),
+        );
 
-      const validationPromises = dtos.map(dto => validate(dto));
+      const validationPromises = dtos.map((dto) => validate(dto));
       await Promise.all(validationPromises);
 
       const duration = performance.now() - start;

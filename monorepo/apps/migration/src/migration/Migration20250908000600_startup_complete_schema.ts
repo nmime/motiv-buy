@@ -2,12 +2,11 @@ import { Migration } from '@mikro-orm/migrations';
 
 /**
  * Complete startup migration for Motiv-Buy database schema
- * 
+ *
  * Creates all tables and relationships from scratch with proper TrafficTarget naming
  * This is designed as a startup migration for fresh database installations
  */
 export class Migration20250908000600_startup_complete_schema extends Migration {
-
   async up(): Promise<void> {
     // PostgreSQL 18+ has native UUID v7 support with uuidv7() function
     // No extensions needed for native UUID v7 support
@@ -279,7 +278,10 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     this.addSql('CREATE INDEX ix__traffic_orders__creator_id ON traffic_orders (creator_id);');
     this.addSql('CREATE INDEX ix__traffic_orders__traffic_source_id ON traffic_orders (traffic_source_id);');
     this.addSql('CREATE INDEX ix__traffic_orders__traffic_target_id ON traffic_orders (traffic_target_id);');
-    this.addSql('CREATE INDEX ix__traffic_orders__assigned_traffic_user_id ON traffic_orders (assigned_traffic_user_id);');
+    this.addSql(
+      'CREATE INDEX ix__traffic_orders__assigned_traffic_user_id ON traffic_orders (assigned_traffic_user_id);',
+    );
+
     this.addSql('CREATE INDEX ix__traffic_orders__created_by ON traffic_orders (created_by_id);');
 
     // 13. Create traffic_actions table
@@ -319,10 +321,21 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX ix__traffic_source_categories__source_id ON traffic_source_categories_junction (traffic_source_id);');
-    this.addSql('CREATE INDEX ix__traffic_source_categories__category_id ON traffic_source_categories_junction (traffic_source_category_id);');
-    this.addSql('CREATE INDEX ix__traffic_source_categories__is_primary ON traffic_source_categories_junction (is_primary);');
-    this.addSql('CREATE UNIQUE INDEX uq__traffic_source_categories__source_category ON traffic_source_categories_junction (traffic_source_id, traffic_source_category_id);');
+    this.addSql(
+      'CREATE INDEX ix__traffic_source_categories__source_id ON traffic_source_categories_junction (traffic_source_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX ix__traffic_source_categories__category_id ON traffic_source_categories_junction (traffic_source_category_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX ix__traffic_source_categories__is_primary ON traffic_source_categories_junction (is_primary);',
+    );
+
+    this.addSql(
+      'CREATE UNIQUE INDEX uq__traffic_source_categories__source_category ON traffic_source_categories_junction (traffic_source_id, traffic_source_category_id);',
+    );
 
     // traffic_target_sources junction table
     this.addSql(`
@@ -348,7 +361,9 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     this.addSql('CREATE INDEX ix__traffic_target_sources__target_id ON traffic_target_sources (traffic_target_id);');
     this.addSql('CREATE INDEX ix__traffic_target_sources__source_id ON traffic_target_sources (traffic_source_id);');
     this.addSql('CREATE INDEX ix__traffic_target_sources__is_active ON traffic_target_sources (is_active);');
-    this.addSql('CREATE UNIQUE INDEX uq__traffic_target_sources__target_source ON traffic_target_sources (traffic_target_id, traffic_source_id);');
+    this.addSql(
+      'CREATE UNIQUE INDEX uq__traffic_target_sources__target_source ON traffic_target_sources (traffic_target_id, traffic_source_id);',
+    );
 
     // traffic_target_users junction table
     this.addSql(`
@@ -372,7 +387,9 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     this.addSql('CREATE INDEX ix__traffic_target_users__target_id ON traffic_target_users (traffic_target_id);');
     this.addSql('CREATE INDEX ix__traffic_target_users__user_id ON traffic_target_users (traffic_user_id);');
     this.addSql('CREATE INDEX ix__traffic_target_users__is_blocked ON traffic_target_users (is_blocked);');
-    this.addSql('CREATE UNIQUE INDEX uq__traffic_target_users__target_user ON traffic_target_users (traffic_target_id, traffic_user_id);');
+    this.addSql(
+      'CREATE UNIQUE INDEX uq__traffic_target_users__target_user ON traffic_target_users (traffic_target_id, traffic_user_id);',
+    );
 
     // user_traffic_targets junction table
     this.addSql(`
@@ -394,7 +411,9 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     this.addSql('CREATE INDEX ix__user_traffic_targets__target_id ON user_traffic_targets (traffic_target_id);');
     this.addSql('CREATE INDEX ix__user_traffic_targets__role ON user_traffic_targets (role);');
     this.addSql('CREATE INDEX ix__user_traffic_targets__is_active ON user_traffic_targets (is_active);');
-    this.addSql('CREATE UNIQUE INDEX uq__user_traffic_targets__user_target ON user_traffic_targets (user_id, traffic_target_id);');
+    this.addSql(
+      'CREATE UNIQUE INDEX uq__user_traffic_targets__user_target ON user_traffic_targets (user_id, traffic_target_id);',
+    );
 
     // user_traffic_sources junction table
     this.addSql(`
@@ -416,7 +435,9 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     this.addSql('CREATE INDEX ix__user_traffic_sources__source_id ON user_traffic_sources (traffic_source_id);');
     this.addSql('CREATE INDEX ix__user_traffic_sources__role ON user_traffic_sources (role);');
     this.addSql('CREATE INDEX ix__user_traffic_sources__is_active ON user_traffic_sources (is_active);');
-    this.addSql('CREATE UNIQUE INDEX uq__user_traffic_sources__user_source ON user_traffic_sources (user_id, traffic_source_id);');
+    this.addSql(
+      'CREATE UNIQUE INDEX uq__user_traffic_sources__user_source ON user_traffic_sources (user_id, traffic_source_id);',
+    );
 
     // user_traffic_orders junction table
     this.addSql(`
@@ -437,7 +458,9 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     this.addSql('CREATE INDEX ix__user_traffic_orders__order_id ON user_traffic_orders (traffic_order_id);');
     this.addSql('CREATE INDEX ix__user_traffic_orders__role ON user_traffic_orders (role);');
     this.addSql('CREATE INDEX ix__user_traffic_orders__is_active ON user_traffic_orders (is_active);');
-    this.addSql('CREATE UNIQUE INDEX uq__user_traffic_orders__user_order ON user_traffic_orders (user_id, traffic_order_id);');
+    this.addSql(
+      'CREATE UNIQUE INDEX uq__user_traffic_orders__user_order ON user_traffic_orders (user_id, traffic_order_id);',
+    );
 
     // traffic_actions_users junction table
     this.addSql(`
@@ -456,75 +479,167 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     this.addSql('CREATE INDEX ix__traffic_actions_users__user_id ON traffic_actions_users (traffic_user_id);');
     this.addSql('CREATE INDEX ix__traffic_actions_users__role ON traffic_actions_users (role);');
     this.addSql('CREATE INDEX ix__traffic_actions_users__performed_at ON traffic_actions_users (performed_at);');
-    this.addSql('CREATE UNIQUE INDEX uq__traffic_actions_users__action_user ON traffic_actions_users (traffic_action_id, traffic_user_id);');
+    this.addSql(
+      'CREATE UNIQUE INDEX uq__traffic_actions_users__action_user ON traffic_actions_users (traffic_action_id, traffic_user_id);',
+    );
 
     // 15. Add foreign key constraints
 
     // Users table foreign keys
-    this.addSql('ALTER TABLE users ADD CONSTRAINT fk__users__referred_by FOREIGN KEY (referred_by) REFERENCES users(id) ON DELETE SET NULL;');
-    this.addSql('ALTER TABLE users ADD CONSTRAINT fk__users__ref_link_level_1 FOREIGN KEY (ref_link_level_1) REFERENCES users(id) ON DELETE SET NULL;');
-    this.addSql('ALTER TABLE users ADD CONSTRAINT fk__users__ref_link_level_2 FOREIGN KEY (ref_link_level_2) REFERENCES users(id) ON DELETE SET NULL;');
-    this.addSql('ALTER TABLE users ADD CONSTRAINT fk__users__ref_link_level_3 FOREIGN KEY (ref_link_level_3) REFERENCES users(id) ON DELETE SET NULL;');
+    this.addSql(
+      'ALTER TABLE users ADD CONSTRAINT fk__users__referred_by FOREIGN KEY (referred_by) REFERENCES users(id) ON DELETE SET NULL;',
+    );
+
+    this.addSql(
+      'ALTER TABLE users ADD CONSTRAINT fk__users__ref_link_level_1 FOREIGN KEY (ref_link_level_1) REFERENCES users(id) ON DELETE SET NULL;',
+    );
+
+    this.addSql(
+      'ALTER TABLE users ADD CONSTRAINT fk__users__ref_link_level_2 FOREIGN KEY (ref_link_level_2) REFERENCES users(id) ON DELETE SET NULL;',
+    );
+
+    this.addSql(
+      'ALTER TABLE users ADD CONSTRAINT fk__users__ref_link_level_3 FOREIGN KEY (ref_link_level_3) REFERENCES users(id) ON DELETE SET NULL;',
+    );
 
     // User balance foreign keys
-    this.addSql('ALTER TABLE user_balances ADD CONSTRAINT fk__user_balances__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE user_balances ADD CONSTRAINT fk__user_balances__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
 
     // User balance history foreign keys
-    this.addSql('ALTER TABLE user_balance_history ADD CONSTRAINT fk__user_balance_history__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE user_balance_history ADD CONSTRAINT fk__user_balance_history__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
 
     // User settings foreign keys
-    this.addSql('ALTER TABLE user_settings ADD CONSTRAINT fk__user_settings__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE user_settings ADD CONSTRAINT fk__user_settings__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
 
     // User last auth foreign keys
-    this.addSql('ALTER TABLE user_last_auth ADD CONSTRAINT fk__user_last_auth__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE user_last_auth ADD CONSTRAINT fk__user_last_auth__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
 
     // User ref links foreign keys
-    this.addSql('ALTER TABLE user_ref_links ADD CONSTRAINT fk__user_ref_links__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE user_ref_links ADD CONSTRAINT fk__user_ref_links__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
 
     // User source visits foreign keys
-    this.addSql('ALTER TABLE user_source_visits ADD CONSTRAINT fk__user_source_visits__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE user_source_visits ADD CONSTRAINT fk__user_source_visits__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
 
     // Traffic sources foreign keys
-    this.addSql('ALTER TABLE traffic_sources ADD CONSTRAINT fk__traffic_sources__managed_by_id FOREIGN KEY (managed_by_id) REFERENCES users(id) ON DELETE SET NULL;');
+    this.addSql(
+      'ALTER TABLE traffic_sources ADD CONSTRAINT fk__traffic_sources__managed_by_id FOREIGN KEY (managed_by_id) REFERENCES users(id) ON DELETE SET NULL;',
+    );
 
     // Traffic targets foreign keys
-    this.addSql('ALTER TABLE traffic_targets ADD CONSTRAINT fk__traffic_targets__managed_by_id FOREIGN KEY (managed_by_id) REFERENCES users(id) ON DELETE SET NULL;');
+    this.addSql(
+      'ALTER TABLE traffic_targets ADD CONSTRAINT fk__traffic_targets__managed_by_id FOREIGN KEY (managed_by_id) REFERENCES users(id) ON DELETE SET NULL;',
+    );
 
     // Traffic orders foreign keys
-    this.addSql('ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__creator_id FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__traffic_source_id FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__traffic_target_id FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__assigned_traffic_user_id FOREIGN KEY (assigned_traffic_user_id) REFERENCES traffic_users(id) ON DELETE SET NULL;');
-    this.addSql('ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__created_by_id FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE SET NULL;');
+    this.addSql(
+      'ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__creator_id FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__traffic_source_id FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__traffic_target_id FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__assigned_traffic_user_id FOREIGN KEY (assigned_traffic_user_id) REFERENCES traffic_users(id) ON DELETE SET NULL;',
+    );
+
+    this.addSql(
+      'ALTER TABLE traffic_orders ADD CONSTRAINT fk__traffic_orders__created_by_id FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE SET NULL;',
+    );
 
     // Traffic actions foreign keys
-    this.addSql('ALTER TABLE traffic_actions ADD CONSTRAINT fk__traffic_actions__traffic_order_id FOREIGN KEY (traffic_order_id) REFERENCES traffic_orders(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE traffic_actions ADD CONSTRAINT fk__traffic_actions__performed_by_id FOREIGN KEY (performed_by_id) REFERENCES traffic_users(id) ON DELETE SET NULL;');
+    this.addSql(
+      'ALTER TABLE traffic_actions ADD CONSTRAINT fk__traffic_actions__traffic_order_id FOREIGN KEY (traffic_order_id) REFERENCES traffic_orders(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE traffic_actions ADD CONSTRAINT fk__traffic_actions__performed_by_id FOREIGN KEY (performed_by_id) REFERENCES traffic_users(id) ON DELETE SET NULL;',
+    );
 
     // Junction table foreign keys
-    this.addSql('ALTER TABLE traffic_source_categories_junction ADD CONSTRAINT fk__traffic_source_categories__traffic_source_id FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE traffic_source_categories_junction ADD CONSTRAINT fk__traffic_source_categories__traffic_source_category_id FOREIGN KEY (traffic_source_category_id) REFERENCES traffic_source_categories(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE traffic_source_categories_junction ADD CONSTRAINT fk__traffic_source_categories__traffic_source_id FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;',
+    );
 
-    this.addSql('ALTER TABLE traffic_target_sources ADD CONSTRAINT fk__traffic_target_sources__traffic_target_id FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE traffic_target_sources ADD CONSTRAINT fk__traffic_target_sources__traffic_source_id FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE traffic_source_categories_junction ADD CONSTRAINT fk__traffic_source_categories__traffic_source_category_id FOREIGN KEY (traffic_source_category_id) REFERENCES traffic_source_categories(id) ON DELETE CASCADE;',
+    );
 
-    this.addSql('ALTER TABLE traffic_target_users ADD CONSTRAINT fk__traffic_target_users__traffic_target_id FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE traffic_target_users ADD CONSTRAINT fk__traffic_target_users__traffic_user_id FOREIGN KEY (traffic_user_id) REFERENCES traffic_users(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE traffic_target_sources ADD CONSTRAINT fk__traffic_target_sources__traffic_target_id FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;',
+    );
 
-    this.addSql('ALTER TABLE user_traffic_targets ADD CONSTRAINT fk__user_traffic_targets__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE user_traffic_targets ADD CONSTRAINT fk__user_traffic_targets__traffic_target_id FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE user_traffic_targets ADD CONSTRAINT fk__user_traffic_targets__assigned_by_id FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL;');
+    this.addSql(
+      'ALTER TABLE traffic_target_sources ADD CONSTRAINT fk__traffic_target_sources__traffic_source_id FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;',
+    );
 
-    this.addSql('ALTER TABLE user_traffic_sources ADD CONSTRAINT fk__user_traffic_sources__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE user_traffic_sources ADD CONSTRAINT fk__user_traffic_sources__traffic_source_id FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE user_traffic_sources ADD CONSTRAINT fk__user_traffic_sources__assigned_by_id FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL;');
+    this.addSql(
+      'ALTER TABLE traffic_target_users ADD CONSTRAINT fk__traffic_target_users__traffic_target_id FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;',
+    );
 
-    this.addSql('ALTER TABLE user_traffic_orders ADD CONSTRAINT fk__user_traffic_orders__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE user_traffic_orders ADD CONSTRAINT fk__user_traffic_orders__traffic_order_id FOREIGN KEY (traffic_order_id) REFERENCES traffic_orders(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE user_traffic_orders ADD CONSTRAINT fk__user_traffic_orders__assigned_by_id FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL;');
+    this.addSql(
+      'ALTER TABLE traffic_target_users ADD CONSTRAINT fk__traffic_target_users__traffic_user_id FOREIGN KEY (traffic_user_id) REFERENCES traffic_users(id) ON DELETE CASCADE;',
+    );
 
-    this.addSql('ALTER TABLE traffic_actions_users ADD CONSTRAINT fk__traffic_actions_users__traffic_action_id FOREIGN KEY (traffic_action_id) REFERENCES traffic_actions(id) ON DELETE CASCADE;');
-    this.addSql('ALTER TABLE traffic_actions_users ADD CONSTRAINT fk__traffic_actions_users__traffic_user_id FOREIGN KEY (traffic_user_id) REFERENCES traffic_users(id) ON DELETE CASCADE;');
+    this.addSql(
+      'ALTER TABLE user_traffic_targets ADD CONSTRAINT fk__user_traffic_targets__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE user_traffic_targets ADD CONSTRAINT fk__user_traffic_targets__traffic_target_id FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE user_traffic_targets ADD CONSTRAINT fk__user_traffic_targets__assigned_by_id FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL;',
+    );
+
+    this.addSql(
+      'ALTER TABLE user_traffic_sources ADD CONSTRAINT fk__user_traffic_sources__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE user_traffic_sources ADD CONSTRAINT fk__user_traffic_sources__traffic_source_id FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE user_traffic_sources ADD CONSTRAINT fk__user_traffic_sources__assigned_by_id FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL;',
+    );
+
+    this.addSql(
+      'ALTER TABLE user_traffic_orders ADD CONSTRAINT fk__user_traffic_orders__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE user_traffic_orders ADD CONSTRAINT fk__user_traffic_orders__traffic_order_id FOREIGN KEY (traffic_order_id) REFERENCES traffic_orders(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE user_traffic_orders ADD CONSTRAINT fk__user_traffic_orders__assigned_by_id FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL;',
+    );
+
+    this.addSql(
+      'ALTER TABLE traffic_actions_users ADD CONSTRAINT fk__traffic_actions_users__traffic_action_id FOREIGN KEY (traffic_action_id) REFERENCES traffic_actions(id) ON DELETE CASCADE;',
+    );
+
+    this.addSql(
+      'ALTER TABLE traffic_actions_users ADD CONSTRAINT fk__traffic_actions_users__traffic_user_id FOREIGN KEY (traffic_user_id) REFERENCES traffic_users(id) ON DELETE CASCADE;',
+    );
 
     // Add update timestamp triggers
     this.addSql(`
@@ -539,24 +654,50 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
 
     // Apply update triggers to all tables with updated_at column
     const tablesWithUpdatedAt = [
-      'users', 'user_balances', 'user_settings', 'user_last_auth', 'user_ref_links',
-      'traffic_sources', 'traffic_source_categories', 'traffic_targets', 'traffic_users',
-      'traffic_orders', 'traffic_actions', 'traffic_target_sources', 'traffic_target_users',
-      'user_traffic_targets', 'user_traffic_sources', 'user_traffic_orders'
+      'users',
+      'user_balances',
+      'user_settings',
+      'user_last_auth',
+      'user_ref_links',
+      'traffic_sources',
+      'traffic_source_categories',
+      'traffic_targets',
+      'traffic_users',
+      'traffic_orders',
+      'traffic_actions',
+      'traffic_target_sources',
+      'traffic_target_users',
+      'user_traffic_targets',
+      'user_traffic_sources',
+      'user_traffic_orders',
     ];
 
     for (const table of tablesWithUpdatedAt) {
-      this.addSql(`CREATE TRIGGER update_${table}_updated_at BEFORE UPDATE ON ${table} FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();`);
+      this.addSql(
+        `CREATE TRIGGER update_${table}_updated_at BEFORE UPDATE ON ${table} FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();`,
+      );
     }
   }
 
   async down(): Promise<void> {
     // Drop triggers first
     const tablesWithUpdatedAt = [
-      'users', 'user_balances', 'user_settings', 'user_last_auth', 'user_ref_links',
-      'traffic_sources', 'traffic_source_categories', 'traffic_targets', 'traffic_users',
-      'traffic_orders', 'traffic_actions', 'traffic_target_sources', 'traffic_target_users',
-      'user_traffic_targets', 'user_traffic_sources', 'user_traffic_orders'
+      'users',
+      'user_balances',
+      'user_settings',
+      'user_last_auth',
+      'user_ref_links',
+      'traffic_sources',
+      'traffic_source_categories',
+      'traffic_targets',
+      'traffic_users',
+      'traffic_orders',
+      'traffic_actions',
+      'traffic_target_sources',
+      'traffic_target_users',
+      'user_traffic_targets',
+      'user_traffic_sources',
+      'user_traffic_orders',
     ];
 
     for (const table of tablesWithUpdatedAt) {

@@ -76,6 +76,7 @@ export class UserSettingsEntity {
         } catch {
           return null;
         }
+
       default:
         return this.value;
     }

@@ -46,7 +46,7 @@ export class DatabaseHealthIndicator {
   async queryCheck(key = 'database_query'): Promise<HealthIndicatorResult> {
     try {
       const orm = this.databaseService.getORM();
-      const em = orm.em;
+      const { em } = orm;
 
       // Simple query to test database functionality
       await em.getConnection().execute('SELECT 1 as test');

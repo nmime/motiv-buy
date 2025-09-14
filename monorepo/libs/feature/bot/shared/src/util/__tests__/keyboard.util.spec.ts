@@ -12,9 +12,7 @@ describe('KeyboardUtil', () => {
             { text: 'Button 1', callbackData: 'action:1' },
             { text: 'Button 2', callbackData: 'action:2' },
           ],
-          [
-            { text: 'URL Button', callbackData: 'url:test', url: 'https://example.com' },
-          ],
+          [{ text: 'URL Button', callbackData: 'url:test', url: 'https://example.com' }],
         ],
         isInline: true,
       };
@@ -27,9 +25,7 @@ describe('KeyboardUtil', () => {
             { text: 'Button 1', callback_data: 'action:1', url: undefined },
             { text: 'Button 2', callback_data: 'action:2', url: undefined },
           ],
-          [
-            { text: 'URL Button', callback_data: 'url:test', url: 'https://example.com' },
-          ],
+          [{ text: 'URL Button', callback_data: 'url:test', url: 'https://example.com' }],
         ],
       });
     });
@@ -52,18 +48,12 @@ describe('KeyboardUtil', () => {
 
   describe('createReplyKeyboard', () => {
     it('should create reply keyboard with default options', () => {
-      const buttons = [
-        ['Button 1', 'Button 2'],
-        ['Button 3'],
-      ];
+      const buttons = [['Button 1', 'Button 2'], ['Button 3']];
 
       const keyboard = KeyboardUtil.createReplyKeyboard(buttons);
 
       expect(keyboard).toEqual({
-        keyboard: [
-          [{ text: 'Button 1' }, { text: 'Button 2' }],
-          [{ text: 'Button 3' }],
-        ],
+        keyboard: [[{ text: 'Button 1' }, { text: 'Button 2' }], [{ text: 'Button 3' }]],
         resize_keyboard: true,
         one_time_keyboard: false,
         selective: false,
@@ -145,11 +135,7 @@ describe('KeyboardUtil', () => {
       const keyboard = KeyboardUtil.createPaginationKeyboard(1, 1, 'list');
 
       expect(keyboard).toEqual({
-        inline_keyboard: [
-          [
-            { text: '1/1', callback_data: 'page_info' },
-          ],
-        ],
+        inline_keyboard: [[{ text: '1/1', callback_data: 'page_info' }]],
       });
     });
 
@@ -186,7 +172,7 @@ describe('KeyboardUtil', () => {
         'action:proceed',
         'action:abort',
         '🚀 Go Ahead',
-        '🛑 Stop'
+        '🛑 Stop',
       );
 
       expect(keyboard).toEqual({
@@ -230,9 +216,7 @@ describe('KeyboardUtil', () => {
             { text: '1. Item 1', callback_data: 'choose:0' },
             { text: '2. Item 2', callback_data: 'choose:1' },
           ],
-          [
-            { text: '3. Item 3', callback_data: 'choose:2' },
-          ],
+          [{ text: '3. Item 3', callback_data: 'choose:2' }],
         ],
       });
     });
@@ -249,11 +233,7 @@ describe('KeyboardUtil', () => {
       const keyboard = KeyboardUtil.createNumberedListKeyboard(['Only Item'], 'select');
 
       expect(keyboard).toEqual({
-        inline_keyboard: [
-          [
-            { text: '1. Only Item', callback_data: 'select:0' },
-          ],
-        ],
+        inline_keyboard: [[{ text: '1. Only Item', callback_data: 'select:0' }]],
       });
     });
   });
@@ -309,11 +289,7 @@ describe('KeyboardUtil', () => {
       const keyboard = KeyboardUtil.createNavigationKeyboard('back', 'home', true, false);
 
       expect(keyboard).toEqual({
-        inline_keyboard: [
-          [
-            { text: '◀️ Back', callback_data: 'back' },
-          ],
-        ],
+        inline_keyboard: [[{ text: '◀️ Back', callback_data: 'back' }]],
       });
     });
 
@@ -321,11 +297,7 @@ describe('KeyboardUtil', () => {
       const keyboard = KeyboardUtil.createNavigationKeyboard('back', 'home', false, true);
 
       expect(keyboard).toEqual({
-        inline_keyboard: [
-          [
-            { text: '🏠 Home', callback_data: 'home' },
-          ],
-        ],
+        inline_keyboard: [[{ text: '🏠 Home', callback_data: 'home' }]],
       });
     });
 
@@ -341,9 +313,7 @@ describe('KeyboardUtil', () => {
   describe('mergeKeyboards', () => {
     it('should merge multiple inline keyboards', () => {
       const keyboard1 = {
-        inline_keyboard: [
-          [{ text: 'Button 1', callback_data: 'action:1' }],
-        ],
+        inline_keyboard: [[{ text: 'Button 1', callback_data: 'action:1' }]],
       };
 
       const keyboard2 = {
@@ -354,9 +324,7 @@ describe('KeyboardUtil', () => {
       };
 
       const keyboard3 = {
-        inline_keyboard: [
-          [{ text: 'Button 4', callback_data: 'action:4' }],
-        ],
+        inline_keyboard: [[{ text: 'Button 4', callback_data: 'action:4' }]],
       };
 
       const merged = KeyboardUtil.mergeKeyboards(keyboard1, keyboard2, keyboard3);
@@ -373,17 +341,13 @@ describe('KeyboardUtil', () => {
 
     it('should handle empty keyboards in merge', () => {
       const keyboard1 = {
-        inline_keyboard: [
-          [{ text: 'Button 1', callback_data: 'action:1' }],
-        ],
+        inline_keyboard: [[{ text: 'Button 1', callback_data: 'action:1' }]],
       };
 
       const emptyKeyboard = {};
 
       const keyboard2 = {
-        inline_keyboard: [
-          [{ text: 'Button 2', callback_data: 'action:2' }],
-        ],
+        inline_keyboard: [[{ text: 'Button 2', callback_data: 'action:2' }]],
       };
 
       const merged = KeyboardUtil.mergeKeyboards(keyboard1, emptyKeyboard, keyboard2);
@@ -398,17 +362,13 @@ describe('KeyboardUtil', () => {
 
     it('should handle null/undefined keyboards in merge', () => {
       const keyboard1 = {
-        inline_keyboard: [
-          [{ text: 'Button 1', callback_data: 'action:1' }],
-        ],
+        inline_keyboard: [[{ text: 'Button 1', callback_data: 'action:1' }]],
       };
 
       const merged = KeyboardUtil.mergeKeyboards(keyboard1, null as any, undefined as any);
 
       expect(merged).toEqual({
-        inline_keyboard: [
-          [{ text: 'Button 1', callback_data: 'action:1' }],
-        ],
+        inline_keyboard: [[{ text: 'Button 1', callback_data: 'action:1' }]],
       });
     });
 
@@ -422,9 +382,7 @@ describe('KeyboardUtil', () => {
 
     it('should handle single keyboard merge', () => {
       const keyboard = {
-        inline_keyboard: [
-          [{ text: 'Single Button', callback_data: 'single' }],
-        ],
+        inline_keyboard: [[{ text: 'Single Button', callback_data: 'single' }]],
       };
 
       const merged = KeyboardUtil.mergeKeyboards(keyboard);
@@ -435,7 +393,9 @@ describe('KeyboardUtil', () => {
 
   describe('Edge Cases and Performance', () => {
     it('should handle very large button arrays', () => {
-      const largeButtonArray = Array(100).fill(null).map((_, i) => [`Button ${i + 1}`]);
+      const largeButtonArray = Array(100)
+        .fill(null)
+        .map((_, i) => [`Button ${i + 1}`]);
 
       const keyboard = KeyboardUtil.createReplyKeyboard(largeButtonArray);
 
@@ -502,27 +462,27 @@ describe('KeyboardUtil', () => {
   describe('Performance Tests', () => {
     it('should create keyboards under performance threshold', () => {
       const start = performance.now();
-      
+
       // Create multiple keyboards of different types
       KeyboardUtil.createReplyKeyboard([['Test']]);
       KeyboardUtil.createPaginationKeyboard(1, 10, 'test');
       KeyboardUtil.createConfirmationKeyboard('yes', 'no');
       KeyboardUtil.createNumberedListKeyboard(['A', 'B', 'C'], 'select');
       KeyboardUtil.createNavigationKeyboard();
-      
+
       const duration = performance.now() - start;
 
       expect(duration).toBeLessThan(50); // Should complete under 50ms
     });
 
     it('should handle concurrent keyboard creation', () => {
-      const promises = Array(10).fill(null).map((_, i) => {
-        return Promise.resolve(
-          KeyboardUtil.createNumberedListKeyboard([`Item ${i}`], 'select')
-        );
-      });
+      const promises = Array(10)
+        .fill(null)
+        .map((_, i) => {
+          return Promise.resolve(KeyboardUtil.createNumberedListKeyboard([`Item ${i}`], 'select'));
+        });
 
-      return Promise.all(promises).then(results => {
+      return Promise.all(promises).then((results) => {
         expect(results).toHaveLength(10);
         results.forEach((result, i) => {
           expect(result.inline_keyboard[0][0].text).toBe(`1. Item ${i}`);

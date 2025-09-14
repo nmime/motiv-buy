@@ -1,4 +1,4 @@
-import { DynamicModule, Global, Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { BullModule as NestBullModule } from '@nestjs/bull';
 import Redis, { Cluster } from 'ioredis';
 import { RedisInjectToken, RedisModule } from '@app/common-redis';
@@ -35,7 +35,7 @@ import { BullQueue } from './const';
   ],
 })
 export class BullModule {
-  static registerQueue = (...options: (BullModuleOptions & { name: BullQueue })[]) => {
+  static readonly registerQueue = (...options: (BullModuleOptions & { name: BullQueue })[]) => {
     return NestBullModule.registerQueue(
       ...options.map((item) => ({
         ...item,

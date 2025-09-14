@@ -4,7 +4,7 @@ describe('CallbackUtil', () => {
   describe('parseCallbackData', () => {
     it('should parse callback data with parameters', () => {
       const result = CallbackUtil.parseCallbackData('menu:profile:edit:123');
-      
+
       expect(result).toEqual({
         action: 'menu',
         params: ['profile', 'edit', '123'],
@@ -14,7 +14,7 @@ describe('CallbackUtil', () => {
 
     it('should parse callback data without parameters', () => {
       const result = CallbackUtil.parseCallbackData('back');
-      
+
       expect(result).toEqual({
         action: 'back',
         params: [],
@@ -24,7 +24,7 @@ describe('CallbackUtil', () => {
 
     it('should handle empty callback data', () => {
       const result = CallbackUtil.parseCallbackData('');
-      
+
       expect(result).toEqual({
         action: '',
         params: [],
@@ -35,7 +35,7 @@ describe('CallbackUtil', () => {
     it('should handle null/undefined callback data', () => {
       const result1 = CallbackUtil.parseCallbackData(null as any);
       const result2 = CallbackUtil.parseCallbackData(undefined as any);
-      
+
       expect(result1.isValid).toBe(false);
       expect(result2.isValid).toBe(false);
     });
@@ -85,7 +85,7 @@ describe('CallbackUtil', () => {
     it('should handle callback data length limits', () => {
       const longCallback = 'a'.repeat(65);
       expect(CallbackUtil.validateCallbackData(longCallback)).toBe(false);
-      
+
       const validCallback = 'a'.repeat(63);
       expect(CallbackUtil.validateCallbackData(validCallback)).toBe(true);
     });
@@ -100,7 +100,7 @@ describe('CallbackUtil', () => {
     it('should handle encoding errors', () => {
       const circular: any = {};
       circular.self = circular;
-      
+
       expect(() => CallbackUtil.encodeCallbackData(circular)).toThrow();
     });
   });
@@ -110,7 +110,7 @@ describe('CallbackUtil', () => {
       const data = { action: 'test', id: 123 };
       const encoded = CallbackUtil.encodeCallbackData(data);
       const decoded = CallbackUtil.decodeCallbackData(encoded);
-      
+
       expect(decoded).toEqual(data);
     });
 
@@ -122,13 +122,13 @@ describe('CallbackUtil', () => {
   describe('Performance Tests', () => {
     it('should process callbacks under performance threshold', () => {
       const start = performance.now();
-      
+
       for (let i = 0; i < 1000; i++) {
         CallbackUtil.parseCallbackData(`action:test:${i}`);
         CallbackUtil.createActionCallback('action', 'test', i.toString());
         CallbackUtil.validateCallbackData(`menu:item:${i}`);
       }
-      
+
       const duration = performance.now() - start;
       expect(duration).toBeLessThan(100);
     });
@@ -138,7 +138,7 @@ describe('CallbackUtil', () => {
     it('should handle special characters in callback data', () => {
       const callback = 'menu:test@#$%^&*()';
       const result = CallbackUtil.parseCallbackData(callback);
-      
+
       expect(result.action).toBe('menu');
       expect(result.params[0]).toBe('test@#$%^&*()');
     });
@@ -146,7 +146,7 @@ describe('CallbackUtil', () => {
     it('should handle Unicode characters', () => {
       const callback = 'action:测试:🎉';
       const result = CallbackUtil.parseCallbackData(callback);
-      
+
       expect(result.params).toEqual(['测试', '🎉']);
     });
   });

@@ -2,22 +2,22 @@ import { CallbackData } from '../type';
 
 /**
  * Callback Utility
- * 
+ *
  * Utility functions for handling callback query data.
  * Provides parsing, building, and validation of callback data strings.
- * 
+ *
  * @class CallbackUtil
  */
 export class CallbackUtil {
   /** Maximum callback data length (Telegram limit) */
   private static readonly MAX_CALLBACK_DATA_LENGTH = 64;
-  
+
   /** Separator for callback data parts */
   private static readonly SEPARATOR = ':';
 
   /**
    * Build callback data string from object
-   * 
+   *
    * @param data - Callback data object
    * @returns Callback data string
    */
@@ -35,7 +35,7 @@ export class CallbackUtil {
       if (metadata && Object.keys(metadata).length > 0) {
         const metadataString = JSON.stringify(metadata);
         const testString = callbackString + this.SEPARATOR + metadataString;
-        
+
         if (testString.length <= this.MAX_CALLBACK_DATA_LENGTH) {
           callbackString = testString;
         }
@@ -60,7 +60,7 @@ export class CallbackUtil {
 
   /**
    * Parse callback data string to object
-   * 
+   *
    * @param callbackString - Callback data string
    * @returns Parsed callback data object
    */
@@ -69,6 +69,7 @@ export class CallbackUtil {
       // Handle JSON format
       if (callbackString.startsWith('{') && callbackString.endsWith('}')) {
         const parsed = JSON.parse(callbackString);
+
         return {
           action: parsed.action || 'unknown',
           params: parsed.params || [],
@@ -117,7 +118,7 @@ export class CallbackUtil {
 
   /**
    * Validate callback data structure
-   * 
+   *
    * @param data - Callback data to validate
    * @returns Whether callback data is valid
    */
@@ -139,7 +140,7 @@ export class CallbackUtil {
       }
 
       // Check that parameters are strings
-      if (data.params && !data.params.every(param => typeof param === 'string')) {
+      if (data.params && !data.params.every((param) => typeof param === 'string')) {
         return false;
       }
 
@@ -162,7 +163,7 @@ export class CallbackUtil {
 
   /**
    * Create action callback data
-   * 
+   *
    * @param action - Action identifier
    * @param params - Optional parameters
    * @returns Callback data string
@@ -177,12 +178,12 @@ export class CallbackUtil {
 
   /**
    * Create menu callback data
-   * 
+   *
    * @param menuId - Menu identifier
    * @param action - Menu action
    * @returns Callback data string
    */
-  static createMenuCallback(menuId: string, action: string = 'navigate'): string {
+  static createMenuCallback(menuId: string, action = 'navigate'): string {
     return this.buildCallbackData({
       action: 'menu',
       params: [menuId, action],
@@ -192,17 +193,13 @@ export class CallbackUtil {
 
   /**
    * Create pagination callback data
-   * 
+   *
    * @param page - Page number
    * @param action - Pagination action
    * @param context - Additional context
    * @returns Callback data string
    */
-  static createPaginationCallback(
-    page: number,
-    action: string = 'goto',
-    context?: string
-  ): string {
+  static createPaginationCallback(page: number, action = 'goto', context?: string): string {
     const params = ['pagination', action, page.toString()];
     if (context) {
       params.push(context);
@@ -217,35 +214,38 @@ export class CallbackUtil {
 
   /**
    * Extract action from callback data string
-   * 
+   *
    * @param callbackString - Callback data string
    * @returns Action identifier
    */
   static extractAction(callbackString: string): string {
     const parsed = this.parseCallbackData(callbackString);
+
     return parsed.action;
   }
 
   /**
    * Extract parameters from callback data string
-   * 
+   *
    * @param callbackString - Callback data string
    * @returns Parameters array
    */
   static extractParams(callbackString: string): string[] {
     const parsed = this.parseCallbackData(callbackString);
+
     return parsed.params || [];
   }
 
   /**
    * Check if callback data represents a specific action
-   * 
+   *
    * @param callbackString - Callback data string
    * @param expectedAction - Expected action
    * @returns Whether callback matches action
    */
   static isAction(callbackString: string, expectedAction: string): boolean {
     const action = this.extractAction(callbackString);
+
     return action === expectedAction;
   }
 }

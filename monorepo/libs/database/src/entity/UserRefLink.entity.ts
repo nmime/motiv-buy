@@ -76,6 +76,7 @@ export class UserRefLinkEntity {
 
   static level1ToLevel2RefPercent(level1RefPercent: string | number): string {
     const num = typeof level1RefPercent === 'string' ? parseFloat(level1RefPercent) : level1RefPercent;
+
     return (num / 10).toString();
   }
 

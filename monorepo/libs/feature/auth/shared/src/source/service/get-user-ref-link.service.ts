@@ -1,79 +1,74 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { UserRepository, UserRefLinkRepository } from '@app/database';
-import { UserRefLink } from '../../dto/user-ref-link.dto';
+import { UserRefLinkRepository } from '@app/database';
+import { UserRefLink } from '../../type';
 import { SourceParameters } from './get-source-params.service';
+import { LinkType } from '../const';
+
+type LinkResolver = (code: string) => Promise<UserRefLink | null>;
 
 @Injectable()
 export class GetUserRefLinkService {
   private readonly logger: Logger = new Logger(this.constructor.name);
 
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly userRefLinkRepository: UserRefLinkRepository,
-  ) {}
+  private readonly resolvers: Record<LinkType, LinkResolver>;
+
+  constructor(private readonly userRefLinkRepository: UserRefLinkRepository) {
+    this.resolvers = {
+      [LinkType.Referral]: this.resolveReferral.bind(this),
+    };
+  }
 
   async resolveUserRefLink(sourceParams: SourceParameters): Promise<UserRefLink | null> {
-    const { linkCode, refCode } = sourceParams;
-    const code = refCode || linkCode;
-
-    if (!code) {
+    const { linkType, linkCode, refCode } = sourceParams;
+    if ((!linkType || !linkCode) && !refCode) {
       return null;
     }
 
     try {
-      const refLinkEntity = await this.userRefLinkRepository.findByRefCode(code);
+      if (linkType && linkCode) {
+        const resolver = this.resolvers?.[linkType];
+        if (resolver) {
+          const resolved = await resolver(linkCode);
+          if (resolved) {
+            return resolved;
+          }
+        }
+      }
 
-      if (refLinkEntity && !refLinkEntity.isDeleted) {
-        return new UserRefLink({
-          id: refLinkEntity.id,
-          type: refLinkEntity.type,
-          sourceType: refLinkEntity.sourceType,
-          sourceId: refLinkEntity.sourceId,
-          userId: refLinkEntity.userId,
-          refCode: refLinkEntity.refCode,
-          refCodeUniqueKey: refLinkEntity.refCodeUniqueKey,
-          defaultUniqueKey: refLinkEntity.defaultUniqueKey,
-          refPercentLevel1: refLinkEntity.refPercentLevel1,
-          refPercentLevel2: refLinkEntity.refPercentLevel2,
-          refPercentLevel3: refLinkEntity.refPercentLevel3,
-          isDefault: refLinkEntity.isDefault,
-          isCustom: refLinkEntity.isCustom,
-          isDeleted: refLinkEntity.isDeleted,
-          createdAt: refLinkEntity.createdAt,
-          updatedAt: refLinkEntity.updatedAt,
-        });
+      if (refCode) {
+        return await this.resolveReferral(refCode);
       }
 
       return null;
     } catch (error) {
-      this.logger.error(`Error resolving user ref link for code ${code}`, error);
-      return null;
+      this.logger.error(`Error resolving link user ID for type ${linkType} and code ${linkCode}`, error);
+      throw error;
     }
   }
 
-  async resolveReferrerUserId(sourceParams: SourceParameters): Promise<string | undefined> {
-    const { linkCode, refCode } = sourceParams;
-    const code = refCode || linkCode;
-
-    if (!code) {
-      return undefined;
+  private async resolveReferral(code: string): Promise<UserRefLink | null> {
+    const customRef = await this.userRefLinkRepository.findByRefCode(code);
+    if (customRef && !customRef.isDeleted) {
+      return new UserRefLink({
+        id: customRef.id,
+        type: customRef.type,
+        sourceType: customRef.sourceType,
+        sourceId: customRef.sourceId,
+        userId: customRef.user.id,
+        refCode: customRef.refCode,
+        refCodeUniqueKey: customRef.refCodeUniqueKey,
+        defaultUniqueKey: customRef.defaultUniqueKey,
+        refPercentLevel1: customRef.refPercentLevel1,
+        refPercentLevel2: customRef.refPercentLevel2,
+        refPercentLevel3: customRef.refPercentLevel3,
+        isDefault: customRef.isDefault,
+        isCustom: customRef.isCustom,
+        isDeleted: customRef.isDeleted,
+        createdAt: customRef.createdAt,
+        updatedAt: customRef.updatedAt,
+      });
     }
 
-    try {
-      const user = await this.userRepository.findByTelegramId(code);
-      if (user && user.isActive) {
-        return String(user.id);
-      }
-
-      const userByUsername = await this.userRepository.findByUsername(code);
-      if (userByUsername && userByUsername.isActive) {
-        return String(userByUsername.id);
-      }
-
-      return undefined;
-    } catch (error) {
-      this.logger.error(`Error resolving referrer user ID for code ${code}`, error);
-      return undefined;
-    }
+    return null;
   }
 }

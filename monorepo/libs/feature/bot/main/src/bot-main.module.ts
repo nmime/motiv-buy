@@ -13,11 +13,11 @@ import { CommandHandler, MenuHandler, CallbackHandler } from './handler';
 
 /**
  * Bot Main Module
- * 
+ *
  * Core business logic module for Telegram bot functionality.
  * Integrates with Grammy framework for bot interactions, Redis for session management,
  * and the existing auth system for user authentication and management.
- * 
+ *
  * Features:
  * - Grammy bot initialization and lifecycle management
  * - Redis-based session storage with TTL support
@@ -25,7 +25,7 @@ import { CommandHandler, MenuHandler, CallbackHandler } from './handler';
  * - Authentication integration with existing auth services
  * - Command processing and callback handling
  * - Error handling and logging
- * 
+ *
  * @module BotMainModule
  */
 @Module({
@@ -33,14 +33,14 @@ import { CommandHandler, MenuHandler, CallbackHandler } from './handler';
     // Core infrastructure
     DatabaseModule,
     RedisModule,
-    
+
     // Bot-specific modules
     BotSharedModule,
-    
+
     // Authentication modules
     AuthMainModule,
     AuthSharedModule,
-    
+
     // Business domain modules
     BalanceMainModule,
     UserMainModule,
@@ -52,7 +52,7 @@ import { CommandHandler, MenuHandler, CallbackHandler } from './handler';
     BotService,
     MenuService,
     SessionService,
-    
+
     // Bot handlers
     CommandHandler,
     MenuHandler,
@@ -63,7 +63,7 @@ import { CommandHandler, MenuHandler, CallbackHandler } from './handler';
     BotService,
     MenuService,
     SessionService,
-    
+
     // Export handlers for direct use if needed
     CommandHandler,
     MenuHandler,

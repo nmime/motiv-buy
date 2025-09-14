@@ -1,14 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, MenuConfig, MenuType, MenuButton, MenuNavigation, MenuActionResult } from '@app/feature-bot-shared';
+import {
+  BotContext,
+  MenuConfig,
+  MenuType,
+  MenuButton,
+  MenuNavigation,
+  MenuActionResult,
+} from '@app/feature-bot-shared';
 import { SessionService } from './session.service';
 
 /**
  * Menu Service
- * 
+ *
  * Service responsible for managing bot menu systems, keyboard layouts,
  * and menu navigation logic with dynamic content and state management.
- * 
+ *
  * @class MenuService
  */
 @Injectable()
@@ -16,13 +23,11 @@ export class MenuService {
   private readonly logger = new Logger(MenuService.name);
   private readonly MAX_HISTORY_LENGTH = 10;
 
-  constructor(
-    private readonly sessionService: SessionService,
-  ) {}
+  constructor(private readonly sessionService: SessionService) {}
 
   /**
    * Generate menu configuration for specific menu type
-   * 
+   *
    * @param menuType - Type of menu to generate
    * @param ctx - Bot context for personalization
    * @returns MenuConfig - Configuration object for menu display
@@ -32,7 +37,7 @@ export class MenuService {
       userId: ctx.from?.id,
       menuType,
     });
-    
+
     switch (menuType) {
       case MenuType.Main:
         return this.generateMainMenu(ctx);
@@ -63,7 +68,7 @@ export class MenuService {
 
   /**
    * Handle menu button interaction
-   * 
+   *
    * @param ctx - Bot context with callback data
    * @param callbackData - Data from button interaction
    * @returns Promise<void>
@@ -82,7 +87,7 @@ export class MenuService {
         if (actionResult.nextMenu) {
           await this.navigateToMenu(ctx, actionResult.nextMenu);
         }
-        
+
         if (actionResult.message) {
           await ctx.reply(actionResult.message);
         }
@@ -95,13 +100,14 @@ export class MenuService {
         userId: ctx.from?.id,
         callbackData,
       });
+
       await ctx.reply('Sorry, something went wrong. Please try again.');
     }
   }
 
   /**
    * Navigate to specific menu
-   * 
+   *
    * @param ctx - Bot context
    * @param menuType - Target menu type
    * @returns Promise<void>
@@ -115,6 +121,7 @@ export class MenuService {
 
       if (!ctx.from?.id) {
         await ctx.reply('Authentication required to access menus.');
+
         return;
       }
 
@@ -123,13 +130,13 @@ export class MenuService {
 
       // Generate menu
       const menuConfig = this.generateMenu(menuType, ctx);
-      
+
       // Create inline keyboard
       const keyboard = this.createInlineKeyboard(menuConfig.buttons);
-      
+
       // Send or edit message with menu
       const menuText = this.formatMenuText(menuConfig);
-      
+
       if (ctx.callbackQuery) {
         await ctx.editMessageText(menuText, {
           reply_markup: keyboard,
@@ -146,20 +153,21 @@ export class MenuService {
         userId: ctx.from?.id,
         menuType,
       });
+
       await ctx.reply('Failed to navigate to menu. Please try again.');
     }
   }
 
   /**
    * Get user's menu history for back navigation
-   * 
+   *
    * @param userId - User identifier
    * @returns Promise<MenuType[]> - Array of previously visited menus
    */
   async getMenuHistory(userId: string): Promise<MenuType[]> {
     try {
       this.logger.debug(`Getting menu history for user: ${userId}`);
-      
+
       const session = await this.sessionService.getSession(userId);
       if (!session?.data.navigationState) {
         return [];
@@ -171,27 +179,30 @@ export class MenuService {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return [];
     }
   }
 
   /**
    * Go back to previous menu
-   * 
+   *
    * @param ctx - Bot context
    * @returns Promise<void>
    */
   async goBack(ctx: BotContext): Promise<void> {
     if (!ctx.from?.id) {
       await ctx.reply('Authentication required.');
+
       return;
     }
 
     const userId = ctx.from.id.toString();
     const history = await this.getMenuHistory(userId);
-    
+
     if (history.length === 0) {
       await this.navigateToMenu(ctx, MenuType.Main);
+
       return;
     }
 
@@ -202,7 +213,7 @@ export class MenuService {
   // Private helper methods
   private generateMainMenu(ctx: BotContext): MenuConfig {
     const userName = ctx.from?.first_name || 'User';
-    
+
     return {
       type: MenuType.Main,
       title: `Welcome, ${userName}! 🚀`,
@@ -224,9 +235,7 @@ export class MenuService {
           { text: '💸 Withdraw', callbackData: 'menu:withdrawal' },
           { text: '🤝 Referrals', callbackData: 'menu:referral' },
         ],
-        [
-          { text: '❓ Help', callbackData: 'menu:help' },
-        ],
+        [{ text: '❓ Help', callbackData: 'menu:help' }],
       ],
       isInline: true,
     };
@@ -246,9 +255,7 @@ export class MenuService {
           { text: '🔒 Security', callbackData: 'profile:security' },
           { text: '📧 Notifications', callbackData: 'menu:notifications' },
         ],
-        [
-          { text: '⬅️ Back', callbackData: 'menu:main' },
-        ],
+        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
@@ -272,9 +279,7 @@ export class MenuService {
           { text: '📥 Export Data', callbackData: 'settings:export' },
           { text: '🔄 Reset', callbackData: 'settings:reset' },
         ],
-        [
-          { text: '⬅️ Back', callbackData: 'menu:main' },
-        ],
+        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
@@ -294,9 +299,7 @@ export class MenuService {
           { text: '💸 Request Withdrawal', callbackData: 'menu:withdrawal' },
           { text: '📊 Analytics', callbackData: 'balance:analytics' },
         ],
-        [
-          { text: '⬅️ Back', callbackData: 'menu:main' },
-        ],
+        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
@@ -366,9 +369,7 @@ export class MenuService {
           { text: '📜 Terms', callbackData: 'help:terms' },
           { text: '🔒 Privacy', callbackData: 'help:privacy' },
         ],
-        [
-          { text: '⬅️ Back', callbackData: 'menu:main' },
-        ],
+        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
@@ -388,9 +389,7 @@ export class MenuService {
           { text: '📈 Performance', callbackData: 'campaign:performance' },
           { text: '⚙️ Settings', callbackData: 'campaign:settings' },
         ],
-        [
-          { text: '⬅️ Back', callbackData: 'menu:main' },
-        ],
+        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
@@ -410,9 +409,7 @@ export class MenuService {
           { text: '🏦 Payment Methods', callbackData: 'withdrawal:methods' },
           { text: '⚙️ Settings', callbackData: 'withdrawal:settings' },
         ],
-        [
-          { text: '⬅️ Back', callbackData: 'menu:main' },
-        ],
+        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
@@ -432,9 +429,7 @@ export class MenuService {
           { text: '👥 Referrals', callbackData: 'referral:list' },
           { text: '🏆 Rewards', callbackData: 'referral:rewards' },
         ],
-        [
-          { text: '⬅️ Back', callbackData: 'menu:main' },
-        ],
+        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
@@ -454,9 +449,7 @@ export class MenuService {
           { text: '⚙️ System Config', callbackData: 'admin:config' },
           { text: '📋 Logs', callbackData: 'admin:logs' },
         ],
-        [
-          { text: '⬅️ Back', callbackData: 'menu:main' },
-        ],
+        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
@@ -467,39 +460,37 @@ export class MenuService {
       type: menuType,
       title: 'Menu',
       description: 'Select an option',
-      buttons: [
-        [
-          { text: '⬅️ Back to Main', callbackData: 'menu:main' },
-        ],
-      ],
+      buttons: [[{ text: '⬅️ Back to Main', callbackData: 'menu:main' }]],
       isInline: true,
     };
   }
 
   private async processMenuAction(ctx: BotContext, action: string, params: string[]): Promise<MenuActionResult> {
     const userId = ctx.from?.id?.toString();
-    
+
     switch (action) {
       case 'menu':
         return {
           success: true,
           nextMenu: params[0] as MenuType,
         };
-      
+
       case 'back':
         if (userId) {
           const history = await this.getMenuHistory(userId);
           const previousMenu = history.length > 0 ? history[history.length - 1] : MenuType.Main;
+
           return {
             success: true,
             nextMenu: previousMenu,
           };
         }
+
         return {
           success: true,
           nextMenu: MenuType.Main,
         };
-      
+
       default:
         // Handle specific action logic here
         return {
@@ -513,19 +504,19 @@ export class MenuService {
     try {
       const session = await this.sessionService.getSession(userId);
       const currentState = session?.data.navigationState;
-      
+
       const newHistory = [...(currentState?.history || [])];
-      
+
       // Add current location to history if different from new location
       if (currentState?.currentLocation && currentState.currentLocation !== menuType) {
         newHistory.push(currentState.currentLocation as MenuType);
-        
+
         // Limit history size
         if (newHistory.length > this.MAX_HISTORY_LENGTH) {
           newHistory.shift();
         }
       }
-      
+
       await this.sessionService.updateSession(userId, {
         navigationState: {
           currentLocation: menuType,
@@ -548,10 +539,12 @@ export class MenuService {
 
   private createInlineKeyboard(buttons: MenuButton[][]): InlineKeyboard {
     const keyboard = new InlineKeyboard();
-    
+
     buttons.forEach((row, index) => {
-      if (index > 0) keyboard.row();
-      
+      if (index > 0) {
+        keyboard.row();
+      }
+
       row.forEach((button) => {
         if (button.url) {
           keyboard.url(button.text, button.url);
@@ -560,17 +553,17 @@ export class MenuService {
         }
       });
     });
-    
+
     return keyboard;
   }
 
   private formatMenuText(menuConfig: MenuConfig): string {
     let text = `<b>${menuConfig.title}</b>\n`;
-    
+
     if (menuConfig.description) {
       text += `\n${menuConfig.description}\n`;
     }
-    
+
     return text;
   }
 }

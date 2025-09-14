@@ -94,6 +94,7 @@ describe('BotService', () => {
     if (module) {
       await module.close();
     }
+
     jest.clearAllMocks();
   });
 
@@ -186,7 +187,7 @@ describe('BotService', () => {
 
     beforeEach(async () => {
       await service.initialize();
-      
+
       mockCtx = {
         from: {
           id: parseInt(mockUserId),
@@ -214,6 +215,7 @@ describe('BotService', () => {
         platformType: PlatformType.TelegramBot,
         ip: '0.0.0.0',
       });
+
       expect(mockSessionService.createSession).toHaveBeenCalled();
     });
 
@@ -234,17 +236,13 @@ describe('BotService', () => {
 
       await service.processCommand(mockCtx, BotCommand.Profile);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        'Please authenticate first by using the /start command.'
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('Please authenticate first by using the /start command.');
     });
 
     it('should handle unknown commands', async () => {
       await service.processCommand(mockCtx, 'unknown_command' as BotCommand);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('I don\'t understand that command')
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining("I don't understand that command"));
     });
 
     it('should handle command processing errors', async () => {
@@ -252,9 +250,7 @@ describe('BotService', () => {
 
       await service.processCommand(mockCtx, BotCommand.Start);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Error: Auth failed')
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Error: Auth failed'));
     });
   });
 
@@ -263,7 +259,7 @@ describe('BotService', () => {
 
     beforeEach(async () => {
       await service.initialize();
-      
+
       mockGrammyCtx = {
         from: {
           id: parseInt(mockUserId),
@@ -281,9 +277,8 @@ describe('BotService', () => {
       mockAuthService.auth.mockResolvedValueOnce({ success: true });
 
       // Get the middleware function that was registered
-      const middlewareCall = mockBot.use.mock.calls.find(call => 
-        call[0].toString().includes('authenticateUser')
-      );
+      const middlewareCall = mockBot.use.mock.calls.find((call) => call[0].toString().includes('authenticateUser'));
+
       expect(middlewareCall).toBeDefined();
 
       const middleware = middlewareCall[0];
@@ -293,22 +288,24 @@ describe('BotService', () => {
 
       expect(mockGrammyCtx.isAuthenticated).toBe(true);
       expect(mockGrammyCtx.userId).toBe(mockUserId);
-      expect(mockGrammyCtx.userData).toEqual(expect.objectContaining({
-        id: mockUserId,
-        firstName: 'Test',
-      }));
+      expect(mockGrammyCtx.userData).toEqual(
+        expect.objectContaining({
+          id: mockUserId,
+          firstName: 'Test',
+        }),
+      );
+
       expect(next).toHaveBeenCalled();
     });
 
     it('should handle authentication failure', async () => {
-      mockAuthService.auth.mockResolvedValueOnce({ 
-        success: false, 
-        error: new Error('Auth failed') 
+      mockAuthService.auth.mockResolvedValueOnce({
+        success: false,
+        error: new Error('Auth failed'),
       });
 
-      const middlewareCall = mockBot.use.mock.calls.find(call => 
-        call[0].toString().includes('authenticateUser')
-      );
+      const middlewareCall = mockBot.use.mock.calls.find((call) => call[0].toString().includes('authenticateUser'));
+
       const middleware = middlewareCall[0];
       const next = jest.fn();
 
@@ -321,9 +318,8 @@ describe('BotService', () => {
     it('should handle missing user data', async () => {
       mockGrammyCtx.from = null;
 
-      const middlewareCall = mockBot.use.mock.calls.find(call => 
-        call[0].toString().includes('authenticateUser')
-      );
+      const middlewareCall = mockBot.use.mock.calls.find((call) => call[0].toString().includes('authenticateUser'));
+
       const middleware = middlewareCall[0];
       const next = jest.fn();
 
@@ -359,9 +355,7 @@ describe('BotService', () => {
 
       await service.handleError(testError, mockCtx);
 
-      expect(mockCtx.reply).toHaveBeenCalledWith(
-        'Sorry, something went wrong. Please try again later.'
-      );
+      expect(mockCtx.reply).toHaveBeenCalledWith('Sorry, something went wrong. Please try again later.');
     });
 
     it('should handle errors without context', async () => {
@@ -385,7 +379,7 @@ describe('BotService', () => {
         expect.objectContaining({
           originalError: 'Test error message',
           replyError: 'Reply failed',
-        })
+        }),
       );
     });
   });
@@ -425,8 +419,8 @@ describe('BotService', () => {
 
     it('should register all command handlers', () => {
       const expectedCommands = ['start', 'help', 'profile', 'settings', 'balance', 'menu'];
-      
-      expectedCommands.forEach(command => {
+
+      expectedCommands.forEach((command) => {
         expect(mockBot.command).toHaveBeenCalledWith(command, expect.any(Function));
       });
     });
@@ -485,18 +479,20 @@ describe('BotService', () => {
       const mapContext = (service as any).mapContextToBotContext;
       const botContext = mapContext.call(service, grammyCtx);
 
-      expect(botContext).toEqual(expect.objectContaining({
-        message: expect.objectContaining({
-          message_id: 123,
-          text: 'test message',
+      expect(botContext).toEqual(
+        expect.objectContaining({
+          message: expect.objectContaining({
+            message_id: 123,
+            text: 'test message',
+          }),
+          from: expect.objectContaining({
+            id: parseInt(mockUserId),
+            first_name: 'Test',
+          }),
+          session: { test: 'data' },
+          state: mockUserData,
         }),
-        from: expect.objectContaining({
-          id: parseInt(mockUserId),
-          first_name: 'Test',
-        }),
-        session: { test: 'data' },
-        state: mockUserData,
-      }));
+      );
     });
 
     it('should handle context with callback query', () => {
@@ -509,25 +505,27 @@ describe('BotService', () => {
       const mapContext = (service as any).mapContextToBotContext;
       const botContext = mapContext.call(service, grammyCtx);
 
-      expect(botContext.callbackQuery).toEqual(expect.objectContaining({
-        id: 'callback123',
-        data: 'test:callback',
-      }));
+      expect(botContext.callbackQuery).toEqual(
+        expect.objectContaining({
+          id: 'callback123',
+          data: 'test:callback',
+        }),
+      );
     });
   });
 
   describe('Performance and Load Testing', () => {
     it('should handle multiple concurrent command processing', async () => {
       await service.initialize();
-      
+
       const mockCtx = {
         from: { id: parseInt(mockUserId), first_name: 'Test' },
         reply: jest.fn().mockResolvedValue({}),
       };
 
-      const promises = Array(10).fill(null).map(() => 
-        service.processCommand(mockCtx, BotCommand.Help)
-      );
+      const promises = Array(10)
+        .fill(null)
+        .map(() => service.processCommand(mockCtx, BotCommand.Help));
 
       await Promise.all(promises);
 
@@ -536,7 +534,7 @@ describe('BotService', () => {
 
     it('should process commands under performance threshold', async () => {
       await service.initialize();
-      
+
       const mockCtx = {
         from: { id: parseInt(mockUserId), first_name: 'Test' },
         reply: jest.fn().mockResolvedValue({}),
@@ -553,21 +551,21 @@ describe('BotService', () => {
   describe('Memory Management', () => {
     it('should not leak memory during bot lifecycle', async () => {
       const initialMemory = process.memoryUsage().heapUsed;
-      
+
       // Initialize and shutdown multiple times
       for (let i = 0; i < 5; i++) {
         await service.initialize();
         await service.shutdown();
       }
-      
+
       // Force garbage collection if available
       if (global.gc) {
         global.gc();
       }
-      
+
       const finalMemory = process.memoryUsage().heapUsed;
       const memoryIncrease = finalMemory - initialMemory;
-      
+
       // Memory increase should be minimal (less than 10MB)
       expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024);
     });
@@ -576,9 +574,9 @@ describe('BotService', () => {
   describe('Integration with Dependencies', () => {
     it('should integrate correctly with AuthService', async () => {
       await service.initialize();
-      
+
       mockAuthService.auth.mockResolvedValueOnce({ success: true });
-      
+
       const mockCtx = {
         from: { id: parseInt(mockUserId), first_name: 'Test' },
         reply: jest.fn(),
@@ -589,13 +587,13 @@ describe('BotService', () => {
       expect(mockAuthService.auth).toHaveBeenCalledWith(
         expect.objectContaining({
           platformType: PlatformType.TelegramBot,
-        })
+        }),
       );
     });
 
     it('should integrate correctly with SessionService', async () => {
       await service.initialize();
-      
+
       const mockCtx = {
         from: { id: parseInt(mockUserId), first_name: 'Test' },
         reply: jest.fn(),
@@ -603,15 +601,12 @@ describe('BotService', () => {
 
       await service.processCommand(mockCtx, BotCommand.Start);
 
-      expect(mockSessionService.createSession).toHaveBeenCalledWith(
-        mockUserId,
-        expect.any(Object)
-      );
+      expect(mockSessionService.createSession).toHaveBeenCalledWith(mockUserId, expect.any(Object));
     });
 
     it('should integrate correctly with MenuService', async () => {
       await service.initialize();
-      
+
       const mockCtx = {
         from: { id: parseInt(mockUserId), first_name: 'Test' },
         callbackQuery: { data: 'menu:main' },
@@ -619,15 +614,11 @@ describe('BotService', () => {
       };
 
       // Simulate callback query handling
-      const callbackHandler = mockBot.on.mock.calls
-        .find(call => call[0] === 'callback_query:data')[1];
-      
+      const callbackHandler = mockBot.on.mock.calls.find((call) => call[0] === 'callback_query:data')[1];
+
       await callbackHandler(mockCtx);
 
-      expect(mockMenuService.handleMenuAction).toHaveBeenCalledWith(
-        expect.any(Object),
-        'menu:main'
-      );
+      expect(mockMenuService.handleMenuAction).toHaveBeenCalledWith(expect.any(Object), 'menu:main');
     });
   });
 });

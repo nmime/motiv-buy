@@ -6,7 +6,7 @@ export class UserNotFoundException extends Exception({
   problemType: 'user_not_found',
   title: 'User Not Found',
 }) {
-  constructor(message: string = 'User not found') {
+  constructor(message = 'User not found') {
     super({
       detail: message,
     });

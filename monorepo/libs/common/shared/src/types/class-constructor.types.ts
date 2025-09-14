@@ -1,6 +1,8 @@
-export type ClassConstructor<T = {}> = new (...args: any[]) => T;
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+export type ClassConstructor<T = object> = new (...args: unknown[]) => T;
 
-export type OptionalClassConstructor<T = {}> = ClassConstructor<T> | undefined;
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+export type OptionalClassConstructor<T = object> = ClassConstructor<T> | undefined;
 
 import { Result } from 'ts-results';
 

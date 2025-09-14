@@ -152,6 +152,7 @@ export class TrafficService implements ITrafficService {
     }
 
     await this._updateBotSettings(botId, dto);
+
     return this.getBotSettings(userId, botId);
   }
 
@@ -166,18 +167,23 @@ export class TrafficService implements ITrafficService {
         if (bot.status !== BotStatus.ACTIVE) {
           throw new BadRequestException('Можно запустить только активные боты');
         }
+
         await this._startBot(botId);
+
         return { message: 'Бот успешно запущен' };
 
       case BotAction.PAUSE:
         if (bot.status !== BotStatus.ACTIVE) {
           throw new BadRequestException('Можно приостановить только активные боты');
         }
+
         await this._pauseBot(botId);
+
         return { message: 'Бот приостановлен' };
 
       case BotAction.DELETE:
         await this._deleteBot(userId, botId);
+
         return { message: 'Бот удален' };
 
       default:
@@ -316,6 +322,7 @@ export class TrafficService implements ITrafficService {
    */
   async getTrafficOrder(userId: string, orderId: string): Promise<TrafficOrderResponseDto> {
     const order = await this._findUserOrder(userId, orderId);
+
     return this._mapToOrderResponse(order);
   }
 
@@ -341,6 +348,7 @@ export class TrafficService implements ITrafficService {
       if (order.completedAmount > 0) {
         throw new BadRequestException('Нельзя изменить количество после начала выполнения заказа');
       }
+
       order.amount = dto.amount;
       order.totalCost = dto.amount * order.pricePerUnit;
     }
@@ -439,6 +447,7 @@ export class TrafficService implements ITrafficService {
 
   private _isValidTelegramUrl(url: string): boolean {
     const telegramUrlPattern = /^https:\/\/t\.me\/[a-zA-Z0-9_]+$/;
+
     return telegramUrlPattern.test(url);
   }
 

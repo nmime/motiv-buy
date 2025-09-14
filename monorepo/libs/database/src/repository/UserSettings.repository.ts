@@ -21,6 +21,7 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
 
   async getSetting<T = unknown>(user: UserEntity, key: string, defaultValue?: T): Promise<T> {
     const setting = await this.findByUserAndKey(user, key);
+
     return setting ? (setting.getValue() as T) : (defaultValue as T);
   }
 
@@ -41,15 +42,22 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
         type,
         isActive: true,
       });
-      if (description) setting.description = description;
+
+      if (description) {
+        setting.description = description;
+      }
+
       this.em.persist(setting);
     }
 
     setting.setValue(value);
     setting.type = type;
-    if (description) setting.description = description;
+    if (description) {
+      setting.description = description;
+    }
 
     await this.em.flush();
+
     return setting;
   }
 
@@ -58,8 +66,10 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     if (setting) {
       setting.setValue(value);
       await this.em.flush();
+
       return true;
     }
+
     return false;
   }
 
@@ -68,8 +78,10 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     if (setting) {
       setting.isActive = false;
       await this.em.flush();
+
       return true;
     }
+
     return false;
   }
 

@@ -36,6 +36,7 @@ export class DatabaseService {
     if (!this.orm || !this.isConnected) {
       throw new Error('Database not initialized. Call initialize() first.');
     }
+
     return this.orm;
   }
 
@@ -85,6 +86,7 @@ export class DatabaseService {
 
   async transaction<T>(callback: (em: EntityManager) => Promise<T>): Promise<T> {
     const em = this.getEntityManager();
+
     return em.transactional(callback);
   }
 
@@ -105,6 +107,7 @@ export class DatabaseService {
   }> {
     const migrator = this.orm.getMigrator();
     const [executed, pending] = await Promise.all([migrator.getExecutedMigrations(), migrator.getPendingMigrations()]);
+
     return { executed, pending };
   }
 

@@ -1,1 +1,1 @@
-export * from './user.repository.impl';
+// No repository implementations needed - using database repositories directly

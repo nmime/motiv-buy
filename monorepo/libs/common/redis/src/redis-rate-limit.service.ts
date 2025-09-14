@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from './decorator';
 import { RedisClient } from './type';
-import { Result } from 'ts-results';
+import { Result, Ok, Err } from 'ts-results';
 import { AsyncResult, unknownToError } from '@app/common-shared';
 import { InternalException, RateLimitExceedException } from '@app/common-exception';
 
@@ -34,29 +34,22 @@ export class RedisRateLimitService {
       const result = await this.redis.eval(luaScript, 1, key, ttl.toString());
 
       if (typeof result !== 'number') {
-        return { success: false, error: new InternalException({ detail: 'Error on executing rate limit' }) };
+        return Promise.resolve(Err(new InternalException({ detail: 'Error on executing rate limit' })));
       }
 
       if (result > limit) {
-        return { success: false, error: new RateLimitExceedException({ detail: 'Rate limit exceeded' }) };
+        return Promise.resolve(Err(new RateLimitExceedException({ detail: 'Rate limit exceeded' })));
       }
 
       const actionResult = await action();
       if (actionResult instanceof Promise) {
         return actionResult;
       }
-      // Convert ts-results Result to AsyncResult format
-      if ('ok' in actionResult && 'err' in actionResult) {
-        return actionResult.ok
-          ? { success: true, data: actionResult.val }
-          : ({ success: false, error: actionResult.val } as any);
-      }
-      return actionResult as any;
+
+      // Return the action result directly since it's already a Result type
+      return actionResult;
     } catch (error: unknown) {
-      return {
-        success: false,
-        error: new InternalException({ detail: 'Error on executing rate limit', cause: unknownToError(error) }),
-      };
+      return Promise.resolve(Err(new InternalException({ detail: 'Error on executing rate limit', cause: unknownToError(error) })));
     }
   }
 
@@ -107,34 +100,25 @@ export class RedisRateLimitService {
       );
 
       if (typeof count !== 'number') {
-        return {
-          success: false,
-          error: new InternalException({ detail: 'Error on executing sliding window rate limit' }),
-        };
+        return Promise.resolve(Err(new InternalException({ detail: 'Error on executing sliding window rate limit' })));
       }
 
       if (count > limit) {
-        return { success: false, error: new RateLimitExceedException({ detail: 'Rate limit exceeded' }) };
+        return Promise.resolve(Err(new RateLimitExceedException({ detail: 'Rate limit exceeded' })));
       }
 
       const actionResult = await action();
       if (actionResult instanceof Promise) {
         return actionResult;
       }
-      // Convert ts-results Result to AsyncResult format
-      if (actionResult && typeof actionResult === 'object' && 'ok' in actionResult && 'err' in actionResult) {
-        const result = actionResult as Result<OkType, ErrorType>;
-        return result.ok ? { success: true, data: result.val } : ({ success: false, error: result.val } as any);
-      }
-      return actionResult as any;
+
+      // Return the action result directly since it's already a Result type
+      return actionResult;
     } catch (error: unknown) {
-      return {
-        success: false,
-        error: new InternalException({
-          detail: 'Error on executing sliding window rate limit',
-          cause: unknownToError(error),
-        }),
-      };
+      return Promise.resolve(Err(new InternalException({
+        detail: 'Error on executing sliding window rate limit',
+        cause: unknownToError(error),
+      })));
     }
   }
 }

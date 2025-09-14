@@ -29,7 +29,7 @@ export class RedisConfigService {
 
   get config(): RedisConfig {
     const mode = this.configService.get<RedisMode>('REDIS_MODE');
-    const hosts = this.hosts;
+    const { hosts } = this;
     const password = this.configService.get<string>('REDIS_PASSWORD');
 
     const factories: Record<RedisMode, () => RedisConfig> = {
@@ -76,6 +76,7 @@ export class RedisConfigService {
       .split(',')
       .map((host) => {
         const [hostName, port] = host.split(':');
+
         return {
           host: hostName,
           port: Number(port),

@@ -781,6 +781,7 @@ const getContinentByCountry = (countryCode: CountryCode): Continent | undefined 
       return continent as Continent;
     }
   }
+
   return undefined;
 };
 

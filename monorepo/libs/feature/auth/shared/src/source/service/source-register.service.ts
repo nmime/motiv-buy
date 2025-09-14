@@ -43,7 +43,7 @@ export class SourceRegisterService {
     userRefLink?: { userId: string },
   ): UserSourceVisitEntity {
     return new UserSourceVisitEntity({
-      userId: userId,
+      userId,
       linkUserId: userRefLink?.userId,
       platformType,
       platformData,
@@ -102,6 +102,7 @@ export class SourceRegisterService {
 
   async registerVisit(visit: UserSourceVisitEntity, entityManager: EntityManager): Promise<UserSourceVisitEntity> {
     await entityManager.persistAndFlush(visit);
+
     return visit;
   }
 

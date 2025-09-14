@@ -26,11 +26,11 @@ interface BotSessionContext extends Context, SessionFlavor<Record<string, any>> 
 
 /**
  * Bot Service
- * 
+ *
  * Core service for handling Telegram bot orchestration and coordination.
  * Manages bot lifecycle, message routing, and high-level bot operations.
  * Integrates with Grammy framework for Telegram Bot API interactions.
- * 
+ *
  * @class BotService
  */
 @Injectable()
@@ -57,14 +57,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Initialize bot service with Grammy bot instance
-   * 
+   *
    * @returns Promise<void>
    */
   async initialize(): Promise<void> {
     try {
       this.logger.log('Initializing Telegram bot service...');
-      
-      const botToken = this.authConfigService.botToken;
+
+      const { botToken } = this.authConfigService;
       if (!botToken) {
         throw new Error('Bot token is not configured');
       }
@@ -73,9 +73,11 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       this.bot = new Bot<BotSessionContext>(botToken);
 
       // Install session middleware
-      this.bot.use(session({
-        initial: () => ({}),
-      }));
+      this.bot.use(
+        session({
+          initial: () => ({}),
+        }),
+      );
 
       // Install authentication middleware
       this.bot.use(async (ctx, next) => {
@@ -85,7 +87,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
       // Install error handling middleware
       this.bot.catch(async (err) => {
-        const ctx = err.ctx as BotSessionContext;
+        const { ctx } = err;
         const error = err.error as Error;
         this.logger.error('Bot error occurred', {
           error: error.message,
@@ -93,6 +95,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
           userId: ctx.userId,
           messageText: ctx.message?.text,
         });
+
         await this.handleError(error, this.mapContextToBotContext(ctx));
       });
 
@@ -107,13 +110,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       this.logger.error('Failed to initialize bot service', {
         error: error instanceof Error ? error.message : String(error),
       });
+
       throw error;
     }
   }
 
   /**
    * Start the bot polling
-   * 
+   *
    * @returns Promise<void>
    */
   async start(): Promise<void> {
@@ -123,6 +127,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
     if (this.isRunning) {
       this.logger.warn('Bot is already running');
+
       return;
     }
 
@@ -136,13 +141,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       this.logger.error('Failed to start bot', {
         error: error instanceof Error ? error.message : String(error),
       });
+
       throw error;
     }
   }
 
   /**
    * Stop the bot polling
-   * 
+   *
    * @returns Promise<void>
    */
   async stop(): Promise<void> {
@@ -164,7 +170,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Process incoming bot command
-   * 
+   *
    * @param ctx - Bot context containing message and user information
    * @param command - Command type to process
    * @returns Promise<void>
@@ -179,6 +185,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       // Ensure user is authenticated for most commands
       if (!ctx.from && command !== BotCommand.Start) {
         await this.sendAuthenticationRequired(ctx);
+
         return;
       }
 
@@ -210,13 +217,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         error: error instanceof Error ? error.message : String(error),
         userId: ctx.from?.id,
       });
+
       await this.handleError(error as Error, ctx);
     }
   }
 
   /**
    * Handle bot error scenarios
-   * 
+   *
    * @param error - Error object
    * @param ctx - Bot context where error occurred
    * @returns Promise<void>
@@ -230,10 +238,10 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       });
 
       if (ctx?.reply) {
-        const errorMessage = this.authConfigService.isDev 
-          ? `Error: ${error.message}` 
+        const errorMessage = this.authConfigService.isDev
+          ? `Error: ${error.message}`
           : 'Sorry, something went wrong. Please try again later.';
-        
+
         await ctx.reply(errorMessage);
       }
     } catch (replyError) {
@@ -246,7 +254,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Shutdown bot service gracefully
-   * 
+   *
    * @returns Promise<void>
    */
   async shutdown(): Promise<void> {
@@ -261,9 +269,10 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
    */
   private async authenticateUser(ctx: BotSessionContext): Promise<void> {
     try {
-      const from = ctx.from;
+      const { from } = ctx;
       if (!from) {
         ctx.isAuthenticated = false;
+
         return;
       }
 
@@ -287,7 +296,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
       if (authResult.success) {
         ctx.isAuthenticated = true;
-        
+
         // Create or update session
         await this.sessionService.createSession(ctx.userId, {
           conversationState: {
@@ -318,7 +327,9 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
    * Register command handlers
    */
   private registerCommandHandlers(): void {
-    if (!this.bot) return;
+    if (!this.bot) {
+      return;
+    }
 
     this.bot.command('start', async (ctx) => {
       await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Start);
@@ -349,12 +360,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
    * Register callback query handlers
    */
   private registerCallbackHandlers(): void {
-    if (!this.bot) return;
+    if (!this.bot) {
+      return;
+    }
 
     this.bot.on('callback_query:data', async (ctx) => {
       const callbackData = ctx.callbackQuery.data;
       const botContext = this.mapContextToBotContext(ctx);
-      
+
       await this.menuService.handleMenuAction(botContext, callbackData);
       await ctx.answerCallbackQuery();
     });
@@ -365,67 +378,79 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
    */
   private mapContextToBotContext(ctx: BotSessionContext): BotContext {
     return {
-      message: ctx.message ? {
-        message_id: ctx.message.message_id,
-        text: ctx.message.text,
-        from: ctx.message.from ? {
-          id: ctx.message.from.id,
-          is_bot: ctx.message.from.is_bot,
-          first_name: ctx.message.from.first_name,
-          last_name: ctx.message.from.last_name,
-          username: ctx.message.from.username,
-          language_code: ctx.message.from.language_code,
-        } : undefined,
-        chat: {
-          id: ctx.message.chat.id,
-          type: ctx.message.chat.type as any,
-          title: ctx.message.chat.title,
-          username: ctx.message.chat.username,
-          first_name: ctx.message.chat.first_name,
-          last_name: ctx.message.chat.last_name,
-        },
-        date: ctx.message.date,
-      } : undefined,
-      callbackQuery: ctx.callbackQuery ? {
-        id: ctx.callbackQuery.id,
-        from: {
-          id: ctx.callbackQuery.from.id,
-          is_bot: ctx.callbackQuery.from.is_bot,
-          first_name: ctx.callbackQuery.from.first_name,
-          last_name: ctx.callbackQuery.from.last_name,
-          username: ctx.callbackQuery.from.username,
-          language_code: ctx.callbackQuery.from.language_code,
-        },
-        message: ctx.callbackQuery.message ? {
-          message_id: ctx.callbackQuery.message.message_id,
-          chat: {
-            id: ctx.callbackQuery.message.chat.id,
-            type: ctx.callbackQuery.message.chat.type as any,
-            title: ctx.callbackQuery.message.chat.title,
-            username: ctx.callbackQuery.message.chat.username,
-            first_name: ctx.callbackQuery.message.chat.first_name,
-            last_name: ctx.callbackQuery.message.chat.last_name,
-          },
-          date: ctx.callbackQuery.message.date,
-        } : undefined,
-        data: ctx.callbackQuery.data,
-      } : undefined,
-      from: ctx.from ? {
-        id: ctx.from.id,
-        is_bot: ctx.from.is_bot,
-        first_name: ctx.from.first_name,
-        last_name: ctx.from.last_name,
-        username: ctx.from.username,
-        language_code: ctx.from.language_code,
-      } : undefined,
-      chat: ctx.chat ? {
-        id: ctx.chat.id,
-        type: ctx.chat.type as any,
-        title: ctx.chat.title,
-        username: ctx.chat.username,
-        first_name: ctx.chat.first_name,
-        last_name: ctx.chat.last_name,
-      } : undefined,
+      message: ctx.message
+        ? {
+            message_id: ctx.message.message_id,
+            text: ctx.message.text,
+            from: ctx.message.from
+              ? {
+                  id: ctx.message.from.id,
+                  is_bot: ctx.message.from.is_bot,
+                  first_name: ctx.message.from.first_name,
+                  last_name: ctx.message.from.last_name,
+                  username: ctx.message.from.username,
+                  language_code: ctx.message.from.language_code,
+                }
+              : undefined,
+            chat: {
+              id: ctx.message.chat.id,
+              type: ctx.message.chat.type as any,
+              title: ctx.message.chat.title,
+              username: ctx.message.chat.username,
+              first_name: ctx.message.chat.first_name,
+              last_name: ctx.message.chat.last_name,
+            },
+            date: ctx.message.date,
+          }
+        : undefined,
+      callbackQuery: ctx.callbackQuery
+        ? {
+            id: ctx.callbackQuery.id,
+            from: {
+              id: ctx.callbackQuery.from.id,
+              is_bot: ctx.callbackQuery.from.is_bot,
+              first_name: ctx.callbackQuery.from.first_name,
+              last_name: ctx.callbackQuery.from.last_name,
+              username: ctx.callbackQuery.from.username,
+              language_code: ctx.callbackQuery.from.language_code,
+            },
+            message: ctx.callbackQuery.message
+              ? {
+                  message_id: ctx.callbackQuery.message.message_id,
+                  chat: {
+                    id: ctx.callbackQuery.message.chat.id,
+                    type: ctx.callbackQuery.message.chat.type as any,
+                    title: ctx.callbackQuery.message.chat.title,
+                    username: ctx.callbackQuery.message.chat.username,
+                    first_name: ctx.callbackQuery.message.chat.first_name,
+                    last_name: ctx.callbackQuery.message.chat.last_name,
+                  },
+                  date: ctx.callbackQuery.message.date,
+                }
+              : undefined,
+            data: ctx.callbackQuery.data,
+          }
+        : undefined,
+      from: ctx.from
+        ? {
+            id: ctx.from.id,
+            is_bot: ctx.from.is_bot,
+            first_name: ctx.from.first_name,
+            last_name: ctx.from.last_name,
+            username: ctx.from.username,
+            language_code: ctx.from.language_code,
+          }
+        : undefined,
+      chat: ctx.chat
+        ? {
+            id: ctx.chat.id,
+            type: ctx.chat.type as any,
+            title: ctx.chat.title,
+            username: ctx.chat.username,
+            first_name: ctx.chat.first_name,
+            last_name: ctx.chat.last_name,
+          }
+        : undefined,
       reply: async (text: string, extra?: any) => {
         return await ctx.reply(text, extra);
       },
@@ -450,16 +475,18 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   private async handleStartCommand(ctx: BotContext): Promise<void> {
     await ctx.reply(
       'Welcome to MotivBuy! 🚀\n\n' +
-      'I\'m here to help you manage your traffic campaigns and earnings.\n\n' +
-      'Use /menu to see available options or /help for assistance.',
+        "I'm here to help you manage your traffic campaigns and earnings.\n\n" +
+        'Use /menu to see available options or /help for assistance.',
       {
         reply_markup: {
-          inline_keyboard: [[
-            { text: '📋 Main Menu', callback_data: 'menu:main' },
-            { text: '❓ Help', callback_data: 'menu:help' },
-          ]],
+          inline_keyboard: [
+            [
+              { text: '📋 Main Menu', callback_data: 'menu:main' },
+              { text: '❓ Help', callback_data: 'menu:help' },
+            ],
+          ],
         },
-      }
+      },
     );
   }
 
@@ -510,14 +537,11 @@ For support, contact @support or use the /support command.
 
   private async handleUnknownCommand(ctx: BotContext): Promise<void> {
     await ctx.reply(
-      'I don\'t understand that command. 🤔\n\n' +
-      'Use /help to see available commands or /menu for the main menu.'
+      "I don't understand that command. 🤔\n\n" + 'Use /help to see available commands or /menu for the main menu.',
     );
   }
 
   private async sendAuthenticationRequired(ctx: BotContext): Promise<void> {
-    await ctx.reply(
-      'Please authenticate first by using the /start command.'
-    );
+    await ctx.reply('Please authenticate first by using the /start command.');
   }
 }

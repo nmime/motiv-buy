@@ -6,6 +6,7 @@ export class ConfirmationService {
   async confirm(message: string): Promise<boolean> {
     if (!process.stdin.isTTY) {
       this.logger.warn('Non-interactive environment detected. Use --force flag for automated operations.');
+
       return false;
     }
 
@@ -20,6 +21,7 @@ export class ConfirmationService {
       });
 
       const normalizedAnswer = answer.toLowerCase().trim();
+
       return ['yes', 'y'].includes(normalizedAnswer);
     } finally {
       rl.close();

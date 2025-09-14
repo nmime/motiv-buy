@@ -34,23 +34,29 @@ export class MigrationService {
   async getPendingMigrations(): Promise<Array<{ name: string }>> {
     try {
       const pending = await this.migrator.getPendingMigrations();
+
       return pending.map((migration) => ({ name: migration.name }));
     } catch (error) {
       this.logger.error('Failed to get pending migrations:', error);
-      throw new Error(`Failed to retrieve pending migrations: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to retrieve pending migrations: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
   async getExecutedMigrations(): Promise<Array<{ name: string; executedAt: Date }>> {
     try {
       const executed = await this.migrator.getExecutedMigrations();
+
       return executed.map((migration) => ({
         name: migration.name,
         executedAt: migration.executed_at || new Date(),
       }));
     } catch (error) {
       this.logger.error('Failed to get executed migrations:', error);
-      throw new Error(`Failed to retrieve executed migrations: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to retrieve executed migrations: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -99,7 +105,7 @@ export class MigrationService {
         const rollbackSteps = steps || 1;
         // Get recent executed migrations to rollback
         const executed = await this.migrator.getExecutedMigrations();
-        const migrationsToRollback = executed.slice(-rollbackSteps).map(m => m.name);
+        const migrationsToRollback = executed.slice(-rollbackSteps).map((m) => m.name);
         result = await this.migrator.down({ migrations: migrationsToRollback });
       }
 

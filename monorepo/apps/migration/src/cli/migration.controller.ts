@@ -41,6 +41,7 @@ export class MigrationController {
 
     if (pendingMigrations.length === 0) {
       this.logger.log('✅ No pending migrations to run');
+
       return;
     }
 
@@ -67,6 +68,7 @@ export class MigrationController {
 
     if (executedMigrations.length === 0) {
       this.logger.log('✅ No migrations to rollback');
+
       return;
     }
 
@@ -88,6 +90,7 @@ export class MigrationController {
 
     if (!confirmed) {
       this.logger.log('Operation cancelled by user');
+
       return;
     }
 
@@ -137,6 +140,7 @@ export class MigrationController {
 
       if (!confirmed) {
         this.logger.log('Operation cancelled by user');
+
         return;
       }
     }

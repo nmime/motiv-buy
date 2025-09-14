@@ -6,7 +6,7 @@ export class BadTokenException extends Exception({
   problemType: 'bad_token',
   title: 'Bad Token',
 }) {
-  constructor(message: string = 'Invalid token') {
+  constructor(message = 'Invalid token') {
     super({
       detail: message,
     });

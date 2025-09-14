@@ -1,25 +1,3 @@
 export enum LinkType {
   Referral = 'referral',
-  P2p = 'p2p',
-  P2pTransferStatistic = 'p2p_transfer_statistic',
-  P2pProfile = 'p2p_profile',
-  P2pAd = 'p2p_ad',
-  Multicheque = 'multicheque',
-  MultichequeInvite = 'multicheque_invite',
-  Accelerator = 'accelerator',
-  AcceleratorInvite = 'accelerator_invite',
-  Invoice = 'invoice',
-  Subscription = 'subscription',
-  SubscriptionInvite = 'subscription_invite',
-  Transfer = 'transfer',
-  Invite = 'invite',
-  Tapps = 'tapps',
-  Listings = 'listings',
-  SimpleOrder = 'simple_order',
-  Competition = 'competition',
-  /* eslint-disable @typescript-eslint/naming-convention */
-  XJourney = 'xjourney',
-  XJourneyInvite = 'xjourney_invite',
-  /* eslint-enable @typescript-eslint/naming-convention */
-  Landing = 'landing',
 }

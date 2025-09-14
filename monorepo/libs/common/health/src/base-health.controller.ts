@@ -1,7 +1,6 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { HealthCheckResult, HealthCheckService, HealthIndicatorResult } from '@nestjs/terminus';
-import { ShutdownService } from './shutdown.service';
 import { Health } from './decorator';
 import { HealthCheckStatus } from '@nestjs/terminus/dist/health-check/health-check-result.interface';
 
@@ -12,8 +11,7 @@ export abstract class BaseHealthController {
   protected readonly healthService!: HealthCheckService;
 
   protected constructor(
-    /** @deprecated use override of readiness */
-    private readonly checks?: (() => Promise<HealthIndicatorResult> | HealthIndicatorResult)[],
+    private readonly _checks?: (() => Promise<HealthIndicatorResult> | HealthIndicatorResult)[],
   ) {}
 
   @Get('/liveness')
@@ -29,7 +27,7 @@ export abstract class BaseHealthController {
     summary: 'Readiness check',
   })
   async readiness(): Promise<HealthCheckResult> {
-    return await this.healthService.check(this.checks ?? []);
+    return await this.healthService.check(this._checks ?? []);
   }
 
   @Get('/business')

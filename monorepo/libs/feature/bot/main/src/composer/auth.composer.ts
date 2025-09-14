@@ -30,11 +30,11 @@ enum VerificationType {
 
 /**
  * Auth Composer
- * 
+ *
  * Grammy-based composer for authentication UI composition and user flows.
  * Handles login, registration, verification, and profile management interfaces
  * using Grammy's Composer patterns with comprehensive state management.
- * 
+ *
  * @class AuthComposer
  */
 @Injectable()
@@ -54,7 +54,7 @@ export class AuthComposer {
 
   /**
    * Get the Grammy composer instance
-   * 
+   *
    * @returns Composer<BotContext> - Grammy composer instance
    */
   getComposer(): Composer<BotContext> {
@@ -70,36 +70,36 @@ export class AuthComposer {
     this.composer.callbackQuery('auth:login', (ctx) => this.handleLogin(ctx));
     this.composer.callbackQuery('auth:register', (ctx) => this.handleRegister(ctx));
     this.composer.callbackQuery('auth:logout', (ctx) => this.handleLogout(ctx));
-    
+
     // Registration flow
     this.composer.callbackQuery(/^auth:register_/, (ctx) => this.handleRegistrationFlow(ctx));
     this.composer.callbackQuery('auth:quick_register', (ctx) => this.handleQuickRegister(ctx));
     this.composer.callbackQuery('auth:complete_profile', (ctx) => this.handleCompleteProfile(ctx));
-    
+
     // Login flow
     this.composer.callbackQuery(/^auth:login_/, (ctx) => this.handleLoginFlow(ctx));
     this.composer.callbackQuery('auth:forgot_password', (ctx) => this.handleForgotPassword(ctx));
-    
+
     // Verification flow
     this.composer.callbackQuery(/^auth:verify_/, (ctx) => this.handleVerificationFlow(ctx));
     this.composer.callbackQuery(/^auth:resend_/, (ctx) => this.handleResendVerification(ctx));
     this.composer.callbackQuery(/^auth:change_/, (ctx) => this.handleChangeVerificationMethod(ctx));
-    
+
     // Profile management
     this.composer.callbackQuery('auth:profile_setup', (ctx) => this.handleProfileSetup(ctx));
     this.composer.callbackQuery('auth:tutorial', (ctx) => this.handleTutorial(ctx));
     this.composer.callbackQuery('auth:skip_tutorial', (ctx) => this.handleSkipTutorial(ctx));
-    
+
     // Account actions
     this.composer.callbackQuery('auth:confirm_logout', (ctx) => this.handleConfirmLogout(ctx));
     this.composer.callbackQuery('auth:delete_account', (ctx) => this.handleDeleteAccount(ctx));
     this.composer.callbackQuery('auth:export_data', (ctx) => this.handleExportData(ctx));
-    
+
     // Security and settings
     this.composer.callbackQuery('auth:security', (ctx) => this.handleSecurityMenu(ctx));
     this.composer.callbackQuery('auth:privacy', (ctx) => this.handlePrivacySettings(ctx));
     this.composer.callbackQuery('auth:sessions', (ctx) => this.handleSessionManagement(ctx));
-    
+
     // Help and support
     this.composer.callbackQuery('auth:help', (ctx) => this.handleAuthHelp(ctx));
     this.composer.callbackQuery('auth:contact_support', (ctx) => this.handleContactSupport(ctx));
@@ -107,7 +107,7 @@ export class AuthComposer {
 
   /**
    * Compose authentication gateway menu
-   * 
+   *
    * @param ctx - Bot context
    * @returns Promise<MenuConfig> - Auth gateway menu configuration
    */
@@ -118,7 +118,7 @@ export class AuthComposer {
     try {
       // Check current authentication state
       const authState = await this.getCurrentAuthState(ctx);
-      
+
       switch (authState) {
         case AuthState.Authenticated:
           return await this.composeAuthenticatedMenu(ctx);
@@ -138,19 +138,20 @@ export class AuthComposer {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return this.getDefaultAuthMenu(ctx);
     }
   }
 
   /**
    * Compose welcome menu for new users
-   * 
+   *
    * @param ctx - Bot context
    * @returns Promise<MenuConfig> - Welcome menu configuration
    */
   async composeWelcomeMenu(ctx: BotContext): Promise<MenuConfig> {
     const userName = ctx.from?.first_name || 'User';
-    
+
     return {
       type: MenuType.Auth,
       title: `Welcome to MotivBuy, ${userName}! 👋`,
@@ -201,7 +202,7 @@ export class AuthComposer {
 
   /**
    * Compose login menu
-   * 
+   *
    * @param ctx - Bot context
    * @returns Promise<MenuConfig> - Login menu configuration
    */
@@ -211,7 +212,7 @@ export class AuthComposer {
     // Check if user already exists
     const userId = ctx.from?.id?.toString();
     const existingUser = userId ? await this.authUserService.findByPlatformId(userId) : null;
-    
+
     if (existingUser) {
       return await this.composeWelcomeBackMenu(ctx, existingUser);
     }
@@ -275,7 +276,7 @@ export class AuthComposer {
 
   /**
    * Compose registration menu
-   * 
+   *
    * @param ctx - Bot context
    * @returns Promise<MenuConfig> - Registration menu configuration
    */
@@ -284,7 +285,7 @@ export class AuthComposer {
 
     const userId = ctx.from?.id?.toString();
     const existingUser = userId ? await this.authUserService.findByPlatformId(userId) : null;
-    
+
     if (existingUser) {
       return await this.composeAlreadyRegisteredMenu(ctx, existingUser);
     }
@@ -355,15 +356,12 @@ export class AuthComposer {
 
   /**
    * Compose verification menu
-   * 
+   *
    * @param ctx - Bot context
    * @param verificationType - Type of verification
    * @returns Promise<MenuConfig> - Verification menu configuration
    */
-  async composeVerificationMenu(
-    ctx: BotContext, 
-    verificationType: VerificationType
-  ): Promise<MenuConfig> {
+  async composeVerificationMenu(ctx: BotContext, verificationType: VerificationType): Promise<MenuConfig> {
     this.logger.debug(`Composing verification menu for user: ${ctx.from?.id}, type: ${verificationType}`);
 
     const typeIcons: Record<VerificationType, string> = {
@@ -445,23 +443,21 @@ export class AuthComposer {
 
   /**
    * Compose post-authentication success menu
-   * 
+   *
    * @param ctx - Bot context
    * @param isFirstLogin - Whether this is user's first login
    * @returns Promise<MenuConfig> - Post-auth success menu
    */
-  async composePostAuthMenu(ctx: BotContext, isFirstLogin: boolean = false): Promise<MenuConfig> {
+  async composePostAuthMenu(ctx: BotContext, isFirstLogin = false): Promise<MenuConfig> {
     this.logger.debug(`Composing post-auth menu for user: ${ctx.from?.id}, firstLogin: ${isFirstLogin}`);
 
     const userName = ctx.from?.first_name || 'User';
-    const title = isFirstLogin 
-      ? `🎉 Welcome to MotivBuy, ${userName}!` 
-      : `✅ Welcome back, ${userName}!`;
-    
+    const title = isFirstLogin ? `🎉 Welcome to MotivBuy, ${userName}!` : `✅ Welcome back, ${userName}!`;
+
     const description = isFirstLogin
-      ? 'Your account has been created successfully! Let\'s get you started.'
-      : 'You\'ve successfully logged in. Ready to continue earning?';
-    
+      ? "Your account has been created successfully! Let's get you started."
+      : "You've successfully logged in. Ready to continue earning?";
+
     const buttons: MenuButton[][] = [];
 
     if (isFirstLogin) {
@@ -473,7 +469,7 @@ export class AuthComposer {
           metadata: { action: 'setup', priority: 'high' },
         },
       ]);
-      
+
       buttons.push([
         {
           text: '📖 Tutorial',
@@ -538,7 +534,7 @@ export class AuthComposer {
 
   /**
    * Compose logout confirmation menu
-   * 
+   *
    * @param ctx - Bot context
    * @returns Promise<MenuConfig> - Logout confirmation menu
    */
@@ -590,19 +586,23 @@ export class AuthComposer {
 
   /**
    * Create inline keyboard from menu configuration
-   * 
+   *
    * @param menuConfig - Menu configuration
    * @returns InlineKeyboard - Grammy InlineKeyboard instance
    */
   createInlineKeyboard(menuConfig: MenuConfig): InlineKeyboard {
     const keyboard = new InlineKeyboard();
-    
+
     menuConfig.buttons.forEach((row, rowIndex) => {
-      if (rowIndex > 0) keyboard.row();
-      
+      if (rowIndex > 0) {
+        keyboard.row();
+      }
+
       row.forEach((button) => {
-        if (button.disabled) return; // Skip disabled buttons
-        
+        if (button.disabled) {
+          return;
+        } // Skip disabled buttons
+
         if (button.url) {
           keyboard.url(button.text, button.url);
         } else {
@@ -610,7 +610,7 @@ export class AuthComposer {
         }
       });
     });
-    
+
     return keyboard;
   }
 
@@ -623,19 +623,20 @@ export class AuthComposer {
     try {
       const menuConfig = await this.composeWelcomeMenu(ctx);
       const keyboard = this.createInlineKeyboard(menuConfig);
-      
+
       const menuText = this.formatMenuText(menuConfig);
-      
+
       if (ctx.callbackQuery) {
         await ctx.editMessageText(menuText, {
           reply_markup: keyboard,
           parse_mode: 'HTML',
         });
+
         await ctx.answerCallbackQuery('🎉 Welcome!');
       } else {
         await ctx.replyWithHTML(menuText, { reply_markup: keyboard });
       }
-      
+
       // Update auth state
       const userId = ctx.from?.id?.toString();
       if (userId) {
@@ -646,6 +647,7 @@ export class AuthComposer {
         error: error instanceof Error ? error.message : String(error),
         userId: ctx.from?.id,
       });
+
       await ctx.answerCallbackQuery('❌ Failed to start authentication');
     }
   }
@@ -657,14 +659,14 @@ export class AuthComposer {
     try {
       const menuConfig = await this.composeLoginMenu(ctx);
       const keyboard = this.createInlineKeyboard(menuConfig);
-      
+
       await ctx.editMessageText(this.formatMenuText(menuConfig), {
         reply_markup: keyboard,
         parse_mode: 'HTML',
       });
-      
+
       await ctx.answerCallbackQuery('🔐 Login options');
-      
+
       const userId = ctx.from?.id?.toString();
       if (userId) {
         await this.updateAuthState(userId, AuthState.LoginFlow);
@@ -674,6 +676,7 @@ export class AuthComposer {
         error: error instanceof Error ? error.message : String(error),
         userId: ctx.from?.id,
       });
+
       await ctx.answerCallbackQuery('❌ Login failed');
     }
   }
@@ -685,14 +688,14 @@ export class AuthComposer {
     try {
       const menuConfig = await this.composeRegistrationMenu(ctx);
       const keyboard = this.createInlineKeyboard(menuConfig);
-      
+
       await ctx.editMessageText(this.formatMenuText(menuConfig), {
         reply_markup: keyboard,
         parse_mode: 'HTML',
       });
-      
+
       await ctx.answerCallbackQuery('📝 Registration options');
-      
+
       const userId = ctx.from?.id?.toString();
       if (userId) {
         await this.updateAuthState(userId, AuthState.RegisterFlow);
@@ -702,6 +705,7 @@ export class AuthComposer {
         error: error instanceof Error ? error.message : String(error),
         userId: ctx.from?.id,
       });
+
       await ctx.answerCallbackQuery('❌ Registration failed');
     }
   }
@@ -713,6 +717,7 @@ export class AuthComposer {
     const userId = ctx.from?.id?.toString();
     if (!userId || !ctx.from) {
       await ctx.answerCallbackQuery('❌ User information not available');
+
       return;
     }
 
@@ -724,13 +729,14 @@ export class AuthComposer {
       if (existingUser) {
         const welcomeMenu = await this.composeAlreadyRegisteredMenu(ctx, existingUser);
         const keyboard = this.createInlineKeyboard(welcomeMenu);
-        
+
         await ctx.editMessageText(this.formatMenuText(welcomeMenu), {
           reply_markup: keyboard,
           parse_mode: 'HTML',
         });
-        
+
         await ctx.answerCallbackQuery('✅ Account already exists');
+
         return;
       }
 
@@ -762,14 +768,14 @@ export class AuthComposer {
         // Show post-auth menu
         const postAuthMenu = await this.composePostAuthMenu(ctx, true);
         const keyboard = this.createInlineKeyboard(postAuthMenu);
-        
+
         await ctx.editMessageText(this.formatMenuText(postAuthMenu), {
           reply_markup: keyboard,
           parse_mode: 'HTML',
         });
-        
+
         await ctx.answerCallbackQuery('🎉 Account created successfully!');
-        
+
         // Update auth state
         await this.updateAuthState(userId, AuthState.Authenticated);
       } else {
@@ -788,13 +794,11 @@ export class AuthComposer {
               { text: '🔄 Try Again', callback_data: 'auth:quick_register' },
               { text: '📝 Manual Registration', callback_data: 'auth:register' },
             ],
-            [
-              { text: '🆘 Contact Support', callback_data: 'auth:contact_support' },
-            ],
+            [{ text: '🆘 Contact Support', callback_data: 'auth:contact_support' }],
           ],
         },
       });
-      
+
       await ctx.answerCallbackQuery('❌ Registration failed');
     }
   }
@@ -804,12 +808,14 @@ export class AuthComposer {
    */
   private async handleConfirmLogout(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     try {
       // Clear user session
       await this.sessionService.deleteSession(userId);
-      
+
       // Show logged out message
       await ctx.editMessageText(
         '👋 <b>Successfully Logged Out</b>\n\nThank you for using MotivBuy! Your data has been saved securely.\n\nUse /start to login again anytime.',
@@ -823,11 +829,11 @@ export class AuthComposer {
             ],
           },
           parse_mode: 'HTML',
-        }
+        },
       );
-      
+
       await ctx.answerCallbackQuery('👋 Logged out successfully');
-      
+
       // Update auth state
       await this.updateAuthState(userId, AuthState.Unauthenticated);
     } catch (error) {
@@ -835,7 +841,7 @@ export class AuthComposer {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
-      
+
       await ctx.answerCallbackQuery('❌ Logout failed');
     }
   }
@@ -845,7 +851,7 @@ export class AuthComposer {
   private async handleRegistrationFlow(ctx: BotContext): Promise<void> {
     const callbackData = ctx.callbackQuery?.data || '';
     const method = callbackData.split('_')[1]; // e.g., register_email -> email
-    
+
     await ctx.answerCallbackQuery(`📝 ${method} registration selected`);
     // Implement specific registration flow based on method
   }
@@ -853,7 +859,7 @@ export class AuthComposer {
   private async handleLoginFlow(ctx: BotContext): Promise<void> {
     const callbackData = ctx.callbackQuery?.data || '';
     const method = callbackData.split('_')[1]; // e.g., login_email -> email
-    
+
     await ctx.answerCallbackQuery(`🔐 ${method} login selected`);
     // Implement specific login flow based on method
   }
@@ -891,12 +897,12 @@ export class AuthComposer {
   private async handleLogout(ctx: BotContext): Promise<void> {
     const menuConfig = await this.composeLogoutMenu(ctx);
     const keyboard = this.createInlineKeyboard(menuConfig);
-    
+
     await ctx.editMessageText(this.formatMenuText(menuConfig), {
       reply_markup: keyboard,
       parse_mode: 'HTML',
     });
-    
+
     await ctx.answerCallbackQuery('🚪 Logout confirmation');
   }
 
@@ -941,14 +947,12 @@ export class AuthComposer {
               { text: '📧 Email Support', url: 'mailto:support@motivbuy.com' },
               { text: '💬 Telegram Support', url: 'https://t.me/motivbuy_support' },
             ],
-            [
-              { text: '◀️ Back', callback_data: 'auth:start' },
-            ],
+            [{ text: '◀️ Back', callback_data: 'auth:start' }],
           ],
         },
-      }
+      },
     );
-    
+
     await ctx.answerCallbackQuery('🆘 Support contacts shown');
   }
 
@@ -966,21 +970,24 @@ export class AuthComposer {
 
   private async getCurrentAuthState(ctx: BotContext): Promise<AuthState> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return AuthState.Unauthenticated;
-    
+    if (!userId) {
+      return AuthState.Unauthenticated;
+    }
+
     try {
       const session = await this.sessionService.getSession(userId);
       const user = await this.authUserService.findByPlatformId(userId);
-      
+
       if (user && user.isActive) {
         if (session?.data.conversationState?.currentStep === 'just_registered') {
           return AuthState.ProfileSetup;
         }
+
         return AuthState.Authenticated;
       }
-      
+
       const currentStep = session?.data.conversationState?.currentStep;
-      
+
       switch (currentStep) {
         case 'login_flow':
           return AuthState.LoginFlow;
@@ -998,6 +1005,7 @@ export class AuthComposer {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return AuthState.Unauthenticated;
     }
   }
@@ -1027,7 +1035,7 @@ export class AuthComposer {
 
   private async composeWelcomeBackMenu(ctx: BotContext, user: any): Promise<MenuConfig> {
     const userName = user.firstName || ctx.from?.first_name || 'User';
-    
+
     return {
       type: MenuType.Auth,
       title: `Welcome back, ${userName}! 👋`,
@@ -1072,7 +1080,7 @@ export class AuthComposer {
 
   private async composeAlreadyRegisteredMenu(ctx: BotContext, user: any): Promise<MenuConfig> {
     const userName = user.firstName || ctx.from?.first_name || 'User';
-    
+
     return {
       type: MenuType.Auth,
       title: `Hi ${userName}! ✋`,
@@ -1087,7 +1095,7 @@ export class AuthComposer {
         ],
         [
           {
-            text: '🔐 This isn\'t me',
+            text: "🔐 This isn't me",
             callbackData: CallbackUtil.createActionCallback('auth', 'logout'),
             metadata: { action: 'logout' },
           },
@@ -1120,9 +1128,7 @@ export class AuthComposer {
           { text: '🔐 Login', callbackData: 'auth:login' },
           { text: '📝 Register', callbackData: 'auth:register' },
         ],
-        [
-          { text: '❓ Help', callbackData: 'auth:help' },
-        ],
+        [{ text: '❓ Help', callbackData: 'auth:help' }],
       ],
       isInline: true,
     };
@@ -1130,17 +1136,17 @@ export class AuthComposer {
 
   private formatMenuText(menuConfig: MenuConfig): string {
     let text = `<b>${menuConfig.title}</b>`;
-    
+
     if (menuConfig.description) {
       text += `\n\n${menuConfig.description}`;
     }
-    
+
     return text;
   }
 
   /**
    * Get authentication status message
-   * 
+   *
    * @param isAuthenticated - Whether user is authenticated
    * @param username - User's username (if available)
    * @returns string - Status message
@@ -1148,8 +1154,10 @@ export class AuthComposer {
   getAuthStatusMessage(isAuthenticated: boolean, username?: string): string {
     if (isAuthenticated) {
       const userDisplay = username ? `@${username}` : 'User';
+
       return `✅ Logged in as ${userDisplay}`;
     }
+
     return '❌ Not authenticated. Please log in to continue.';
   }
 }

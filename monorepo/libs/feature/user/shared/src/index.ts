@@ -1,9 +1,2 @@
-// Re-export DTOs from main for shared access
-export {
-  UserResponseDto,
-  UserReferralDto,
-  ReferralStatsDto,
-  ReferralLinkDto,
-  NotificationSettingsDto,
-  UpdateNotificationSettingsDto,
-} from '@app/feature-user-main';
+// User shared library - for cross-domain reusable utilities only
+// API DTOs and business logic should be in main library

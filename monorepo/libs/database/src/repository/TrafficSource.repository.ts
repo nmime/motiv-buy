@@ -40,7 +40,9 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
       ...data,
       isActive: true,
     });
+
     await this.em.persistAndFlush(trafficSource);
+
     return trafficSource;
   }
 

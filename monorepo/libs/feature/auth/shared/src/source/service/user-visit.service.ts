@@ -81,6 +81,7 @@ export class UserVisitService {
       return getGeoByIp(ip);
     } catch (error) {
       this.logger.error('Error while getting geo by ip', { ip, error });
+
       return undefined;
     }
   }

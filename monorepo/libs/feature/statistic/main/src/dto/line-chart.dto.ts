@@ -1,11 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsDateString, IsIn } from 'class-validator';
+import { IsOptional, IsEnum, IsDateString } from 'class-validator';
 import { StatisticType } from './statistic-query.dto';
 
 export enum ChartInterval {
   Hour = 'hour',
   Day = 'day',
-  Week = 'week', 
+  Week = 'week',
   Month = 'month',
 }
 
@@ -13,7 +13,7 @@ export class LineChartQueryDto {
   @ApiProperty({
     description: 'Type of statistic for line chart',
     enum: StatisticType,
-    example: StatisticType.TRAFFIC_SOURCE,
+    example: StatisticType.TrafficSource,
   })
   @IsEnum(StatisticType)
   type!: StatisticType;
@@ -26,7 +26,7 @@ export class LineChartQueryDto {
   fromDate!: string;
 
   @ApiProperty({
-    description: 'End date for chart data (YYYY-MM-DD or ISO 8601)', 
+    description: 'End date for chart data (YYYY-MM-DD or ISO 8601)',
     example: '2024-12-31',
   })
   @IsDateString()
@@ -45,7 +45,8 @@ export class LineChartQueryDto {
 
 export class ChartDataPointDto {
   @ApiProperty({
-    description: 'Date/time point (format depends on interval: hour=YYYY-MM-DDTHH:00, day=YYYY-MM-DD, week=YYYY-MM-DD, month=YYYY-MM)',
+    description:
+      'Date/time point (format depends on interval: hour=YYYY-MM-DDTHH:00, day=YYYY-MM-DD, week=YYYY-MM-DD, month=YYYY-MM)',
     example: '2024-01-15T14:00',
   })
   date!: string;
@@ -58,7 +59,7 @@ export class ChartDataPointDto {
 
   @ApiProperty({
     description: 'Amount earned or spent for this time point',
-    example: 1250.50,
+    example: 1250.5,
   })
   amountEarnedOrSpent!: number;
 }
@@ -67,7 +68,7 @@ export class LineChartResponseDto {
   @ApiProperty({
     description: 'Type of statistic',
     enum: StatisticType,
-    example: StatisticType.TRAFFIC_SOURCE,
+    example: StatisticType.TrafficSource,
   })
   type!: StatisticType;
 

@@ -48,6 +48,7 @@ export class UserBalanceEntity {
 
   getTotalBalance(): string {
     const total = parseFloat(this.balance) + parseFloat(this.lockedBalance);
+
     return total.toString();
   }
 

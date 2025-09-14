@@ -27,11 +27,13 @@ export class AuthConfigService {
   get isDev(): boolean {
     const nodeEnv = this.configService.get<string>('NODE_ENV');
     const isDev = this.configService.get<string>('IS_DEV');
+
     return nodeEnv === 'development' || isDev === 'true';
   }
 
   get allowTgIds(): string[] {
     const tgIds = this.configService.get<string>('ALLOW_TO_ENTER_TG_IDS') ?? '';
+
     return tgIds
       .split(',')
       .map((id) => id.trim())
@@ -40,6 +42,7 @@ export class AuthConfigService {
 
   get allowedDevIPs(): string[] {
     const ips = this.configService.get<string>('ALLOWED_IPS') ?? '127.0.0.1,::1';
+
     return ips
       .split(',')
       .map((ip) => ip.trim())

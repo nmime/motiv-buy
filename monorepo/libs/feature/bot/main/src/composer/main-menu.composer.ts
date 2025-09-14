@@ -8,11 +8,11 @@ import { BalanceService } from '@app/feature-balance-main';
 
 /**
  * Main Menu Composer
- * 
+ *
  * Grammy-based composer for main menu UI composition and interactions.
  * Handles menu navigation, state management, and dynamic content generation
  * using Grammy's Composer patterns for modular bot functionality.
- * 
+ *
  * @class MainMenuComposer
  */
 @Injectable()
@@ -32,7 +32,7 @@ export class MainMenuComposer {
 
   /**
    * Get the Grammy composer instance
-   * 
+   *
    * @returns Composer<BotContext> - Grammy composer instance
    */
   getComposer(): Composer<BotContext> {
@@ -46,14 +46,14 @@ export class MainMenuComposer {
     // Main menu navigation
     this.composer.callbackQuery('menu:main', (ctx) => this.handleMainMenu(ctx));
     this.composer.callbackQuery(/^menu:/, (ctx) => this.handleMenuNavigation(ctx));
-    
+
     // Quick actions
     this.composer.callbackQuery(/^action:/, (ctx) => this.handleQuickAction(ctx));
-    
+
     // Menu refresh and utilities
     this.composer.callbackQuery('refresh', (ctx) => this.handleRefresh(ctx));
     this.composer.callbackQuery('breadcrumb', (ctx) => this.handleBreadcrumb(ctx));
-    
+
     // Menu state management
     this.composer.callbackQuery('menu_state:save', (ctx) => this.saveMenuState(ctx));
     this.composer.callbackQuery('menu_state:restore', (ctx) => this.restoreMenuState(ctx));
@@ -61,7 +61,7 @@ export class MainMenuComposer {
 
   /**
    * Compose main menu with dynamic content
-   * 
+   *
    * @param ctx - Bot context for personalization
    * @returns Promise<MenuConfig> - Main menu configuration
    */
@@ -82,10 +82,10 @@ export class MainMenuComposer {
       // Personalize greeting
       const userName = ctx.from?.first_name || 'User';
       const greeting = this.getPersonalizedGreeting(userName, session?.data.preferences?.language || 'en');
-      
+
       // Build dynamic menu based on user status
       const buttons = await this.buildMainMenuButtons(ctx, user, balance, session);
-      
+
       return {
         type: MenuType.Main,
         title: greeting,
@@ -104,13 +104,14 @@ export class MainMenuComposer {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return this.getDefaultMainMenu(ctx);
     }
   }
 
   /**
    * Compose quick actions menu with contextual actions
-   * 
+   *
    * @param ctx - Bot context
    * @returns Promise<MenuConfig> - Quick actions menu configuration
    */
@@ -122,38 +123,48 @@ export class MainMenuComposer {
       const session = await this.sessionService.getSession(userId || '');
       const recentActions = session?.data.cache?.recentActions || [];
       const preferences = session?.data.preferences;
-      
+
       // Build contextual quick actions
       const buttons: MenuButton[][] = [];
-      
+
       // Most used actions first
       buttons.push([
-        { text: '🚀 New Campaign', callbackData: CallbackUtil.createActionCallback('action', 'new_campaign'), metadata: { priority: 'high' } },
-        { text: '📈 View Stats', callbackData: CallbackUtil.createActionCallback('action', 'view_stats'), metadata: { priority: 'high' } },
+        {
+          text: '🚀 New Campaign',
+          callbackData: CallbackUtil.createActionCallback('action', 'new_campaign'),
+          metadata: { priority: 'high' },
+        },
+        {
+          text: '📈 View Stats',
+          callbackData: CallbackUtil.createActionCallback('action', 'view_stats'),
+          metadata: { priority: 'high' },
+        },
       ]);
-      
+
       // Financial actions
       buttons.push([
         { text: '💰 Check Balance', callbackData: CallbackUtil.createActionCallback('action', 'check_balance') },
         { text: '💸 Quick Withdraw', callbackData: CallbackUtil.createActionCallback('action', 'quick_withdraw') },
       ]);
-      
+
       // System actions
       buttons.push([
         { text: '🔄 Refresh Data', callbackData: CallbackUtil.createActionCallback('action', 'refresh_all') },
         { text: '📊 Dashboard', callbackData: CallbackUtil.createActionCallback('action', 'dashboard') },
       ]);
-      
+
       // Recent actions (if any)
       if (recentActions.length > 0) {
-        const recentButton = { text: '📋 Recent Actions', callbackData: CallbackUtil.createActionCallback('action', 'recent_actions') };
+        const recentButton = {
+          text: '📋 Recent Actions',
+          callbackData: CallbackUtil.createActionCallback('action', 'recent_actions'),
+        };
+
         buttons.push([recentButton]);
       }
-      
+
       // Navigation
-      buttons.push([
-        { text: '🔙 Back to Main', callbackData: CallbackUtil.createMenuCallback('main', 'navigate') },
-      ]);
+      buttons.push([{ text: '🔙 Back to Main', callbackData: CallbackUtil.createMenuCallback('main', 'navigate') }]);
 
       return {
         type: MenuType.Main,
@@ -171,62 +182,59 @@ export class MainMenuComposer {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
-      
+
       return this.getDefaultQuickActionsMenu();
     }
   }
 
   /**
    * Customize menu based on user permissions, status, and preferences
-   * 
+   *
    * @param menu - Base menu configuration
    * @param ctx - Bot context with user info
    * @param user - User entity (optional)
    * @param session - User session (optional)
    * @returns Promise<MenuConfig> - Customized menu configuration
    */
-  async customizeMenuForUser(
-    menu: MenuConfig, 
-    ctx: BotContext, 
-    user?: any, 
-    session?: any
-  ): Promise<MenuConfig> {
+  async customizeMenuForUser(menu: MenuConfig, ctx: BotContext, user?: any, session?: any): Promise<MenuConfig> {
     const userId = ctx.from?.id;
-    if (!userId) return menu;
+    if (!userId) {
+      return menu;
+    }
 
     this.logger.debug(`Customizing menu for user: ${userId}`);
 
     try {
       const customizedMenu = { ...menu };
-      
+
       // Apply user role-based customizations
       if (user) {
         customizedMenu.buttons = await this.applyRolePermissions(customizedMenu.buttons, user);
-        
+
         // Premium user features
         if (user.isPremium) {
           customizedMenu.buttons = this.addPremiumFeatures(customizedMenu.buttons);
         }
-        
+
         // Admin features
         if (user.isAdmin) {
           customizedMenu.buttons = this.addAdminFeatures(customizedMenu.buttons);
         }
       }
-      
+
       // Apply user preferences
       if (session?.data.preferences) {
         customizedMenu.buttons = this.applyUserPreferences(customizedMenu.buttons, session.data.preferences);
       }
-      
+
       // Apply A/B testing variations
       customizedMenu.buttons = await this.applyABTestVariations(customizedMenu.buttons, userId.toString());
-      
+
       // Add breadcrumb navigation if enabled
       if (session?.data.navigationState) {
         customizedMenu.buttons = this.addBreadcrumbNavigation(customizedMenu.buttons, session.data.navigationState);
       }
-      
+
       // Update metadata
       customizedMenu.metadata = {
         ...customizedMenu.metadata,
@@ -235,42 +243,37 @@ export class MainMenuComposer {
         userRole: user?.role,
         preferences: session?.data.preferences,
       };
-      
+
       return customizedMenu;
     } catch (error) {
       this.logger.error('Error customizing menu for user', {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
+
       return menu;
     }
   }
 
   /**
    * Add smart navigation buttons with context awareness
-   * 
+   *
    * @param menu - Menu configuration
    * @param navigationOptions - Navigation options
    * @returns MenuConfig - Menu with navigation buttons added
    */
   addNavigationButtons(
-    menu: MenuConfig, 
+    menu: MenuConfig,
     navigationOptions: {
       showBack?: boolean;
       showHome?: boolean;
       showBreadcrumb?: boolean;
       customBack?: string;
       customHome?: string;
-    } = {}
+    } = {},
   ): MenuConfig {
-    const {
-      showBack = false,
-      showHome = false,
-      showBreadcrumb = false,
-      customBack,
-      customHome,
-    } = navigationOptions;
-    
+    const { showBack = false, showHome = false, showBreadcrumb = false, customBack, customHome } = navigationOptions;
+
     const navigationRow: MenuButton[] = [];
 
     if (showBack) {
@@ -288,7 +291,7 @@ export class MainMenuComposer {
         metadata: { action: 'navigation', type: 'home' },
       });
     }
-    
+
     if (showBreadcrumb) {
       navigationRow.push({
         text: '📍 Menu Path',
@@ -306,16 +309,18 @@ export class MainMenuComposer {
 
   /**
    * Create inline keyboard from menu configuration
-   * 
+   *
    * @param menuConfig - Menu configuration
    * @returns InlineKeyboard - Grammy InlineKeyboard instance
    */
   createInlineKeyboard(menuConfig: MenuConfig): InlineKeyboard {
     const keyboard = new InlineKeyboard();
-    
+
     menuConfig.buttons.forEach((row, rowIndex) => {
-      if (rowIndex > 0) keyboard.row();
-      
+      if (rowIndex > 0) {
+        keyboard.row();
+      }
+
       row.forEach((button) => {
         if (button.url) {
           keyboard.url(button.text, button.url);
@@ -324,7 +329,7 @@ export class MainMenuComposer {
         }
       });
     });
-    
+
     return keyboard;
   }
 
@@ -337,21 +342,22 @@ export class MainMenuComposer {
     try {
       const menuConfig = await this.composeMainMenu(ctx);
       const keyboard = this.createInlineKeyboard(menuConfig);
-      
+
       const menuText = this.formatMenuText(menuConfig);
-      
+
       if (ctx.callbackQuery) {
         await ctx.editMessageText(menuText, {
           reply_markup: keyboard,
           parse_mode: 'HTML',
         });
+
         await ctx.answerCallbackQuery('🏠 Main menu loaded');
       } else {
         await ctx.replyWithHTML(menuText, {
           reply_markup: keyboard,
         });
       }
-      
+
       // Update navigation state
       const userId = ctx.from?.id?.toString();
       if (userId) {
@@ -362,6 +368,7 @@ export class MainMenuComposer {
         error: error instanceof Error ? error.message : String(error),
         userId: ctx.from?.id,
       });
+
       await ctx.answerCallbackQuery('❌ Failed to load menu');
     }
   }
@@ -372,7 +379,7 @@ export class MainMenuComposer {
   private async handleMenuNavigation(ctx: BotContext): Promise<void> {
     const callbackData = ctx.callbackQuery?.data || '';
     const menuType = callbackData.split(':')[1] as MenuType;
-    
+
     try {
       // Use the menu service for navigation
       await this.menuService.navigateToMenu(ctx, menuType);
@@ -383,6 +390,7 @@ export class MainMenuComposer {
         menuType,
         userId: ctx.from?.id,
       });
+
       await ctx.answerCallbackQuery('❌ Navigation failed');
     }
   }
@@ -393,7 +401,7 @@ export class MainMenuComposer {
   private async handleQuickAction(ctx: BotContext): Promise<void> {
     const callbackData = ctx.callbackQuery?.data || '';
     const action = callbackData.split(':')[1];
-    
+
     try {
       await this.processQuickAction(ctx, action);
       await ctx.answerCallbackQuery(`⚡ ${action} executed`);
@@ -403,6 +411,7 @@ export class MainMenuComposer {
         action,
         userId: ctx.from?.id,
       });
+
       await ctx.answerCallbackQuery('❌ Action failed');
     }
   }
@@ -413,25 +422,28 @@ export class MainMenuComposer {
   private async handleRefresh(ctx: BotContext): Promise<void> {
     try {
       const userId = ctx.from?.id?.toString();
-      if (!userId) return;
-      
+      if (!userId) {
+        return;
+      }
+
       // Get current menu state
       const session = await this.sessionService.getSession(userId);
       const currentMenu = session?.data.navigationState?.currentLocation || MenuType.Main;
-      
+
       // Refresh current menu
       if (currentMenu === MenuType.Main) {
         await this.handleMainMenu(ctx);
       } else {
         await this.menuService.navigateToMenu(ctx, currentMenu as MenuType);
       }
-      
+
       await ctx.answerCallbackQuery('🔄 Menu refreshed');
     } catch (error) {
       this.logger.error('Error handling refresh', {
         error: error instanceof Error ? error.message : String(error),
         userId: ctx.from?.id,
       });
+
       await ctx.answerCallbackQuery('❌ Refresh failed');
     }
   }
@@ -442,35 +454,32 @@ export class MainMenuComposer {
   private async handleBreadcrumb(ctx: BotContext): Promise<void> {
     try {
       const userId = ctx.from?.id?.toString();
-      if (!userId) return;
-      
+      if (!userId) {
+        return;
+      }
+
       const session = await this.sessionService.getSession(userId);
       const breadcrumb = session?.data.navigationState?.breadcrumb || [];
-      
-      const breadcrumbText = breadcrumb.length > 0 
-        ? `📍 Navigation Path:\n${breadcrumb.join(' → ')}`
-        : '📍 You are at the main menu';
-      
+
+      const breadcrumbText =
+        breadcrumb.length > 0 ? `📍 Navigation Path:\n${breadcrumb.join(' → ')}` : '📍 You are at the main menu';
+
       await ctx.answerCallbackQuery(breadcrumbText, { show_alert: true });
     } catch (error) {
       this.logger.error('Error handling breadcrumb', {
         error: error instanceof Error ? error.message : String(error),
         userId: ctx.from?.id,
       });
+
       await ctx.answerCallbackQuery('❌ Cannot show path');
     }
   }
 
   // Helper methods
 
-  private async buildMainMenuButtons(
-    ctx: BotContext, 
-    user: any, 
-    balance: any, 
-    session: any
-  ): Promise<MenuButton[][]> {
+  private async buildMainMenuButtons(ctx: BotContext, user: any, balance: any, session: any): Promise<MenuButton[][]> {
     const buttons: MenuButton[][] = [];
-    
+
     // Core features row
     buttons.push([
       {
@@ -484,7 +493,7 @@ export class MainMenuComposer {
         metadata: { feature: 'statistics' },
       },
     ]);
-    
+
     // Traffic and campaigns row
     buttons.push([
       {
@@ -498,7 +507,7 @@ export class MainMenuComposer {
         metadata: { feature: 'campaigns' },
       },
     ]);
-    
+
     // User management row
     buttons.push([
       {
@@ -512,7 +521,7 @@ export class MainMenuComposer {
         metadata: { feature: 'settings' },
       },
     ]);
-    
+
     // Financial operations row
     buttons.push([
       {
@@ -526,7 +535,7 @@ export class MainMenuComposer {
         metadata: { feature: 'referrals' },
       },
     ]);
-    
+
     // Utility row
     buttons.push([
       {
@@ -540,13 +549,13 @@ export class MainMenuComposer {
         metadata: { feature: 'quick_actions' },
       },
     ]);
-    
+
     return buttons;
   }
 
   private getDefaultMainMenu(ctx: BotContext): MenuConfig {
     const userName = ctx.from?.first_name || 'User';
-    
+
     return {
       type: MenuType.Main,
       title: `Welcome, ${userName}! 🚀`,
@@ -564,9 +573,7 @@ export class MainMenuComposer {
           { text: '👤 Profile', callbackData: 'menu:profile' },
           { text: '⚙️ Settings', callbackData: 'menu:settings' },
         ],
-        [
-          { text: '❓ Help', callbackData: 'menu:help' },
-        ],
+        [{ text: '❓ Help', callbackData: 'menu:help' }],
       ],
       isInline: true,
     };
@@ -599,7 +606,7 @@ export class MainMenuComposer {
       de: `Willkommen zurück, ${userName}! 🚀`,
       ru: `С возвращением, ${userName}! 🚀`,
     };
-    
+
     return greetings[language] || greetings.en;
   }
 
@@ -607,34 +614,32 @@ export class MainMenuComposer {
     if (!user) {
       return 'Please register to access all features.';
     }
-    
+
     const parts = [];
-    
+
     if (balance && balance.availableAmount > 0) {
       parts.push(`Balance: $${balance.availableAmount.toFixed(2)}`);
     }
-    
+
     if (user.isVerified) {
       parts.push('Account verified ✅');
     } else {
       parts.push('Account not verified ⚠️');
     }
-    
+
     return parts.join(' • ');
   }
 
   private async applyRolePermissions(buttons: MenuButton[][], user: any): Promise<MenuButton[][]> {
     // Filter buttons based on user permissions
-    return buttons.filter(row => 
-      row.some(button => this.hasPermissionForButton(button, user))
-    ).map(row => 
-      row.filter(button => this.hasPermissionForButton(button, user))
-    );
+    return buttons
+      .filter((row) => row.some((button) => this.hasPermissionForButton(button, user)))
+      .map((row) => row.filter((button) => this.hasPermissionForButton(button, user)));
   }
 
   private hasPermissionForButton(button: MenuButton, user: any): boolean {
     const feature = button.metadata?.feature;
-    
+
     switch (feature) {
       case 'withdrawal':
         return user.isVerified;
@@ -654,7 +659,7 @@ export class MainMenuComposer {
         metadata: { feature: 'premium', tier: 'premium' },
       },
     ];
-    
+
     return [...buttons, premiumRow];
   }
 
@@ -667,15 +672,16 @@ export class MainMenuComposer {
         metadata: { feature: 'admin', restricted: true },
       },
     ];
-    
+
     return [...buttons, adminRow];
   }
 
   private applyUserPreferences(buttons: MenuButton[][], preferences: any): MenuButton[][] {
     // Apply user-specific preferences (hiding/showing features)
-    return buttons.filter(row => {
-      return row.some(button => {
+    return buttons.filter((row) => {
+      return row.some((button) => {
         const feature = button.metadata?.feature;
+
         return !preferences?.hiddenFeatures?.includes(feature);
       });
     });
@@ -684,19 +690,20 @@ export class MainMenuComposer {
   private async applyABTestVariations(buttons: MenuButton[][], userId: string): Promise<MenuButton[][]> {
     // Apply A/B test variations based on user ID hash
     const userHash = parseInt(userId) % 100;
-    
+
     // Example: 50% of users see different button text
     if (userHash < 50) {
-      return buttons.map(row => 
-        row.map(button => {
+      return buttons.map((row) =>
+        row.map((button) => {
           if (button.text.includes('Statistics')) {
             return { ...button, text: '📊 Analytics' };
           }
+
           return button;
-        })
+        }),
       );
     }
-    
+
     return buttons;
   }
 
@@ -709,20 +716,20 @@ export class MainMenuComposer {
           metadata: { type: 'navigation', breadcrumb: true },
         },
       ];
-      
+
       return [...buttons, breadcrumbRow];
     }
-    
+
     return buttons;
   }
 
   private formatMenuText(menuConfig: MenuConfig): string {
     let text = `<b>${menuConfig.title}</b>`;
-    
+
     if (menuConfig.description) {
       text += `\n\n${menuConfig.description}`;
     }
-    
+
     return text;
   }
 
@@ -755,20 +762,21 @@ export class MainMenuComposer {
           reply_markup: keyboard,
           parse_mode: 'HTML',
         });
+
         break;
-        
+
       case 'refresh_all':
         await this.handleRefresh(ctx);
         break;
-        
+
       case 'check_balance':
         await this.menuService.navigateToMenu(ctx, MenuType.Balance);
         break;
-        
+
       case 'view_stats':
         await this.menuService.navigateToMenu(ctx, MenuType.Statistics);
         break;
-        
+
       default:
         await ctx.reply(`Action "${action}" is not implemented yet.`);
     }

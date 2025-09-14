@@ -11,11 +11,11 @@ import { MenuHandler } from './menu.handler';
 
 /**
  * Callback Handler
- * 
+ *
  * Handles all inline keyboard callback queries from Telegram bot interactions.
  * Processes button presses, manages user authentication flows, and coordinates
  * between different handler types for seamless user experience.
- * 
+ *
  * @class CallbackHandler
  */
 @Injectable()
@@ -34,7 +34,7 @@ export class CallbackHandler {
 
   /**
    * Process incoming callback query
-   * 
+   *
    * @param ctx - Bot context with callback query data
    * @returns Promise<void>
    */
@@ -45,7 +45,9 @@ export class CallbackHandler {
           userId: ctx.from?.id,
           callbackQueryId: ctx.callbackQuery?.id,
         });
+
         await ctx.answerCallbackQuery('Invalid callback data');
+
         return;
       }
 
@@ -70,7 +72,6 @@ export class CallbackHandler {
 
       // Always answer callback query to remove loading state
       await ctx.answerCallbackQuery();
-      
     } catch (error) {
       this.logger.error('Error processing callback query', {
         error: error instanceof Error ? error.message : String(error),
@@ -94,7 +95,7 @@ export class CallbackHandler {
 
   /**
    * Route callback to appropriate handler based on action type
-   * 
+   *
    * @param ctx - Bot context
    * @param action - Action type from callback data
    * @param params - Additional parameters
@@ -105,87 +106,87 @@ export class CallbackHandler {
       case 'menu':
         await this.handleMenuCallback(ctx, params);
         break;
-      
+
       case 'auth':
         await this.handleAuthCallback(ctx, params);
         break;
-      
+
       case 'profile':
         await this.handleProfileCallback(ctx, params);
         break;
-      
+
       case 'settings':
         await this.handleSettingsCallback(ctx, params);
         break;
-      
+
       case 'balance':
         await this.handleBalanceCallback(ctx, params);
         break;
-      
+
       case 'stats':
         await this.handleStatsCallback(ctx, params);
         break;
-      
+
       case 'traffic':
         await this.handleTrafficCallback(ctx, params);
         break;
-      
+
       case 'campaign':
         await this.handleCampaignCallback(ctx, params);
         break;
-      
+
       case 'withdrawal':
         await this.handleWithdrawalCallback(ctx, params);
         break;
-      
+
       case 'referral':
         await this.handleReferralCallback(ctx, params);
         break;
-      
+
       case 'help':
         await this.handleHelpCallback(ctx, params);
         break;
-      
+
       case 'admin':
         await this.handleAdminCallback(ctx, params);
         break;
-      
+
       case 'verify':
         await this.handleVerifyCallback(ctx, params);
         break;
-      
+
       case 'export':
         await this.handleExportCallback(ctx, params);
         break;
-      
+
       case 'reset':
         await this.handleResetCallback(ctx, params);
         break;
-      
+
       case 'notifications':
         await this.handleNotificationsCallback(ctx, params);
         break;
-      
+
       case 'language':
         await this.handleLanguageCallback(ctx, params);
         break;
-      
+
       case 'command':
         await this.handleCommandCallback(ctx, params);
         break;
-      
+
       case 'back':
         await this.handleBackCallback(ctx, params);
         break;
-      
+
       case 'close':
         await this.handleCloseCallback(ctx, params);
         break;
-      
+
       case 'refresh':
         await this.handleRefreshCallback(ctx, params);
         break;
-      
+
       default:
         await this.handleUnknownCallback(ctx, action, params);
     }
@@ -197,6 +198,7 @@ export class CallbackHandler {
   private async handleMenuCallback(ctx: BotContext, params: string[]): Promise<void> {
     if (!params[0]) {
       await ctx.reply('❌ Invalid menu selection.');
+
       return;
     }
 
@@ -213,6 +215,7 @@ export class CallbackHandler {
 
     if (!userId) {
       await ctx.reply('❌ Authentication information unavailable.');
+
       return;
     }
 
@@ -220,25 +223,21 @@ export class CallbackHandler {
       case 'register':
         await this.processUserRegistration(ctx);
         break;
-      
+
       case 'start':
         // Trigger start command equivalent
-        await ctx.reply(
-          'Welcome to MotivBuy! Please use /start to begin.',
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '🚀 Start', callback_data: 'command:start' }],
-              ],
-            },
-          }
-        );
+        await ctx.reply('Welcome to MotivBuy! Please use /start to begin.', {
+          reply_markup: {
+            inline_keyboard: [[{ text: '🚀 Start', callback_data: 'command:start' }]],
+          },
+        });
+
         break;
-      
+
       case 'logout':
         await this.processUserLogout(ctx);
         break;
-      
+
       default:
         await ctx.reply(`❌ Authentication action "${subAction}" not available.`);
     }
@@ -253,6 +252,7 @@ export class CallbackHandler {
 
     if (!userId) {
       await ctx.reply('🔒 Authentication required for profile actions.');
+
       return;
     }
 
@@ -269,37 +269,34 @@ export class CallbackHandler {
                 ],
               ],
             },
-          }
+          },
         );
+
         break;
-      
+
       case 'stats':
         await this.displayProfileStats(ctx);
         break;
-      
+
       case 'security':
-        await ctx.reply(
-          '🔒 Security Settings\n\nConfigure your account security options:',
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: '🔑 Change Password', callback_data: 'profile:password' },
-                  { text: '📧 Email Security', callback_data: 'profile:email_security' },
-                ],
-                [
-                  { text: '📱 Two-Factor Auth', callback_data: 'profile:2fa' },
-                  { text: '🔐 Login History', callback_data: 'profile:login_history' },
-                ],
-                [
-                  { text: '⬅️ Back', callback_data: 'menu:profile' },
-                ],
+        await ctx.reply('🔒 Security Settings\n\nConfigure your account security options:', {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '🔑 Change Password', callback_data: 'profile:password' },
+                { text: '📧 Email Security', callback_data: 'profile:email_security' },
               ],
-            },
-          }
-        );
+              [
+                { text: '📱 Two-Factor Auth', callback_data: 'profile:2fa' },
+                { text: '🔐 Login History', callback_data: 'profile:login_history' },
+              ],
+              [{ text: '⬅️ Back', callback_data: 'menu:profile' }],
+            ],
+          },
+        });
+
         break;
-      
+
       default:
         await ctx.reply(`❌ Profile action "${subAction}" not available yet.`);
     }
@@ -314,6 +311,7 @@ export class CallbackHandler {
 
     if (!userId) {
       await ctx.reply('🔒 Authentication required for settings.');
+
       return;
     }
 
@@ -321,28 +319,28 @@ export class CallbackHandler {
       case 'notifications':
         await this.displayNotificationSettings(ctx);
         break;
-      
+
       case 'language':
         await this.displayLanguageSettings(ctx);
         break;
-      
+
       case 'theme':
         await this.displayThemeSettings(ctx);
         break;
-      
+
       case 'privacy':
         await this.displayPrivacySettings(ctx);
         break;
-      
+
       case 'export':
         await this.menuHandler.navigateToMenu(ctx, MenuType.Settings);
         await ctx.reply('📥 Data export feature will be available soon!');
         break;
-      
+
       case 'reset':
         await this.displayResetOptions(ctx);
         break;
-      
+
       default:
         await ctx.reply(`❌ Settings action "${subAction}" not available yet.`);
     }
@@ -357,6 +355,7 @@ export class CallbackHandler {
 
     if (!userId) {
       await ctx.reply('🔒 Authentication required for balance information.');
+
       return;
     }
 
@@ -364,33 +363,25 @@ export class CallbackHandler {
       case 'current':
         await this.refreshBalanceDisplay(ctx);
         break;
-      
+
       case 'history':
-        await ctx.reply(
-          '📈 Transaction History\n\nTransaction history will be available soon!',
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '⬅️ Back to Balance', callback_data: 'menu:balance' }],
-              ],
-            },
-          }
-        );
+        await ctx.reply('📈 Transaction History\n\nTransaction history will be available soon!', {
+          reply_markup: {
+            inline_keyboard: [[{ text: '⬅️ Back to Balance', callback_data: 'menu:balance' }]],
+          },
+        });
+
         break;
-      
+
       case 'analytics':
-        await ctx.reply(
-          '📊 Balance Analytics\n\nDetailed balance analytics coming soon!',
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '⬅️ Back to Balance', callback_data: 'menu:balance' }],
-              ],
-            },
-          }
-        );
+        await ctx.reply('📊 Balance Analytics\n\nDetailed balance analytics coming soon!', {
+          reply_markup: {
+            inline_keyboard: [[{ text: '⬅️ Back to Balance', callback_data: 'menu:balance' }]],
+          },
+        });
+
         break;
-      
+
       default:
         await ctx.reply(`❌ Balance action "${subAction}" not available yet.`);
     }
@@ -406,61 +397,47 @@ export class CallbackHandler {
       case 'faq':
         await this.displayFAQ(ctx);
         break;
-      
+
       case 'contact':
-        await ctx.reply(
-          '📞 Contact Support\n\nGet help from our support team:',
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: '💬 Telegram Support', url: 'https://t.me/motivbuy_support' },
-                ],
-                [
-                  { text: '📧 Email Support', url: 'mailto:support@motivbuy.com' },
-                ],
-                [
-                  { text: '🐛 Report Bug', callback_data: 'help:bug_report' },
-                  { text: '💡 Feature Request', callback_data: 'help:feature_request' },
-                ],
-                [
-                  { text: '⬅️ Back', callback_data: 'menu:help' },
-                ],
+        await ctx.reply('📞 Contact Support\n\nGet help from our support team:', {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '💬 Telegram Support', url: 'https://t.me/motivbuy_support' }],
+              [{ text: '📧 Email Support', url: 'mailto:support@motivbuy.com' }],
+              [
+                { text: '🐛 Report Bug', callback_data: 'help:bug_report' },
+                { text: '💡 Feature Request', callback_data: 'help:feature_request' },
               ],
-            },
-          }
-        );
+              [{ text: '⬅️ Back', callback_data: 'menu:help' }],
+            ],
+          },
+        });
+
         break;
-      
+
       case 'tutorials':
-        await ctx.reply(
-          '📚 Tutorials & Guides\n\nLearn how to use MotivBuy effectively:',
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: '🚀 Getting Started', callback_data: 'help:tutorial:getting_started' },
-                ],
-                [
-                  { text: '💰 Managing Balance', callback_data: 'help:tutorial:balance' },
-                  { text: '📈 Analytics Guide', callback_data: 'help:tutorial:analytics' },
-                ],
-                [
-                  { text: '🎯 Traffic Sources', callback_data: 'help:tutorial:traffic' },
-                  { text: '📋 Campaigns', callback_data: 'help:tutorial:campaigns' },
-                ],
-                [
-                  { text: '⬅️ Back', callback_data: 'menu:help' },
-                ],
+        await ctx.reply('📚 Tutorials & Guides\n\nLearn how to use MotivBuy effectively:', {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🚀 Getting Started', callback_data: 'help:tutorial:getting_started' }],
+              [
+                { text: '💰 Managing Balance', callback_data: 'help:tutorial:balance' },
+                { text: '📈 Analytics Guide', callback_data: 'help:tutorial:analytics' },
               ],
-            },
-          }
-        );
+              [
+                { text: '🎯 Traffic Sources', callback_data: 'help:tutorial:traffic' },
+                { text: '📋 Campaigns', callback_data: 'help:tutorial:campaigns' },
+              ],
+              [{ text: '⬅️ Back', callback_data: 'menu:help' }],
+            ],
+          },
+        });
+
         break;
-      
+
       case 'updates':
         await ctx.reply(
-          '📢 Recent Updates\n\n🎉 What\'s New:\n• Enhanced menu navigation\n• Improved error handling\n• Better session management\n• Performance optimizations\n\n📅 Version 1.0.0 - Released today',
+          "📢 Recent Updates\n\n🎉 What's New:\n• Enhanced menu navigation\n• Improved error handling\n• Better session management\n• Performance optimizations\n\n📅 Version 1.0.0 - Released today",
           {
             reply_markup: {
               inline_keyboard: [
@@ -468,15 +445,14 @@ export class CallbackHandler {
                   { text: '📝 Full Changelog', callback_data: 'help:changelog' },
                   { text: '🔔 Subscribe to Updates', callback_data: 'help:subscribe_updates' },
                 ],
-                [
-                  { text: '⬅️ Back', callback_data: 'menu:help' },
-                ],
+                [{ text: '⬅️ Back', callback_data: 'menu:help' }],
               ],
             },
-          }
+          },
         );
+
         break;
-      
+
       default:
         await ctx.reply(`❌ Help section "${subAction}" not available yet.`);
     }
@@ -523,6 +499,7 @@ export class CallbackHandler {
 
     if (!userId) {
       await ctx.reply('🔒 Authentication required.');
+
       return;
     }
 
@@ -554,6 +531,7 @@ export class CallbackHandler {
 
     if (!userId || !language) {
       await ctx.reply('❌ Invalid language selection.');
+
       return;
     }
 
@@ -582,12 +560,13 @@ export class CallbackHandler {
     const userId = ctx.from?.id?.toString();
     if (!userId) {
       await ctx.reply('🔒 Authentication required.');
+
       return;
     }
 
     const navigation = await this.menuHandler.getMenuNavigation(userId);
     const currentMenu = navigation?.currentMenu || MenuType.Main;
-    
+
     await this.menuHandler.navigateToMenu(ctx, currentMenu);
     await ctx.answerCallbackQuery('🔄 Menu refreshed');
   }
@@ -599,19 +578,16 @@ export class CallbackHandler {
       params,
     });
 
-    await ctx.reply(
-      `❌ Unknown action: "${action}"\n\nThis feature may not be implemented yet.`,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '📋 Main Menu', callback_data: 'menu:main' },
-              { text: '🆘 Support', callback_data: 'help:contact' },
-            ],
+    await ctx.reply(`❌ Unknown action: "${action}"\n\nThis feature may not be implemented yet.`, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '📋 Main Menu', callback_data: 'menu:main' },
+            { text: '🆘 Support', callback_data: 'help:contact' },
           ],
-        },
-      }
-    );
+        ],
+      },
+    });
   }
 
   // Helper methods for specific callback processing
@@ -623,6 +599,7 @@ export class CallbackHandler {
     const userId = ctx.from?.id?.toString();
     if (!userId || !ctx.from) {
       await ctx.reply('❌ Registration failed - user information not available.');
+
       return;
     }
 
@@ -634,6 +611,7 @@ export class CallbackHandler {
       if (existingUser) {
         await ctx.reply('✅ You are already registered! Welcome back.');
         await this.menuHandler.navigateToMenu(ctx, MenuType.Main);
+
         return;
       }
 
@@ -653,12 +631,12 @@ export class CallbackHandler {
       if (authResult.success) {
         await ctx.reply(
           '✅ Registration completed successfully!\n\n' +
-          'Your account has been created and you can now:\n' +
-          '• Track your campaigns\n' +
-          '• Monitor your balance\n' +
-          '• Manage traffic sources\n' +
-          '• Access detailed analytics\n\n' +
-          'Let\'s get started!',
+            'Your account has been created and you can now:\n' +
+            '• Track your campaigns\n' +
+            '• Monitor your balance\n' +
+            '• Manage traffic sources\n' +
+            '• Access detailed analytics\n\n' +
+            "Let's get started!",
           {
             reply_markup: {
               inline_keyboard: [
@@ -666,12 +644,10 @@ export class CallbackHandler {
                   { text: '📋 Main Menu', callback_data: 'menu:main' },
                   { text: '👤 Profile', callback_data: 'menu:profile' },
                 ],
-                [
-                  { text: '❓ Help', callback_data: 'menu:help' },
-                ],
+                [{ text: '❓ Help', callback_data: 'menu:help' }],
               ],
             },
-          }
+          },
         );
 
         // Create initial session
@@ -685,29 +661,7 @@ export class CallbackHandler {
           },
         });
       } else {
-        await ctx.reply(
-          '❌ Registration failed. Please try again later or contact support if the problem persists.',
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: '🔄 Try Again', callback_data: 'auth:register' },
-                  { text: '🆘 Support', callback_data: 'help:contact' },
-                ],
-              ],
-            },
-          }
-        );
-      }
-    } catch (error) {
-      this.logger.error('Registration error', {
-        error: error instanceof Error ? error.message : String(error),
-        userId,
-      });
-
-      await ctx.reply(
-        '❌ Registration failed due to a technical error. Please try again later.',
-        {
+        await ctx.reply('❌ Registration failed. Please try again later or contact support if the problem persists.', {
           reply_markup: {
             inline_keyboard: [
               [
@@ -716,8 +670,24 @@ export class CallbackHandler {
               ],
             ],
           },
-        }
-      );
+        });
+      }
+    } catch (error) {
+      this.logger.error('Registration error', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+      });
+
+      await ctx.reply('❌ Registration failed due to a technical error. Please try again later.', {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '🔄 Try Again', callback_data: 'auth:register' },
+              { text: '🆘 Support', callback_data: 'help:contact' },
+            ],
+          ],
+        },
+      });
     }
   }
 
@@ -726,28 +696,25 @@ export class CallbackHandler {
    */
   private async processUserLogout(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     try {
       // Clear user session
       await this.sessionService.deleteSession(userId);
-      
-      await ctx.reply(
-        '👋 You have been logged out successfully.\n\nUse /start to begin again.',
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '🚀 Start Over', callback_data: 'auth:start' }],
-            ],
-          },
-        }
-      );
+
+      await ctx.reply('👋 You have been logged out successfully.\n\nUse /start to begin again.', {
+        reply_markup: {
+          inline_keyboard: [[{ text: '🚀 Start Over', callback_data: 'auth:start' }]],
+        },
+      });
     } catch (error) {
       this.logger.error('Logout error', {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
-      
+
       await ctx.reply('❌ Logout failed. Please try again.');
     }
   }
@@ -757,19 +724,20 @@ export class CallbackHandler {
    */
   private async displayProfileStats(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     try {
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user) {
         await ctx.reply('❌ User profile not found.');
+
         return;
       }
 
       const balance = await this.balanceService.getUserBalance(user.id);
-      const membershipDays = Math.floor(
-        (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)
-      );
+      const membershipDays = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
 
       const statsText = `
 📊 <b>Profile Statistics</b>
@@ -802,9 +770,7 @@ export class CallbackHandler {
               { text: '🔄 Refresh', callback_data: 'profile:stats' },
               { text: '📈 Detailed Stats', callback_data: 'menu:statistics' },
             ],
-            [
-              { text: '⬅️ Back', callback_data: 'menu:profile' },
-            ],
+            [{ text: '⬅️ Back', callback_data: 'menu:profile' }],
           ],
         },
       });
@@ -813,7 +779,7 @@ export class CallbackHandler {
         error: error instanceof Error ? error.message : String(error),
         userId,
       });
-      
+
       await ctx.reply('❌ Unable to load profile statistics. Please try again later.');
     }
   }
@@ -823,7 +789,9 @@ export class CallbackHandler {
    */
   private async displayNotificationSettings(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     const session = await this.sessionService.getSession(userId);
     const notifications = session?.data.preferences?.notifications;
@@ -849,18 +817,23 @@ Configure your notification preferences below:
       reply_markup: {
         inline_keyboard: [
           [
-            { text: notifications?.enablePush ? '🔕 Disable Push' : '🔔 Enable Push', callback_data: 'notifications:toggle:push' },
+            {
+              text: notifications?.enablePush ? '🔕 Disable Push' : '🔔 Enable Push',
+              callback_data: 'notifications:toggle:push',
+            },
           ],
           [
-            { text: notifications?.enableEmail ? '📧❌ Disable Email' : '📧✅ Enable Email', callback_data: 'notifications:toggle:email' },
-            { text: notifications?.enableSms ? '📱❌ Disable SMS' : '📱✅ Enable SMS', callback_data: 'notifications:toggle:sms' },
+            {
+              text: notifications?.enableEmail ? '📧❌ Disable Email' : '📧✅ Enable Email',
+              callback_data: 'notifications:toggle:email',
+            },
+            {
+              text: notifications?.enableSms ? '📱❌ Disable SMS' : '📱✅ Enable SMS',
+              callback_data: 'notifications:toggle:sms',
+            },
           ],
-          [
-            { text: '⚙️ Advanced Settings', callback_data: 'notifications:advanced' },
-          ],
-          [
-            { text: '⬅️ Back', callback_data: 'menu:settings' },
-          ],
+          [{ text: '⚙️ Advanced Settings', callback_data: 'notifications:advanced' }],
+          [{ text: '⬅️ Back', callback_data: 'menu:settings' }],
         ],
       },
     });
@@ -905,9 +878,7 @@ Select your preferred language:
             { text: currentLanguage === 'ru' ? '✅ Русский' : '🇷🇺 Русский', callback_data: 'language:ru' },
             { text: currentLanguage === 'zh' ? '✅ 中文' : '🇨🇳 中文', callback_data: 'language:zh' },
           ],
-          [
-            { text: '⬅️ Back', callback_data: 'menu:settings' },
-          ],
+          [{ text: '⬅️ Back', callback_data: 'menu:settings' }],
         ],
       },
     });
@@ -921,11 +892,9 @@ Select your preferred language:
       '🎨 Theme Settings\n\nTheme customization is coming soon!\n\nFor now, the bot automatically adapts to your Telegram theme.',
       {
         reply_markup: {
-          inline_keyboard: [
-            [{ text: '⬅️ Back', callback_data: 'menu:settings' }],
-          ],
+          inline_keyboard: [[{ text: '⬅️ Back', callback_data: 'menu:settings' }]],
         },
-      }
+      },
     );
   }
 
@@ -934,7 +903,9 @@ Select your preferred language:
    */
   private async displayPrivacySettings(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     const session = await this.sessionService.getSession(userId);
     const privacy = session?.data.preferences?.privacy;
@@ -960,10 +931,16 @@ Manage your privacy preferences:
       reply_markup: {
         inline_keyboard: [
           [
-            { text: privacy?.shareAnalytics ? '📊❌ Disable Analytics' : '📊✅ Enable Analytics', callback_data: 'privacy:toggle:analytics' },
+            {
+              text: privacy?.shareAnalytics ? '📊❌ Disable Analytics' : '📊✅ Enable Analytics',
+              callback_data: 'privacy:toggle:analytics',
+            },
           ],
           [
-            { text: privacy?.shareUsageData ? '📈❌ Disable Usage Data' : '📈✅ Enable Usage Data', callback_data: 'privacy:toggle:usage' },
+            {
+              text: privacy?.shareUsageData ? '📈❌ Disable Usage Data' : '📈✅ Enable Usage Data',
+              callback_data: 'privacy:toggle:usage',
+            },
           ],
           [
             { text: '📥 Download My Data', callback_data: 'privacy:download' },
@@ -973,9 +950,7 @@ Manage your privacy preferences:
             { text: '📄 Privacy Policy', url: 'https://motivbuy.com/privacy' },
             { text: '📋 Terms of Service', url: 'https://motivbuy.com/terms' },
           ],
-          [
-            { text: '⬅️ Back', callback_data: 'menu:settings' },
-          ],
+          [{ text: '⬅️ Back', callback_data: 'menu:settings' }],
         ],
       },
     });
@@ -998,13 +973,11 @@ Manage your privacy preferences:
               { text: '⚙️ Preferences', callback_data: 'reset:preferences' },
               { text: '🧹 Cache', callback_data: 'reset:cache' },
             ],
-            [
-              { text: '❌ Cancel', callback_data: 'menu:settings' },
-            ],
+            [{ text: '❌ Cancel', callback_data: 'menu:settings' }],
           ],
         },
         parse_mode: 'HTML',
-      }
+      },
     );
   }
 
@@ -1044,9 +1017,7 @@ Statistics are updated in real-time as traffic and conversions occur.
             { text: '💬 Contact Support', callback_data: 'help:contact' },
             { text: '📖 More Help', callback_data: 'help:tutorials' },
           ],
-          [
-            { text: '⬅️ Back', callback_data: 'menu:help' },
-          ],
+          [{ text: '⬅️ Back', callback_data: 'menu:help' }],
         ],
       },
     });
@@ -1063,17 +1034,21 @@ Statistics are updated in real-time as traffic and conversions occur.
 
   private async resetUserSession(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     await this.sessionService.deleteSession(userId);
     await this.sessionService.createSession(userId);
-    
+
     await ctx.reply('🗂️ Session data has been reset successfully.');
   }
 
   private async resetNotificationSettings(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     await this.sessionService.updateSession(userId, {
       preferences: {
@@ -1091,7 +1066,9 @@ Statistics are updated in real-time as traffic and conversions occur.
 
   private async resetUserPreferences(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     await this.sessionService.updateSession(userId, {
       preferences: {
@@ -1121,7 +1098,9 @@ Statistics are updated in real-time as traffic and conversions occur.
 
   private async clearUserCache(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     await this.sessionService.updateSession(userId, {
       cache: {},
@@ -1133,7 +1112,9 @@ Statistics are updated in real-time as traffic and conversions occur.
 
   private async updateUserLanguage(ctx: BotContext, language: string): Promise<void> {
     const userId = ctx.from?.id?.toString();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
     await this.sessionService.updateSession(userId, {
       preferences: {
@@ -1161,7 +1142,7 @@ Statistics are updated in real-time as traffic and conversions occur.
       await this.sessionService.updateSession(userId, {
         conversationState: {
           currentStep: `callback_${callbackData.split(':')[0]}`,
-          context: { 
+          context: {
             lastCallback: callbackData,
             lastCallbackAt: new Date().toISOString(),
           },
@@ -1182,7 +1163,7 @@ Statistics are updated in real-time as traffic and conversions occur.
    */
   private async handleCallbackError(ctx: BotContext, error: Error): Promise<void> {
     const userId = ctx.from?.id;
-    
+
     this.logger.error('Callback processing error', {
       userId,
       error: error.message,
@@ -1190,9 +1171,10 @@ Statistics are updated in real-time as traffic and conversions occur.
       callbackData: ctx.callbackQuery?.data,
     });
 
-    const errorMessage = process.env.NODE_ENV === 'development' 
-      ? `Callback error: ${error.message}`
-      : 'Sorry, something went wrong. Please try again or return to the main menu.';
+    const errorMessage =
+      process.env.NODE_ENV === 'development'
+        ? `Callback error: ${error.message}`
+        : 'Sorry, something went wrong. Please try again or return to the main menu.';
 
     try {
       await ctx.reply(errorMessage, {

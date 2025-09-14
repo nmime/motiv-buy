@@ -25,6 +25,7 @@ export const CurrentUserId = createParamDecorator((data: unknown, ctx: Execution
   if (!request.user?.id) {
     throw new UnauthorizedException('User not authenticated');
   }
+
   return request.user.id;
 });
 
@@ -53,6 +54,7 @@ export class BalanceController {
     @CurrentUserId() userId: string,
   ): AsyncResult<BalanceDto, UnauthorizedException | InternalException> {
     const result = await this.balanceService.getBalance(userId);
+
     return { success: true, data: result };
   }
 
@@ -73,6 +75,7 @@ export class BalanceController {
     @CurrentUserId() userId: string,
   ): AsyncResult<TransactionDto[], UnauthorizedException | ClientDataProblemValidationException | InternalException> {
     const result = await this.balanceService.getTransactionHistory(userId, filter);
+
     return { success: true, data: result };
   }
 
@@ -102,6 +105,7 @@ export class BalanceController {
     UnauthorizedException | ClientDataProblemValidationException | InternalException
   > {
     const result = await this.balanceService.requestDeposit(userId, request);
+
     return { success: true, data: result };
   }
 
@@ -131,6 +135,7 @@ export class BalanceController {
     UnauthorizedException | ClientDataProblemValidationException | InternalException
   > {
     const result = await this.balanceService.requestWithdrawal(userId, request);
+
     return { success: true, data: result };
   }
 }

@@ -32,6 +32,7 @@ export class UserRepository extends EntityRepository<UserEntity> {
   }): Promise<UserEntity> {
     const user = new UserEntity(data);
     await this.em.persistAndFlush(user);
+
     return user;
   }
 

@@ -1,4 +1,3 @@
-
 export interface MigrationResult {
   executedMigrations?: string[];
   rolledBackMigrations?: string[];
