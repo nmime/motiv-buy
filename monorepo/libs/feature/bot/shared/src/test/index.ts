@@ -1,1 +1,1 @@
-export * from './telegram-context.mock.spec';
+export * from './telegram-context.mock';

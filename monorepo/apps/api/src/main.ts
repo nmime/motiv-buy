@@ -29,7 +29,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   if (appConfig.corsEnabled) {
-    await app.register(fastifyCors as any, {
+    await app.register(fastifyCors, {
       origin: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
       allowedHeaders: ['Content-Type', 'Authorization'],

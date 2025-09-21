@@ -1,17 +1,16 @@
 import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
-import { Request } from 'express';
 // import ip from 'ip';
 import { PrivateNetworkIps } from '@app/common-shared';
+import { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class HealthPrivateNetworkIpGuard implements CanActivate {
   private readonly logger = new Logger(HealthPrivateNetworkIpGuard.name);
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<FastifyRequest>();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let clientIp = ((request as any).headers?.['cf-connecting-ip'] ?? (request as any).headers?.['x-real-ip'] ?? (request as any).ip) as string;
+    let clientIp = (request.headers?.['cf-connecting-ip'] ?? request.headers?.['x-real-ip'] ?? request.ip) as string;
 
     if (clientIp?.startsWith('::ffff:')) {
       clientIp = clientIp.replace('::ffff:', '');

@@ -86,7 +86,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     try {
       const lastActiveTime = new Date(timestamp);
 
-      await this.userRepository.nativeUpdate({ id: userId }, { lastActiveAt: lastActiveTime });
+      await this.userRepository.nativeUpdate({ id: String(userId) }, { lastActiveAt: lastActiveTime });
 
       this.logger.debug('User lastActiveTime updated', { userId, lastActiveTime });
     } catch (error) {

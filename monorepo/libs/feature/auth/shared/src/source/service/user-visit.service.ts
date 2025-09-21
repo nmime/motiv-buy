@@ -18,14 +18,14 @@ export class UserVisitService {
     private readonly getUserRefLinkService: GetUserRefLinkService,
   ) {}
 
-  async registerVisit(
+  registerVisit(
     userId: string,
     createUserDto: TelegramAuthParams,
     language: string | undefined,
     isSignup: boolean,
     sourceParams?: SourceParameters,
     userRefLink?: { userId: string },
-  ): Promise<UserSourceVisitEntity> {
+  ): UserSourceVisitEntity {
     const visitParams = this.prepareVisitDataParams(userId, createUserDto, language, isSignup);
 
     const visitData = this.sourceRegisterService.prepareVisitData(visitParams, sourceParams, userRefLink);

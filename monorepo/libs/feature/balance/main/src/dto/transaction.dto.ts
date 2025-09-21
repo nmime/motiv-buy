@@ -16,22 +16,22 @@ import { IsEnum, IsNumber, IsOptional, IsString, IsDateString, Min, Max } from '
 
 export class TransactionDto {
   @ApiProperty({ description: 'Transaction ID' })
-  id: string;
+  id!: string;
 
   @ApiProperty({ description: 'Transaction amount' })
-  amount: number;
+  amount!: number;
 
   @ApiProperty({ enum: TransactionType, description: 'Transaction type' })
-  type: TransactionType;
+  type!: TransactionType;
 
   @ApiProperty({ description: 'Transaction date' })
-  date: Date;
+  date!: Date;
 
   @ApiPropertyOptional({ enum: PaymentMethod, description: 'Payment method' })
   paymentMethod?: PaymentMethod;
 
   @ApiProperty({ description: 'Transaction description' })
-  description: string;
+  description!: string;
 
   @ApiPropertyOptional({ description: 'Related order ID' })
   orderId?: string;
@@ -71,24 +71,24 @@ export class DepositRequestDto {
   @ApiProperty({ description: 'Deposit amount' })
   @IsNumber()
   @Min(0.01)
-  amount: number;
+  amount!: number;
 
   @ApiProperty({ enum: PaymentMethod, description: 'Payment method' })
   @IsEnum(PaymentMethod)
-  paymentMethod: PaymentMethod;
+  paymentMethod!: PaymentMethod;
 }
 
 export class WithdrawalRequestDto {
   @ApiProperty({ description: 'Withdrawal amount' })
   @IsNumber()
   @Min(0.01)
-  amount: number;
+  amount!: number;
 
   @ApiProperty({ description: 'Destination address or account' })
   @IsString()
-  destination: string;
+  destination!: string;
 
   @ApiProperty({ enum: PaymentMethod, description: 'Payment method' })
   @IsEnum(PaymentMethod)
-  paymentMethod: PaymentMethod;
+  paymentMethod!: PaymentMethod;
 }

@@ -2,19 +2,20 @@ import { Logger as PinoLoggerService, PinoLogger } from 'nestjs-pino';
 import { SerializedError } from 'pino-std-serializers';
 
 import { pinoHttp, stdSerializers } from 'pino-http';
-import * as express from 'express';
-import { FastifyRequest } from 'fastify';
 
 import { Store, storage } from 'nestjs-pino/storage';
 
 // Interface for requests with logger properties (extended by pino middleware)
 interface LoggerRequest {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   log?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   allLogs?: any[];
 }
 import { Params } from 'nestjs-pino/params';
 import { IncomingMessage, ServerResponse } from 'http';
 import { ClsServiceManager } from 'nestjs-cls';
+import { FastifyRequest, FastifyReply } from 'fastify';
 
 const protectedVariables = [
   'authorization',
@@ -38,13 +39,16 @@ const protectedVariables = [
 ];
 
 function bindLoggerMiddlewareFactory(useExisting: boolean) {
-  return function bindLoggerMiddleware(req: express.Request & LoggerRequest, _res: express.Response, next: () => void) {
+  return function bindLoggerMiddleware(req: FastifyRequest & LoggerRequest, _res: FastifyReply, next: () => void) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     let { log } = req;
 
     if (!useExisting && req.allLogs && req.allLogs.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       log = req.allLogs[req.allLogs.length - 1];
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     storage.run(new Store(log), next);
   };
 }
@@ -71,6 +75,7 @@ function redactSensitiveStrings(str: string): string {
   }, str);
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function replaceProtectedVariables<T>(obj: unknown): T {
   if (typeof obj === 'string') {
     return redactSensitiveStrings(obj) as unknown as T;
@@ -152,8 +157,8 @@ function redactProtectedVariables<T>(obj: T): T {
     const copy = copyWithDepthLimit(obj, 5);
 
     return replaceProtectedVariables(copy);
-  } catch (error: unknown) {
-    return ('Error while redacting protected variables' as unknown) as T;
+  } catch {
+    return 'Error while redacting protected variables' as unknown as T;
   }
 }
 

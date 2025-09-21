@@ -20,7 +20,6 @@
     "resolveJsonModule": true,
     "noEmitOnError": false,
     "preserveSymlinks": true,
-    "composite": true,
     "paths": {
       "@app/common-bull": ["libs/common/bull/src/index.ts"],
       "@app/common-exception": ["libs/common/exception/src/index.ts"],
