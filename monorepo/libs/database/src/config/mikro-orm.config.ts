@@ -27,9 +27,8 @@ import {
   TrafficUserEntity,
   TrafficOrderEntity,
   TrafficActionsEntity,
+  TrafficSourceCategoryEntity,
 } from '../entity';
-import { TrafficSourceCategoryEntity } from '../entity/TrafficSourceCategory.entity';
-import { TrafficSourceCategoriesEntity } from '../entity/junction/TrafficSourceCategories.entity';
 import {
   TrafficActionsUsersEntity,
   UserTrafficTargetEntity,
@@ -37,6 +36,7 @@ import {
   UserTrafficOrderEntity,
   TrafficTargetSourceEntity,
   TrafficTargetUsersEntity,
+  TrafficSourceCategoriesEntity,
 } from '../entity/junction';
 
 export function createMikroOrmConfig(config: DatabaseConfig): ExtendedOptions {

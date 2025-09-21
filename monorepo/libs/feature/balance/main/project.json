@@ -1,5 +1,5 @@
 {
-  "name": "balance-main",
+  "name": "@app/feature-balance-main",
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/feature/balance/main/src",
   "projectType": "library",
@@ -11,7 +11,21 @@
         "outputPath": "dist/libs/feature/balance/main",
         "main": "libs/feature/balance/main/src/index.ts",
         "tsConfig": "libs/feature/balance/main/tsconfig.lib.json",
-        "assets": ["libs/feature/balance/main/*.md"]
+        "assets": [],
+        "additionalEntryPoints": [],
+        "buildableProjectDepsInPackageJsonType": "dependencies",
+        "updateBuildableProjectDepsInPackageJson": true,
+        "generatePackageJson": true,
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": { "afterDeclarations": true }
+          }
+        ]
       }
     },
     "lint": {

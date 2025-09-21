@@ -70,7 +70,11 @@ export class TrafficSourceEntity {
     data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive', 'managedBy'>,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
-      managedById: { field: 'managedBy', entityClass: UserEntity as any, required: false },
+      managedById: {
+        field: 'managedBy',
+        entityClass: UserEntity,
+        required: false,
+      },
     });
   }
 }

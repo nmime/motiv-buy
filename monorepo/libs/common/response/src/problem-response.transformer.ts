@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { catchError, map, Observable, of } from 'rxjs';
 import { Result } from 'ts-results';
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import {
   BaseException,
   ExceptionClass,
@@ -69,7 +69,7 @@ export class ProblemResponseTransformer implements NestInterceptor, ExceptionFil
     const ctx = host.switchToHttp();
     const result = this.handleError(ctx, error);
 
-    ctx.getResponse<Response>().json(result);
+    ctx.getResponse<FastifyReply>().send(result);
   }
 
   private generateTraceId(): string {
@@ -93,8 +93,8 @@ export class ProblemResponseTransformer implements NestInterceptor, ExceptionFil
   private handleError(context: HttpArgumentsHost, e: unknown): ProblemExceptionDto<unknown> {
     this.logger.error(e);
 
-    const response = context.getResponse<Response>();
-    const request = context.getRequest<Request>();
+    const response = context.getResponse<FastifyReply>();
+    const request = context.getRequest<FastifyRequest>();
     const acceptLang = request.headers['accept-language'];
     const xLang = request.headers['x-language'];
     let langHeader = 'en';
@@ -115,7 +115,7 @@ export class ProblemResponseTransformer implements NestInterceptor, ExceptionFil
 
     if (e instanceof BaseException) {
       const status = ExceptionHttpStatusMapper.getHttpStatus(e.kind);
-      response.status(status);
+      response.code(status);
 
       const exceptionConstructor = e.constructor as ExceptionClass<OptionalClassConstructor>;
       const problemType = exceptionConstructor.problemType || generateProblemType(e.constructor.name);
@@ -140,7 +140,7 @@ export class ProblemResponseTransformer implements NestInterceptor, ExceptionFil
     if (e instanceof HttpException) {
       const status = e.getStatus();
       const messageOrData = e.getResponse();
-      response.status(status);
+      response.code(status);
 
       const title = formatTitleFromClassName(e.constructor.name);
       const detail = typeof messageOrData === 'string' ? messageOrData : e.message;

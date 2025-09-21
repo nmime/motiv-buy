@@ -32,7 +32,11 @@ export class UserLastAuthEntity {
 
   constructor(data: EntityConstructorData<UserLastAuthEntity, 'id' | 'createdAt' | 'updatedAt', never, 'user'>) {
     assignEntityData(this as Record<string, unknown>, data, {
-      userId: { field: 'user', entityClass: UserEntity as any, required: true },
+      userId: {
+        field: 'user',
+        entityClass: UserEntity,
+        required: true,
+      },
     });
   }
 }

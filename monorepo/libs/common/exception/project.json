@@ -13,6 +13,8 @@
         "main": "libs/common/exception/src/index.ts",
         "tsConfig": "libs/common/exception/tsconfig.lib.json",
         "assets": [],
+        "generatePackageJson": true,
+        "buildableProjectDepsInPackageJsonType": "dependencies",
         "transformers": [
           {
             "name": "typescript-transform-paths/nx-transformer",

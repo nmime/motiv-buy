@@ -2,8 +2,12 @@
   "extends": "../../tsconfig.json",
   "files": [],
   "include": [],
-  "compilerOptions": {
-    "esModuleInterop": true
-  },
-  "references": []
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
 }

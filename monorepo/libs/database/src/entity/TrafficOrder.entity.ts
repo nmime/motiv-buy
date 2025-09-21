@@ -131,11 +131,34 @@ export class TrafficOrderEntity {
     >,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
-      creatorId: { field: 'creator', entityClass: UserEntity as any, required: true },
-      trafficSourceId: { field: 'trafficSource', entityClass: TrafficSourceEntity as any, required: true },
-      trafficTargetId: { field: 'trafficTarget', entityClass: TrafficTargetEntity as any, required: true },
-      assignedTrafficUserId: { field: 'assignedTrafficUser', entityClass: TrafficUserEntity as any, required: false },
-      createdById: { field: 'createdBy', entityClass: UserEntity as any, required: false },
+      creatorId: {
+        field: 'creator',
+        entityClass: UserEntity,
+        required: true,
+      },
+      trafficSourceId: {
+        field: 'trafficSource',
+
+        entityClass: TrafficSourceEntity,
+        required: true,
+      },
+      trafficTargetId: {
+        field: 'trafficTarget',
+
+        entityClass: TrafficTargetEntity,
+        required: true,
+      },
+      assignedTrafficUserId: {
+        field: 'assignedTrafficUser',
+
+        entityClass: TrafficUserEntity,
+        required: false,
+      },
+      createdById: {
+        field: 'createdBy',
+        entityClass: UserEntity,
+        required: false,
+      },
     });
   }
 }

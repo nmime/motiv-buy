@@ -80,7 +80,11 @@ export class UserBalanceHistoryEntity {
     data: EntityConstructorData<UserBalanceHistoryEntity, 'id' | 'createdAt' | 'updatedAt', 'status', 'user'>,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
-      userId: { field: 'user', entityClass: UserEntity as any, required: true },
+      userId: {
+        field: 'user',
+        entityClass: UserEntity,
+        required: true,
+      },
     });
   }
 }

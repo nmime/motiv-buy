@@ -1,4 +1,4 @@
-import { EntityManager, EntityRepository, Reference, ref } from '@mikro-orm/core';
+import { EntityManager, EntityRepository, Reference, ref, Ref } from '@mikro-orm/core';
 import {
   TrafficOrderEntity,
   TrafficOrderStatus,
@@ -104,7 +104,8 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
       creatorId: typeof creator === 'string' ? creator : creator.getEntity().id,
       trafficSourceId: typeof trafficSource === 'string' ? trafficSource : trafficSource.getEntity().id,
       trafficTargetId: typeof trafficTarget === 'string' ? trafficTarget : trafficTarget.getEntity().id,
-      assignedTrafficUserId: assignedTrafficUser ? (typeof assignedTrafficUser === 'string' ? assignedTrafficUser : assignedTrafficUser.getEntity().id) : undefined,
+      assignedTrafficUserId:
+        typeof assignedTrafficUser === 'string' ? assignedTrafficUser : assignedTrafficUser?.getEntity().id,
       totalBudget: totalBudget.toString(),
       pricePerAction: pricePerAction.toString(),
       requirements:
@@ -234,5 +235,13 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     const [total, completed] = await Promise.all([this.count(), this.count({ status: TrafficOrderStatus.Completed })]);
 
     return total > 0 ? (completed / total) * 100 : 0;
+  }
+
+  private getTrafficUserIdValue(assignedTrafficUser: string | Ref<TrafficUserEntity> | undefined): string | undefined {
+    if (!assignedTrafficUser) {
+      return undefined;
+    }
+
+    return typeof assignedTrafficUser === 'string' ? assignedTrafficUser : assignedTrafficUser.getEntity().id;
   }
 }

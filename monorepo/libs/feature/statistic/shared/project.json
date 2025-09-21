@@ -1,5 +1,5 @@
 {
-  "name": "statistic-shared",
+  "name": "@app/feature-statistic-shared",
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/feature/statistic/shared/src",
   "projectType": "library",
@@ -11,7 +11,7 @@
         "outputPath": "dist/libs/feature/statistic/shared",
         "main": "libs/feature/statistic/shared/src/index.ts",
         "tsConfig": "libs/feature/statistic/shared/tsconfig.lib.json",
-        "assets": ["libs/feature/statistic/shared/*.md"]
+        "assets": []
       }
     },
     "lint": {

@@ -1,5 +1,5 @@
 {
-  "name": "statistic-main",
+  "name": "@app/feature-statistic-main",
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/feature/statistic/main/src",
   "projectType": "library",
@@ -11,7 +11,7 @@
         "outputPath": "dist/libs/feature/statistic/main",
         "main": "libs/feature/statistic/main/src/index.ts",
         "tsConfig": "libs/feature/statistic/main/tsconfig.lib.json",
-        "assets": ["libs/feature/statistic/main/*.md"]
+        "assets": []
       }
     },
     "lint": {

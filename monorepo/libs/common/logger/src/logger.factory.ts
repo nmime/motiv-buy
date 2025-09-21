@@ -3,8 +3,15 @@ import { SerializedError } from 'pino-std-serializers';
 
 import { pinoHttp, stdSerializers } from 'pino-http';
 import * as express from 'express';
+import { FastifyRequest } from 'fastify';
 
 import { Store, storage } from 'nestjs-pino/storage';
+
+// Interface for requests with logger properties (extended by pino middleware)
+interface LoggerRequest {
+  log?: any;
+  allLogs?: any[];
+}
 import { Params } from 'nestjs-pino/params';
 import { IncomingMessage, ServerResponse } from 'http';
 import { ClsServiceManager } from 'nestjs-cls';
@@ -31,7 +38,7 @@ const protectedVariables = [
 ];
 
 function bindLoggerMiddlewareFactory(useExisting: boolean) {
-  return function bindLoggerMiddleware(req: express.Request, _res: express.Response, next: express.NextFunction) {
+  return function bindLoggerMiddleware(req: express.Request & LoggerRequest, _res: express.Response, next: () => void) {
     let { log } = req;
 
     if (!useExisting && req.allLogs && req.allLogs.length > 0) {

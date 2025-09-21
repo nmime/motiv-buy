@@ -103,8 +103,17 @@ export class TrafficActionsEntity {
     >,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
-      trafficOrderId: { field: 'trafficOrder', entityClass: TrafficOrderEntity as any, required: false },
-      trafficSourceId: { field: 'trafficSource', entityClass: TrafficSourceEntity as any, required: true },
+      trafficOrderId: {
+        field: 'trafficOrder',
+        entityClass: TrafficOrderEntity,
+        required: false,
+      },
+      trafficSourceId: {
+        field: 'trafficSource',
+
+        entityClass: TrafficSourceEntity,
+        required: true,
+      },
     });
   }
 }

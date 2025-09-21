@@ -11,7 +11,7 @@
         "outputPath": "dist/libs/feature/traffic/main",
         "main": "libs/feature/traffic/main/src/index.ts",
         "tsConfig": "libs/feature/traffic/main/tsconfig.lib.json",
-        "assets": ["libs/feature/traffic/main/*.md"]
+        "assets": []
       }
     },
     "lint": {

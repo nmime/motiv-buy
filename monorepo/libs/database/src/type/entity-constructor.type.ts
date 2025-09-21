@@ -48,19 +48,26 @@ export type EntityConstructorData<
     }>;
 
 /**
+ * Unified type for entity constructor classes that accept any constructor signature
+ */
+export type EntityConstructor = new (...args: any[]) => any;
+
+/**
+ * Type-safe relation configuration for entity relationships
+ */
+export interface RelationConfig {
+  field: string;
+  entityClass: EntityConstructor;
+  required?: boolean;
+}
+
+/**
  * Helper function to assign entity data with automatic relation handling
  */
 export function assignEntityData(
   entity: Record<string, unknown>,
   data: Record<string, unknown>,
-  relationMap: Record<
-    string,
-    {
-      field: string;
-      entityClass: any;
-      required?: boolean;
-    }
-  >,
+  relationMap: Record<string, RelationConfig>,
 ): void {
   const processedKeys = new Set<string>();
   const entityTarget = entity;

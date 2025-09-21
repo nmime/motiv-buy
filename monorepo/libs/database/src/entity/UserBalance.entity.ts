@@ -42,7 +42,11 @@ export class UserBalanceEntity {
     >,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
-      userId: { field: 'user', entityClass: UserEntity as any, required: true },
+      userId: {
+        field: 'user',
+        entityClass: UserEntity,
+        required: true,
+      },
     });
   }
 

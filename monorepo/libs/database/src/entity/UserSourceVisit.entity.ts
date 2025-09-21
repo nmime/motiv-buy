@@ -1,6 +1,10 @@
 import { Entity, Property, ManyToOne, Index, PrimaryKey, Enum, Ref } from '@mikro-orm/core';
 import { PlatformType } from '../const';
-import { EntityConstructorData, UserSourceVisitPlatformData, assignEntityData } from '../type';
+import {
+  EntityConstructorData,
+  UserSourceVisitPlatformData,
+  assignEntityData,
+} from '../type';
 import { UserEntity } from './User.entity';
 
 @Entity({ tableName: 'user_source_visits' })
@@ -73,8 +77,16 @@ export class UserSourceVisitEntity {
 
   constructor(data: EntityConstructorData<UserSourceVisitEntity, 'id' | 'createdAt', 'isSignup', 'user' | 'linkUser'>) {
     assignEntityData(this as Record<string, unknown>, data, {
-      userId: { field: 'user', entityClass: UserEntity as any, required: true },
-      linkUserId: { field: 'linkUser', entityClass: UserEntity as any, required: false },
+      userId: {
+        field: 'user',
+        entityClass: UserEntity,
+        required: true,
+      },
+      linkUserId: {
+        field: 'linkUser',
+        entityClass: UserEntity,
+        required: false,
+      },
     });
   }
 }

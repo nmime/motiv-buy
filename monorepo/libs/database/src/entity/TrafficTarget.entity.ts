@@ -76,7 +76,11 @@ export class TrafficTargetEntity {
     >,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
-      managedById: { field: 'managedBy', entityClass: UserEntity as any, required: false },
+      managedById: {
+        field: 'managedBy',
+        entityClass: UserEntity,
+        required: false,
+      },
     });
   }
 }

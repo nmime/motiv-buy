@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { catchError, map, Observable } from 'rxjs';
 import { Result } from 'ts-results';
-import { Response } from 'express';
+import { FastifyReply } from 'fastify';
 
 @Catch()
 @Injectable()
@@ -50,7 +50,7 @@ export class ResponseTransformer implements NestInterceptor, ExceptionFilter {
 
   catch(error: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
+    const response = ctx.getResponse<FastifyReply>();
 
     this.logger.error(error);
 
@@ -58,7 +58,7 @@ export class ResponseTransformer implements NestInterceptor, ExceptionFilter {
       const status = error.getStatus();
       const errorResponse = error.getResponse();
 
-      response.status(status).json({
+      response.code(status).send({
         statusCode: status,
         message: typeof errorResponse === 'string' ? errorResponse : error.message,
         error: error.name,
@@ -69,7 +69,7 @@ export class ResponseTransformer implements NestInterceptor, ExceptionFilter {
     }
 
     // Handle unknown errors
-    response.status(500).json({
+    response.code(500).send({
       statusCode: 500,
       message: 'Internal server error',
       error: 'InternalServerError',

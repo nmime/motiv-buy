@@ -11,7 +11,7 @@
         "outputPath": "dist/libs/feature/user/shared",
         "main": "libs/feature/user/shared/src/index.ts",
         "tsConfig": "libs/feature/user/shared/tsconfig.lib.json",
-        "assets": ["libs/feature/user/shared/*.md"]
+        "assets": []
       }
     },
     "lint": {

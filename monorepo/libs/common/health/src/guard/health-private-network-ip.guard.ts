@@ -10,7 +10,8 @@ export class HealthPrivateNetworkIpGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
 
-    let clientIp = (request.headers['cf-connecting-ip'] ?? request.headers['x-real-ip'] ?? request.ip) as string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let clientIp = ((request as any).headers?.['cf-connecting-ip'] ?? (request as any).headers?.['x-real-ip'] ?? (request as any).ip) as string;
 
     if (clientIp?.startsWith('::ffff:')) {
       clientIp = clientIp.replace('::ffff:', '');

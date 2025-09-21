@@ -1,7 +1,11 @@
 import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique, Enum, Ref } from '@mikro-orm/core';
 import { UserEntity } from '../User.entity';
 import { TrafficTargetEntity } from '../TrafficTarget.entity';
-import { EntityConstructorData, UserTrafficTargetPermissions, assignEntityData } from '../../type';
+import {
+  EntityConstructorData,
+  UserTrafficTargetPermissions,
+  assignEntityData,
+} from '../../type';
 
 export enum UserTrafficTargetRole {
   Manager = 'manager',
@@ -62,9 +66,22 @@ export class UserTrafficTargetEntity {
     >,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
-      userId: { field: 'user', entityClass: UserEntity as any, required: true },
-      trafficTargetId: { field: 'trafficTarget', entityClass: TrafficTargetEntity as any, required: true },
-      assignedById: { field: 'assignedBy', entityClass: UserEntity as any, required: false },
+      userId: {
+        field: 'user',
+        entityClass: UserEntity,
+        required: true,
+      },
+      trafficTargetId: {
+        field: 'trafficTarget',
+
+        entityClass: TrafficTargetEntity,
+        required: true,
+      },
+      assignedById: {
+        field: 'assignedBy',
+        entityClass: UserEntity,
+        required: false,
+      },
     });
   }
 }
