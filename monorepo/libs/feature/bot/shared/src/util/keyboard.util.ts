@@ -1,4 +1,10 @@
-import { MenuButton, MenuConfig } from '../type';
+import { MenuConfig } from '../type';
+
+interface InlineKeyboardButton {
+  text: string;
+  callback_data?: string;
+  url?: string;
+}
 
 /**
  * Keyboard Utility
@@ -15,7 +21,7 @@ export class KeyboardUtil {
    * @param menuConfig - Menu configuration object
    * @returns Inline keyboard markup
    */
-  static createInlineKeyboard(menuConfig: MenuConfig): any {
+  static createInlineKeyboard(menuConfig: MenuConfig): { inline_keyboard: InlineKeyboardButton[][] } {
     const inlineKeyboard = menuConfig.buttons.map((row) =>
       row.map((button) => ({
         text: button.text,
@@ -43,7 +49,7 @@ export class KeyboardUtil {
       oneTimeKeyboard?: boolean;
       selective?: boolean;
     } = {},
-  ): any {
+  ): { keyboard: { text: string }[][]; resize_keyboard: boolean; one_time_keyboard: boolean; selective: boolean } {
     const keyboard = buttons.map((row) => row.map((text) => ({ text })));
 
     return {
@@ -62,8 +68,12 @@ export class KeyboardUtil {
    * @param baseCallbackData - Base callback data for pagination
    * @returns Inline keyboard with pagination controls
    */
-  static createPaginationKeyboard(currentPage: number, totalPages: number, baseCallbackData: string): any {
-    const buttons: any[] = [];
+  static createPaginationKeyboard(
+    currentPage: number,
+    totalPages: number,
+    baseCallbackData: string,
+  ): { inline_keyboard: InlineKeyboardButton[][] } {
+    const buttons: InlineKeyboardButton[] = [];
 
     // Previous page button
     if (currentPage > 1) {
@@ -106,7 +116,7 @@ export class KeyboardUtil {
     cancelCallback: string,
     confirmText = '✅ Confirm',
     cancelText = '❌ Cancel',
-  ): any {
+  ): { inline_keyboard: InlineKeyboardButton[][] } {
     return {
       inline_keyboard: [
         [
@@ -125,9 +135,13 @@ export class KeyboardUtil {
    * @param itemsPerRow - Number of items per row
    * @returns Keyboard with numbered items
    */
-  static createNumberedListKeyboard(items: string[], baseCallback: string, itemsPerRow = 3): any {
-    const buttons: any[][] = [];
-    let currentRow: any[] = [];
+  static createNumberedListKeyboard(
+    items: string[],
+    baseCallback: string,
+    itemsPerRow = 3,
+  ): { inline_keyboard: InlineKeyboardButton[][] } {
+    const buttons: InlineKeyboardButton[][] = [];
+    let currentRow: InlineKeyboardButton[] = [];
 
     items.forEach((item, index) => {
       const number = index + 1;
@@ -153,7 +167,7 @@ export class KeyboardUtil {
    * @param selective - Whether removal is selective
    * @returns Remove keyboard markup
    */
-  static removeKeyboard(selective = false): any {
+  static removeKeyboard(selective = false): { remove_keyboard: boolean; selective: boolean } {
     return {
       remove_keyboard: true,
       selective,
@@ -174,8 +188,8 @@ export class KeyboardUtil {
     homeCallback = 'menu:main',
     includeBack = true,
     includeHome = true,
-  ): any {
-    const buttons: any[] = [];
+  ): { inline_keyboard: InlineKeyboardButton[][] } {
+    const buttons: InlineKeyboardButton[] = [];
 
     if (includeBack) {
       buttons.push({
@@ -202,8 +216,10 @@ export class KeyboardUtil {
    * @param keyboards - Array of keyboard markups to merge
    * @returns Merged keyboard markup
    */
-  static mergeKeyboards(...keyboards: any[]): any {
-    const mergedButtons: any[][] = [];
+  static mergeKeyboards(...keyboards: { inline_keyboard?: InlineKeyboardButton[][] }[]): {
+    inline_keyboard: InlineKeyboardButton[][];
+  } {
+    const mergedButtons: InlineKeyboardButton[][] = [];
 
     keyboards.forEach((keyboard) => {
       if (keyboard?.inline_keyboard) {

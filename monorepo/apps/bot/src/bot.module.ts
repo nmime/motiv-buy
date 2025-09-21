@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { DatabaseModule } from '@app/database';
+import { BotMainModule } from '@app/feature-bot-main';
+import { BotService } from './service';
 
 /**
  * Bot Application Module
@@ -14,8 +15,13 @@ import { DatabaseModule } from '@app/database';
       isGlobal: true,
     }),
 
-    DatabaseModule,
+    // Bot domain module - contains all business logic
+    BotMainModule,
   ],
-  providers: [],
+  providers: [
+    // Thin wrapper service
+    BotService,
+  ],
+  exports: [BotService],
 })
 export class BotModule {}

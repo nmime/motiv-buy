@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EntityManager, Reference } from '@mikro-orm/core';
+import { EntityManager } from '@mikro-orm/core';
 import { GetSourceParamsService, SourceParameters } from './get-source-params.service';
-import { UserSourceVisitEntity, PlatformType, UserEntity } from '@app/database';
-import { TelegramAuthParams } from '../../dto';
+import { UserSourceVisitEntity, PlatformType } from '@app/database';
+import { TelegramAuthParams } from '../../type';
 
 export interface VisitDataParams {
   userId: string;
   platformType: PlatformType;
-  platformData?: any;
+  platformData?: Record<string, unknown>;
   params?: string;
   language?: string;
   telegramLanguage?: string;
@@ -78,10 +78,10 @@ export class SourceRegisterService {
       visitFields[snakeKey] = value;
     });
 
-    visitFields['telegram_id'] = telegramAuthParams?.telegramId;
-    visitFields['telegram_username'] = telegramAuthParams?.username;
-    visitFields['telegram_first_name'] = telegramAuthParams?.firstName;
-    visitFields['telegram_last_name'] = telegramAuthParams?.lastName;
+    visitFields['telegram_id'] = telegramAuthParams?.telegramId ?? null;
+    visitFields['telegram_username'] = telegramAuthParams?.username ?? null;
+    visitFields['telegram_first_name'] = telegramAuthParams?.firstName ?? null;
+    visitFields['telegram_last_name'] = telegramAuthParams?.lastName ?? null;
 
     const initialProperties: Record<string, unknown> = {};
     Object.entries(visitFields).forEach(([key, value]) => {

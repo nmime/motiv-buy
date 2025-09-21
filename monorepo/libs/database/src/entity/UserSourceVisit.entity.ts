@@ -72,9 +72,9 @@ export class UserSourceVisitEntity {
   linkUser?: Ref<UserEntity>;
 
   constructor(data: EntityConstructorData<UserSourceVisitEntity, 'id' | 'createdAt', 'isSignup', 'user' | 'linkUser'>) {
-    assignEntityData(this, data, {
-      userId: { field: 'user', entityClass: UserEntity, required: true },
-      linkUserId: { field: 'linkUser', entityClass: UserEntity, required: false },
+    assignEntityData(this as Record<string, unknown>, data, {
+      userId: { field: 'user', entityClass: UserEntity as any, required: true },
+      linkUserId: { field: 'linkUser', entityClass: UserEntity as any, required: false },
     });
   }
 }

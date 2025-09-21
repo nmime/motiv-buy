@@ -84,7 +84,7 @@ export class CallbackUtil {
       const params = parts.slice(1);
 
       // Check if last parameter is JSON metadata
-      let metadata: Record<string, any> | undefined;
+      let metadata: Record<string, unknown> | undefined;
       let actualParams = params;
 
       if (params.length > 0) {

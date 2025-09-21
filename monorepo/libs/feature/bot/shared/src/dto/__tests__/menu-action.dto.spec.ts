@@ -20,7 +20,7 @@ describe('MenuActionDto', () => {
       const dto = new MenuActionDto({
         userId: '123456789',
         chatId: '-987654321',
-      } as any);
+      } as Partial<MenuActionDto>);
 
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'action')).toBe(true);
@@ -40,7 +40,7 @@ describe('MenuActionDto', () => {
       const dto = new MenuActionDto({
         action: MenuActionType.Navigate,
         userId: '123456789',
-      } as any);
+      } as Partial<MenuActionDto>);
 
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'chatId')).toBe(true);
@@ -48,7 +48,7 @@ describe('MenuActionDto', () => {
 
     it('should validate action enum values', async () => {
       const dto = new MenuActionDto({
-        action: 'invalid-action' as any,
+        action: 'invalid-action' as unknown as MenuActionType,
         userId: '123456789',
         chatId: '-987654321',
       });
@@ -74,7 +74,7 @@ describe('MenuActionDto', () => {
     it('should validate menuId as string when provided', async () => {
       const dto = new MenuActionDto({
         action: MenuActionType.Navigate,
-        menuId: 123 as any,
+        menuId: 123 as unknown as string,
         userId: '123456789',
         chatId: '-987654321',
       });
@@ -86,7 +86,7 @@ describe('MenuActionDto', () => {
     it('should validate params as object when provided', async () => {
       const dto = new MenuActionDto({
         action: MenuActionType.Navigate,
-        params: 'invalid' as any,
+        params: 'invalid' as unknown as Record<string, unknown>,
         userId: '123456789',
         chatId: '-987654321',
       });
@@ -98,7 +98,7 @@ describe('MenuActionDto', () => {
     it('should validate messageId as string when provided', async () => {
       const dto = new MenuActionDto({
         action: MenuActionType.Navigate,
-        messageId: 12345 as any,
+        messageId: 12345 as unknown as string,
         userId: '123456789',
         chatId: '-987654321',
       });
@@ -195,7 +195,7 @@ describe('MenuActionResponseDto', () => {
     it('should require success field', async () => {
       const dto = new MenuActionResponseDto({
         message: 'Test message',
-      } as any);
+      } as Partial<MenuActionResponseDto>);
 
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'success')).toBe(true);
@@ -213,7 +213,7 @@ describe('MenuActionResponseDto', () => {
     it('should validate message as string when provided', async () => {
       const dto = new MenuActionResponseDto({
         success: true,
-        message: 123 as any,
+        message: 123 as unknown as string,
       });
 
       const errors = await validate(dto);
@@ -223,7 +223,7 @@ describe('MenuActionResponseDto', () => {
     it('should validate nextMenu as string when provided', async () => {
       const dto = new MenuActionResponseDto({
         success: true,
-        nextMenu: { menu: 'profile' } as any,
+        nextMenu: { menu: 'profile' } as unknown as string,
       });
 
       const errors = await validate(dto);
@@ -233,7 +233,7 @@ describe('MenuActionResponseDto', () => {
     it('should validate data as object when provided', async () => {
       const dto = new MenuActionResponseDto({
         success: true,
-        data: 'invalid' as any,
+        data: 'invalid' as unknown as Record<string, unknown>,
       });
 
       const errors = await validate(dto);

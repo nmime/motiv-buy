@@ -8,6 +8,7 @@ import { formatTitleFromClassName, generateProblemType, getSchemaExample } from 
 import { getHttpStatusName } from '../mapper';
 import { ApiResponseExamples } from '@nestjs/swagger/dist/decorators/api-response.decorator';
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export function ApiProblemExceptions(
   exceptions: Array<[ExceptionClass<OptionalClassConstructor>, { description?: string }]>,
 ) {
@@ -17,7 +18,7 @@ export function ApiProblemExceptions(
     new Map();
 
   exceptions.forEach((item) => {
-    const exception = item[0];
+    const [exception] = item;
 
     const { kind, dataType } = exception;
     const status = ExceptionHttpStatusMapper.getHttpStatus(kind);

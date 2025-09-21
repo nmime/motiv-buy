@@ -1,23 +1,23 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum BotStatus {
-  ACTIVE = 'active',
-  PENDING_MODERATION = 'pending_moderation',
-  SUSPENDED = 'suspended',
-  REJECTED = 'rejected',
+  Active = 'active',
+  PendingModeration = 'pending_moderation',
+  Suspended = 'suspended',
+  Rejected = 'rejected',
 }
 
 export enum BotAction {
-  START = 'start',
-  PAUSE = 'pause',
-  DELETE = 'delete',
+  Start = 'start',
+  Pause = 'pause',
+  Delete = 'delete',
 }
 
 export class BotActionDto {
   @ApiProperty({
     description: 'Action to perform on bot',
     enum: BotAction,
-    example: BotAction.START,
+    example: BotAction.Start,
   })
   action!: BotAction;
 }
@@ -50,7 +50,7 @@ export class BotResponseDto {
   @ApiProperty({
     description: 'Bot status',
     enum: BotStatus,
-    example: BotStatus.ACTIVE,
+    example: BotStatus.Active,
   })
   status!: BotStatus;
 

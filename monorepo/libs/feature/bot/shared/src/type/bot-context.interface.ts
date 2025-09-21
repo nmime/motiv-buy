@@ -1,4 +1,5 @@
-import { Context, InlineKeyboard } from 'grammy';
+/* eslint-disable @typescript-eslint/naming-convention */
+import { Context, InlineKeyboard, SessionFlavor } from 'grammy';
 
 /**
  * Bot Context Interface
@@ -8,33 +9,9 @@ import { Context, InlineKeyboard } from 'grammy';
  * Fully compatible with Grammy framework's Context interface with additional bot-specific features.
  *
  * @interface BotContext
- * @extends Partial<Context>
+ * @extends Context
  */
-export interface BotContext extends Partial<Context> {
-  /** Message information from Telegram */
-  message?: BotMessage;
-
-  /** Callback query information from inline keyboard interactions */
-  callbackQuery?: BotCallbackQuery;
-
-  /** User who sent the message or triggered the callback */
-  from?: BotUser;
-
-  /** Chat information where the interaction occurred */
-  chat?: BotChat;
-
-  /** Bot interaction methods for sending responses */
-  reply?: (text: string, extra?: BotReplyExtra) => Promise<BotMessage>;
-  replyWithMarkdown?: (text: string, extra?: BotReplyExtra) => Promise<BotMessage>;
-  replyWithHTML?: (text: string, extra?: BotReplyExtra) => Promise<BotMessage>;
-  editMessageText?: (text: string, extra?: BotEditExtra) => Promise<BotMessage | boolean>;
-  editMessageReplyMarkup?: (extra?: BotEditExtra) => Promise<BotMessage | boolean>;
-  answerCallbackQuery?: (text?: string, extra?: BotCallbackExtra) => Promise<boolean>;
-  deleteMessage?: (messageId?: number) => Promise<boolean>;
-
-  /** Session data for maintaining user state */
-  session?: BotSessionData;
-
+export interface BotContext extends Context, SessionFlavor<BotSessionData> {
   /** Additional bot state information */
   state?: BotStateData;
 
@@ -82,10 +59,10 @@ export interface BotUser {
   language_code?: string;
 
   /** Whether the user is premium (optional) */
-  is_premium?: boolean;
+  is_premium?: true;
 
   /** Whether the user has been added to attachment menu (optional) */
-  added_to_attachment_menu?: boolean;
+  added_to_attachment_menu?: true;
 }
 
 /**
@@ -191,7 +168,7 @@ export interface BotMessage {
   message_thread_id?: number;
 
   /** Bot-specific metadata */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

@@ -2,7 +2,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ConfigService } from '@nestjs/config';
+import fastifyCors from '@fastify/cors';
 import { ApiModule } from './api.module';
 
 async function bootstrap() {
@@ -14,8 +14,6 @@ async function bootstrap() {
       trustProxy: true,
     }),
   );
-
-  const configService = app.get(ConfigService);
 
   // Simple app config inline
   const appConfig = {
@@ -31,7 +29,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   if (appConfig.corsEnabled) {
-    await app.register(require('@fastify/cors'), {
+    await app.register(fastifyCors as any, {
       origin: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
       allowedHeaders: ['Content-Type', 'Authorization'],

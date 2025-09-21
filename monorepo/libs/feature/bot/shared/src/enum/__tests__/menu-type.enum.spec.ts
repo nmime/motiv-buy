@@ -72,6 +72,20 @@ describe('MenuType Enum', () => {
         case MenuType.Settings:
           result = 'settings menu';
           break;
+        case MenuType.Auth:
+        case MenuType.Balance:
+        case MenuType.Traffic:
+        case MenuType.Statistics:
+        case MenuType.Help:
+        case MenuType.Admin:
+        case MenuType.Campaign:
+        case MenuType.Withdrawal:
+        case MenuType.Referral:
+        case MenuType.Notifications:
+        case MenuType.Verification:
+        case MenuType.Error:
+          result = 'other menu';
+          break;
         default:
           result = 'unknown menu';
       }

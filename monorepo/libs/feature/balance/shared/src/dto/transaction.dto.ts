@@ -2,17 +2,17 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsPositive, IsDateString } from 'class-validator';
 
 export enum TransactionType {
-  DEPOSIT = 'deposit',
-  WITHDRAWAL = 'withdrawal',
-  TRAFFIC_SALE_INCOME = 'traffic_sale_income',
-  TRAFFIC_PURCHASE_EXPENSE = 'traffic_purchase_expense',
-  REFERRAL_INCOME = 'referral_income',
+  Deposit = 'deposit',
+  Withdrawal = 'withdrawal',
+  TrafficSaleIncome = 'traffic_sale_income',
+  TrafficPurchaseExpense = 'traffic_purchase_expense',
+  ReferralIncome = 'referral_income',
 }
 
 export enum PaymentMethod {
-  CRYPTO_BOT = 'crypto_bot',
-  BANK_SPB = 'bank_spb',
-  USDT = 'usdt',
+  CryptoBot = 'crypto_bot',
+  BankSpb = 'bank_spb',
+  Usdt = 'usdt',
 }
 
 export class TransactionDto {
@@ -31,7 +31,7 @@ export class TransactionDto {
   @ApiProperty({
     description: 'Transaction type',
     enum: TransactionType,
-    example: TransactionType.DEPOSIT,
+    example: TransactionType.Deposit,
   })
   type!: TransactionType;
 
@@ -44,7 +44,7 @@ export class TransactionDto {
   @ApiPropertyOptional({
     description: 'Payment method (for deposits/withdrawals)',
     enum: PaymentMethod,
-    example: PaymentMethod.CRYPTO_BOT,
+    example: PaymentMethod.CryptoBot,
   })
   paymentMethod?: PaymentMethod;
 
@@ -98,7 +98,7 @@ export class DepositRequestDto {
   @ApiProperty({
     description: 'Payment method',
     enum: PaymentMethod,
-    example: PaymentMethod.CRYPTO_BOT,
+    example: PaymentMethod.CryptoBot,
   })
   @IsEnum(PaymentMethod)
   paymentMethod!: PaymentMethod;
@@ -115,7 +115,7 @@ export class WithdrawalRequestDto {
   @ApiProperty({
     description: 'Payment method',
     enum: PaymentMethod,
-    example: PaymentMethod.USDT,
+    example: PaymentMethod.Usdt,
   })
   @IsEnum(PaymentMethod)
   paymentMethod!: PaymentMethod;

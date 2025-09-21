@@ -1,5 +1,5 @@
 {
-  "name": "traffic-shared",
+  "name": "@app/feature-traffic-shared",
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/feature/traffic/shared/src",
   "projectType": "library",

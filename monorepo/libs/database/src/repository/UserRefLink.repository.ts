@@ -95,51 +95,75 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
   }
 
   async getUserRefLinksBatch(users: UserEntity[]): Promise<Record<string, RefLinks>> {
-    const result: Record<string, RefLinks> = {};
-
-    const allRefLinkIds = new Set<string>();
-    for (const user of users) {
-      if (user.refLinkLevel1) {
-        allRefLinkIds.add(user.refLinkLevel1);
-      }
-
-      if (user.refLinkLevel2) {
-        allRefLinkIds.add(user.refLinkLevel2);
-      }
-
-      if (user.refLinkLevel3) {
-        allRefLinkIds.add(user.refLinkLevel3);
-      }
-    }
+    const allRefLinkIds = this.collectAllRefLinkIds(users);
 
     if (allRefLinkIds.size === 0) {
-      for (const user of users) {
-        result[user.id] = {
-          level1RefLink: null,
-          level2RefLink: null,
-          level3RefLink: null,
-        };
-      }
-
-      return result;
+      return this.createEmptyRefLinksResult(users);
     }
 
+    const linkMap = await this.createRefLinkMap(allRefLinkIds);
+
+    return this.mapUsersToRefLinks(users, linkMap);
+  }
+
+  private collectAllRefLinkIds(users: UserEntity[]): Set<string> {
+    const allRefLinkIds = new Set<string>();
+
+    for (const user of users) {
+      this.addRefLinkIdIfExists(allRefLinkIds, user.refLinkLevel1);
+      this.addRefLinkIdIfExists(allRefLinkIds, user.refLinkLevel2);
+      this.addRefLinkIdIfExists(allRefLinkIds, user.refLinkLevel3);
+    }
+
+    return allRefLinkIds;
+  }
+
+  private addRefLinkIdIfExists(idSet: Set<string>, refLinkId?: string): void {
+    if (refLinkId) {
+      idSet.add(refLinkId);
+    }
+  }
+
+  private createEmptyRefLinksResult(users: UserEntity[]): Record<string, RefLinks> {
+    const result: Record<string, RefLinks> = {};
+    const emptyRefLinks: RefLinks = {
+      level1RefLink: null,
+      level2RefLink: null,
+      level3RefLink: null,
+    };
+
+    for (const user of users) {
+      result[user.id] = emptyRefLinks;
+    }
+
+    return result;
+  }
+
+  private async createRefLinkMap(allRefLinkIds: Set<string>): Promise<Map<string, UserRefLinkEntity>> {
     const links = await this.find({
       id: { $in: [...allRefLinkIds] },
       isDeleted: false,
     });
 
-    const linkMap = new Map<string, UserRefLinkEntity>(links.map((link) => [link.id, link]));
+    return new Map<string, UserRefLinkEntity>(links.map((link) => [link.id, link]));
+  }
+
+  private mapUsersToRefLinks(users: UserEntity[], linkMap: Map<string, UserRefLinkEntity>): Record<string, RefLinks> {
+    const result: Record<string, RefLinks> = {};
 
     for (const user of users) {
       result[user.id] = {
-        level1RefLink: user.refLinkLevel1 ? (linkMap.get(user.refLinkLevel1) ?? null) : null,
-        level2RefLink: user.refLinkLevel2 ? (linkMap.get(user.refLinkLevel2) ?? null) : null,
-        level3RefLink: user.refLinkLevel3 ? (linkMap.get(user.refLinkLevel3) ?? null) : null,
+        level1RefLink: this.getRefLinkFromMap(linkMap, user.refLinkLevel1),
+        level2RefLink: this.getRefLinkFromMap(linkMap, user.refLinkLevel2),
+        level3RefLink: this.getRefLinkFromMap(linkMap, user.refLinkLevel3),
       };
     }
 
     return result;
+  }
+
+  private getRefLinkFromMap(linkMap: Map<string, UserRefLinkEntity>, refLinkId?: string): UserRefLinkEntity | null {
+    return refLinkId ? (linkMap.get(refLinkId) ?? null) : null;
   }
 
   async findActiveByUserId(userId: string): Promise<UserRefLinkEntity[]> {

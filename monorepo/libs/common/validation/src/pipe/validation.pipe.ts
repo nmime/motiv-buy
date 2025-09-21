@@ -10,28 +10,29 @@ export class ValidationPipe extends NestValidationPipe {
   }
 
   private formatErrors(errors: ValidationError[]): ValidationErrorResponse {
-    const result: ValidationErrorResponse = {};
-
-    errors.forEach((error) => {
-      this.mapChildrenErrors(error, result);
-    });
-
-    return result;
+    return errors.reduce((result, error) => this.mapChildrenErrors(error, result), {} as ValidationErrorResponse);
   }
 
-  private mapChildrenErrors(error: ValidationError, result: ValidationErrorResponse): void {
+  private mapChildrenErrors(error: ValidationError, result: ValidationErrorResponse): ValidationErrorResponse {
     const { property, children = [], constraints } = error;
 
     if (children.length > 0) {
-      if (!result[property]) {
-        result[property] = {};
-      }
+      const propertyResult = result[property] ? result[property] : {};
 
-      children.forEach((child) => this.mapChildrenErrors(child, result[property] as ValidationErrorResponse));
+      const updatedPropertyResult = children.reduce(
+        (acc, child) => this.mapChildrenErrors(child, acc as ValidationErrorResponse),
+        propertyResult,
+      );
 
-      return;
+      return {
+        ...result,
+        [property]: updatedPropertyResult,
+      };
     }
 
-    result[property] = Object.values(constraints || {});
+    return {
+      ...result,
+      [property]: Object.values(constraints || {}),
+    };
   }
 }

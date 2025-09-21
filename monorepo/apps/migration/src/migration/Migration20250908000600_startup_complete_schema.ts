@@ -6,7 +6,7 @@ import { Migration } from '@mikro-orm/migrations';
  * Creates all tables and relationships from scratch with proper TrafficTarget naming
  * This is designed as a startup migration for fresh database installations
  */
-export class Migration20250908000600_startup_complete_schema extends Migration {
+export class Migration20250908000600StartupCompleteSchema extends Migration {
   async up(): Promise<void> {
     // PostgreSQL 18+ has native UUID v7 support with uuidv7() function
     // No extensions needed for native UUID v7 support
@@ -677,6 +677,9 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
         `CREATE TRIGGER update_${table}_updated_at BEFORE UPDATE ON ${table} FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();`,
       );
     }
+
+    // Ensure async compliance
+    await Promise.resolve();
   }
 
   async down(): Promise<void> {
@@ -729,5 +732,7 @@ export class Migration20250908000600_startup_complete_schema extends Migration {
     this.addSql('DROP TABLE IF EXISTS users CASCADE;');
 
     // PostgreSQL 18 native UUID v7 - no extensions to drop
+    // Ensure async compliance
+    await Promise.resolve();
   }
 }

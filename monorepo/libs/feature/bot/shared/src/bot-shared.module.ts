@@ -1,18 +1,13 @@
 import { Module } from '@nestjs/common';
-import { RedisModule } from '@app/common-redis';
-import { DatabaseModule } from '@app/database';
 
 /**
  * Bot Shared Module
  *
- * Shared utilities and services for bot functionality.
- * Provides common bot types, DTOs, and utility functions
- * that can be reused across bot implementations.
- *
- * @module BotSharedModule
+ * Minimal shared module that exports only essential types, DTOs, enums,
+ * and utilities for other modules to consume. Contains no business logic.
  */
 @Module({
-  imports: [RedisModule, DatabaseModule],
+  imports: [],
   providers: [],
   exports: [],
 })

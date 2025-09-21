@@ -3,7 +3,7 @@ import { EntityConstructorData, assignEntityData } from '../type';
 import { UserEntity } from './User.entity';
 
 export enum CurrencyType {
-  RUB = 'RUB',
+  Rub = 'RUB',
 }
 
 @Entity({ tableName: 'user_balances' })
@@ -41,8 +41,8 @@ export class UserBalanceEntity {
       'user'
     >,
   ) {
-    assignEntityData(this, data, {
-      userId: { field: 'user', entityClass: UserEntity, required: true },
+    assignEntityData(this as Record<string, unknown>, data, {
+      userId: { field: 'user', entityClass: UserEntity as any, required: true },
     });
   }
 

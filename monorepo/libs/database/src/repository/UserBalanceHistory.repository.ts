@@ -134,7 +134,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
       this.count({ ...conditions, status: TransactionStatus.Failed }),
     ]);
 
-    const volumeResult = await this.em
+    const volumeResult = (await this.em
       .getConnection()
       .execute(
         'SELECT SUM(CAST(amount AS DECIMAL(20,8))) as volume FROM user_balance_history WHERE status = ? AND type IN (?, ?, ?, ?) AND created_at >= ?',
@@ -146,7 +146,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
           TransactionType.TradeSell,
           dateFrom,
         ],
-      );
+      )) as Array<{ volume?: number }>;
 
     return {
       totalTransactions: total,

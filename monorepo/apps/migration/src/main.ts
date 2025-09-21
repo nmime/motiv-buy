@@ -26,5 +26,5 @@ process.on('unhandledRejection', (reason: unknown) => {
 });
 
 if (require.main === module) {
-  main();
+  void main();
 }

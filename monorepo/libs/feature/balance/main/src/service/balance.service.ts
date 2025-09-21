@@ -14,7 +14,6 @@ import {
   DepositRequestDto,
   WithdrawalRequestDto,
   TransactionType,
-  PaymentMethod,
 } from '../dto';
 
 @Injectable()
@@ -25,11 +24,11 @@ export class BalanceService implements IBalanceService {
   ) {}
 
   async getBalance(userId: string): Promise<BalanceDto> {
-    const balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyType.RUB);
+    const balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyType.Rub);
 
     if (!balance) {
       // Create initial balance if not exists
-      const newBalance = await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.RUB, '0');
+      const newBalance = await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.Rub, '0');
 
       return { amount: parseFloat(newBalance.balance), currency: 'RUB' };
     }
@@ -44,14 +43,14 @@ export class BalanceService implements IBalanceService {
       const dbType = this.mapToDbTransactionType(filter.type);
       transactions = await this.userBalanceHistoryRepository.getUserTransactionHistory(
         userId, // Assuming this method accepts userId directly
-        CurrencyType.RUB,
+        CurrencyType.Rub,
         dbType,
         50,
       );
     } else {
       transactions = await this.userBalanceHistoryRepository.getUserTransactionHistory(
         userId,
-        CurrencyType.RUB,
+        CurrencyType.Rub,
         undefined,
         50,
       );
@@ -68,14 +67,14 @@ export class BalanceService implements IBalanceService {
   }
 
   async requestDeposit(userId: string, request: DepositRequestDto): Promise<{ paymentUrl: string }> {
-    const currentBalance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyType.RUB);
+    const currentBalance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyType.Rub);
     const balanceBefore = currentBalance ? currentBalance.balance : '0';
     const balanceAfter = (parseFloat(balanceBefore) + request.amount).toString();
 
     // Create pending deposit transaction
     await this.userBalanceHistoryRepository.createTransaction({
       userId,
-      currency: CurrencyType.RUB,
+      currency: CurrencyType.Rub,
       type: DbTransactionType.Deposit,
       amount: request.amount.toString(),
       balanceBefore,
@@ -85,7 +84,7 @@ export class BalanceService implements IBalanceService {
       referenceId: `deposit-${userId}-${Date.now()}`,
     });
 
-    // TODO: Integrate with actual payment gateway
+    // FIXME: Integrate with actual payment gateway - implement payment provider integration including webhook handling
     const paymentUrl = `https://payment.gateway/deposit/${userId}-${Date.now()}`;
 
     return { paymentUrl };
@@ -104,7 +103,7 @@ export class BalanceService implements IBalanceService {
     // Create pending withdrawal transaction
     const transaction = await this.userBalanceHistoryRepository.createTransaction({
       userId,
-      currency: CurrencyType.RUB,
+      currency: CurrencyType.Rub,
       type: DbTransactionType.Withdrawal,
       amount: request.amount.toString(),
       balanceBefore,
@@ -120,24 +119,26 @@ export class BalanceService implements IBalanceService {
   private mapFromDbTransactionType(dbType: DbTransactionType): TransactionType {
     switch (dbType) {
       case DbTransactionType.Deposit:
-        return TransactionType.DEPOSIT;
+        return TransactionType.Deposit;
       case DbTransactionType.Withdrawal:
-        return TransactionType.WITHDRAWAL;
+        return TransactionType.Withdrawal;
       case DbTransactionType.ReferralBonus:
-        return TransactionType.REFERRAL_BONUS;
+        return TransactionType.TrafficSaleIncome;
       default:
-        return TransactionType.DEPOSIT;
+        return TransactionType.Deposit;
     }
   }
 
   private mapToDbTransactionType(type: TransactionType): DbTransactionType {
     switch (type) {
-      case TransactionType.DEPOSIT:
+      case TransactionType.Deposit:
         return DbTransactionType.Deposit;
-      case TransactionType.WITHDRAWAL:
+      case TransactionType.Withdrawal:
         return DbTransactionType.Withdrawal;
-      case TransactionType.REFERRAL_BONUS:
+      case TransactionType.TrafficSaleIncome:
         return DbTransactionType.ReferralBonus;
+      case TransactionType.TrafficBuyExpense:
+        return DbTransactionType.Deposit;
       default:
         return DbTransactionType.Deposit;
     }

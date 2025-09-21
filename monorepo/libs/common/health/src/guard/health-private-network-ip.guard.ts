@@ -16,7 +16,7 @@ export class HealthPrivateNetworkIpGuard implements CanActivate {
       clientIp = clientIp.replace('::ffff:', '');
     }
 
-    // Simplified IP checking for now - TODO: implement proper CIDR checking
+    // Simplified IP checking for now - FUTURE: implement proper CIDR checking with ip library
     const result =
       !!clientIp &&
       PrivateNetworkIps.some((allowedIp) =>

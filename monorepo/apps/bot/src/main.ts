@@ -10,7 +10,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { BotModule } from './bot.module';
 import { BotService } from './service/bot.service';
-import { createAppConfig } from '@app/shared-config';
+import { createAppConfig } from '@app/common-shared';
 
 async function bootstrap() {
   const app = await NestFactory.create(BotModule);
@@ -23,8 +23,13 @@ async function bootstrap() {
   Logger.log('🤖 Telegram Bot Application is running');
   Logger.log(`🌍 Environment: ${appConfig.nodeEnv}`);
 
-  process.once('SIGINT', () => botService.stop());
-  process.once('SIGTERM', () => botService.stop());
+  process.once('SIGINT', () => {
+    void botService.stop();
+  });
+
+  process.once('SIGTERM', () => {
+    void botService.stop();
+  });
 }
 
 bootstrap().catch((err) => {

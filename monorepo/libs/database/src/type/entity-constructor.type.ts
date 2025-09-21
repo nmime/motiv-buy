@@ -51,18 +51,19 @@ export type EntityConstructorData<
  * Helper function to assign entity data with automatic relation handling
  */
 export function assignEntityData(
-  entity: object,
+  entity: Record<string, unknown>,
   data: Record<string, unknown>,
   relationMap: Record<
     string,
     {
       field: string;
-      entityClass: Function;
+      entityClass: any;
       required?: boolean;
     }
   >,
 ): void {
   const processedKeys = new Set<string>();
+  const entityTarget = entity;
 
   // Handle relations
   for (const [idKey, config] of Object.entries(relationMap)) {
@@ -75,13 +76,10 @@ export function assignEntityData(
     }
 
     if (entityValue !== undefined) {
-      (entity as Record<string, unknown>)[config.field] = entityValue;
+      entityTarget[config.field] = entityValue;
       processedKeys.add(config.field);
     } else if (idValue !== undefined && idValue !== null) {
-      (entity as Record<string, unknown>)[config.field] = Reference.createFromPK(
-        config.entityClass as new (...args: unknown[]) => object,
-        idValue as string,
-      );
+      entityTarget[config.field] = Reference.createFromPK(config.entityClass, idValue as string);
 
       processedKeys.add(idKey);
     } else if (config.required) {
@@ -94,5 +92,5 @@ export function assignEntityData(
   // Assign other fields
   const otherFields = Object.fromEntries(Object.entries(data).filter(([key]) => !processedKeys.has(key)));
 
-  Object.assign(entity, otherFields);
+  Object.assign(entityTarget, otherFields);
 }

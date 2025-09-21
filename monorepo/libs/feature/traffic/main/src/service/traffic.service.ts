@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository } from '@mikro-orm/core';
+import { EntityRepository, EntityManager } from '@mikro-orm/core';
 import {
   ITrafficService,
   CreateBotDto,
@@ -18,98 +18,116 @@ import {
   BotAction,
   TrafficType,
   OrderStatus,
+  BotTokenValidationDto,
+  BotTokenValidationResponseDto,
 } from '@app/feature-traffic-shared';
+import {
+  TrafficTargetEntity,
+  TrafficSourceEntity,
+  TrafficOrderEntity,
+  TrafficUserEntity,
+  TrafficTargetType,
+  TrafficSourceType,
+  TrafficOrderType,
+  TrafficOrderStatus,
+  UserEntity,
+} from '@app/database';
+import { ITrafficTargetRepository, ITrafficSourceRepository, ITrafficOrderRepository } from '../repository';
+import { TrafficTargetMapper, TrafficSourceMapper, TrafficOrderMapper } from '../mapper';
+import { BotTokenValidationService } from '@app/feature-traffic-shared';
 
 /**
  * Service for managing traffic bots and traffic purchase orders
+ * Implements buy/sell architecture for traffic management
  */
 @Injectable()
 export class TrafficService implements ITrafficService {
+  private readonly logger = new Logger(TrafficService.name);
+
   constructor(
-    @InjectRepository(TrafficTarget)
-    private readonly botRepository: EntityRepository<TrafficTarget>,
-    @InjectRepository(TrafficOrder)
-    private readonly trafficOrderRepository: EntityRepository<TrafficOrder>,
+    private readonly em: EntityManager,
+    private readonly trafficTargetRepository: ITrafficTargetRepository,
+    private readonly trafficSourceRepository: ITrafficSourceRepository,
+    private readonly trafficOrderRepository: ITrafficOrderRepository,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: EntityRepository<UserEntity>,
+    private readonly botTokenValidationService: BotTokenValidationService,
   ) {}
 
-  // Bot management methods
+  // =====================================================
+  // BOT MANAGEMENT METHODS (Traffic Sources - SELL SIDE)
+  // =====================================================
 
   /**
-   * Validate bot existence with Traffy API
+   * Validate bot existence
    */
   async validateBot(dto: BotValidationDto): Promise<{ exists: boolean; message: string }> {
-    try {
-      // Integration with Traffy API for bot validation
-      const response = await fetch(`https://api.traffy.com/bots/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.TRAFFY_API_KEY}`,
-        },
-        body: JSON.stringify({ username: dto.username }),
-      });
+    this.logger.log(`Validating bot: ${dto.username}`);
 
-      if (!response.ok) {
+    try {
+      const existingSource = await this.trafficSourceRepository.findByBotUsername(dto.username);
+
+      if (existingSource) {
         return {
-          exists: false,
-          message: 'Ошибка при проверке бота через Traffy API',
+          exists: true,
+          message: 'Bot already exists in the system',
         };
       }
 
-      const data = await response.json();
+      // Here you could add Telegram API validation
+      // For now, we'll do basic username validation
+      if (!dto.username.startsWith('@') || dto.username.length < 5) {
+        return {
+          exists: false,
+          message: 'Invalid bot username format',
+        };
+      }
 
       return {
-        exists: data.exists,
-        message: data.exists ? 'Бот найден и готов к добавлению' : 'Бот не найден в системе Traffy',
+        exists: false,
+        message: 'Bot username is available',
       };
     } catch (error) {
-      return {
-        exists: false,
-        message: 'Ошибка соединения с сервисом проверки ботов',
-      };
+      this.logger.error(`Bot validation failed: ${error.message}`);
+      throw new BadRequestException('Bot validation failed');
     }
   }
 
   /**
-   * Create new bot for traffic sales
+   * Create bot for traffic sales
    */
-  async createBot(userId: string, dto: CreateBotDto): Promise<BotCreationResponseDto> {
-    // Check if user already has a bot with this name
-    const existingBot = await this.botRepository.findOne({
-      where: { userId, name: dto.botUsername },
+  async createBot(dto: CreateBotDto, userId: string, _botAuth?: unknown): Promise<BotCreationResponseDto> {
+    this.logger.log(`Creating bot for user ${userId}: ${dto.botUsername}`);
+
+    await this.em.transactional(async (_em) => {
+      // Validate user exists
+      const user = await this.userRepository.findOne({ id: userId });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Check if bot already exists
+      const existingSource = await this.trafficSourceRepository.findByBotUsername(dto.botUsername);
+      if (existingSource) {
+        throw new BadRequestException('Bot already exists');
+      }
+
+      // Create traffic source (bot)
+      const trafficSource = await this.trafficSourceRepository.create({
+        name: `Traffic Bot ${dto.botUsername}`,
+        description: `Traffic source bot created by user ${userId}`,
+        type: TrafficSourceType.BotWithToken,
+        botUsername: dto.botUsername,
+        managedById: userId,
+      });
+
+      this.logger.log(`Traffic source created for bot: ${trafficSource.id}`);
     });
-
-    if (existingBot) {
-      throw new BadRequestException('У вас уже есть бот с таким именем');
-    }
-
-    // Validate with Traffy API first
-    const validation = await this.validateBot({ username: dto.botUsername });
-    if (!validation.exists) {
-      throw new BadRequestException(validation.message);
-    }
-
-    // Create bot entity
-    const bot = this.botRepository.create({
-      userId,
-      name: dto.botUsername,
-      traffyKey: dto.traffyKey,
-      status: BotStatus.PENDING_MODERATION,
-      trafficSold: 0,
-      moneyEarned: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const savedBot = await this.botRepository.save(bot);
-
-    // Submit for moderation
-    await this._submitForModeration(savedBot.id, dto.traffyKey);
 
     return {
-      botId: savedBot.id,
-      status: BotStatus.PENDING_MODERATION,
-      message: 'Бот создан и отправлен на модерацию. Вы получите уведомление о результатах проверки.',
+      botId: 'pending-moderation', // Will be updated after moderation
+      status: 'pending_moderation',
+      message: 'Бот создан и отправлен на модерацию',
       estimatedModerationTime: '24-48 часов',
     };
   }
@@ -117,41 +135,70 @@ export class TrafficService implements ITrafficService {
   /**
    * Get bot settings
    */
-  async getBotSettings(userId: string, botId: string): Promise<BotSettingsDto> {
-    const bot = await this._findUserBot(userId, botId);
-    const settings = await this._getBotSettings(botId);
+  async getBotSettings(botId: string, userId: string): Promise<BotSettingsDto> {
+    const source = await this.trafficSourceRepository.findById(botId);
+    if (!source) {
+      throw new NotFoundException('Bot not found');
+    }
+
+    // Check access
+    const hasAccess = await this.trafficSourceRepository.validateSourceAccess(botId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
+    }
 
     return {
-      botId,
-      enablePrivateMessages: settings.enablePrivateMessages,
-      enableGroupMessages: settings.enableGroupMessages,
-      enableChannelMessages: settings.enableChannelMessages,
-      maxPartnersPerDay: settings.maxPartnersPerDay,
-      timerBetweenActions: settings.timerBetweenActions,
-      excludedThemes: settings.excludedThemes,
-      isActive: settings.isActive,
+      botId: source.id,
+      botUsername: source.botUsername || '',
+      isActive: source.isActive,
+      trafficTypes: [TrafficType.PrivateMessages, TrafficType.GroupMessages],
+      priceSettings: {
+        privateMessages: 0.05,
+        groupMessages: 0.03,
+        channelSubscribers: 0.1,
+        postViews: 0.02,
+      },
+      dailyLimits: {
+        privateMessages: 1000,
+        groupMessages: 500,
+        channelSubscribers: 200,
+        postViews: 5000,
+      },
+      excludedThemes: [],
+      createdAt: source.createdAt,
+      updatedAt: source.updatedAt,
     };
   }
 
   /**
    * Update bot settings
    */
-  async updateBotSettings(userId: string, botId: string, dto: UpdateBotSettingsDto): Promise<BotSettingsDto> {
-    const bot = await this._findUserBot(userId, botId);
+  async updateBotSettings(botId: string, dto: UpdateBotSettingsDto, userId: string): Promise<BotSettingsDto> {
+    this.logger.log(`Updating bot settings: ${botId}`);
 
-    if (bot.status !== BotStatus.ACTIVE) {
-      throw new BadRequestException('Настройки можно изменять только для активных ботов');
+    const source = await this.trafficSourceRepository.findById(botId);
+    if (!source) {
+      throw new NotFoundException('Bot not found');
     }
 
-    if (dto.timerBetweenActions !== undefined && dto.timerBetweenActions < 30) {
-      throw new BadRequestException('Таймер между действиями не может быть меньше 30 секунд');
+    // Check access
+    const hasAccess = await this.trafficSourceRepository.validateSourceAccess(botId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
     }
 
-    if (dto.maxPartnersPerDay !== undefined && dto.maxPartnersPerDay > 100) {
-      throw new BadRequestException('Максимальное количество партнеров в день не может превышать 100');
-    }
+    // Update source configuration
+    const updatedConfig = {
+      ...source.config,
+      priceSettings: dto.priceSettings,
+      dailyLimits: dto.dailyLimits,
+      excludedThemes: dto.excludedThemes,
+    };
 
-    await this._updateBotSettings(botId, dto);
+    await this.trafficSourceRepository.update(botId, {
+      isActive: dto.isActive,
+      config: updatedConfig,
+    });
 
     return this.getBotSettings(userId, botId);
   }
@@ -159,106 +206,134 @@ export class TrafficService implements ITrafficService {
   /**
    * Perform bot action (start/pause/delete)
    */
-  async performBotAction(userId: string, botId: string, dto: BotActionDto): Promise<{ message: string }> {
-    const bot = await this._findUserBot(userId, botId);
+  async performBotAction(botId: string, dto: BotActionDto, userId: string): Promise<{ message: string }> {
+    this.logger.log(`Performing bot action: ${dto.action} on ${botId}`);
+
+    const source = await this.trafficSourceRepository.findById(botId);
+    if (!source) {
+      throw new NotFoundException('Bot not found');
+    }
+
+    // Check access
+    const hasAccess = await this.trafficSourceRepository.validateSourceAccess(botId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
+    }
 
     switch (dto.action) {
-      case BotAction.START:
-        if (bot.status !== BotStatus.ACTIVE) {
-          throw new BadRequestException('Можно запустить только активные боты');
-        }
+      case BotAction.Start:
+        await this.trafficSourceRepository.update(botId, { isActive: true });
 
-        await this._startBot(botId);
+        return { message: 'Bot started successfully' };
 
-        return { message: 'Бот успешно запущен' };
+      case BotAction.Pause:
+        await this.trafficSourceRepository.update(botId, { isActive: false });
 
-      case BotAction.PAUSE:
-        if (bot.status !== BotStatus.ACTIVE) {
-          throw new BadRequestException('Можно приостановить только активные боты');
-        }
+        return { message: 'Bot paused successfully' };
 
-        await this._pauseBot(botId);
+      case BotAction.Delete:
+        await this.trafficSourceRepository.deactivate(botId);
 
-        return { message: 'Бот приостановлен' };
-
-      case BotAction.DELETE:
-        await this._deleteBot(userId, botId);
-
-        return { message: 'Бот удален' };
+        return { message: 'Bot deleted successfully' };
 
       default:
-        throw new BadRequestException('Неизвестное действие');
+        throw new BadRequestException('Invalid action');
     }
   }
 
   /**
    * Get all user bots
    */
-  async getUserBots(userId: string): Promise<BotResponseDto[]> {
-    const bots = await this.botRepository.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
+  async getUserBots(userId: string, _botAuth?: unknown): Promise<BotResponseDto[]> {
+    const sources = await this.trafficSourceRepository.findByManager(userId);
 
-    return bots.map((bot) => ({
-      id: bot.id,
-      name: bot.name,
-      trafficSold: bot.trafficSold,
-      moneyEarned: bot.moneyEarned,
-      status: bot.status,
-      createdAt: bot.createdAt,
-      updatedAt: bot.updatedAt,
+    return sources.map((source) => ({
+      botId: source.id,
+      botUsername: source.botUsername || '',
+      status: source.isActive ? BotStatus.Active : BotStatus.Paused,
+      trafficTypes: [TrafficType.PrivateMessages, TrafficType.GroupMessages],
+      totalEarnings: '0.0000', // Would be calculated from actual orders
+      todayEarnings: '0.0000',
+      activeOrders: 0, // Would be calculated from actual orders
+      lastActivity: source.updatedAt,
+      createdAt: source.createdAt,
     }));
   }
 
   /**
    * Get specific bot details
    */
-  async getBotDetails(userId: string, botId: string): Promise<BotResponseDto> {
-    const bot = await this._findUserBot(userId, botId);
+  async getBotDetails(botId: string, userId: string): Promise<BotResponseDto> {
+    const source = await this.trafficSourceRepository.findById(botId);
+    if (!source) {
+      throw new NotFoundException('Bot not found');
+    }
+
+    // Check access
+    const hasAccess = await this.trafficSourceRepository.validateSourceAccess(botId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
+    }
 
     return {
-      id: bot.id,
-      name: bot.name,
-      trafficSold: bot.trafficSold,
-      moneyEarned: bot.moneyEarned,
-      status: bot.status,
-      createdAt: bot.createdAt,
-      updatedAt: bot.updatedAt,
+      botId: source.id,
+      botUsername: source.botUsername || '',
+      status: source.isActive ? BotStatus.Active : BotStatus.Paused,
+      trafficTypes: [TrafficType.PrivateMessages, TrafficType.GroupMessages],
+      totalEarnings: '0.0000', // Would be calculated from actual orders
+      todayEarnings: '0.0000',
+      activeOrders: 0, // Would be calculated from actual orders
+      lastActivity: source.updatedAt,
+      createdAt: source.createdAt,
     };
   }
 
-  // Traffic purchase methods
+  // ======================================================
+  // TRAFFIC PURCHASE METHODS (Traffic Targets - BUY SIDE)
+  // ======================================================
 
   /**
    * Get available traffic types and prices
    */
-  async getAvailableTraffic(): Promise<AvailableTrafficDto[]> {
-    // This would typically fetch from a database or external API
+  async getAvailableTraffic(_filters?: Record<string, unknown>): Promise<AvailableTrafficDto[]> {
+    const activeSources = await this.trafficSourceRepository.findActive();
+
+    // Aggregate available traffic by type
+    const trafficMap = new Map<
+      TrafficType,
+      {
+        totalAmount: number;
+        minPrice: number;
+        avgDeliveryTime: number;
+      }
+    >();
+
+    // For now, return static data - in real implementation,
+    // this would be calculated from active sources
     return [
       {
-        trafficType: TrafficType.PRIVATE_MESSAGES,
+        trafficType: TrafficType.PrivateMessages,
         currentPrice: 0.05,
         availableAmount: 50000,
         estimatedDeliveryHours: 24,
       },
       {
-        trafficType: TrafficType.GROUP_MESSAGES,
+        trafficType: TrafficType.GroupMessages,
         currentPrice: 0.03,
-        availableAmount: 100000,
+        availableAmount: 30000,
+        estimatedDeliveryHours: 12,
+      },
+      {
+        trafficType: TrafficType.ChannelSubscribers,
+        currentPrice: 0.1,
+        availableAmount: 10000,
         estimatedDeliveryHours: 48,
       },
       {
-        trafficType: TrafficType.CHANNEL_SUBSCRIBERS,
-        currentPrice: 0.15,
-        availableAmount: 20000,
-        estimatedDeliveryHours: 72,
-      },
-      {
-        trafficType: TrafficType.POST_VIEWS,
-        currentPrice: 0.01,
-        availableAmount: 500000,
-        estimatedDeliveryHours: 12,
+        trafficType: TrafficType.PostViews,
+        currentPrice: 0.02,
+        availableAmount: 100000,
+        estimatedDeliveryHours: 6,
       },
     ];
   }
@@ -266,208 +341,324 @@ export class TrafficService implements ITrafficService {
   /**
    * Create new traffic purchase order
    */
-  async createTrafficOrder(userId: string, dto: CreateTrafficOrderDto): Promise<TrafficOrderResponseDto> {
-    // Validate target URL format
-    if (!this._isValidTelegramUrl(dto.targetUrl)) {
-      throw new BadRequestException('Некорректный формат Telegram URL');
-    }
+  async createTrafficOrder(dto: CreateTrafficOrderDto, userId: string): Promise<TrafficOrderResponseDto> {
+    this.logger.log(`Creating traffic order for user ${userId}: ${dto.trafficType}`);
 
-    const totalCost = dto.amount * dto.pricePerUnit;
+    return await this.em.transactional(async (_em) => {
+      // Validate user exists
+      const user = await this.userRepository.findOne({ id: userId });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
 
-    // Check if user has sufficient balance (would integrate with balance service)
-    // const hasBalance = await this.balanceService.checkBalance(userId, totalCost);
-    // if (!hasBalance) {
-    //   throw new BadRequestException('Недостаточно средств на балансе');
-    // }
+      // Create or find traffic target
+      let trafficTarget = await this.trafficTargetRepository.findByUsername(this.extractUsernameFromUrl(dto.targetUrl));
 
-    const order = this.trafficOrderRepository.create({
-      userId,
-      trafficType: dto.trafficType,
-      targetUrl: dto.targetUrl,
-      amount: dto.amount,
-      completedAmount: 0,
-      pricePerUnit: dto.pricePerUnit,
-      totalCost,
-      status: OrderStatus.ACTIVE,
-      targetAudience: dto.targetAudience,
-      excludedThemes: dto.excludedThemes || [],
-      progressPercentage: 0,
-      estimatedCompletion: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      if (!trafficTarget) {
+        trafficTarget = await this.trafficTargetRepository.create({
+          name: `Target for ${dto.targetUrl}`,
+          description: dto.targetAudience,
+          type: this.mapTrafficTypeToTargetType(dto.trafficType),
+          username: this.extractUsernameFromUrl(dto.targetUrl),
+          managedById: userId,
+          pricePerMember: dto.pricePerUnit.toString(),
+        });
+      }
+
+      // Find suitable traffic source
+      const activeSources = await this.trafficSourceRepository.findActive();
+      if (activeSources.length === 0) {
+        throw new BadRequestException('No traffic sources available');
+      }
+
+      // For now, use the first available source
+      const trafficSource = activeSources[0];
+
+      // Generate order ID
+      const orderId = await this.trafficOrderRepository.generateOrderId();
+
+      // Calculate total cost
+      const totalCost = dto.amount * dto.pricePerUnit;
+
+      // Create traffic order
+      const order = await this.trafficOrderRepository.create({
+        orderId,
+        type: this.mapTrafficTypeToOrderType(dto.trafficType),
+        status: TrafficOrderStatus.Pending,
+        targetCount: dto.amount,
+        pricePerAction: dto.pricePerUnit.toString(),
+        totalBudget: totalCost.toString(),
+        description: dto.targetAudience,
+        targetUrl: dto.targetUrl,
+        requirements: {
+          excludedThemes: dto.excludedThemes || [],
+          targetAudience: dto.targetAudience,
+        },
+        creatorId: userId,
+        trafficSourceId: trafficSource.id,
+        trafficTargetId: trafficTarget.id,
+        createdById: userId,
+      });
+
+      this.logger.log(`Traffic order created: ${order.orderId}`);
+
+      return this.mapOrderToResponseDto(order, trafficTarget, trafficSource);
     });
-
-    const savedOrder = await this.trafficOrderRepository.save(order);
-
-    // Deduct from balance
-    // await this.balanceService.deductBalance(userId, totalCost);
-
-    return this._mapToOrderResponse(savedOrder);
   }
 
   /**
    * Get user's traffic orders
    */
-  async getUserTrafficOrders(userId: string): Promise<TrafficOrderResponseDto[]> {
-    const orders = await this.trafficOrderRepository.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
+  async getUserTrafficOrders(userId: string, _filters?: Record<string, unknown>): Promise<TrafficOrderResponseDto[]> {
+    const orders = await this.trafficOrderRepository.findByCreator(userId);
 
-    return orders.map((order) => this._mapToOrderResponse(order));
+    return Promise.all(
+      orders.map(async (order) => {
+        const target = await order.trafficTarget.load();
+        const source = await order.trafficSource.load();
+
+        return this.mapOrderToResponseDto(order, target, source);
+      }),
+    );
   }
 
   /**
    * Get specific traffic order details
    */
-  async getTrafficOrder(userId: string, orderId: string): Promise<TrafficOrderResponseDto> {
-    const order = await this._findUserOrder(userId, orderId);
+  async getTrafficOrder(orderId: string, userId: string): Promise<TrafficOrderResponseDto> {
+    const order = await this.trafficOrderRepository.findByOrderId(orderId);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
 
-    return this._mapToOrderResponse(order);
+    // Check access
+    const hasAccess = await this.trafficOrderRepository.validateOrderAccess(orderId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    const target = await order.trafficTarget.load();
+    const source = await order.trafficSource.load();
+
+    return this.mapOrderToResponseDto(order, target, source);
   }
 
   /**
    * Update traffic order
    */
   async updateTrafficOrder(
-    userId: string,
     orderId: string,
     dto: UpdateTrafficOrderDto,
+    userId: string,
   ): Promise<TrafficOrderResponseDto> {
-    const order = await this._findUserOrder(userId, orderId);
+    this.logger.log(`Updating traffic order: ${orderId}`);
 
-    if (order.status === OrderStatus.COMPLETED || order.status === OrderStatus.CANCELLED) {
-      throw new BadRequestException('Нельзя изменять завершенные или отмененные заказы');
+    const order = await this.trafficOrderRepository.findByOrderId(orderId);
+    if (!order) {
+      throw new NotFoundException('Order not found');
     }
 
-    if (dto.status !== undefined) {
-      order.status = dto.status;
+    // Check access
+    const hasAccess = await this.trafficOrderRepository.validateOrderAccess(orderId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
     }
 
-    if (dto.amount !== undefined) {
-      if (order.completedAmount > 0) {
-        throw new BadRequestException('Нельзя изменить количество после начала выполнения заказа');
-      }
-
-      order.amount = dto.amount;
-      order.totalCost = dto.amount * order.pricePerUnit;
+    // Validate update permissions
+    if (order.status === TrafficOrderStatus.Completed || order.status === TrafficOrderStatus.Cancelled) {
+      throw new BadRequestException('Cannot update completed or cancelled order');
     }
 
-    order.updatedAt = new Date();
-    const updatedOrder = await this.trafficOrderRepository.save(order);
+    const updateData: Partial<TrafficOrderEntity> = {};
 
-    return this._mapToOrderResponse(updatedOrder);
+    if (dto.status) {
+      updateData.status = dto.status as TrafficOrderStatus;
+    }
+
+    if (dto.amount && order.status === TrafficOrderStatus.Pending) {
+      updateData.targetCount = dto.amount;
+      updateData.totalBudget = (dto.amount * parseFloat(order.pricePerAction)).toString();
+    }
+
+    const updatedOrder = await this.trafficOrderRepository.update(order.id, updateData);
+
+    const target = await updatedOrder.trafficTarget.load();
+    const source = await updatedOrder.trafficSource.load();
+
+    return this.mapOrderToResponseDto(updatedOrder, target, source);
   }
 
   /**
    * Cancel traffic order
    */
-  async cancelTrafficOrder(userId: string, orderId: string): Promise<{ message: string }> {
-    const order = await this._findUserOrder(userId, orderId);
+  async cancelTrafficOrder(orderId: string, userId: string): Promise<{ message: string }> {
+    this.logger.log(`Cancelling traffic order: ${orderId}`);
 
-    if (order.status === OrderStatus.COMPLETED) {
-      throw new BadRequestException('Нельзя отменить завершенный заказ');
-    }
-
-    if (order.status === OrderStatus.CANCELLED) {
-      throw new BadRequestException('Заказ уже отменен');
-    }
-
-    order.status = OrderStatus.CANCELLED;
-    order.updatedAt = new Date();
-    await this.trafficOrderRepository.save(order);
-
-    // Refund remaining amount to balance
-    const refundAmount = (order.amount - order.completedAmount) * order.pricePerUnit;
-    if (refundAmount > 0) {
-      // await this.balanceService.addBalance(userId, refundAmount);
-    }
-
-    return { message: 'Заказ отменен, неиспользованные средства возвращены на баланс' };
-  }
-
-  // Private helper methods
-
-  private async _findUserBot(userId: string, botId: string) {
-    const bot = await this.botRepository.findOne({
-      where: { id: botId, userId },
-    });
-
-    if (!bot) {
-      throw new NotFoundException('Бот не найден');
-    }
-
-    return bot;
-  }
-
-  private async _findUserOrder(userId: string, orderId: string) {
-    const order = await this.trafficOrderRepository.findOne({
-      where: { id: orderId, userId },
-    });
-
+    const order = await this.trafficOrderRepository.findByOrderId(orderId);
     if (!order) {
-      throw new NotFoundException('Заказ не найден');
+      throw new NotFoundException('Order not found');
     }
 
-    return order;
+    // Check access
+    const hasAccess = await this.trafficOrderRepository.validateOrderAccess(orderId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    if (order.status === TrafficOrderStatus.Completed) {
+      throw new BadRequestException('Cannot cancel completed order');
+    }
+
+    if (order.status === TrafficOrderStatus.Cancelled) {
+      throw new BadRequestException('Order already cancelled');
+    }
+
+    await this.trafficOrderRepository.cancel(orderId);
+
+    return { message: 'Order cancelled successfully' };
   }
 
-  private async _getBotSettings(botId: string) {
-    // Implementation would fetch from bot_settings table
+  // =====================================
+  // BOT TOKEN VALIDATION METHODS
+  // =====================================
+
+  /**
+   * Validate bot token for traffic operations
+   */
+  async validateBotToken(dto: BotTokenValidationDto, clientIp?: string): Promise<BotTokenValidationResponseDto> {
+    this.logger.log(`Validating bot token for operation: ${dto.operationContext}`);
+
+    const result = await this.botTokenValidationService.validateToken(dto, clientIp);
+
+    if (result.isErr()) {
+      this.logger.warn('Bot token validation failed', {
+        error: result.error.message,
+        operationContext: dto.operationContext,
+      });
+
+      // Return unsuccessful validation response instead of throwing
+      return {
+        isValid: false,
+        error: result.error.message,
+      };
+    }
+
+    return result.value;
+  }
+
+  /**
+   * Check if bot token is required for operation
+   */
+  isBotTokenRequired(operationContext: string): boolean {
+    return this.botTokenValidationService.isTokenValidationRequired(operationContext);
+  }
+
+  /**
+   * Get bot permissions for traffic operations
+   */
+  async getBotPermissions(botId: string): Promise<string[]> {
+    try {
+      return await this.botTokenValidationService.getBotPermissions(botId);
+    } catch (error) {
+      this.logger.error('Failed to get bot permissions', {
+        botId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      return [];
+    }
+  }
+
+  /**
+   * Invalidate bot token (for logout/security)
+   */
+  async invalidateBotToken(token: string): Promise<void> {
+    this.logger.log('Invalidating bot token');
+
+    try {
+      await this.botTokenValidationService.invalidateToken(token);
+      this.logger.debug('Bot token invalidated successfully');
+    } catch (error) {
+      this.logger.error('Failed to invalidate bot token', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Don't throw - invalidation failure shouldn't break the flow
+    }
+  }
+
+  // =====================================
+  // PRIVATE HELPER METHODS
+  // =====================================
+
+  private extractUsernameFromUrl(url: string): string {
+    // Extract username from Telegram URL or return the URL as is
+    const match = url.match(/t\.me\/([^/?]+)/);
+
+    return match ? `@${match[1]}` : url;
+  }
+
+  private mapTrafficTypeToTargetType(trafficType: TrafficType): TrafficTargetType {
+    switch (trafficType) {
+      case TrafficType.ChannelSubscribers:
+        return TrafficTargetType.Channel;
+      case TrafficType.GroupMessages:
+        return TrafficTargetType.Group;
+      case TrafficType.PrivateMessages:
+        return TrafficTargetType.Bot;
+      default:
+        return TrafficTargetType.WithChecking;
+    }
+  }
+
+  private mapTrafficTypeToOrderType(trafficType: TrafficType): TrafficOrderType {
+    switch (trafficType) {
+      case TrafficType.ChannelSubscribers:
+        return TrafficOrderType.Subscribe;
+      case TrafficType.GroupMessages:
+        return TrafficOrderType.Join;
+      case TrafficType.PostViews:
+        return TrafficOrderType.View;
+      default:
+        return TrafficOrderType.Join;
+    }
+  }
+
+  private mapOrderToResponseDto(
+    order: TrafficOrderEntity,
+    target: TrafficTargetEntity,
+    source: TrafficSourceEntity,
+  ): TrafficOrderResponseDto {
+    const progressPercentage = order.targetCount > 0 ? Math.round((order.currentCount / order.targetCount) * 100) : 0;
+
+    const estimatedCompletion = new Date();
+    estimatedCompletion.setHours(estimatedCompletion.getHours() + 24); // Default 24h
+
     return {
-      enablePrivateMessages: true,
-      enableGroupMessages: true,
-      enableChannelMessages: false,
-      maxPartnersPerDay: 10,
-      timerBetweenActions: 60,
-      excludedThemes: [],
-      isActive: false,
-    };
-  }
-
-  private async _updateBotSettings(botId: string, settings: UpdateBotSettingsDto) {
-    // Implementation would update bot_settings table
-  }
-
-  private async _submitForModeration(botId: string, traffyKey: string) {
-    // Implementation would integrate with moderation system
-  }
-
-  private async _startBot(botId: string) {
-    // Implementation would start bot operations
-  }
-
-  private async _pauseBot(botId: string) {
-    // Implementation would pause bot operations
-  }
-
-  private async _deleteBot(userId: string, botId: string) {
-    await this.botRepository.delete({ id: botId, userId });
-  }
-
-  private _isValidTelegramUrl(url: string): boolean {
-    const telegramUrlPattern = /^https:\/\/t\.me\/[a-zA-Z0-9_]+$/;
-
-    return telegramUrlPattern.test(url);
-  }
-
-  private _mapToOrderResponse(order: TrafficOrder): TrafficOrderResponseDto {
-    return {
-      id: order.id,
-      trafficType: order.trafficType,
-      targetUrl: order.targetUrl,
-      amount: order.amount,
-      completedAmount: order.completedAmount,
-      pricePerUnit: order.pricePerUnit,
-      totalCost: order.totalCost,
-      status: order.status,
-      progressPercentage: order.progressPercentage,
-      estimatedCompletion: order.estimatedCompletion,
+      id: order.orderId,
+      trafficType: this.mapOrderTypeToTrafficType(order.type),
+      targetUrl: order.targetUrl || target.username || '',
+      amount: order.targetCount,
+      completedAmount: order.currentCount,
+      pricePerUnit: parseFloat(order.pricePerAction),
+      totalCost: parseFloat(order.totalBudget),
+      status: order.status as OrderStatus,
+      progressPercentage,
+      estimatedCompletion,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
     };
   }
-}
 
-// Import actual entities from database lib
-import { TrafficTargetEntity as TrafficTarget, TrafficOrderEntity as TrafficOrder } from '@app/database';
+  private mapOrderTypeToTrafficType(orderType: TrafficOrderType): TrafficType {
+    switch (orderType) {
+      case TrafficOrderType.Subscribe:
+        return TrafficType.ChannelSubscribers;
+      case TrafficOrderType.View:
+        return TrafficType.PostViews;
+      case TrafficOrderType.Join:
+        return TrafficType.GroupMessages;
+      default:
+        return TrafficType.PrivateMessages;
+    }
+  }
+}

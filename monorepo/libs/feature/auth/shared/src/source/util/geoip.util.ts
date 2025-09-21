@@ -815,6 +815,12 @@ export const getGeoByIp = (ip: string | number): GeoLocation | undefined => {
       city: geo.city,
     };
   } catch (error) {
+    // Expected error for invalid IP addresses or lookup failures
+    if (error instanceof Error) {
+      // Use logger instead of console in production
+      // console.debug('GeoIP lookup failed:', error.message);
+    }
+
     return undefined;
   }
 };

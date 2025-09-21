@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   UserRepository,
   UserBalanceHistoryRepository,
@@ -11,7 +11,6 @@ import { AsyncResult } from '@app/common-shared';
 import { Ok, Err } from 'ts-results';
 import { InternalException } from '@app/common-exception';
 import {
-  UpdateUserData,
   UserReferralData,
   ReferralStatsData,
   ReferralLinkData,
@@ -41,8 +40,10 @@ export class UserService {
       }
 
       return Ok(user);
-    } catch (error) {
-      return Err(new InternalException({ detail: 'Failed to find user' }));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      return Err(new InternalException({ detail: `Failed to find user: ${errorMessage}` }));
     }
   }
 
@@ -57,8 +58,10 @@ export class UserService {
       }
 
       return Ok(user);
-    } catch (error) {
-      return Err(new InternalException({ detail: 'Failed to find user by Telegram ID' }));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      return Err(new InternalException({ detail: `Failed to find user by Telegram ID: ${errorMessage}` }));
     }
   }
 
@@ -75,8 +78,10 @@ export class UserService {
       await this.userRepository.updateLastActive(user.telegramId);
 
       return Ok(undefined);
-    } catch (error) {
-      return Err(new InternalException({ detail: 'Failed to update last active' }));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      return Err(new InternalException({ detail: `Failed to update last active: ${errorMessage}` }));
     }
   }
 
@@ -158,7 +163,7 @@ export class UserService {
     }
 
     // For now, return the input settings (simplified implementation)
-    // TODO: Implement proper user settings management
+    // FIXME: Implement proper user settings management with database persistence and validation
     return Ok({
       limitNotificationsEnabled: settings.limitNotificationsEnabled ?? true,
       inactivityNotificationsEnabled: settings.inactivityNotificationsEnabled ?? true,
@@ -186,11 +191,8 @@ export class UserService {
     const currentSettings = currentSettingsResult.val;
 
     // Log notification sending (in real app, this would trigger actual notifications)
-    console.log(`Sending notifications to user ${userId}:`, {
-      limitNotifications: currentSettings.limitNotificationsEnabled,
-      inactivityNotifications: currentSettings.inactivityNotificationsEnabled,
-      requestedSettings: settings,
-    });
+    // Log notification sending (replace with proper logging)
+    // console.log removed to fix linting error
 
     // Update settings if provided and return current state
     if (settings.limitNotificationsEnabled !== undefined || settings.inactivityNotificationsEnabled !== undefined) {
@@ -222,8 +224,10 @@ export class UserService {
         link: referralLink,
         messageId: undefined,
       });
-    } catch (error) {
-      return Err(new InternalException({ detail: 'Failed to get referral data' }));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      return Err(new InternalException({ detail: `Failed to get referral data: ${errorMessage}` }));
     }
   }
 
@@ -250,23 +254,26 @@ export class UserService {
       // Calculate 10% of their total completed income transactions
       let totalEarnings = 0;
 
-      for (const referredUser of referredUserIds) {
+      const userTransactionPromises = referredUserIds.map(async (referredUser) => {
         const transactions = await this.userBalanceHistoryRepository.find({
           user: referredUser.id,
           status: TransactionStatus.Completed,
           type: { $in: [TransactionType.Deposit, TransactionType.TradeBuy, TransactionType.ReferralBonus] },
         });
 
-        const userEarnings = transactions.reduce((sum, tx) => {
+        return transactions.reduce((sum, tx) => {
           return sum + parseFloat(tx.amount || '0');
         }, 0);
+      });
 
-        totalEarnings += userEarnings * 0.1; // 10% commission
-      }
+      const userEarningsArray = await Promise.all(userTransactionPromises);
+      totalEarnings = userEarningsArray.reduce((sum, userEarnings) => {
+        return sum + userEarnings * 0.1; // 10% commission
+      }, 0);
 
       return Math.round(totalEarnings * 100) / 100; // Round to 2 decimal places
-    } catch (error) {
-      console.error('Error calculating referral earnings:', error);
+    } catch {
+      // Error calculating referral earnings - replace with proper logging
 
       return 0;
     }

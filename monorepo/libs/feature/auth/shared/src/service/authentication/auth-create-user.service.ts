@@ -28,15 +28,15 @@ export class AuthCreateUserService {
 
     const user = new UserEntity(userData);
 
-    await entityManager.persist(user);
+    entityManager.persist(user);
     await entityManager.flush();
 
     return user;
   }
 
   determineLanguage(languageCode: string | undefined): Language {
-    const isLanguage = (value: any): value is Language => {
-      return Object.values(Language).includes(value);
+    const isLanguage = (value: unknown): value is Language => {
+      return Object.values(Language).includes(value as Language);
     };
 
     return isLanguage(languageCode) ? languageCode : defaultLanguage;

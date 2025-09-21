@@ -1,4 +1,4 @@
-import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { UserSourceVisitEntity } from '../entity/UserSourceVisit.entity';
 import { PlatformType } from '../const';
 import { UserSourceVisitPlatformData } from '../type';
@@ -29,8 +29,6 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
     isSignup?: boolean;
   }): Promise<UserSourceVisitEntity> {
     const { userId, linkUserId, ...visitData } = data;
-    const userRef = ref(this.em.getReference('UserEntity', userId));
-    const linkUserRef = linkUserId ? ref(this.em.getReference('UserEntity', linkUserId)) : undefined;
 
     const visit = new UserSourceVisitEntity({
       userId,

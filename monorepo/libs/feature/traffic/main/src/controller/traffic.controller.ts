@@ -1,9 +1,23 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { CurrentUserId, JwtAuthGuard, UnauthorizedException } from '@app/feature-auth-shared';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Req,
+  Ip,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader } from '@nestjs/swagger';
+import { CurrentUserId, JwtAuthGuard, OptionalAuth } from '@app/feature-auth-shared';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
 import { AsyncResult } from '@app/common-shared';
+import { FastifyRequest } from 'fastify';
 import { TrafficService } from '../service';
 import {
   CreateBotDto,
@@ -17,6 +31,14 @@ import {
   TrafficOrderResponseDto,
   UpdateTrafficOrderDto,
   AvailableTrafficDto,
+  BotTokenValidationDto,
+  BotTokenValidationResponseDto,
+  BotTokenValidationGuard,
+  CurrentBotAuth,
+  CurrentBotId,
+  TrafficSellAuth,
+  BotManagementAuth,
+  TrafficAnalyticsAuth,
 } from '@app/feature-traffic-shared';
 
 /**
@@ -24,7 +46,7 @@ import {
  */
 @ApiTags('Traffic')
 @Controller('traffic')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BotTokenValidationGuard)
 @ApiBearerAuth()
 @ApiProblemExceptions([
   [InternalException, { description: 'Internal server error occurred' }],
@@ -33,236 +55,175 @@ import {
 export class TrafficController {
   constructor(private readonly trafficService: TrafficService) {}
 
-  // Bot management endpoints
+  // =====================================================
+  // BOT TOKEN VALIDATION ENDPOINTS
+  // =====================================================
 
-  @Post('bots/validate')
-  @ApiOperation({ summary: 'Validate bot existence' })
-  @ApiResponse({
-    status: 200,
-    description: 'Bot validation result',
-    schema: {
-      type: 'object',
-      properties: {
-        exists: { type: 'boolean' },
-        message: { type: 'string' },
-      },
-    },
-  })
-  async validateBot(
-    @Body() dto: BotValidationDto,
-  ): AsyncResult<any, ClientDataProblemValidationException | InternalException> {
-    const result = await this.trafficService.validateBot(dto);
-
-    return { success: true, data: result };
-  }
-
-  @Post('bots')
-  @ApiOperation({ summary: 'Create new bot for traffic sales' })
-  @ApiResponse({
-    status: 201,
-    description: 'Bot created successfully',
-    type: BotCreationResponseDto,
-  })
-  async createBot(
-    @CurrentUserId() userId: string,
-    @Body() dto: CreateBotDto,
-  ): AsyncResult<BotCreationResponseDto, UnauthorizedException | InternalException> {
-    const result = await this.trafficService.createBot(userId, dto);
-
-    return { success: true, data: result };
-  }
-
-  @Get('bots')
-  @ApiOperation({ summary: 'Get all user bots' })
-  @ApiResponse({
-    status: 200,
-    description: 'List of user bots',
-    type: [BotResponseDto],
-  })
-  async getUserBots(
-    @CurrentUserId() userId: string,
-  ): AsyncResult<BotResponseDto[], UnauthorizedException | InternalException> {
-    const result = await this.trafficService.getUserBots(userId);
-
-    return { success: true, data: result };
-  }
-
-  @Get('bots/:botId')
-  @ApiOperation({ summary: 'Get specific bot details' })
-  @ApiParam({ name: 'botId', description: 'Bot ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Bot details',
-    type: BotResponseDto,
-  })
-  async getBotDetails(
-    @CurrentUserId() userId: string,
-    @Param('botId') botId: string,
-  ): AsyncResult<BotResponseDto, UnauthorizedException | InternalException> {
-    const result = await this.trafficService.getBotDetails(userId, botId);
-
-    return { success: true, data: result };
-  }
-
-  @Get('bots/:botId/settings')
-  @ApiOperation({ summary: 'Get bot settings' })
-  @ApiParam({ name: 'botId', description: 'Bot ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Bot settings',
-    type: BotSettingsDto,
-  })
-  async getBotSettings(
-    @CurrentUserId() userId: string,
-    @Param('botId') botId: string,
-  ): AsyncResult<BotSettingsDto, UnauthorizedException | InternalException> {
-    const result = await this.trafficService.getBotSettings(userId, botId);
-
-    return { success: true, data: result };
-  }
-
-  @Put('bots/:botId/settings')
-  @ApiOperation({ summary: 'Update bot settings' })
-  @ApiParam({ name: 'botId', description: 'Bot ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Updated bot settings',
-    type: BotSettingsDto,
-  })
-  async updateBotSettings(
-    @CurrentUserId() userId: string,
-    @Param('botId') botId: string,
-    @Body() dto: UpdateBotSettingsDto,
-  ): AsyncResult<BotSettingsDto, UnauthorizedException | InternalException> {
-    const result = await this.trafficService.updateBotSettings(userId, botId, dto);
-
-    return { success: true, data: result };
-  }
-
-  @Post('bots/:botId/actions')
-  @ApiOperation({ summary: 'Perform bot action (start/pause/delete)' })
-  @ApiParam({ name: 'botId', description: 'Bot ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Action performed successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-      },
-    },
-  })
-  async performBotAction(
-    @CurrentUserId() userId: string,
-    @Param('botId') botId: string,
-    @Body() dto: BotActionDto,
-  ): AsyncResult<{ message: string }, UnauthorizedException | InternalException> {
-    const result = await this.trafficService.performBotAction(userId, botId, dto);
-
-    return { success: true, data: result };
-  }
-
-  // Traffic purchase endpoints
-
-  @Get('available')
-  @ApiOperation({ summary: 'Get available traffic types and prices' })
-  @ApiResponse({
-    status: 200,
-    description: 'Available traffic types',
-    type: [AvailableTrafficDto],
-  })
-  async getAvailableTraffic(): AsyncResult<AvailableTrafficDto[], UnauthorizedException | InternalException> {
-    const result = await this.trafficService.getAvailableTraffic();
-
-    return { success: true, data: result };
-  }
-
-  @Post('orders')
-  @ApiOperation({ summary: 'Create new traffic purchase order' })
-  @ApiResponse({
-    status: 201,
-    description: 'Traffic order created successfully',
-    type: TrafficOrderResponseDto,
-  })
-  async createTrafficOrder(
-    @CurrentUserId() userId: string,
-    @Body() dto: CreateTrafficOrderDto,
-  ): AsyncResult<TrafficOrderResponseDto, UnauthorizedException | InternalException> {
-    const result = await this.trafficService.createTrafficOrder(userId, dto);
-
-    return { success: true, data: result };
-  }
-
-  @Get('orders')
-  @ApiOperation({ summary: 'Get user traffic orders' })
-  @ApiResponse({
-    status: 200,
-    description: 'List of user traffic orders',
-    type: [TrafficOrderResponseDto],
-  })
-  async getUserTrafficOrders(
-    @CurrentUserId() userId: string,
-  ): AsyncResult<TrafficOrderResponseDto[], UnauthorizedException | InternalException> {
-    const result = await this.trafficService.getUserTrafficOrders(userId);
-
-    return { success: true, data: result };
-  }
-
-  @Get('orders/:orderId')
-  @ApiOperation({ summary: 'Get specific traffic order details' })
-  @ApiParam({ name: 'orderId', description: 'Order ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Traffic order details',
-    type: TrafficOrderResponseDto,
-  })
-  async getTrafficOrder(
-    @CurrentUserId() userId: string,
-    @Param('orderId') orderId: string,
-  ): AsyncResult<TrafficOrderResponseDto, UnauthorizedException | InternalException> {
-    const result = await this.trafficService.getTrafficOrder(userId, orderId);
-
-    return { success: true, data: result };
-  }
-
-  @Put('orders/:orderId')
-  @ApiOperation({ summary: 'Update traffic order' })
-  @ApiParam({ name: 'orderId', description: 'Order ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Updated traffic order',
-    type: TrafficOrderResponseDto,
-  })
-  async updateTrafficOrder(
-    @CurrentUserId() userId: string,
-    @Param('orderId') orderId: string,
-    @Body() dto: UpdateTrafficOrderDto,
-  ): AsyncResult<TrafficOrderResponseDto, UnauthorizedException | InternalException> {
-    const result = await this.trafficService.updateTrafficOrder(userId, orderId, dto);
-
-    return { success: true, data: result };
-  }
-
-  @Delete('orders/:orderId')
-  @ApiOperation({ summary: 'Cancel traffic order' })
-  @ApiParam({ name: 'orderId', description: 'Order ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Order cancelled successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-      },
-    },
-  })
+  @Post('bot-token/validate')
   @HttpCode(HttpStatus.OK)
-  async cancelTrafficOrder(
-    @CurrentUserId() userId: string,
-    @Param('orderId') orderId: string,
-  ): AsyncResult<{ message: string }, UnauthorizedException | InternalException> {
-    const result = await this.trafficService.cancelTrafficOrder(userId, orderId);
+  @OptionalAuth()
+  @ApiOperation({
+    summary: 'Validate bot token for traffic operations',
+    description: 'Validates a bot token and returns bot information and permissions for traffic operations',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token validation result',
+    type: BotTokenValidationResponseDto,
+  })
+  @ApiHeader({
+    name: 'X-Bot-Token',
+    description: 'Bot token to validate (alternative to Authorization header)',
+    required: false,
+  })
+  async validateBotToken(
+    @Body() dto: BotTokenValidationDto,
+    @Ip() clientIp: string,
+  ): Promise<BotTokenValidationResponseDto> {
+    return this.trafficService.validateBotToken(dto, clientIp);
+  }
 
-    return { success: true, data: result };
+  @Get('bot-token/permissions/:botId')
+  @ApiOperation({
+    summary: 'Get bot permissions for traffic operations',
+    description: 'Returns available permissions for a specific bot',
+  })
+  @ApiParam({ name: 'botId', description: 'Bot ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Bot permissions',
+    schema: {
+      type: 'object',
+      properties: {
+        botId: { type: 'string' },
+        permissions: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  async getBotPermissions(@Param('botId') botId: string): Promise<{ botId: string; permissions: string[] }> {
+    const permissions = await this.trafficService.getBotPermissions(botId);
+
+    return { botId, permissions };
+  }
+
+  @Post('bot-token/invalidate')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Invalidate bot token',
+    description: 'Invalidates a bot token for security purposes',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Token invalidated successfully',
+  })
+  async invalidateBotToken(@Body() body: { token: string }): Promise<void> {
+    await this.trafficService.invalidateBotToken(body.token);
+  }
+
+  // =====================================================
+  // ENHANCED TRAFFIC SELL OPERATIONS WITH TOKEN AUTH
+  // =====================================================
+
+  @Get('sell/available')
+  @TrafficSellAuth()
+  @ApiOperation({
+    summary: 'Get available traffic for sale (enhanced with bot auth)',
+    description: 'Returns available traffic types with optional bot token authentication for enhanced features',
+  })
+  @ApiHeader({
+    name: 'X-Bot-Token',
+    description: 'Optional bot token for enhanced features',
+    required: false,
+  })
+  async getAvailableTrafficForSell(
+    @CurrentBotAuth() botAuth?: unknown,
+    @CurrentBotId() botId?: string,
+  ): Promise<AvailableTrafficDto[]> {
+    const traffic = await this.trafficService.getAvailableTraffic();
+
+    // If bot is authenticated, could add enhanced features
+    if (botAuth && botId) {
+      // Add bot-specific enhancements to traffic data
+      return traffic.map((item) => ({
+        ...item,
+        metadata: {
+          botEnhanced: true,
+          botId,
+          preferredPricing: true, // Bot users might get better pricing
+        },
+      }));
+    }
+
+    return traffic;
+  }
+
+  @Get('analytics/bot')
+  @TrafficAnalyticsAuth()
+  @ApiOperation({
+    summary: 'Get traffic analytics with bot authentication',
+    description: 'Returns traffic analytics data with optional bot token authentication',
+  })
+  @ApiHeader({
+    name: 'X-Bot-Token',
+    description: 'Optional bot token for bot-specific analytics',
+    required: false,
+  })
+  async getBotTrafficAnalytics(
+    @CurrentUserId() userId: string,
+    @CurrentBotAuth() botAuth?: unknown,
+    @CurrentBotId() botId?: string,
+  ): Promise<any> {
+    const basicAnalytics = {
+      totalOrders: 0,
+      totalEarnings: '0.00',
+      activeOrders: 0,
+      completedOrders: 0,
+    };
+
+    if (botAuth && botId) {
+      // Add bot-specific analytics
+      return {
+        ...basicAnalytics,
+        botSpecific: {
+          botId,
+          botUsername: botAuth.botUsername,
+          permissions: botAuth.permissions,
+          tokenExpiry: botAuth.expiresAt,
+          enhancedFeatures: ['real_time_tracking', 'advanced_analytics', 'priority_support'],
+        },
+      };
+    }
+
+    return basicAnalytics;
+  }
+
+  // =====================================================
+  // BOT MANAGEMENT WITH REQUIRED TOKEN AUTH
+  // =====================================================
+
+  @Get('bots/managed')
+  @BotManagementAuth()
+  @ApiOperation({
+    summary: 'Get managed bots (requires bot token)',
+    description: 'Returns bots managed by the authenticated bot token',
+  })
+  @ApiHeader({
+    name: 'X-Bot-Token',
+    description: 'Bot token required for bot management operations',
+    required: true,
+  })
+  async getManagedBots(
+    @CurrentUserId() userId: string,
+    @CurrentBotAuth() botAuth: unknown,
+    @CurrentBotId() _botId: string,
+  ): Promise<BotResponseDto[]> {
+    // This would filter bots managed by the specific bot token
+    const allBots = await this.trafficService.getUserBots(userId);
+
+    return allBots.map((bot) => ({
+      ...bot,
+      managedByBot: botId,
+      enhancedManagement: true,
+    }));
   }
 }

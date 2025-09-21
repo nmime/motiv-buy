@@ -8,8 +8,10 @@ import { BalanceMainModule } from '@app/feature-balance-main';
 import { UserMainModule } from '@app/feature-user-main';
 import { StatisticMainModule } from '@app/feature-statistic-main';
 import { TrafficMainModule } from '@app/feature-traffic-main';
-import { BotService, MenuService, SessionService } from './service';
+import { BotService, MenuService, SessionService, BotUserService, BotSessionService } from './service';
+import { BotConfigService } from './config';
 import { CommandHandler, MenuHandler, CallbackHandler } from './handler';
+import { BotAuthMiddleware } from './middleware';
 
 /**
  * Bot Main Module
@@ -48,10 +50,18 @@ import { CommandHandler, MenuHandler, CallbackHandler } from './handler';
     TrafficMainModule,
   ],
   providers: [
+    // Configuration services
+    BotConfigService,
+
     // Core bot services
     BotService,
     MenuService,
     SessionService,
+
+    // Bot authentication services
+    BotUserService,
+    BotSessionService,
+    BotAuthMiddleware,
 
     // Bot handlers
     CommandHandler,
@@ -59,10 +69,18 @@ import { CommandHandler, MenuHandler, CallbackHandler } from './handler';
     CallbackHandler,
   ],
   exports: [
+    // Configuration services
+    BotConfigService,
+
     // Export services for use in applications
     BotService,
     MenuService,
     SessionService,
+
+    // Export authentication services
+    BotUserService,
+    BotSessionService,
+    BotAuthMiddleware,
 
     // Export handlers for direct use if needed
     CommandHandler,

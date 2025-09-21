@@ -11,4 +11,8 @@ type BaseExceptionProps = {
 };
 
 export type ExceptionProps<DataType extends OptionalClassConstructor> = BaseExceptionProps &
-  (DataType extends undefined ? {} : DataType extends ClassConstructor ? { data: InstanceType<DataType> } : never);
+  (DataType extends undefined
+    ? Record<string, never>
+    : DataType extends ClassConstructor
+      ? { data: InstanceType<DataType> }
+      : never);

@@ -16,11 +16,10 @@ const exceptionKindToHttpStatusRecord: Record<ExceptionKind, HttpStatus> = {
 };
 
 const httpStatusToExceptionKindRecord = Object.entries(exceptionKindToHttpStatusRecord).reduce(
-  (acm, [kind, status]) => {
-    acm[status] = kind as ExceptionKind;
-
-    return acm;
-  },
+  (accumulator, [kind, status]) => ({
+    ...accumulator,
+    [status]: kind as ExceptionKind,
+  }),
   {} as { [status in HttpStatus]?: ExceptionKind },
 );
 

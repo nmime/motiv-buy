@@ -1,5 +1,5 @@
 {
-  "name": "user-main",
+  "name": "@app/feature-user-main",
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/feature/user/main/src",
   "projectType": "library",

@@ -6,7 +6,7 @@ import { RedisMode } from '../const';
 
 @Injectable()
 export class RedisConfigService {
-  static validationSchema: Joi.ObjectSchema = Joi.object({
+  static readonly validationSchema: Joi.ObjectSchema = Joi.object({
     REDIS_MODE: Joi.string()
       .required()
       .allow(...Object.values(RedisMode))

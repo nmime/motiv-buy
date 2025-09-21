@@ -67,7 +67,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   }): Promise<TrafficTargetEntity> {
     const trafficTarget = new TrafficTargetEntity({
       ...data,
-      config: data.config ? JSON.parse(data.config) : undefined,
+      config: data.config ? (JSON.parse(data.config) as Record<string, unknown>) : undefined,
       pricePerMember: data.pricePerMember?.toString(),
       isActive: true,
       requiresApproval: false,

@@ -1,14 +1,14 @@
 export enum TransactionType {
-  DEPOSIT = 'deposit',
-  WITHDRAWAL = 'withdrawal',
-  TRAFFIC_SALE_INCOME = 'traffic_sale_income',
-  TRAFFIC_BUY_EXPENSE = 'traffic_buy_expense',
+  Deposit = 'deposit',
+  Withdrawal = 'withdrawal',
+  TrafficSaleIncome = 'traffic_sale_income',
+  TrafficBuyExpense = 'traffic_buy_expense',
 }
 
 export enum PaymentMethod {
-  CRYPTO_BOT = 'crypto_bot',
-  BANK_CARD = 'bank_card',
-  PAYPAL = 'paypal',
+  CryptoBot = 'crypto_bot',
+  BankCard = 'bank_card',
+  Paypal = 'paypal',
 }
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';

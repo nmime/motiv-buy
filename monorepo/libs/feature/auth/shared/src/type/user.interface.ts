@@ -1,4 +1,4 @@
-import { PlatformType, UserSourceVisitPlatformData } from '@app/database';
+// Remove unused imports - interfaces are standalone
 
 export interface User {
   id: number;

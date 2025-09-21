@@ -294,7 +294,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         ip: '0.0.0.0', // Bot doesn't have IP info
       });
 
-      if (authResult.success) {
+      if (authResult.isOk()) {
         ctx.isAuthenticated = true;
 
         // Create or update session
@@ -311,7 +311,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         ctx.isAuthenticated = false;
         this.logger.warn('User authentication failed', {
           userId: ctx.userId,
-          error: authResult.error?.message,
+          error: authResult.val?.message,
         });
       }
     } catch (error) {
@@ -394,7 +394,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
               : undefined,
             chat: {
               id: ctx.message.chat.id,
-              type: ctx.message.chat.type as any,
+              type: ctx.message.chat.type as 'private' | 'group' | 'supergroup' | 'channel',
               title: ctx.message.chat.title,
               username: ctx.message.chat.username,
               first_name: ctx.message.chat.first_name,
@@ -419,7 +419,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
                   message_id: ctx.callbackQuery.message.message_id,
                   chat: {
                     id: ctx.callbackQuery.message.chat.id,
-                    type: ctx.callbackQuery.message.chat.type as any,
+                    type: ctx.callbackQuery.message.chat.type as 'private' | 'group' | 'supergroup' | 'channel',
                     title: ctx.callbackQuery.message.chat.title,
                     username: ctx.callbackQuery.message.chat.username,
                     first_name: ctx.callbackQuery.message.chat.first_name,
@@ -444,26 +444,26 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       chat: ctx.chat
         ? {
             id: ctx.chat.id,
-            type: ctx.chat.type as any,
+            type: ctx.chat.type as 'private' | 'group' | 'supergroup' | 'channel',
             title: ctx.chat.title,
             username: ctx.chat.username,
             first_name: ctx.chat.first_name,
             last_name: ctx.chat.last_name,
           }
         : undefined,
-      reply: async (text: string, extra?: any) => {
+      reply: async (text: string, extra?: Record<string, unknown>) => {
         return await ctx.reply(text, extra);
       },
-      replyWithMarkdown: async (text: string, extra?: any) => {
+      replyWithMarkdown: async (text: string, extra?: Record<string, unknown>) => {
         return await ctx.reply(text, { parse_mode: 'Markdown', ...extra });
       },
-      replyWithHTML: async (text: string, extra?: any) => {
+      replyWithHTML: async (text: string, extra?: Record<string, unknown>) => {
         return await ctx.reply(text, { parse_mode: 'HTML', ...extra });
       },
-      editMessageText: async (text: string, extra?: any) => {
+      editMessageText: async (text: string, extra?: Record<string, unknown>) => {
         return await ctx.editMessageText(text, extra);
       },
-      answerCallbackQuery: async (text?: string, extra?: any) => {
+      answerCallbackQuery: async (text?: string, extra?: Record<string, unknown>) => {
         return await ctx.answerCallbackQuery(text, extra);
       },
       session: ctx.session,

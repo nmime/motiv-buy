@@ -4,8 +4,8 @@ import { UserSourceVisitEntity, UserSourceVisitRepository } from '@app/database'
 import { SourceParameters, GetSourceParamsService } from './get-source-params.service';
 import { GetUserRefLinkService } from './get-user-ref-link.service';
 import { SourceRegisterService, VisitDataParams } from './source-register.service';
-import { TelegramAuthParams } from '../../dto';
 import { getGeoByIp } from '../util';
+import { TelegramAuthParams } from '../../type';
 
 @Injectable()
 export class UserVisitService {
@@ -30,7 +30,7 @@ export class UserVisitService {
 
     const visitData = this.sourceRegisterService.prepareVisitData(visitParams, sourceParams, userRefLink);
 
-    return await this.userSourceVisitRepository.create(visitData);
+    return this.userSourceVisitRepository.create(visitData);
   }
 
   async registerVisitWithEntityManager(
@@ -46,7 +46,7 @@ export class UserVisitService {
 
     const visitData = this.sourceRegisterService.prepareVisitData(visitParams, sourceParams, userRefLink);
 
-    return await this.sourceRegisterService.registerVisit(visitData, entityManager);
+    return this.sourceRegisterService.registerVisit(visitData, entityManager);
   }
 
   private prepareVisitDataParams(

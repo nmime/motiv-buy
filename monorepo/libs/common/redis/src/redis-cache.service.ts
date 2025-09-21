@@ -26,7 +26,8 @@ export class RedisCacheService {
     } else {
       const result: T = await action();
 
-      if (result === null || result === undefined) {
+      // eslint-disable-next-line eqeqeq
+      if (result == null) {
         return result;
       }
 

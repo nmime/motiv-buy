@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { MikroORM, EntityManager, RequestContext } from '@mikro-orm/core';
-import { FastifyRequest } from 'fastify';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { createMikroOrmConfig } from '../config';
 import { DatabaseConfig } from '../config';
 
 @Injectable()
 export class DatabaseService {
+  private readonly logger = new Logger(DatabaseService.name);
   private orm!: MikroORM;
   private isConnected = false;
   private config!: DatabaseConfig;
@@ -21,13 +22,13 @@ export class DatabaseService {
       const mikroOrmConfig = createMikroOrmConfig(this.config);
       this.orm = await MikroORM.init(mikroOrmConfig);
       this.isConnected = true;
-      console.log('✅ Database connection established');
+      this.logger.log('Database connection established');
 
       const migrator = this.orm.getMigrator();
       await migrator.up();
-      console.log('✅ Database migrations applied');
+      this.logger.log('Database migrations applied');
     } catch (error) {
-      console.error('❌ Database connection failed:', error);
+      this.logger.error('Database connection failed:', error);
       throw error;
     }
   }
@@ -48,7 +49,7 @@ export class DatabaseService {
     if (this.orm) {
       await this.orm.close();
       this.isConnected = false;
-      console.log('✅ Database connection closed');
+      this.logger.log('Database connection closed');
     }
   }
 
@@ -69,6 +70,8 @@ export class DatabaseService {
         type: this.config.type,
       };
     } catch (error) {
+      this.logger.error('Database health check failed:', error);
+
       return {
         status: 'unhealthy',
         connected: false,
@@ -79,7 +82,7 @@ export class DatabaseService {
   }
 
   createRequestContext() {
-    return async (request: FastifyRequest, reply: any, done: any) => {
+    return async (request: FastifyRequest, reply: FastifyReply, done: () => void) => {
       RequestContext.create(this.getEntityManager(), done);
     };
   }
@@ -98,7 +101,7 @@ export class DatabaseService {
   async createMigration(name?: string): Promise<void> {
     const migrator = this.orm.getMigrator();
     const migration = await migrator.createMigration(name);
-    console.log(`✅ Migration created: ${migration.fileName}`);
+    this.logger.log(`Migration created: ${migration.fileName}`);
   }
 
   async getMigrationStatus(): Promise<{
@@ -114,24 +117,24 @@ export class DatabaseService {
   async rollbackMigration(): Promise<void> {
     const migrator = this.orm.getMigrator();
     await migrator.down();
-    console.log('✅ Last migration rolled back');
+    this.logger.log('Last migration rolled back');
   }
 
   async createSchema(): Promise<void> {
     const generator = this.orm.getSchemaGenerator();
     await generator.createSchema();
-    console.log('✅ Database schema created');
+    this.logger.log('Database schema created');
   }
 
   async updateSchema(): Promise<void> {
     const generator = this.orm.getSchemaGenerator();
     await generator.updateSchema();
-    console.log('✅ Database schema updated');
+    this.logger.log('Database schema updated');
   }
 
   async dropSchema(): Promise<void> {
     const generator = this.orm.getSchemaGenerator();
     await generator.dropSchema();
-    console.log('✅ Database schema dropped');
+    this.logger.log('Database schema dropped');
   }
 }

@@ -51,9 +51,9 @@ export class TrafficSourceCategoriesEntity {
       'trafficSource' | 'category'
     >,
   ) {
-    assignEntityData(this, data, {
-      trafficSourceId: { field: 'trafficSource', entityClass: TrafficSourceEntity, required: true },
-      categoryId: { field: 'category', entityClass: TrafficSourceCategoryEntity, required: true },
+    assignEntityData(this as Record<string, unknown>, data, {
+      trafficSourceId: { field: 'trafficSource', entityClass: TrafficSourceEntity as any, required: true },
+      categoryId: { field: 'category', entityClass: TrafficSourceCategoryEntity as any, required: true },
     });
   }
 }

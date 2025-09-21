@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from './decorator';
 import { RedisClient } from './type';
-import { Result, Ok, Err } from 'ts-results';
+import { Result, Err } from 'ts-results';
 import { AsyncResult, unknownToError } from '@app/common-shared';
 import { InternalException, RateLimitExceedException } from '@app/common-exception';
 
@@ -43,13 +43,15 @@ export class RedisRateLimitService {
 
       const actionResult = await action();
       if (actionResult instanceof Promise) {
-        return actionResult;
+        return actionResult as AsyncResult<OkType, ErrorType>;
       }
 
       // Return the action result directly since it's already a Result type
-      return actionResult;
+      return Promise.resolve(actionResult);
     } catch (error: unknown) {
-      return Promise.resolve(Err(new InternalException({ detail: 'Error on executing rate limit', cause: unknownToError(error) })));
+      return Promise.resolve(
+        Err(new InternalException({ detail: 'Error on executing rate limit', cause: unknownToError(error) })),
+      );
     }
   }
 
@@ -109,16 +111,20 @@ export class RedisRateLimitService {
 
       const actionResult = await action();
       if (actionResult instanceof Promise) {
-        return actionResult;
+        return actionResult as AsyncResult<OkType, ErrorType>;
       }
 
       // Return the action result directly since it's already a Result type
-      return actionResult;
+      return Promise.resolve(actionResult);
     } catch (error: unknown) {
-      return Promise.resolve(Err(new InternalException({
-        detail: 'Error on executing sliding window rate limit',
-        cause: unknownToError(error),
-      })));
+      return Promise.resolve(
+        Err(
+          new InternalException({
+            detail: 'Error on executing sliding window rate limit',
+            cause: unknownToError(error),
+          }),
+        ),
+      );
     }
   }
 }

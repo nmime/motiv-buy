@@ -10,9 +10,7 @@ export abstract class BaseHealthController {
   @Inject(HealthCheckService)
   protected readonly healthService!: HealthCheckService;
 
-  protected constructor(
-    private readonly _checks?: (() => Promise<HealthIndicatorResult> | HealthIndicatorResult)[],
-  ) {}
+  protected constructor(private readonly _checks?: (() => Promise<HealthIndicatorResult> | HealthIndicatorResult)[]) {}
 
   @Get('/liveness')
   @Health({

@@ -1,0 +1,805 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
+import { EntityManager } from '@mikro-orm/core';
+import { AuthUserService } from '../auth-user.service';
+import { AuthCreateUserService } from '../auth-create-user.service';
+import { AuthUserVisitService } from '../auth-user-visit.service';
+import { GetSourceParamsService, GetUserRefLinkService, SourceRegisterService, getGeoByIp } from '../../source';
+import { UserRepository, UserEntity, UserLastAuthRepository, UserSourceVisitEntity } from '@app/database';
+import { TelegramAuthParams, UserRefLink } from '../../type';
+
+// Mock the getGeoByIp utility
+jest.mock('../../source', () => ({
+  ...jest.requireActual('../../source'),
+  getGeoByIp: jest.fn().mockReturnValue({
+    country: { name: 'United States', code: 'US' },
+    city: 'New York',
+    continent: 'North America',
+  }),
+}));
+
+describe('AuthUserService', () => {
+  let service: AuthUserService;
+  let module: TestingModule;
+  let mockUserRepository: jest.Mocked<UserRepository>;
+  let mockUserLastAuthRepository: jest.Mocked<UserLastAuthRepository>;
+  let mockCreateUserService: jest.Mocked<AuthCreateUserService>;
+  let mockUserVisitService: jest.Mocked<AuthUserVisitService>;
+  let mockSourceRegisterService: jest.Mocked<SourceRegisterService>;
+  let mockGetSourceParamsService: jest.Mocked<GetSourceParamsService>;
+  let mockGetUserRefLinkService: jest.Mocked<GetUserRefLinkService>;
+  let mockEntityManager: jest.Mocked<EntityManager>;
+  // Logger spy not used in current tests
+
+  const mockTelegramAuthParams: TelegramAuthParams = {
+    telegramId: '123456789',
+    firstName: 'John',
+    lastName: 'Doe',
+    username: 'johndoe',
+    languageCode: 'en',
+    ip: '203.0.113.1', // Use documentation IP address instead of private range
+    userSource: 'telegram',
+    sourceParams: {
+      linkType: 'referral',
+      linkCode: 'ABC123',
+      refCode: 'REF456',
+    },
+  };
+
+  const createMockUser = (overrides: Partial<UserEntity> = {}): UserEntity =>
+    ({
+      id: 'user-123',
+      telegramId: '123456789',
+      firstName: 'John',
+      lastName: 'Doe',
+      username: 'johndoe',
+      email: 'john@example.com',
+      languageCode: 'en',
+      isActive: true,
+      createdAt: new Date('2023-01-01T00:00:00Z'),
+      updatedAt: new Date('2023-01-01T00:00:00Z'),
+      ...overrides,
+    }) as UserEntity;
+
+  const createMockUserRefLink = (): UserRefLink => ({
+    userId: 'ref-user-123',
+    linkType: 'referral',
+    linkCode: 'ABC123',
+    refCode: 'REF456',
+    isActive: true,
+  });
+
+  beforeEach(async () => {
+    // Setup mocks
+    mockEntityManager = {
+      transactional: jest.fn(),
+      nativeUpdate: jest.fn(),
+    } as any;
+
+    mockUserRepository = {
+      findOne: jest.fn(),
+      getEntityManager: jest.fn(() => mockEntityManager),
+    } as any;
+
+    mockUserLastAuthRepository = {
+      upsertUserLastAuth: jest.fn(),
+    } as any;
+
+    mockCreateUserService = {
+      createUser: jest.fn(),
+      determineLanguage: jest.fn(),
+    } as any;
+
+    mockUserVisitService = {
+      registerVisit: jest.fn(),
+    } as any;
+
+    mockSourceRegisterService = {} as any;
+
+    mockGetSourceParamsService = {
+      parseRequest: jest.fn(),
+    } as any;
+
+    mockGetUserRefLinkService = {
+      resolveUserRefLink: jest.fn(),
+    } as any;
+
+    module = await Test.createTestingModule({
+      providers: [
+        AuthUserService,
+        { provide: UserRepository, useValue: mockUserRepository },
+        { provide: UserLastAuthRepository, useValue: mockUserLastAuthRepository },
+        { provide: AuthCreateUserService, useValue: mockCreateUserService },
+        { provide: AuthUserVisitService, useValue: mockUserVisitService },
+        { provide: SourceRegisterService, useValue: mockSourceRegisterService },
+        { provide: GetSourceParamsService, useValue: mockGetSourceParamsService },
+        { provide: GetUserRefLinkService, useValue: mockGetUserRefLinkService },
+      ],
+    }).compile();
+
+    service = module.get<AuthUserService>(AuthUserService);
+
+    // Mock logger methods
+    loggerSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    jest.spyOn(Logger.prototype, 'debug').mockImplementation();
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
+
+    jest.clearAllMocks();
+  });
+
+  describe('Service Definition', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('should have all required dependencies injected', () => {
+      expect(service['usersRepository']).toBeDefined();
+      expect(service['userLastAuthRepository']).toBeDefined();
+      expect(service['createUserService']).toBeDefined();
+      expect(service['userVisitService']).toBeDefined();
+      expect(service['sourceRegisterService']).toBeDefined();
+      expect(service['getSourceParamsService']).toBeDefined();
+      expect(service['getUserRefLinkService']).toBeDefined();
+    });
+  });
+
+  describe('findOrCreateByWebAuth', () => {
+    it('should find existing user successfully', async () => {
+      const existingUser = createMockUser();
+      const mockVisit = { id: 'visit-123' } as UserSourceVisitEntity;
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockGetSourceParamsService.parseRequest.mockReturnValue(mockTelegramAuthParams.sourceParams);
+      mockGetUserRefLinkService.resolveUserRefLink.mockResolvedValue(createMockUserRefLink());
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserVisitService.registerVisit.mockResolvedValue(mockVisit);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+
+      const result = await service.findOrCreateByWebAuth(mockTelegramAuthParams, {
+        trackUserVisit: true,
+        trackUserLastAuth: true,
+      });
+
+      expect(result).toEqual(existingUser);
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        telegramId: mockTelegramAuthParams.telegramId,
+      });
+
+      expect(mockUserVisitService.registerVisit).toHaveBeenCalled();
+      expect(mockUserLastAuthRepository.upsertUserLastAuth).toHaveBeenCalled();
+    });
+
+    it('should create new user when not found', async () => {
+      const newUser = createMockUser();
+      const mockUserRefLink = createMockUserRefLink();
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockGetSourceParamsService.parseRequest.mockReturnValue(mockTelegramAuthParams.sourceParams);
+      mockGetUserRefLinkService.resolveUserRefLink.mockResolvedValue(mockUserRefLink);
+      mockUserRepository.findOne.mockResolvedValue(null);
+      mockCreateUserService.createUser.mockResolvedValue(newUser);
+
+      const result = await service.findOrCreateByWebAuth(mockTelegramAuthParams);
+
+      expect(result).toEqual(newUser);
+      expect(mockCreateUserService.createUser).toHaveBeenCalledWith(
+        mockTelegramAuthParams,
+        mockEntityManager,
+        mockUserRefLink,
+      );
+    });
+
+    it('should handle missing source parameters', async () => {
+      const existingUser = createMockUser();
+      const paramsWithoutSource = { ...mockTelegramAuthParams, userSource: undefined, sourceParams: undefined };
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      const result = await service.findOrCreateByWebAuth(paramsWithoutSource);
+
+      expect(result).toEqual(existingUser);
+      expect(mockGetSourceParamsService.parseRequest).not.toHaveBeenCalled();
+      expect(mockGetUserRefLinkService.resolveUserRefLink).not.toHaveBeenCalled();
+    });
+
+    it('should handle invalid ref link resolution', async () => {
+      const existingUser = createMockUser();
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockGetSourceParamsService.parseRequest.mockReturnValue(mockTelegramAuthParams.sourceParams);
+      mockGetUserRefLinkService.resolveUserRefLink.mockResolvedValue(null);
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      const result = await service.findOrCreateByWebAuth(mockTelegramAuthParams);
+
+      expect(result).toEqual(existingUser);
+      expect(mockGetUserRefLinkService.resolveUserRefLink).toHaveBeenCalled();
+    });
+  });
+
+  describe('findOrCreateByBot', () => {
+    it('should handle bot-specific options correctly', async () => {
+      const existingUser = createMockUser();
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockGetSourceParamsService.parseRequest.mockReturnValue(mockTelegramAuthParams.sourceParams);
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockEntityManager.nativeUpdate.mockResolvedValue(undefined);
+
+      const result = await service.findOrCreateByBot(mockTelegramAuthParams, {
+        trackUserVisit: true, // This should be overridden to false
+        updateUserFields: false, // This should be overridden to true
+      });
+
+      expect(result).toEqual(existingUser);
+      expect(mockUserVisitService.registerVisit).not.toHaveBeenCalled(); // Should not track visits for bots
+      expect(mockEntityManager.nativeUpdate).not.toHaveBeenCalled(); // User fields should be updated but user already up to date
+    });
+
+    it('should update user fields when updateUserFields is true', async () => {
+      const existingUser = createMockUser({ firstName: 'OldName' });
+      const updatedParams = { ...mockTelegramAuthParams, firstName: 'NewName' };
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockEntityManager.nativeUpdate.mockResolvedValue(undefined);
+
+      await service.findOrCreateByBot(updatedParams);
+
+      expect(mockEntityManager.nativeUpdate).toHaveBeenCalledWith(
+        UserEntity,
+        { id: existingUser.id },
+        expect.objectContaining({
+          firstName: 'NewName',
+        }),
+      );
+    });
+
+    it('should not update fields if no changes detected', async () => {
+      const existingUser = createMockUser();
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      await service.findOrCreateByBot(mockTelegramAuthParams);
+
+      expect(mockEntityManager.nativeUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('User Field Updates', () => {
+    it('should detect and apply field changes', async () => {
+      const existingUser = createMockUser({
+        firstName: 'OldFirst',
+        lastName: 'OldLast',
+        username: 'oldusername',
+        languageCode: null,
+      });
+
+      const updatedParams = {
+        ...mockTelegramAuthParams,
+        firstName: 'NewFirst',
+        lastName: 'NewLast',
+        username: 'newusername',
+        languageCode: 'es',
+      };
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockCreateUserService.determineLanguage.mockReturnValue('es');
+      mockEntityManager.nativeUpdate.mockResolvedValue(undefined);
+
+      await service.findOrCreateByBot(updatedParams);
+
+      expect(mockEntityManager.nativeUpdate).toHaveBeenCalledWith(
+        UserEntity,
+        { id: existingUser.id },
+        {
+          firstName: 'NewFirst',
+          lastName: 'NewLast',
+          username: 'newusername',
+          languageCode: 'es',
+        },
+      );
+    });
+
+    it('should preserve existing language code when present', async () => {
+      const existingUser = createMockUser({ languageCode: 'fr' });
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      await service.findOrCreateByBot(mockTelegramAuthParams);
+
+      expect(mockCreateUserService.determineLanguage).not.toHaveBeenCalled();
+      expect(mockEntityManager.nativeUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should handle null values in update params', async () => {
+      const existingUser = createMockUser();
+      const paramsWithNulls = {
+        ...mockTelegramAuthParams,
+        firstName: null,
+        lastName: undefined,
+        username: '',
+      };
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      await service.findOrCreateByBot(paramsWithNulls);
+
+      expect(mockEntityManager.nativeUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('User Last Auth Updates', () => {
+    it('should update user last auth with geo information', async () => {
+      const existingUser = createMockUser();
+      const mockGeoData = {
+        country: { name: 'United States' },
+        city: 'New York',
+        continent: 'North America',
+      };
+
+      (getGeoByIp as jest.Mock).mockReturnValue(mockGeoData);
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+
+      await service.findOrCreateByWebAuth(mockTelegramAuthParams, {
+        trackUserLastAuth: true,
+      });
+
+      expect(getGeoByIp).toHaveBeenCalledWith(mockTelegramAuthParams.ip);
+      expect(mockUserLastAuthRepository.upsertUserLastAuth).toHaveBeenCalledWith(
+        {
+          userId: existingUser.id,
+          ip: mockTelegramAuthParams.ip,
+          country: 'United States',
+          city: 'New York',
+          continent: 'North America',
+        },
+        mockEntityManager,
+      );
+    });
+
+    it('should handle geo service errors gracefully', async () => {
+      const existingUser = createMockUser();
+
+      (getGeoByIp as jest.Mock).mockImplementation(() => {
+        throw new Error('Geo service unavailable');
+      });
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+
+      await service.findOrCreateByWebAuth(mockTelegramAuthParams, {
+        trackUserLastAuth: true,
+      });
+
+      expect(mockUserLastAuthRepository.upsertUserLastAuth).toHaveBeenCalledWith(
+        {
+          userId: existingUser.id,
+          ip: mockTelegramAuthParams.ip,
+          country: undefined,
+          city: undefined,
+          continent: undefined,
+        },
+        mockEntityManager,
+      );
+
+      expect(Logger.prototype.error).toHaveBeenCalledWith(
+        'Error while getting geo by ip',
+        expect.objectContaining({
+          ip: mockTelegramAuthParams.ip,
+          error: expect.any(Error),
+        }),
+      );
+    });
+
+    it('should use visit data as fallback for geo information', async () => {
+      const existingUser = createMockUser();
+      const mockVisit = {
+        id: 'visit-123',
+        country: 'Canada',
+        city: 'Toronto',
+        continent: 'North America',
+      } as UserSourceVisitEntity;
+
+      (getGeoByIp as jest.Mock).mockReturnValue(null);
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserVisitService.registerVisit.mockResolvedValue(mockVisit);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+
+      await service.findOrCreateByWebAuth(mockTelegramAuthParams, {
+        trackUserVisit: true,
+        trackUserLastAuth: true,
+      });
+
+      expect(mockUserLastAuthRepository.upsertUserLastAuth).toHaveBeenCalledWith(
+        {
+          userId: existingUser.id,
+          ip: mockTelegramAuthParams.ip,
+          country: 'Canada',
+          city: 'Toronto',
+          continent: 'North America',
+        },
+        mockEntityManager,
+      );
+    });
+
+    it('should handle missing IP address', async () => {
+      const existingUser = createMockUser();
+      const paramsWithoutIp = { ...mockTelegramAuthParams, ip: undefined };
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+
+      await service.findOrCreateByWebAuth(paramsWithoutIp, {
+        trackUserLastAuth: true,
+      });
+
+      expect(getGeoByIp).not.toHaveBeenCalled();
+      expect(mockUserLastAuthRepository.upsertUserLastAuth).toHaveBeenCalledWith(
+        {
+          userId: existingUser.id,
+          ip: undefined,
+          country: undefined,
+          city: undefined,
+          continent: undefined,
+        },
+        mockEntityManager,
+      );
+    });
+  });
+
+  describe('Transaction Handling', () => {
+    it('should handle transaction failures', async () => {
+      const transactionError = new Error('Database transaction failed');
+
+      mockEntityManager.transactional.mockRejectedValue(transactionError);
+
+      await expect(service.findOrCreateByWebAuth(mockTelegramAuthParams)).rejects.toThrow(
+        'Database transaction failed',
+      );
+    });
+
+    it('should rollback on user creation failure', async () => {
+      const createUserError = new Error('User creation failed');
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(null);
+      mockCreateUserService.createUser.mockRejectedValue(createUserError);
+
+      await expect(service.findOrCreateByWebAuth(mockTelegramAuthParams)).rejects.toThrow('User creation failed');
+    });
+
+    it('should handle partial operation failures gracefully', async () => {
+      const existingUser = createMockUser();
+      const visitError = new Error('Visit registration failed');
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserVisitService.registerVisit.mockRejectedValue(visitError);
+
+      await expect(
+        service.findOrCreateByWebAuth(mockTelegramAuthParams, {
+          trackUserVisit: true,
+        }),
+      ).rejects.toThrow('Visit registration failed');
+    });
+  });
+
+  describe('Source Parameter Handling', () => {
+    it('should prefer sourceParams over userSource parsing', async () => {
+      const existingUser = createMockUser();
+      const directSourceParams = {
+        linkType: 'direct',
+        linkCode: 'DIRECT123',
+        refCode: 'DIRECTREF',
+      };
+
+      const paramsWithBoth = {
+        ...mockTelegramAuthParams,
+        sourceParams: directSourceParams,
+        userSource: 'different-source-string',
+      };
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockGetUserRefLinkService.resolveUserRefLink.mockResolvedValue(null);
+
+      await service.findOrCreateByWebAuth(paramsWithBoth);
+
+      expect(mockGetSourceParamsService.parseRequest).not.toHaveBeenCalled();
+      expect(mockGetUserRefLinkService.resolveUserRefLink).toHaveBeenCalledWith(directSourceParams);
+    });
+
+    it('should handle incomplete source parameters', async () => {
+      const existingUser = createMockUser();
+      const incompleteParams = {
+        linkType: 'referral',
+        // Missing linkCode and refCode
+      };
+
+      const paramsWithIncomplete = {
+        ...mockTelegramAuthParams,
+        sourceParams: incompleteParams,
+      };
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      await service.findOrCreateByWebAuth(paramsWithIncomplete);
+
+      expect(mockGetUserRefLinkService.resolveUserRefLink).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Error Scenarios', () => {
+    it('should handle database connection failures', async () => {
+      const dbError = new Error('Database connection lost');
+      mockUserRepository.findOne.mockRejectedValue(dbError);
+
+      await expect(service.findOrCreateByWebAuth(mockTelegramAuthParams)).rejects.toThrow('Database connection lost');
+    });
+
+    it('should handle invalid telegram parameters', async () => {
+      const invalidParams = {
+        ...mockTelegramAuthParams,
+        telegramId: '',
+      };
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(null);
+
+      // Service should handle empty telegramId appropriately
+      await expect(service.findOrCreateByWebAuth(invalidParams)).resolves.toBeDefined();
+    });
+
+    it('should handle concurrent user creation attempts', async () => {
+      const newUser = createMockUser();
+      let callCount = 0;
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return null; // First call - user doesn't exist
+        }
+
+        return newUser; // Second call - user was created by concurrent request
+      });
+
+      mockCreateUserService.createUser.mockRejectedValue(new Error('User already exists'));
+
+      // First request should fail, second should find the user
+      await expect(service.findOrCreateByWebAuth(mockTelegramAuthParams)).rejects.toThrow('User already exists');
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle extremely long input values', async () => {
+      const longString = 'a'.repeat(1000);
+      const paramsWithLongValues = {
+        ...mockTelegramAuthParams,
+        firstName: longString,
+        lastName: longString,
+        username: longString,
+      };
+
+      const existingUser = createMockUser();
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      const result = await service.findOrCreateByWebAuth(paramsWithLongValues);
+
+      expect(result).toEqual(existingUser);
+    });
+
+    it('should handle special characters in user data', async () => {
+      const paramsWithSpecialChars = {
+        ...mockTelegramAuthParams,
+        firstName: "John's",
+        lastName: 'Müller',
+        username: 'user@123',
+      };
+
+      const existingUser = createMockUser();
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      const result = await service.findOrCreateByWebAuth(paramsWithSpecialChars);
+
+      expect(result).toEqual(existingUser);
+    });
+
+    it('should handle null and undefined values gracefully', async () => {
+      const paramsWithNulls = {
+        telegramId: '123456789',
+        firstName: null,
+        lastName: undefined,
+        username: null,
+        languageCode: undefined,
+        ip: null,
+        userSource: undefined,
+        sourceParams: null,
+      } as any;
+
+      const existingUser = createMockUser();
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      const result = await service.findOrCreateByWebAuth(paramsWithNulls);
+
+      expect(result).toEqual(existingUser);
+    });
+  });
+
+  describe('Performance and Memory', () => {
+    it('should process operations under performance threshold', async () => {
+      const existingUser = createMockUser();
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      const start = performance.now();
+      await service.findOrCreateByWebAuth(mockTelegramAuthParams);
+      const duration = performance.now() - start;
+
+      expect(duration).toBeLessThan(100); // Should complete under 100ms
+    });
+
+    it('should handle multiple concurrent requests efficiently', async () => {
+      const users = Array(10)
+        .fill(null)
+        .map((_, i) => createMockUser({ telegramId: `user${i}`, id: `user-${i}` }));
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockImplementation(async (criteria) => {
+        const index = parseInt(criteria.telegramId.replace('user', ''));
+
+        return users[index] || null;
+      });
+
+      const requests = Array(10)
+        .fill(null)
+        .map((_, i) =>
+          service.findOrCreateByWebAuth({
+            ...mockTelegramAuthParams,
+            telegramId: `user${i}`,
+          }),
+        );
+
+      const results = await Promise.all(requests);
+
+      expect(results).toHaveLength(10);
+      results.forEach((result, index) => {
+        expect(result.telegramId).toBe(`user${index}`);
+      });
+    });
+
+    it('should not leak memory during repeated operations', async () => {
+      const existingUser = createMockUser();
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      const initialMemory = process.memoryUsage().heapUsed;
+
+      // Perform many operations
+      for (let i = 0; i < 100; i++) {
+        await service.findOrCreateByWebAuth({
+          ...mockTelegramAuthParams,
+          telegramId: `user${i}`,
+        });
+      }
+
+      // Force garbage collection if available
+      if (global.gc) {
+        global.gc();
+      }
+
+      const finalMemory = process.memoryUsage().heapUsed;
+      const memoryIncrease = finalMemory - initialMemory;
+
+      // Memory increase should be minimal (less than 5MB)
+      expect(memoryIncrease).toBeLessThan(5 * 1024 * 1024);
+    });
+  });
+});

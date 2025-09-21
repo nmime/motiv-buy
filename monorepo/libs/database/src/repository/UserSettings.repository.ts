@@ -160,8 +160,10 @@ export class UserSettingsRepository extends EntityRepository<UserSettingsEntity>
     user: UserEntity,
     settings: Record<string, { value: unknown; type?: SettingType; description?: string }>,
   ): Promise<void> {
-    for (const [key, config] of Object.entries(settings)) {
-      await this.setSetting(user, key, config.value, config.type || SettingType.String, config.description);
-    }
+    const promises = Object.entries(settings).map(([key, config]) =>
+      this.setSetting(user, key, config.value, config.type || SettingType.String, config.description),
+    );
+
+    await Promise.all(promises);
   }
 }

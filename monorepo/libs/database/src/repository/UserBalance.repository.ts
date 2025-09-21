@@ -82,12 +82,12 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
   }
 
   async getTotalBalanceByCurrency(currency: CurrencyType): Promise<string> {
-    const result = await this.em
+    const result = (await this.em
       .getConnection()
       .execute(
         'SELECT SUM(CAST(balance AS DECIMAL(20,8)) + CAST(locked_balance AS DECIMAL(20,8))) as total FROM user_balance WHERE currency = ?',
         [currency],
-      );
+      )) as Array<{ total?: number }>;
 
     return result[0]?.total?.toString() || '0';
   }

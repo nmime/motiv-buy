@@ -51,6 +51,11 @@ Desktop.ini
 **/.nx/installation
 **/.nx/workspace-data
 
+# Nx compiled output in cache
+**/.nx/cache/**/*.js
+**/.nx/cache/**/*.d.ts
+**/.nx/cache/**/*.js.map
+
 # Claude Flow
 **/.claude-flow
 

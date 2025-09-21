@@ -66,9 +66,9 @@ export class TrafficTargetUsersEntity {
       'trafficTarget' | 'trafficUser'
     >,
   ) {
-    assignEntityData(this, data, {
-      trafficTargetId: { field: 'trafficTarget', entityClass: TrafficTargetEntity, required: true },
-      trafficUserId: { field: 'trafficUser', entityClass: TrafficUserEntity, required: true },
+    assignEntityData(this as Record<string, unknown>, data, {
+      trafficTargetId: { field: 'trafficTarget', entityClass: TrafficTargetEntity as any, required: true },
+      trafficUserId: { field: 'trafficUser', entityClass: TrafficUserEntity as any, required: true },
     });
   }
 }

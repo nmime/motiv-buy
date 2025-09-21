@@ -82,7 +82,9 @@ export class AuthService {
     let userData: AuthUserData;
     try {
       userData = JSON.parse(userSearchParam) as AuthUserData;
-    } catch (e) {
+    } catch (error) {
+      this.logger.error('Failed to parse user data', error);
+
       return Err(new TmaDataValidationException('Data validation failed'));
     }
 

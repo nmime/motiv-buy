@@ -11,7 +11,7 @@ export abstract class BaseException<DataType extends OptionalClassConstructor = 
 
   data?: DataType extends undefined
     ? undefined
-    : DataType extends abstract new (...args: any) => any
+    : DataType extends abstract new (...args: unknown[]) => unknown
       ? InstanceType<DataType>
       : never;
 
@@ -35,7 +35,7 @@ export abstract class BaseException<DataType extends OptionalClassConstructor = 
     if ('data' in props) {
       this.data = props.data as DataType extends undefined
         ? undefined
-        : DataType extends abstract new (...args: any) => any
+        : DataType extends abstract new (...args: unknown[]) => unknown
           ? InstanceType<DataType>
           : never;
     }

@@ -63,10 +63,10 @@ export class UserTrafficOrderEntity {
       'user' | 'trafficOrder' | 'assignedBy'
     >,
   ) {
-    assignEntityData(this, data, {
-      userId: { field: 'user', entityClass: UserEntity, required: true },
-      trafficOrderId: { field: 'trafficOrder', entityClass: TrafficOrderEntity, required: true },
-      assignedById: { field: 'assignedBy', entityClass: UserEntity, required: false },
+    assignEntityData(this as Record<string, unknown>, data, {
+      userId: { field: 'user', entityClass: UserEntity as any, required: true },
+      trafficOrderId: { field: 'trafficOrder', entityClass: TrafficOrderEntity as any, required: true },
+      assignedById: { field: 'assignedBy', entityClass: UserEntity as any, required: false },
     });
   }
 }

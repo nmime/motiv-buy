@@ -2,24 +2,24 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNumber, IsEnum, IsOptional, IsArray, Min, Max } from 'class-validator';
 
 export enum TrafficType {
-  PRIVATE_MESSAGES = 'private_messages',
-  GROUP_MESSAGES = 'group_messages',
-  CHANNEL_SUBSCRIBERS = 'channel_subscribers',
-  POST_VIEWS = 'post_views',
+  PrivateMessages = 'private_messages',
+  GroupMessages = 'group_messages',
+  ChannelSubscribers = 'channel_subscribers',
+  PostViews = 'post_views',
 }
 
 export enum OrderStatus {
-  ACTIVE = 'active',
-  PAUSED = 'paused',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
+  Active = 'active',
+  Paused = 'paused',
+  Completed = 'completed',
+  Cancelled = 'cancelled',
 }
 
 export class CreateTrafficOrderDto {
   @ApiProperty({
     description: 'Traffic type',
     enum: TrafficType,
-    example: TrafficType.PRIVATE_MESSAGES,
+    example: TrafficType.PrivateMessages,
   })
   @IsEnum(TrafficType)
   trafficType!: TrafficType;
@@ -78,7 +78,7 @@ export class TrafficOrderResponseDto {
   @ApiProperty({
     description: 'Traffic type',
     enum: TrafficType,
-    example: TrafficType.PRIVATE_MESSAGES,
+    example: TrafficType.PrivateMessages,
   })
   trafficType!: TrafficType;
 
@@ -115,7 +115,7 @@ export class TrafficOrderResponseDto {
   @ApiProperty({
     description: 'Order status',
     enum: OrderStatus,
-    example: OrderStatus.ACTIVE,
+    example: OrderStatus.Active,
   })
   status!: OrderStatus;
 
@@ -148,7 +148,7 @@ export class UpdateTrafficOrderDto {
   @ApiProperty({
     description: 'New order status',
     enum: OrderStatus,
-    example: OrderStatus.PAUSED,
+    example: OrderStatus.Paused,
     required: false,
   })
   @IsOptional()
@@ -171,7 +171,7 @@ export class AvailableTrafficDto {
   @ApiProperty({
     description: 'Available traffic type',
     enum: TrafficType,
-    example: TrafficType.PRIVATE_MESSAGES,
+    example: TrafficType.PrivateMessages,
   })
   trafficType!: TrafficType;
 

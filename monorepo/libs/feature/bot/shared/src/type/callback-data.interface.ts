@@ -84,6 +84,7 @@ export enum MenuActionType {
   Delete = 'delete',
   Edit = 'edit',
   Create = 'create',
+  Execute = 'execute',
 }
 
 /**

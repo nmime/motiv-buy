@@ -36,7 +36,7 @@ export class MenuActionDto {
   })
   @IsOptional()
   @IsObject()
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'User identifier',
@@ -103,7 +103,7 @@ export class MenuActionResponseDto {
   })
   @IsOptional()
   @IsObject()
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 
   constructor(object: MenuActionResponseDto) {
     Object.assign(this, object);

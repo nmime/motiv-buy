@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsObject, IsDate, IsBoolean } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 
 /**
  * Session Data DTO
@@ -28,7 +28,7 @@ export class SessionDataDto {
   })
   @IsOptional()
   @IsObject()
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Session expiration date',
@@ -47,7 +47,7 @@ export class SessionDataDto {
   })
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   constructor(object: SessionDataDto) {
     Object.assign(this, object);
@@ -66,7 +66,7 @@ export class UpdateSessionDto {
   })
   @IsOptional()
   @IsObject()
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Whether to extend session expiration',
@@ -108,7 +108,7 @@ export class SessionResponseDto {
     description: 'Session data',
     type: Object,
   })
-  data!: Record<string, any>;
+  data!: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Session creation timestamp',
@@ -167,7 +167,7 @@ export class ConversationStateDto {
   })
   @IsOptional()
   @IsObject()
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Whether conversation is active',

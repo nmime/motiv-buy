@@ -1,6 +1,5 @@
 import { Module, Global } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { ReflectMetadataProvider } from '@mikro-orm/core';
 import 'reflect-metadata';
 
 import { DatabaseService } from './service/database.service';

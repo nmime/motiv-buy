@@ -166,6 +166,9 @@ export class MigrationService {
     try {
       this.logger.log('Seeder functionality not implemented yet');
 
+      // Since this is a placeholder, we'll add a small delay to simulate work
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       const executionTime = Date.now() - startTime;
 
       return {

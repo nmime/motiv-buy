@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis, RedisClient } from '@app/common-redis';
-import { AuthJwtPayloadDto, UserData } from '../dto';
+import { AuthJwtPayloadDto } from '../dto';
 import { AuthConstant } from '../const';
+import { UserData } from '../type';
 
 @Injectable()
 export class AuthJwtCacheService {
-  private readonly logger = new Logger(AuthJwtCacheService.name);
+  private readonly logger = new Logger(this.constructor.name);
 
   private readonly jwtCachePrefix = 'auth:jwt:';
   private readonly validationCachePrefix = 'auth:validation:';
@@ -67,7 +68,9 @@ export class AuthJwtCacheService {
         return null;
       }
 
-      return new UserData(JSON.parse(cached));
+      const parsedData = JSON.parse(cached) as Partial<UserData>;
+
+      return new UserData(parsedData);
     } catch (error) {
       this.logger.error('Failed to get cached validation:', error);
 

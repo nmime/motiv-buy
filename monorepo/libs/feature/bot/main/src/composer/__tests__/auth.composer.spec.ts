@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Composer, Context } from 'grammy';
 import { AuthComposer } from '../auth.composer';
-import { AuthService } from '@motiv-buy/auth/main';
+import { AuthService } from '@app/feature-auth-main';
 import { SessionService } from '../../service/session.service';
 import { BotService } from '../../service/bot.service';
-import { MenuType } from '@motiv-buy/bot/shared';
+import { MenuType } from '@app/feature-bot-shared';
 
 // Mock Grammy framework
 jest.mock('grammy');

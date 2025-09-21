@@ -97,8 +97,9 @@ export class ProblemResponseTransformer implements NestInterceptor, ExceptionFil
     const request = context.getRequest<Request>();
     const acceptLang = request.headers['accept-language'];
     const xLang = request.headers['x-language'];
-    let langHeader: string = 'en';
+    let langHeader = 'en';
     if (Array.isArray(acceptLang)) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       langHeader = acceptLang[0] || 'en';
     } else if (acceptLang) {
       langHeader = acceptLang;

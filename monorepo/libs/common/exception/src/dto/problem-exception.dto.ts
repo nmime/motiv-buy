@@ -112,7 +112,7 @@ export function getProblemExceptionDtoSchema(params: {
     },
     ...(dataType && {
       info: {
-        $ref: getSchemaPath(dataType as Function),
+        $ref: getSchemaPath(dataType as new () => unknown),
       },
     }),
   };

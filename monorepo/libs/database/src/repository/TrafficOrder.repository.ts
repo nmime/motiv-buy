@@ -101,13 +101,14 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
 
     const order = new TrafficOrderEntity({
       ...otherData,
-      creator: creator as any,
-      trafficSource: trafficSource as any,
-      trafficTarget: trafficTarget as any,
-      assignedTrafficUser: assignedTrafficUser as any,
+      creatorId: typeof creator === 'string' ? creator : creator.getEntity().id,
+      trafficSourceId: typeof trafficSource === 'string' ? trafficSource : trafficSource.getEntity().id,
+      trafficTargetId: typeof trafficTarget === 'string' ? trafficTarget : trafficTarget.getEntity().id,
+      assignedTrafficUserId: assignedTrafficUser ? (typeof assignedTrafficUser === 'string' ? assignedTrafficUser : assignedTrafficUser.getEntity().id) : undefined,
       totalBudget: totalBudget.toString(),
       pricePerAction: pricePerAction.toString(),
-      requirements: typeof requirements === 'string' ? JSON.parse(requirements) : requirements,
+      requirements:
+        typeof requirements === 'string' ? (JSON.parse(requirements) as Record<string, unknown>) : requirements,
       status: TrafficOrderStatus.Pending,
       currentCount: 0,
       spentAmount: '0',
