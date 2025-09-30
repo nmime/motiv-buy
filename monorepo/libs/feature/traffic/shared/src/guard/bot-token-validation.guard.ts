@@ -3,21 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { FastifyRequest } from 'fastify';
 import { BotTokenValidationService } from '../service';
 import { BotTokenValidationDto } from '../dto';
-
-/**
- * Optional Bot Token Validation Key
- */
-export const optionalBotTokenKey = 'bot_token:optional';
-
-/**
- * Required Bot Token Validation Key
- */
-export const requiredBotTokenKey = 'bot_token:required';
-
-/**
- * Bot Token Operation Context Key
- */
-export const botTokenOperationKey = 'bot_token:operation';
+import { optionalBotTokenKey, requiredBotTokenKey, botTokenOperationKey } from '../decorator';
 
 /**
  * Bot Token Validation Guard

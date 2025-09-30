@@ -13,7 +13,6 @@ import {
   UserEntity,
 } from '@app/database';
 import { TrafficTargetMapper, TrafficSourceMapper, TrafficOrderMapper } from './mapper';
-import { ITrafficTargetRepository, ITrafficSourceRepository, ITrafficOrderRepository } from './repository';
 
 @Module({
   imports: [
@@ -25,36 +24,13 @@ import { ITrafficTargetRepository, ITrafficSourceRepository, ITrafficOrderReposi
       UserEntity,
     ]),
   ],
-  controllers: [TrafficController, TrafficOrderController, TrafficTargetController, TrafficSourceController],
+  controllers: [],
   providers: [
     TrafficService,
-    // Repository implementations
-    {
-      provide: ITrafficTargetRepository,
-      useClass: TrafficTargetMapper,
-    },
-    {
-      provide: ITrafficSourceRepository,
-      useClass: TrafficSourceMapper,
-    },
-    {
-      provide: ITrafficOrderRepository,
-      useClass: TrafficOrderMapper,
-    },
-    // Mapper implementations
     TrafficTargetMapper,
     TrafficSourceMapper,
     TrafficOrderMapper,
   ],
-  exports: [
-    TrafficService,
-    TrafficController,
-    TrafficOrderController,
-    TrafficTargetController,
-    TrafficSourceController,
-    ITrafficTargetRepository,
-    ITrafficSourceRepository,
-    ITrafficOrderRepository,
-  ],
+  exports: [TrafficService],
 })
 export class TrafficMainModule {}

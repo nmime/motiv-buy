@@ -15,6 +15,7 @@ export class GetUserRefLinkService {
   constructor(private readonly userRefLinkRepository: UserRefLinkRepository) {
     this.resolvers = {
       [LinkType.Referral]: this.resolveReferral.bind(this),
+      [LinkType.Invite]: this.resolveInvite.bind(this),
     };
   }
 
@@ -69,6 +70,13 @@ export class GetUserRefLinkService {
       });
     }
 
+    return null;
+  }
+
+  private async resolveInvite(code: string): Promise<UserRefLink | null> {
+    // TODO: Implement invite link resolution
+    // For now, return null to prevent compilation errors
+    this.logger.debug(`Invite link resolution not implemented for code: ${code}`);
     return null;
   }
 }

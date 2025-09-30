@@ -1,91 +1,56 @@
 import { Module } from '@nestjs/common';
 import { BotSharedModule } from '@app/feature-bot-shared';
-import { DatabaseModule } from '@app/database';
 import { RedisModule } from '@app/common-redis';
-import { AuthMainModule } from '@app/feature-auth-main';
 import { AuthSharedModule } from '@app/feature-auth-shared';
-import { BalanceMainModule } from '@app/feature-balance-main';
-import { UserMainModule } from '@app/feature-user-main';
-import { StatisticMainModule } from '@app/feature-statistic-main';
-import { TrafficMainModule } from '@app/feature-traffic-main';
-import { BotService, MenuService, SessionService, BotUserService, BotSessionService } from './service';
+import { UserSharedModule } from '@app/feature-user-shared';
+import { BalanceSharedModule } from '@app/feature-balance-shared';
+import { StatisticSharedModule } from '@app/feature-statistic-shared';
+import { TrafficSharedModule } from '@app/feature-traffic-shared';
+import { BotService } from './service';
 import { BotConfigService } from './config';
-import { CommandHandler, MenuHandler, CallbackHandler } from './handler';
-import { BotAuthMiddleware } from './middleware';
+import { MenuService, SessionService } from './service';
 
 /**
  * Bot Main Module
  *
  * Core business logic module for Telegram bot functionality.
- * Integrates with Grammy framework for bot interactions, Redis for session management,
- * and the existing auth system for user authentication and management.
+ * Integrates with Grammy framework for bot interactions and Redis for session management.
  *
  * Features:
  * - Grammy bot initialization and lifecycle management
  * - Redis-based session storage with TTL support
  * - Dynamic menu generation with inline keyboards
- * - Authentication integration with existing auth services
  * - Command processing and callback handling
  * - Error handling and logging
+ *
+ * Architecture:
+ * - Only imports shared modules to avoid circular dependencies
+ * - Provides bot services for use by bot application
+ * - Maintains clean domain boundaries
  *
  * @module BotMainModule
  */
 @Module({
   imports: [
-    // Core infrastructure
-    DatabaseModule,
     RedisModule,
-
-    // Bot-specific modules
     BotSharedModule,
-
-    // Authentication modules
-    AuthMainModule,
     AuthSharedModule,
-
-    // Business domain modules
-    BalanceMainModule,
-    UserMainModule,
-    StatisticMainModule,
-    TrafficMainModule,
+    UserSharedModule,
+    BalanceSharedModule,
+    StatisticSharedModule,
+    TrafficSharedModule,
   ],
   providers: [
-    // Configuration services
     BotConfigService,
-
-    // Core bot services
     BotService,
     MenuService,
     SessionService,
-
-    // Bot authentication services
-    BotUserService,
-    BotSessionService,
-    BotAuthMiddleware,
-
-    // Bot handlers
-    CommandHandler,
-    MenuHandler,
-    CallbackHandler,
   ],
   exports: [
-    // Configuration services
     BotConfigService,
-
-    // Export services for use in applications
     BotService,
     MenuService,
     SessionService,
-
-    // Export authentication services
-    BotUserService,
-    BotSessionService,
-    BotAuthMiddleware,
-
-    // Export handlers for direct use if needed
-    CommandHandler,
-    MenuHandler,
-    CallbackHandler,
   ],
 })
 export class BotMainModule {}

@@ -1,24 +1,57 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health.controller';
 import { DatabaseModule } from '@app/database';
 import { AuthMainModule } from '@app/feature-auth-main';
 import { UserMainModule } from '@app/feature-user-main';
 import { BalanceMainModule } from '@app/feature-balance-main';
 import { StatisticMainModule } from '@app/feature-statistic-main';
+import { TrafficMainModule } from '@app/feature-traffic-main';
+
+import { AuthController } from '@app/feature-auth-main';
+import { UserController } from '@app/feature-user-main';
+import { BalanceController } from '@app/feature-balance-main';
+import { StatisticController, StatisticPublicController } from '@app/feature-statistic-main';
+import {
+  TrafficController,
+  TrafficTargetController,
+  TrafficSourceController,
+  TrafficOrderController,
+} from '@app/feature-traffic-main';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 10,
+      },
+    ]),
     DatabaseModule,
     AuthMainModule,
     UserMainModule,
     BalanceMainModule,
     StatisticMainModule,
+    TrafficMainModule,
   ],
-  controllers: [HealthController],
+  controllers: [
+    HealthController,
+
+    AuthController,
+    UserController,
+    BalanceController,
+    StatisticController,
+    StatisticPublicController,
+    TrafficController,
+    TrafficTargetController,
+    TrafficSourceController,
+    TrafficOrderController,
+  ],
   providers: [],
 })
 export class ApiModule {}

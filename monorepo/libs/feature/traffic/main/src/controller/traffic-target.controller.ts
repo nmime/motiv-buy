@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@app/feature-auth-shared';
-import { ApiProblemExceptions, CurrentUserId } from '@app/common-shared';
+import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
+import { ApiProblemExceptions } from '@app/common-exception';
 import { AsyncResult } from '@app/common-shared';
 import {
   CreateTrafficTargetDto,
@@ -20,7 +20,7 @@ import { TrafficService } from '../service/traffic.service';
 @Controller('traffic/targets')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-@ApiProblemExceptions()
+@ApiProblemExceptions([])
 export class TrafficTargetController {
   constructor(private readonly trafficService: TrafficService) {}
 

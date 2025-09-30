@@ -13,7 +13,7 @@ import {
   Ip,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader } from '@nestjs/swagger';
-import { CurrentUserId, JwtAuthGuard, OptionalAuth } from '@app/feature-auth-shared';
+import { CurrentUserId, JwtAuthGuard } from '@app/feature-auth-shared';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
 import { AsyncResult } from '@app/common-shared';
@@ -61,7 +61,6 @@ export class TrafficController {
 
   @Post('bot-token/validate')
   @HttpCode(HttpStatus.OK)
-  @OptionalAuth()
   @ApiOperation({
     summary: 'Validate bot token for traffic operations',
     description: 'Validates a bot token and returns bot information and permissions for traffic operations',

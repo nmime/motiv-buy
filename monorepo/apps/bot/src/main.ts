@@ -9,7 +9,7 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { BotModule } from './bot.module';
-import { BotService } from './service/bot.service';
+import { BotService } from './service';
 import { createAppConfig } from '@app/common-shared';
 
 async function bootstrap() {

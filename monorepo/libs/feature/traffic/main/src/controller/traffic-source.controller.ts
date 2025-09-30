@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, Ip } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard, OptionalAuthGuard } from '@app/feature-auth-shared';
-import { ApiProblemExceptions, CurrentUserId } from '@app/common-shared';
+import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
+import { ApiProblemExceptions } from '@app/common-exception';
 import { AsyncResult } from '@app/common-shared';
 import {
   CreateBotDto,
@@ -23,7 +23,7 @@ import { OptionalBotToken, RequiredBotToken, CurrentBotAuth, CurrentBotId } from
  */
 @ApiTags('Traffic Sources')
 @Controller('traffic/sources')
-@ApiProblemExceptions()
+@ApiProblemExceptions([])
 export class TrafficSourceController {
   constructor(private readonly trafficService: TrafficService) {}
 
@@ -53,7 +53,6 @@ export class TrafficSourceController {
    * Enhanced features available with bot token
    */
   @Get('available')
-  @UseGuards(OptionalAuthGuard)
   @OptionalBotToken()
   @ApiOperation({
     summary: 'Get available traffic sources',

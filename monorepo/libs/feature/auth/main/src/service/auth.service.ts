@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type { JwtSignOptions } from '@nestjs/jwt';
 import { URL } from 'url';
 import { v4 as uuidV4 } from 'uuid';
 import { checkSignature, validateWebAppData } from '@grammyjs/validator';
@@ -27,7 +28,7 @@ import { AuthUserData } from '../type';
 
 @Injectable()
 export class AuthService {
-  private readonly logger: Logger = new Logger(AuthService.name);
+  private readonly logger: Logger = new Logger(this.constructor.name);
 
   constructor(
     private readonly authUserService: AuthUserService,
@@ -249,42 +250,32 @@ export class AuthService {
     );
   }
 
-  async updateUserLastAuth(userId: string, telegramAuthParams: TelegramAuthParams): Promise<void> {
-    try {
-      const geo = telegramAuthParams.ip ? getGeoByIp(telegramAuthParams.ip) : undefined;
-
-      await this.userLastAuthRepository.upsertUserLastAuth({
-        userId,
-        ip: telegramAuthParams.ip,
-        country: geo?.country?.name,
-        city: geo?.city,
-        continent: geo?.continent,
-      });
-    } catch (error) {
-      this.logger.error('Error updating user last auth', {
-        userId,
-        ip: telegramAuthParams.ip,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
   private async saveKey(payload: AuthJwtPayloadDto): Promise<void> {
     await this.authJwtCacheService.saveJwtKey(payload);
   }
 
   private packPayload(app: PlatformType, userId: string): AuthJwtPayloadDto {
+    const now = Math.floor(Date.now() / 1000);
+    const expiresIn24Hours = now + 24 * 60 * 60;
+
     return new AuthJwtPayloadDto({
       app,
       userId,
       uniqueKey: uuidV4(),
+      jti: uuidV4(),
+      iat: now,
+      exp: expiresIn24Hours,
     });
   }
 
   private async createJwt(payload: AuthJwtPayloadDto): Promise<string> {
     await this.saveKey(payload);
 
-    return this.jwtService.sign(payload, { secret: this.configService.jwtSecret, expiresIn: '1d' });
+    const plainPayload = { ...payload };
+
+    return this.jwtService.signAsync(plainPayload, {
+      secret: this.configService.jwtSecret,
+    });
   }
 
   private hasDevAccess(user: UserEntity): boolean {
