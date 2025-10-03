@@ -35,9 +35,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   private bot: Bot<BotSessionContext> | null = null;
   private isRunning = false;
 
-  constructor(
-    private readonly botConfigService: BotConfigService,
-  ) {}
+  constructor(private readonly botConfigService: BotConfigService) {}
 
   async onModuleInit(): Promise<void> {
     await this.initialize();
@@ -78,6 +76,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
           (ctx as any).userId = ctx.from.id.toString();
           (ctx as any).isAuthenticated = true; // Simplified for now
         }
+
         await next();
       });
 
@@ -260,7 +259,6 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('Bot service shutdown completed');
   }
 
-
   /**
    * Register command handlers
    */
@@ -405,7 +403,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       },
       session: ctx.session,
       state: ctx.userData,
-    };
+    } as unknown as BotContext;
   }
 
   // Command handlers

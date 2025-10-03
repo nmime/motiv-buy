@@ -34,7 +34,7 @@ export class BotUserService {
         firstName: telegramUser.first_name || 'Unknown',
         lastName: telegramUser.last_name,
         languageCode: telegramUser.language_code,
-        platformType: PlatformType.Telegram,
+        platformType: PlatformType.TelegramBot,
         platformData: {
           telegramVersion: 'bot',
           telegramPlatform: 'telegram-bot',

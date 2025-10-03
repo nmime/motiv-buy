@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository } from '@mikro-orm/core';
+import { EntityRepository, EntityManager } from '@mikro-orm/core';
 import { TrafficSourceEntity, TrafficSourceType, UserEntity } from '@app/database';
 import { ITrafficSourceRepository } from '../repository';
 
@@ -16,6 +16,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
     private readonly trafficSourceRepository: EntityRepository<TrafficSourceEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: EntityRepository<UserEntity>,
+    private readonly em: EntityManager,
   ) {}
 
   async create(data: {
@@ -29,7 +30,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
   }): Promise<TrafficSourceEntity> {
     this.logger.log(`Creating traffic source: ${data.name}`);
 
-    const sourceData: any = {
+    const sourceData: Partial<TrafficSourceEntity> = {
       name: data.name,
       description: data.description,
       type: data.type,
@@ -43,7 +44,8 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
     }
 
     const source = new TrafficSourceEntity(sourceData);
-    await this.trafficSourceRepository.persistAndFlush(source);
+    this.em.persist(source);
+    await this.em.flush();
 
     this.logger.log(`Traffic source created with ID: ${source.id}`);
 
@@ -81,7 +83,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
 
     const source = await this.trafficSourceRepository.findOneOrFail({ id });
     this.trafficSourceRepository.assign(source, data);
-    await this.trafficSourceRepository.flush();
+    await this.em.flush();
 
     this.logger.log(`Traffic source updated: ${id}`);
 
@@ -93,12 +95,12 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
 
     const source = await this.trafficSourceRepository.findOneOrFail({ id });
     source.isActive = false;
-    await this.trafficSourceRepository.flush();
+    await this.em.flush();
 
     this.logger.log(`Traffic source deactivated: ${id}`);
   }
 
-  async validateBotToken(botToken: string): Promise<boolean> {
+  validateBotToken(botToken: string): boolean {
     try {
       // This would integrate with Telegram Bot API to validate the token
       // For now, we'll do basic validation
@@ -111,7 +113,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
 
       return tokenPattern.test(botToken);
     } catch (error) {
-      this.logger.error(`Bot token validation failed: ${error.message}`);
+      this.logger.error(`Bot token validation failed: ${error instanceof Error ? error.message : String(error)}`);
 
       return false;
     }

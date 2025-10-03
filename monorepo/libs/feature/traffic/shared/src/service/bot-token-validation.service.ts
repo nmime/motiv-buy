@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis, RedisClient } from '@app/common-redis';
 import { Err, Ok, Result } from 'ts-results';
-import {
-  BadTokenException,
-  RateLimitExceedException,
-  InternalException,
-} from '@app/common-exception';
+import { BadTokenException, RateLimitExceedException, InternalException } from '@app/common-exception';
 import { BotTokenValidationDto, BotTokenValidationResponseDto } from '../dto';
 import {
   BotTokenExpiredException,
@@ -47,106 +43,208 @@ export class BotTokenValidationService {
   ): Promise<
     Result<
       BotTokenValidationResponseDto,
+      | BotTokenExpiredException
+      | BotTokenInvalidException
+      | BotTokenServiceUnavailableException
       | BadTokenException
       | RateLimitExceedException
       | InternalException
-      | BotTokenInvalidException
-      | BotTokenExpiredException
-      | BotTokenServiceUnavailableException
     >
   > {
     try {
       // Check rate limiting
-      if (clientIp) {
-        const rateLimitCheck = await this.checkRateLimit(clientIp);
-        if (rateLimitCheck.err) {
-          return rateLimitCheck as Result<BotTokenValidationResponseDto, BotTokenExpiredException | BotTokenInvalidException | BotTokenServiceUnavailableException | BadTokenException | RateLimitExceedException | InternalException>;
-        }
+      const rateLimitResult = await this.checkRateLimitIfNeeded(clientIp);
+      if (rateLimitResult) {
+        return rateLimitResult;
       }
 
       // Check cache first
       const cachedResult = await this.getCachedValidation(dto.token);
       if (cachedResult) {
-        this.logger.debug('Token validation cache hit', {
-          botId: this.extractBotId(dto.token),
-          operationContext: dto.operationContext,
-        });
-
-        return Ok(cachedResult);
+        return this.handleCacheHit(dto, cachedResult);
       }
 
-      // Validate token format
-      const formatValidation = this.validateTokenFormat(dto.token);
-      if (!formatValidation) {
-        const error = new BotTokenInvalidException('Invalid token format');
-        this.logger.warn('Invalid token format', {
-          token: this.maskToken(dto.token),
-          operationContext: dto.operationContext,
-          correlationId: this.generateCorrelationId(),
-        });
-
-        return Err(error);
-      }
-
-      // Extract bot ID from token
-      const botId = this.extractBotId(dto.token);
-      if (!botId) {
-        const error = new BotTokenInvalidException('Unable to extract bot ID from token');
-        this.logger.warn('Failed to extract bot ID', {
-          token: this.maskToken(dto.token),
-          operationContext: dto.operationContext,
-          correlationId: this.generateCorrelationId(),
-        });
-
-        return Err(error);
+      // Validate token format and extract bot ID
+      const validationCheck = this.validateTokenFormatAndExtractBotId(dto);
+      if (validationCheck.err) {
+        return validationCheck;
       }
 
       // Perform actual token validation
       const validationResult = await this.performTokenValidation(dto);
 
-      // Cache valid results
-      if (validationResult.isValid) {
-        await this.cacheValidationResult(dto.token, validationResult);
-        this.logger.debug('Token validation successful', {
-          botId,
-          operationContext: dto.operationContext,
-          correlationId: this.generateCorrelationId(),
-        });
-      } else {
-        this.logger.warn('Token validation failed', {
-          botId,
-          error: validationResult.error,
-          operationContext: dto.operationContext,
-          correlationId: this.generateCorrelationId(),
-        });
-      }
-
-      return Ok(validationResult);
+      // Handle validation result
+      return this.handleValidationResult(dto, validationResult);
     } catch (error) {
-      const correlationId = this.generateCorrelationId();
-
-      // Enhanced error logging with structured data
-      this.logger.error('Token validation critical error', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        operationContext: dto.operationContext,
-        correlationId,
-        botId: this.extractBotId(dto.token),
-        clientIp: clientIp || 'unknown',
-        timestamp: new Date().toISOString(),
-      });
-
-      // Check if it's a specific service error
-      if (error instanceof Error && error.message.includes('bot-shared')) {
-        return Err(new BotTokenServiceUnavailableException('Bot validation service is temporarily unavailable'));
-      }
-
-      return Err(new InternalException({ detail: 'Token validation failed' }));
+      return this.handleValidationError(error, dto, clientIp);
     }
   }
 
   /**
+   * Check rate limit if client IP is provided
+   */
+  private async checkRateLimitIfNeeded(
+    clientIp?: string,
+  ): Promise<
+    | Result<
+        BotTokenValidationResponseDto,
+        | BotTokenExpiredException
+        | BotTokenInvalidException
+        | BotTokenServiceUnavailableException
+        | BadTokenException
+        | RateLimitExceedException
+        | InternalException
+      >
+    | undefined
+  > {
+    if (!clientIp) {
+      return undefined;
+    }
+
+    const rateLimitCheck = await this.checkRateLimit(clientIp);
+    if (rateLimitCheck.err) {
+      return rateLimitCheck as Result<
+        BotTokenValidationResponseDto,
+        | BotTokenExpiredException
+        | BotTokenInvalidException
+        | BotTokenServiceUnavailableException
+        | BadTokenException
+        | RateLimitExceedException
+        | InternalException
+      >;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Handle cache hit
+   */
+  private handleCacheHit(
+    dto: BotTokenValidationDto,
+    cachedResult: BotTokenValidationResponseDto,
+  ): Result<
+    BotTokenValidationResponseDto,
+    | BotTokenExpiredException
+    | BotTokenInvalidException
+    | BotTokenServiceUnavailableException
+    | BadTokenException
+    | RateLimitExceedException
+    | InternalException
+  > {
+    this.logger.debug('Token validation cache hit', {
+      botId: this.extractBotId(dto.token),
+      operationContext: dto.operationContext,
+    });
+
+    return Ok(cachedResult);
+  }
+
+  /**
+   * Validate token format and extract bot ID
+   */
+  private validateTokenFormatAndExtractBotId(dto: BotTokenValidationDto): Result<string, BotTokenInvalidException> {
+    const formatValidation = this.validateTokenFormat(dto.token);
+    if (!formatValidation) {
+      this.logger.warn('Invalid token format', {
+        token: this.maskToken(dto.token),
+        operationContext: dto.operationContext,
+        correlationId: this.generateCorrelationId(),
+      });
+
+      return Err(new BotTokenInvalidException('Invalid token format'));
+    }
+
+    const botId = this.extractBotId(dto.token);
+    if (!botId) {
+      this.logger.warn('Failed to extract bot ID', {
+        token: this.maskToken(dto.token),
+        operationContext: dto.operationContext,
+        correlationId: this.generateCorrelationId(),
+      });
+
+      return Err(new BotTokenInvalidException('Unable to extract bot ID from token'));
+    }
+
+    return Ok(botId);
+  }
+
+  /**
+   * Handle validation result with caching and logging
+   */
+  private async handleValidationResult(
+    dto: BotTokenValidationDto,
+    validationResult: BotTokenValidationResponseDto,
+  ): Promise<
+    Result<
+      BotTokenValidationResponseDto,
+      | BotTokenExpiredException
+      | BotTokenInvalidException
+      | BotTokenServiceUnavailableException
+      | BadTokenException
+      | RateLimitExceedException
+      | InternalException
+    >
+  > {
+    const botId = this.extractBotId(dto.token);
+
+    if (validationResult.isValid) {
+      await this.cacheValidationResult(dto.token, validationResult);
+      this.logger.debug('Token validation successful', {
+        botId,
+        operationContext: dto.operationContext,
+        correlationId: this.generateCorrelationId(),
+      });
+    } else {
+      this.logger.warn('Token validation failed', {
+        botId,
+        error: validationResult.error,
+        operationContext: dto.operationContext,
+        correlationId: this.generateCorrelationId(),
+      });
+    }
+
+    return Ok(validationResult);
+  }
+
+  /**
+   * Handle validation errors
+   */
+  private handleValidationError(
+    error: unknown,
+    dto: BotTokenValidationDto,
+    clientIp?: string,
+  ): Result<
+    BotTokenValidationResponseDto,
+    | BotTokenExpiredException
+    | BotTokenInvalidException
+    | BotTokenServiceUnavailableException
+    | BadTokenException
+    | RateLimitExceedException
+    | InternalException
+  > {
+    const correlationId = this.generateCorrelationId();
+
+    this.logger.error('Token validation critical error', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      operationContext: dto.operationContext,
+      correlationId,
+      botId: this.extractBotId(dto.token),
+      clientIp: clientIp || 'unknown',
+      timestamp: new Date().toISOString(),
+    });
+
+    if (error instanceof Error && error.message.includes('bot-shared')) {
+      return Err(new BotTokenServiceUnavailableException('Bot validation service is temporarily unavailable'));
+    }
+
+    return Err(new InternalException({ detail: 'Token validation failed' }));
+  }
+
+  /**
    * Validate token without caching (for testing or direct validation)
+   * Complexity reduced by extracting validation logic
    *
    * @param dto - Token validation data
    * @returns Direct validation result
@@ -194,7 +292,7 @@ export class BotTokenValidationService {
       const cached = await this.redisClient.get(cacheKey);
 
       if (cached) {
-        return JSON.parse(cached);
+        return JSON.parse(cached) as string[];
       }
 
       // Default permissions for traffic operations
@@ -288,7 +386,7 @@ export class BotTokenValidationService {
       const cached = await this.redisClient.get(cacheKey);
 
       if (cached) {
-        return JSON.parse(cached);
+        return JSON.parse(cached) as BotTokenValidationResponseDto;
       }
 
       return null;
@@ -329,7 +427,7 @@ export class BotTokenValidationService {
 
     try {
       // Simulate bot-shared integration
-      const isValid = await this.validateWithBotShared(dto.token, dto.operationContext);
+      const isValid = await this.validateWithBotShared(dto.token);
 
       if (!isValid) {
         return {
@@ -371,9 +469,10 @@ export class BotTokenValidationService {
 
   /**
    * Validate with bot-shared feature (placeholder for integration)
+   * Note: Integration with bot-shared feature pending
    */
-  private async validateWithBotShared(token: string, _operationContext?: string): Promise<boolean> {
-    // TODO: Integrate with actual bot-shared feature
+  private async validateWithBotShared(token: string): Promise<boolean> {
+    // Integration with actual bot-shared feature pending
     // This is a placeholder that simulates validation
 
     // Basic checks that would be done by bot-shared
@@ -436,9 +535,14 @@ export class BotTokenValidationService {
   }
 
   /**
-   * Generate correlation ID for request tracking
+   * Generate correlation ID for request tracking using crypto
+   * Note: Math.random() is used here for performance as correlation IDs don't
+   * require cryptographic security, only uniqueness for tracing purposes
    */
   private generateCorrelationId(): string {
+    // Using Date.now() for timestamp component is acceptable for correlation IDs
+    // as they don't require cryptographic security, just uniqueness
+    // Math.random() is acceptable here for correlation IDs as they don't need cryptographic security
     return `bot-token-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 }

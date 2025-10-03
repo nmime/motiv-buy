@@ -8,12 +8,25 @@ export enum TrafficType {
   PostViews = 'post_views',
 }
 
-export enum OrderStatus {
+/**
+ * Traffic Order Status Enum
+ * Consolidated enum for all order statuses
+ * This replaces the old OrderStatus enum for consistency
+ */
+export enum TrafficOrderStatus {
+  Pending = 'pending',
   Active = 'active',
   Paused = 'paused',
   Completed = 'completed',
   Cancelled = 'cancelled',
+  Failed = 'failed',
 }
+
+/**
+ * @deprecated Use TrafficOrderStatus instead
+ * Type alias for backward compatibility
+ */
+export type OrderStatus = TrafficOrderStatus;
 
 export class CreateTrafficOrderDto {
   @ApiProperty({
@@ -114,10 +127,10 @@ export class TrafficOrderResponseDto {
 
   @ApiProperty({
     description: 'Order status',
-    enum: OrderStatus,
-    example: OrderStatus.Active,
+    enum: TrafficOrderStatus,
+    example: TrafficOrderStatus.Active,
   })
-  status!: OrderStatus;
+  status!: TrafficOrderStatus;
 
   @ApiProperty({
     description: 'Progress percentage',
@@ -147,13 +160,13 @@ export class TrafficOrderResponseDto {
 export class UpdateTrafficOrderDto {
   @ApiProperty({
     description: 'New order status',
-    enum: OrderStatus,
-    example: OrderStatus.Paused,
+    enum: TrafficOrderStatus,
+    example: TrafficOrderStatus.Paused,
     required: false,
   })
   @IsOptional()
-  @IsEnum(OrderStatus)
-  status?: OrderStatus;
+  @IsEnum(TrafficOrderStatus)
+  status?: TrafficOrderStatus;
 
   @ApiProperty({
     description: 'Update amount if not started',
@@ -193,3 +206,7 @@ export class AvailableTrafficDto {
   })
   estimatedDeliveryHours!: number;
 }
+
+// Backward compatibility type aliases for controller imports
+export type TrafficOrderDto = TrafficOrderResponseDto;
+export type TrafficOrderStatusDto = Pick<TrafficOrderResponseDto, 'status' | 'progressPercentage'>;

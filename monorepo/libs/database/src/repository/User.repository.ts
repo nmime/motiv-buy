@@ -30,7 +30,13 @@ export class UserRepository extends EntityRepository<UserEntity> {
     languageCode?: string;
     referredBy?: string;
   }): Promise<UserEntity> {
-    const user = new UserEntity(data);
+    const user = new UserEntity({
+      ...data,
+      isActive: true,
+      isVerified: false,
+      isAdmin: false,
+    });
+
     await this.em.persistAndFlush(user);
 
     return user;

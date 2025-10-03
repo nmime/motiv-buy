@@ -20,7 +20,8 @@ export function ApiProblemExceptions(
   exceptions.forEach((item) => {
     const [exception] = item;
 
-    const { kind, dataType } = exception;
+    const { kind } = exception;
+    const { dataType } = exception;
     const status = ExceptionHttpStatusMapper.getHttpStatus(kind);
 
     const statusExceptions = statusExceptionMap.get(status) ?? [];

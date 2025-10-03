@@ -1,5 +1,47 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNumber, IsArray, IsOptional, Min, Max } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsNumber, IsArray, IsOptional, Min, Max, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+/**
+ * Price Settings
+ */
+export class PriceSettings {
+  @ApiProperty({
+    description: 'Base price per unit',
+    example: 0.05,
+  })
+  @IsNumber()
+  @Min(0.01)
+  basePrice!: number;
+
+  @ApiProperty({
+    description: 'Currency code',
+    example: 'USD',
+  })
+  @IsString()
+  currency!: string;
+}
+
+/**
+ * Daily Limits
+ */
+export class DailyLimits {
+  @ApiProperty({
+    description: 'Maximum orders per day',
+    example: 100,
+  })
+  @IsNumber()
+  @Min(1)
+  maxOrders!: number;
+
+  @ApiProperty({
+    description: 'Maximum amount per day',
+    example: 10000,
+  })
+  @IsNumber()
+  @Min(1)
+  maxAmount!: number;
+}
 
 export class BotSettingsDto {
   @ApiProperty({
@@ -7,6 +49,13 @@ export class BotSettingsDto {
     example: 'uuid-bot-id',
   })
   botId!: string;
+
+  @ApiProperty({
+    description: 'Bot username',
+    example: '@my_traffic_bot',
+  })
+  @IsString()
+  botUsername!: string;
 
   @ApiProperty({
     description: 'Enable private messages',
@@ -50,6 +99,24 @@ export class BotSettingsDto {
     example: true,
   })
   isActive!: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Price settings for the bot',
+    type: PriceSettings,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PriceSettings)
+  priceSettings?: PriceSettings;
+
+  @ApiPropertyOptional({
+    description: 'Daily limits for the bot',
+    type: DailyLimits,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DailyLimits)
+  dailyLimits?: DailyLimits;
 }
 
 export class UpdateBotSettingsDto {
@@ -120,4 +187,22 @@ export class UpdateBotSettingsDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Price settings for the bot',
+    type: PriceSettings,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PriceSettings)
+  priceSettings?: PriceSettings;
+
+  @ApiPropertyOptional({
+    description: 'Daily limits for the bot',
+    type: DailyLimits,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DailyLimits)
+  dailyLimits?: DailyLimits;
 }

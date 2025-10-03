@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository } from '@mikro-orm/core';
+import { EntityRepository, EntityManager } from '@mikro-orm/core';
 import {
   TrafficOrderEntity,
   TrafficOrderStatus,
@@ -32,6 +32,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
     private readonly trafficTargetRepository: EntityRepository<TrafficTargetEntity>,
     @InjectRepository(TrafficUserEntity)
     private readonly trafficUserRepository: EntityRepository<TrafficUserEntity>,
+    private readonly em: EntityManager,
   ) {}
 
   async create(data: {
@@ -54,7 +55,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
   }): Promise<TrafficOrderEntity> {
     this.logger.log(`Creating traffic order: ${data.orderId}`);
 
-    const orderData: Partial<TrafficOrderEntity> = {
+    const orderData: any = {
       orderId: data.orderId,
       type: data.type,
       status: data.status,
@@ -80,7 +81,8 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
     }
 
     const order = new TrafficOrderEntity(orderData);
-    await this.trafficOrderRepository.persistAndFlush(order);
+    this.em.persist(order);
+    await this.em.flush();
 
     this.logger.log(`Traffic order created with ID: ${order.id}`);
 
@@ -159,7 +161,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
 
     const order = await this.trafficOrderRepository.findOneOrFail({ id });
     this.trafficOrderRepository.assign(order, data);
-    await this.trafficOrderRepository.flush();
+    await this.em.flush();
 
     this.logger.log(`Traffic order updated: ${id}`);
 
@@ -179,7 +181,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
       order.completedAt = new Date();
     }
 
-    await this.trafficOrderRepository.flush();
+    await this.em.flush();
     this.logger.log(`Order progress updated: ${orderId}`);
   }
 
@@ -189,7 +191,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
     const order = await this.trafficOrderRepository.findOneOrFail({ orderId });
     order.status = TrafficOrderStatus.Completed;
     order.completedAt = new Date();
-    await this.trafficOrderRepository.flush();
+    await this.em.flush();
 
     this.logger.log(`Order completed: ${orderId}`);
   }
@@ -199,7 +201,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
 
     const order = await this.trafficOrderRepository.findOneOrFail({ orderId });
     order.status = TrafficOrderStatus.Cancelled;
-    await this.trafficOrderRepository.flush();
+    await this.em.flush();
 
     this.logger.log(`Order cancelled: ${orderId}`);
   }

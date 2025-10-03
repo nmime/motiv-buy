@@ -1,35 +1,12 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Query,
-  Body,
-  UseGuards,
-  createParamDecorator,
-  ExecutionContext,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
 import { BalanceService } from '../service';
 import { BalanceDto, TransactionDto, TransactionFilterDto, DepositRequestDto, WithdrawalRequestDto } from '../dto';
-import { ApiProblemExceptions, InternalException } from '@app/common-exception';
+import { ApiProblemExceptions, InternalException, UnauthorizedException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
 import { Ok } from 'ts-results';
 import { AsyncResult } from '@app/common-shared';
-
-// Local guards and decorators to avoid cross-library imports
-export const JwtAuthGuard = AuthGuard('jwt');
-
-export const CurrentUserId = createParamDecorator((data: unknown, ctx: ExecutionContext): string => {
-  const request = ctx.switchToHttp().getRequest<{ user?: { id?: string } }>();
-  const userId = request.user?.id;
-  if (!userId) {
-    throw new UnauthorizedException('User not authenticated');
-  }
-
-  return userId;
-});
+import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
 
 @ApiTags('balance')
 @Controller('balance')

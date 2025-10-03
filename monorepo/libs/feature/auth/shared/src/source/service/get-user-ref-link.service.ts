@@ -73,10 +73,10 @@ export class GetUserRefLinkService {
     return null;
   }
 
-  private async resolveInvite(code: string): Promise<UserRefLink | null> {
-    // TODO: Implement invite link resolution
-    // For now, return null to prevent compilation errors
+  private resolveInvite(code: string): Promise<UserRefLink | null> {
+    // NOTE: Invite link resolution pending implementation
     this.logger.debug(`Invite link resolution not implemented for code: ${code}`);
-    return null;
+
+    return Promise.resolve(null);
   }
 }

@@ -13,7 +13,7 @@ import { BotService } from './service';
 import { createAppConfig } from '@app/common-shared';
 
 async function bootstrap() {
-  const app = await NestFactory.create(BotModule);
+  const app = await NestFactory.createApplicationContext(BotModule);
   const configService = app.get(ConfigService);
   const appConfig = createAppConfig(configService);
   const botService = app.get(BotService);

@@ -45,6 +45,17 @@ export class AuthUserService {
     return result.user;
   }
 
+  /**
+   * Find user by Telegram platform ID
+   * @param platformId - Telegram user ID as string
+   * @returns User entity or null if not found
+   */
+  async findByPlatformId(platformId: string): Promise<UserEntity | null> {
+    return await this.usersRepository.findOne({
+      telegramId: platformId,
+    });
+  }
+
   private async findOrCreateWithVisit(
     telegramAuthParams: TelegramAuthParams,
     options?: FindOrCreateOptions,

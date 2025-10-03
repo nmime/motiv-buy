@@ -112,7 +112,8 @@ export class BotNotFoundException extends HttpException {
  */
 export class BotSuspendedException extends HttpException {
   constructor(botId: string, reason?: string, message?: string) {
-    const defaultMessage = `Bot '${botId}' is suspended${reason ? `: ${reason}` : ''}`;
+    const suspensionReason = reason ? ': ' + reason : '';
+    const defaultMessage = `Bot '${botId}' is suspended${suspensionReason}`;
     super(
       {
         error: 'BOT_SUSPENDED',

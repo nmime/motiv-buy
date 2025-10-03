@@ -48,7 +48,7 @@ export class ProblemResponseTransformer implements NestInterceptor, ExceptionFil
     return next.handle().pipe(
       map((result: unknown): unknown => {
         if (Result.isResult(result)) {
-          if (!result.ok) {
+          if (result.err) {
             return this.handleError(context.switchToHttp(), result.val);
           }
 

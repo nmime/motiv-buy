@@ -3,3 +3,7 @@ export * from './type';
 export * from './dto';
 export * from './enum';
 export * from './config';
+export * from './util/callback.util';
+export * from './util/keyboard.util';
+export * from './type/session.interface';
+export * from './type/bot-context.interface';

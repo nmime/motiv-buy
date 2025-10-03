@@ -355,6 +355,7 @@ export const MockBotContextFactory = {
    */
   createCallbackQuery(overrides: Partial<BotContext> = {}): Partial<BotContext> {
     return this.createBasic({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
       callbackQuery: MockCallbackQueryFactory.createBasic() as any,
       ...overrides,
     });

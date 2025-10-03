@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { MenuType } from '../menu-type.enum';
 
 describe('MenuType Enum', () => {
@@ -215,9 +218,9 @@ describe('MenuType Enum', () => {
       // Perform many enum operations
       for (let i = 0; i < 10000; i++) {
         const menu = MenuType.Profile;
-        const isMain = menu === MenuType.Main;
-        const values = Object.values(MenuType);
-        const includes = values.includes(menu);
+        menu === MenuType.Main; // Check if main
+        Object.values(MenuType); // Get values
+        Object.values(MenuType).includes(menu); // Check includes
       }
 
       const duration = performance.now() - start;

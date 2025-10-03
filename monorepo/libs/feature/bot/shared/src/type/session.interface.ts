@@ -23,6 +23,7 @@ export interface SessionInterface {
   expiresAt: Date;
 
   /** Session metadata */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
 }
 
@@ -61,7 +62,7 @@ export interface ConversationState {
   currentStep: string;
 
   /** Available next steps */
-  availableSteps: string[];
+  availableSteps?: string[];
 
   /** Conversation context */
   context: Record<string, any>;
@@ -70,7 +71,7 @@ export interface ConversationState {
   isActive: boolean;
 
   /** Conversation start time */
-  startedAt: Date;
+  startedAt?: Date | string;
 }
 
 /**

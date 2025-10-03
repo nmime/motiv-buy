@@ -324,7 +324,7 @@ export class MenuHandler {
         return baseConfig;
       }
 
-      const balance = await this.balanceService.getUserBalance(user.id);
+      const balance = await this.balanceService.getBalance(user.id);
       const hasNotifications = false; // TODO: Check for unread notifications
 
       // Update title with balance info
@@ -364,7 +364,7 @@ export class MenuHandler {
         return baseConfig;
       }
 
-      const balance = await this.balanceService.getUserBalance(user.id);
+      const balance = await this.balanceService.getBalance(user.id);
 
       // Update description with current balance info
       const enhancedDescription = `

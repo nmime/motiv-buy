@@ -15,14 +15,18 @@
       }
     },
     "serve": {
-      "executor": "@nx/js:node",
+      "executor": "nx:run-commands",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "bot:build"
+        "command": "node -r @swc-node/register apps/bot/src/main.ts",
+        "cwd": "{workspaceRoot}",
+        "envFile": "{workspaceRoot}/.env"
       },
       "configurations": {
         "development": {
-          "buildTarget": "bot:build:development"
+          "command": "node -r @swc-node/register apps/bot/src/main.ts",
+          "cwd": "{workspaceRoot}",
+          "envFile": "{workspaceRoot}/.env"
         },
         "production": {
           "buildTarget": "bot:build:production"

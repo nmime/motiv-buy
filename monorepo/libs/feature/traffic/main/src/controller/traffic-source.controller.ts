@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, Ip } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards, Ip } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
-import { ApiProblemExceptions } from '@app/common-exception';
+import { ApiProblemExceptions, InternalException } from '@app/common-exception';
+import { ClientDataProblemValidationException } from '@app/common-validation';
 import { AsyncResult } from '@app/common-shared';
 import {
   CreateBotDto,
@@ -11,11 +12,12 @@ import {
   BotSettingsDto,
   BotTokenValidationDto,
   BotTokenValidationResultDto,
-  TrafficSourceDto,
-  TrafficSourceStatsDto,
+  BotResponseDto,
+  AvailableTrafficDto,
+  BotCreationResponseDto,
 } from '@app/feature-traffic-shared';
 import { TrafficService } from '../service/traffic.service';
-import { OptionalBotToken, RequiredBotToken, CurrentBotAuth, CurrentBotId } from '@app/feature-traffic-shared';
+import { OptionalBotToken, RequiredBotToken } from '@app/feature-traffic-shared';
 
 /**
  * Traffic Source Controller
@@ -23,7 +25,10 @@ import { OptionalBotToken, RequiredBotToken, CurrentBotAuth, CurrentBotId } from
  */
 @ApiTags('Traffic Sources')
 @Controller('traffic/sources')
-@ApiProblemExceptions([])
+@ApiProblemExceptions([
+  [InternalException, { description: 'Internal server error occurred' }],
+  [ClientDataProblemValidationException, { description: 'Request validation failed' }],
+])
 export class TrafficSourceController {
   constructor(private readonly trafficService: TrafficService) {}
 
@@ -36,8 +41,7 @@ export class TrafficSourceController {
     summary: 'Validate bot token',
     description: 'Validate bot token for traffic operations (optional authentication)',
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Token validation result',
     type: BotTokenValidationResultDto,
   })
@@ -45,7 +49,9 @@ export class TrafficSourceController {
     @Body() dto: BotTokenValidationDto,
     @Ip() clientIp: string,
   ): Promise<AsyncResult<BotTokenValidationResultDto, Error>> {
-    return this.trafficService.validateBotToken(dto, clientIp);
+    const result = await this.trafficService.validateBotToken(dto, clientIp);
+
+    return { ok: true, val: result } as unknown as AsyncResult<BotTokenValidationResultDto, Error>;
   }
 
   /**
@@ -82,27 +88,14 @@ export class TrafficSourceController {
     description: 'Quality filter',
     enum: ['low', 'medium', 'high', 'premium'],
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Available traffic sources retrieved successfully',
-    type: [TrafficSourceDto],
+    type: [AvailableTrafficDto],
   })
-  async getAvailableTrafficSources(
-    @Query('category') category?: string,
-    @Query('minPrice') minPrice?: number,
-    @Query('maxPrice') maxPrice?: number,
-    @Query('quality') quality?: string,
-    @CurrentBotAuth() botAuth?: unknown,
-    @CurrentBotId() botId?: string,
-  ): Promise<AsyncResult<TrafficSourceDto[], Error>> {
-    return this.trafficService.getAvailableTraffic({
-      category,
-      minPrice,
-      maxPrice,
-      quality,
-      botAuth,
-      botId,
-    });
+  async getAvailableTrafficSources(): Promise<AsyncResult<AvailableTrafficDto[], Error>> {
+    const result = await this.trafficService.getAvailableTraffic();
+
+    return { ok: true, val: result } as unknown as AsyncResult<AvailableTrafficDto[], Error>;
   }
 
   /**
@@ -117,18 +110,17 @@ export class TrafficSourceController {
     summary: 'Create traffic source bot',
     description: 'Create a new bot to provide traffic (requires bot token)',
   })
-  @ApiResponse({
-    status: 201,
+  @ApiOkResponse({
     description: 'Traffic source bot created successfully',
     type: BotDto,
   })
   async createTrafficSourceBot(
     @Body() dto: CreateBotDto,
     @CurrentUserId() userId: string,
-    @CurrentBotAuth() botAuth: unknown,
-    @CurrentBotId() _botId: string,
-  ): Promise<AsyncResult<BotDto, Error>> {
-    return this.trafficService.createBot(dto, userId, botAuth);
+  ): Promise<AsyncResult<BotCreationResponseDto, Error>> {
+    const result = await this.trafficService.createBot(dto, userId);
+
+    return { ok: true, val: result } as unknown as AsyncResult<BotCreationResponseDto, Error>;
   }
 
   /**
@@ -143,17 +135,13 @@ export class TrafficSourceController {
     summary: 'Get managed traffic source bots',
     description: 'Get all bots managed by the current user (requires bot token)',
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Managed bots retrieved successfully',
     type: [BotDto],
   })
-  async getManagedBots(
-    @CurrentUserId() userId: string,
-    @CurrentBotAuth() botAuth: unknown,
-    @CurrentBotId() _botId: string,
-  ): Promise<AsyncResult<BotDto[], Error>> {
-    return this.trafficService.getUserBots(userId, botAuth);
+  async getManagedBots(@CurrentUserId() userId: string): Promise<AsyncResult<BotResponseDto[], Error>> {
+    const result = await this.trafficService.getUserBots(userId);
+    return { ok: true, val: result } as any;
   }
 
   /**
@@ -172,17 +160,16 @@ export class TrafficSourceController {
     description: 'Bot ID',
     type: String,
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Bot details retrieved successfully',
     type: BotDto,
   })
   async getBotDetails(
     @Param('botId') botId: string,
     @CurrentUserId() userId: string,
-    @CurrentBotAuth() botAuth: unknown,
-  ): Promise<AsyncResult<BotDto, Error>> {
-    return this.trafficService.getBotDetails(botId, userId, botAuth);
+  ): Promise<AsyncResult<BotResponseDto, Error>> {
+    const result = await this.trafficService.getBotDetails(botId, userId);
+    return { ok: true, val: result } as any;
   }
 
   /**
@@ -201,8 +188,7 @@ export class TrafficSourceController {
     description: 'Bot ID',
     type: String,
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Bot settings updated successfully',
     type: BotSettingsDto,
   })
@@ -210,9 +196,9 @@ export class TrafficSourceController {
     @Param('botId') botId: string,
     @Body() dto: UpdateBotSettingsDto,
     @CurrentUserId() userId: string,
-    @CurrentBotAuth() botAuth: unknown,
   ): Promise<AsyncResult<BotSettingsDto, any>> {
-    return this.trafficService.updateBotSettings(botId, dto, userId, botAuth);
+    const result = await this.trafficService.updateBotSettings(botId, dto, userId);
+    return { ok: true, val: result } as any;
   }
 
   /**
@@ -231,116 +217,15 @@ export class TrafficSourceController {
     description: 'Bot ID',
     type: String,
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Bot action performed successfully',
-    type: BotDto,
   })
   async performBotAction(
     @Param('botId') botId: string,
     @Body() dto: BotActionDto,
     @CurrentUserId() userId: string,
-    @CurrentBotAuth() botAuth: unknown,
-  ): Promise<AsyncResult<BotDto, Error>> {
-    return this.trafficService.performBotAction(botId, dto, userId, botAuth);
-  }
-
-  /**
-   * Delete traffic source bot
-   */
-  @Delete('bots/:botId')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @RequiredBotToken()
-  @ApiOperation({
-    summary: 'Delete traffic source bot',
-    description: 'Permanently delete a traffic source bot',
-  })
-  @ApiParam({
-    name: 'botId',
-    description: 'Bot ID',
-    type: String,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Bot deleted successfully',
-  })
-  async deleteBot(
-    @Param('botId') botId: string,
-    @CurrentUserId() userId: string,
-    @CurrentBotAuth() botAuth: unknown,
-  ): Promise<AsyncResult<void, any>> {
-    return this.trafficService.performBotAction(botId, { action: 'delete' }, userId, botAuth);
-  }
-
-  /**
-   * Get bot statistics
-   */
-  @Get('bots/:botId/stats')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @RequiredBotToken()
-  @ApiOperation({
-    summary: 'Get bot statistics',
-    description: 'Get detailed statistics for a traffic source bot',
-  })
-  @ApiParam({
-    name: 'botId',
-    description: 'Bot ID',
-    type: String,
-  })
-  @ApiQuery({
-    name: 'period',
-    required: false,
-    description: 'Statistics period',
-    enum: ['24h', '7d', '30d', '90d'],
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Bot statistics retrieved successfully',
-    type: TrafficSourceStatsDto,
-  })
-  async getBotStats(
-    @Param('botId') botId: string,
-    @CurrentUserId() userId: string,
-    @CurrentBotAuth() botAuth: unknown,
-    @Query('period') period = '7d',
-  ): Promise<AsyncResult<TrafficSourceStatsDto, any>> {
-    return this.trafficService.getBotStats(botId, userId, period, botAuth);
-  }
-
-  /**
-   * Get bot earnings
-   */
-  @Get('bots/:botId/earnings')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @RequiredBotToken()
-  @ApiOperation({
-    summary: 'Get bot earnings',
-    description: 'Get earnings information for a traffic source bot',
-  })
-  @ApiParam({
-    name: 'botId',
-    description: 'Bot ID',
-    type: String,
-  })
-  @ApiQuery({
-    name: 'period',
-    required: false,
-    description: 'Earnings period',
-    enum: ['24h', '7d', '30d', '90d'],
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Bot earnings retrieved successfully',
-  })
-  async getBotEarnings(
-    @Param('botId') botId: string,
-    @CurrentUserId() userId: string,
-    @CurrentBotAuth() botAuth: unknown,
-    @Query('period') period = '30d',
-  ): Promise<AsyncResult<any, any>> {
-    return this.trafficService.getBotEarnings(botId, userId, period, botAuth);
+  ): Promise<AsyncResult<{ message: string }, Error>> {
+    const result = await this.trafficService.performBotAction(botId, dto, userId);
+    return { ok: true, val: result } as any;
   }
 }

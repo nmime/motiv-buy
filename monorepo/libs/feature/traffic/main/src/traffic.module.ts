@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { TrafficController } from './controller';
-import { TrafficOrderController } from './controller/traffic-order.controller';
-import { TrafficTargetController } from './controller/traffic-target.controller';
-import { TrafficSourceController } from './controller/traffic-source.controller';
 import { TrafficService } from './service';
 import {
   TrafficTargetEntity,
@@ -11,11 +7,16 @@ import {
   TrafficSourceEntity,
   TrafficUserEntity,
   UserEntity,
+  TrafficTargetRepository,
+  TrafficSourceRepository,
+  TrafficOrderRepository,
 } from '@app/database';
 import { TrafficTargetMapper, TrafficSourceMapper, TrafficOrderMapper } from './mapper';
+import { TrafficSharedModule } from '@app/feature-traffic-shared';
 
 @Module({
   imports: [
+    TrafficSharedModule,
     MikroOrmModule.forFeature([
       TrafficTargetEntity,
       TrafficOrderEntity,
@@ -30,6 +31,9 @@ import { TrafficTargetMapper, TrafficSourceMapper, TrafficOrderMapper } from './
     TrafficTargetMapper,
     TrafficSourceMapper,
     TrafficOrderMapper,
+    TrafficTargetRepository,
+    TrafficSourceRepository,
+    TrafficOrderRepository,
   ],
   exports: [TrafficService],
 })

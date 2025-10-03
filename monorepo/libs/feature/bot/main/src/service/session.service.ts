@@ -140,7 +140,9 @@ export class SessionService {
           conversationState: session.data.conversationState
             ? {
                 ...session.data.conversationState,
-                startedAt: new Date(session.data.conversationState.startedAt),
+                startedAt: session.data.conversationState.startedAt
+                  ? new Date(session.data.conversationState.startedAt)
+                  : new Date(),
               }
             : undefined,
         },

@@ -29,6 +29,12 @@ export interface BotContext extends Context, SessionFlavor<BotSessionData> {
 
   /** Request metadata */
   metadata?: BotContextMetadata;
+
+  /** Reply with HTML formatted text */
+  replyWithHTML(text: string, extra?: BotReplyExtra): Promise<any>;
+
+  /** Reply with Markdown formatted text */
+  replyWithMarkdown(text: string, extra?: BotReplyExtra): Promise<any>;
 }
 
 /**
@@ -365,6 +371,7 @@ export interface BotInlineKeyboardButton {
   switch_inline_query_current_chat?: string;
 
   /** Description of the game that will be launched when the user presses the button */
+  // eslint-disable-next-line @typescript-eslint/no-restricted-types
   callback_game?: object;
 
   /** Specify True, to send a Pay button */
@@ -429,6 +436,7 @@ export interface BotKeyboardButtonPollType {
  *
  * Extended session data structure for bot interactions.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface BotSessionData extends Record<string, any> {
   /** User session ID */
   sessionId?: string;
@@ -461,6 +469,21 @@ export interface BotSessionData extends Record<string, any> {
  * Additional state information for bot context.
  */
 export interface BotStateData {
+  /** Telegram user ID */
+  id?: string;
+
+  /** User's first name */
+  firstName?: string;
+
+  /** User's last name */
+  lastName?: string;
+
+  /** User's username */
+  username?: string;
+
+  /** User's language code */
+  languageCode?: string;
+
   /** Current menu state */
   currentMenu?: string;
 
@@ -537,6 +560,7 @@ export interface BotMenuContext {
   currentMenu?: string;
 
   /** Menu parameters */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   menuParams?: Record<string, any>;
 
   /** Menu breadcrumb */
@@ -579,6 +603,7 @@ export interface BotContextMetadata {
   };
 
   /** Debug information */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   debug?: Record<string, any>;
 
   /** Bot version */

@@ -11,7 +11,7 @@ type Options = {
 };
 
 export const Health = (options: Options) => {
-  const decorators: Array<ClassDecorator | MethodDecorator | PropertyDecorator> = [];
+  const decorators: (ClassDecorator | MethodDecorator | PropertyDecorator)[] = [];
 
   decorators.push(HealthCheck({ swaggerDocumentation: false }));
 

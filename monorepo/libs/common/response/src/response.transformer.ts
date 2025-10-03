@@ -29,7 +29,7 @@ export class ResponseTransformer implements NestInterceptor, ExceptionFilter {
     return next.handle().pipe(
       map((result: unknown): unknown => {
         if (Result.isResult(result)) {
-          if (!result.ok) {
+          if (result.err) {
             throw result.val;
           }
 

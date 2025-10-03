@@ -334,7 +334,7 @@ export class CommandHandler {
       }
 
       // Get balance details
-      const balance = await this.balanceService.getUserBalance(user.id);
+      const balance = await this.balanceService.getBalance(user.id);
 
       const balanceText = `
 <b>💰 Your Balance</b>
@@ -734,7 +734,7 @@ Export your data in various formats:
       }
 
       const session = await this.sessionService.getSession(userId);
-      const balance = await this.balanceService.getUserBalance(user.id);
+      const balance = await this.balanceService.getBalance(user.id);
 
       const statusText = `
 <b>📊 Account Status</b>

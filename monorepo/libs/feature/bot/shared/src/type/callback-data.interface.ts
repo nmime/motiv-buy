@@ -14,6 +14,7 @@ export interface CallbackData {
   params?: string[];
 
   /** Additional metadata */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
 
   /** Callback timestamp */

@@ -40,17 +40,7 @@ import { MenuService, SessionService } from './service';
     StatisticSharedModule,
     TrafficSharedModule,
   ],
-  providers: [
-    BotConfigService,
-    BotService,
-    MenuService,
-    SessionService,
-  ],
-  exports: [
-    BotConfigService,
-    BotService,
-    MenuService,
-    SessionService,
-  ],
+  providers: [BotConfigService, BotService, MenuService, SessionService],
+  exports: [BotConfigService, BotService, MenuService, SessionService],
 })
 export class BotMainModule {}

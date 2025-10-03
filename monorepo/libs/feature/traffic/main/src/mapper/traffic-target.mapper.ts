@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository } from '@mikro-orm/core';
+import { EntityRepository, EntityManager } from '@mikro-orm/core';
 import { TrafficTargetEntity, TrafficTargetType, UserEntity } from '@app/database';
 import { ITrafficTargetRepository } from '../repository';
 
@@ -16,6 +16,7 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
     private readonly trafficTargetRepository: EntityRepository<TrafficTargetEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: EntityRepository<UserEntity>,
+    private readonly em: EntityManager,
   ) {}
 
   async create(data: {
@@ -33,7 +34,7 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
   }): Promise<TrafficTargetEntity> {
     this.logger.log(`Creating traffic target: ${data.name}`);
 
-    const targetData: any = {
+    const targetData: Partial<TrafficTargetEntity> = {
       name: data.name,
       description: data.description,
       type: data.type,
@@ -51,7 +52,8 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
     }
 
     const target = new TrafficTargetEntity(targetData);
-    await this.trafficTargetRepository.persistAndFlush(target);
+    this.em.persist(target);
+    await this.em.flush();
 
     this.logger.log(`Traffic target created with ID: ${target.id}`);
 
@@ -89,7 +91,7 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
 
     const target = await this.trafficTargetRepository.findOneOrFail({ id });
     this.trafficTargetRepository.assign(target, data);
-    await this.trafficTargetRepository.flush();
+    await this.em.flush();
 
     this.logger.log(`Traffic target updated: ${id}`);
 
@@ -101,7 +103,7 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
 
     const target = await this.trafficTargetRepository.findOneOrFail({ id });
     target.isActive = false;
-    await this.trafficTargetRepository.flush();
+    await this.em.flush();
 
     this.logger.log(`Traffic target deactivated: ${id}`);
   }

@@ -4,7 +4,6 @@ import { ReflectMetadataProvider } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
 import 'reflect-metadata';
 import { DatabaseConfig } from './database.config';
-import { getCacheConfig, type CacheConfig } from './cache.config';
 
 import {
   UserEntity,

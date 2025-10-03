@@ -753,7 +753,7 @@ export class AuthComposer {
         ip: '0.0.0.0', // Bot doesn't have IP info
       });
 
-      if (authResult.success) {
+      if (authResult.ok) {
         // Create initial session
         await this.sessionService.createSession(userId, {
           conversationState: {

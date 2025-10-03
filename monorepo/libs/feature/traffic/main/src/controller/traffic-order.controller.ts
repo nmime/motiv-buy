@@ -1,14 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
-import { ApiProblemExceptions } from '@app/common-exception';
+import { ApiProblemExceptions, InternalException } from '@app/common-exception';
+import { ClientDataProblemValidationException } from '@app/common-validation';
 import { AsyncResult } from '@app/common-shared';
 import {
   CreateTrafficOrderDto,
   TrafficOrderDto,
   UpdateTrafficOrderDto,
-  TrafficOrderStatusDto,
-  TrafficOrderStatsDto,
+  TrafficOrderResponseDto,
 } from '@app/feature-traffic-shared';
 import { TrafficService } from '../service/traffic.service';
 
@@ -20,34 +20,31 @@ import { TrafficService } from '../service/traffic.service';
 @Controller('traffic/orders')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-@ApiProblemExceptions([])
+@ApiProblemExceptions([
+  [InternalException, { description: 'Internal server error occurred' }],
+  [ClientDataProblemValidationException, { description: 'Request validation failed' }],
+])
 export class TrafficOrderController {
   constructor(private readonly trafficService: TrafficService) {}
 
-  /**
-   * Create a new traffic order
-   * Creates both traffic target and order in a single transaction
-   */
   @Post()
   @ApiOperation({
     summary: 'Create traffic order',
     description: 'Create a new traffic order with automatic target creation',
   })
-  @ApiResponse({
-    status: 201,
+  @ApiOkResponse({
     description: 'Traffic order created successfully',
     type: TrafficOrderDto,
   })
   async createTrafficOrder(
     @Body() dto: CreateTrafficOrderDto,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderDto, Error>> {
-    return this.trafficService.createTrafficOrder(dto, userId);
+  ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
+    const result = await this.trafficService.createTrafficOrder(dto, userId);
+
+    return { ok: true, val: result } as unknown as AsyncResult<TrafficOrderResponseDto, Error>;
   }
 
-  /**
-   * Get user's traffic orders
-   */
   @Get()
   @ApiOperation({
     summary: 'Get user traffic orders',
@@ -71,8 +68,7 @@ export class TrafficOrderController {
     description: 'Number of orders to skip',
     type: Number,
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'User traffic orders retrieved successfully',
     type: [TrafficOrderDto],
   })
@@ -81,17 +77,11 @@ export class TrafficOrderController {
     @Query('status') status?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
-  ): Promise<AsyncResult<TrafficOrderDto[], Error>> {
-    return this.trafficService.getUserTrafficOrders(userId, {
-      status,
-      limit,
-      offset,
-    });
+  ): Promise<AsyncResult<TrafficOrderResponseDto[], Error>> {
+    const result = await this.trafficService.getUserTrafficOrders(userId);
+    return { ok: true, val: result } as any;
   }
 
-  /**
-   * Get specific traffic order details
-   */
   @Get(':orderId')
   @ApiOperation({
     summary: 'Get traffic order details',
@@ -102,21 +92,18 @@ export class TrafficOrderController {
     description: 'Traffic order ID',
     type: String,
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Traffic order details retrieved successfully',
     type: TrafficOrderDto,
   })
   async getTrafficOrder(
     @Param('orderId') orderId: string,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderDto, Error>> {
-    return this.trafficService.getTrafficOrder(orderId, userId);
+  ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
+    const result = await this.trafficService.getTrafficOrder(orderId, userId);
+    return { ok: true, val: result } as any;
   }
 
-  /**
-   * Update traffic order
-   */
   @Patch(':orderId')
   @ApiOperation({
     summary: 'Update traffic order',
@@ -127,8 +114,7 @@ export class TrafficOrderController {
     description: 'Traffic order ID',
     type: String,
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Traffic order updated successfully',
     type: TrafficOrderDto,
   })
@@ -136,13 +122,11 @@ export class TrafficOrderController {
     @Param('orderId') orderId: string,
     @Body() dto: UpdateTrafficOrderDto,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderDto, Error>> {
-    return this.trafficService.updateTrafficOrder(orderId, dto, userId);
+  ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
+    const result = await this.trafficService.updateTrafficOrder(orderId, dto, userId);
+    return { ok: true, val: result } as any;
   }
 
-  /**
-   * Cancel traffic order
-   */
   @Delete(':orderId')
   @ApiOperation({
     summary: 'Cancel traffic order',
@@ -153,66 +137,14 @@ export class TrafficOrderController {
     description: 'Traffic order ID',
     type: String,
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Traffic order cancelled successfully',
-    type: TrafficOrderStatusDto,
   })
   async cancelTrafficOrder(
     @Param('orderId') orderId: string,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderStatusDto, Error>> {
-    return this.trafficService.cancelTrafficOrder(orderId, userId);
-  }
-
-  /**
-   * Get traffic order statistics
-   */
-  @Get(':orderId/stats')
-  @ApiOperation({
-    summary: 'Get traffic order statistics',
-    description: 'Retrieve detailed statistics and progress for a traffic order',
-  })
-  @ApiParam({
-    name: 'orderId',
-    description: 'Traffic order ID',
-    type: String,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Traffic order statistics retrieved successfully',
-    type: TrafficOrderStatsDto,
-  })
-  async getTrafficOrderStats(
-    @Param('orderId') orderId: string,
-    @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderStatsDto, Error>> {
-    return this.trafficService.getTrafficOrderStats(orderId, userId);
-  }
-
-  /**
-   * Pause/Resume traffic order
-   */
-  @Patch(':orderId/status')
-  @ApiOperation({
-    summary: 'Update traffic order status',
-    description: 'Pause, resume, or modify traffic order execution status',
-  })
-  @ApiParam({
-    name: 'orderId',
-    description: 'Traffic order ID',
-    type: String,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Traffic order status updated successfully',
-    type: TrafficOrderStatusDto,
-  })
-  async updateTrafficOrderStatus(
-    @Param('orderId') orderId: string,
-    @Body() dto: TrafficOrderStatusDto,
-    @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderStatusDto, Error>> {
-    return this.trafficService.updateTrafficOrderStatus(orderId, dto, userId);
+  ): Promise<AsyncResult<{ message: string }, Error>> {
+    const result = await this.trafficService.cancelTrafficOrder(orderId, userId);
+    return { ok: true, val: result } as any;
   }
 }

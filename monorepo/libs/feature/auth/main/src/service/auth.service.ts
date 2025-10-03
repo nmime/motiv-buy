@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { JwtSignOptions } from '@nestjs/jwt';
 import { URL } from 'url';
 import { v4 as uuidV4 } from 'uuid';
 import { checkSignature, validateWebAppData } from '@grammyjs/validator';
@@ -13,7 +12,6 @@ import {
   AuthResultDto,
   AuthUserService,
   TelegramAuthParams,
-  getGeoByIp,
 } from '@app/feature-auth-shared';
 import {
   NotInDevModeException,

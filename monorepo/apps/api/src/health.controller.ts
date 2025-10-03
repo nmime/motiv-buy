@@ -1,9 +1,17 @@
 import { Controller, Get } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+import { HealthResponseDto } from '@app/common-health';
 
+@ApiTags('health')
 @Controller('health')
 export class HealthController {
   @Get()
-  health() {
+  @ApiOperation({ summary: 'Check application health status' })
+  @ApiOkResponse({
+    type: HealthResponseDto,
+    description: 'Application health status retrieved successfully',
+  })
+  health(): HealthResponseDto {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -13,7 +21,12 @@ export class HealthController {
   }
 
   @Get('ready')
-  ready() {
+  @ApiOperation({ summary: 'Check if application is ready to serve traffic' })
+  @ApiOkResponse({
+    type: HealthResponseDto,
+    description: 'Application readiness status retrieved successfully',
+  })
+  ready(): HealthResponseDto {
     return {
       status: 'ready',
       timestamp: new Date().toISOString(),
@@ -21,7 +34,12 @@ export class HealthController {
   }
 
   @Get('live')
-  live() {
+  @ApiOperation({ summary: 'Check if application is alive' })
+  @ApiOkResponse({
+    type: HealthResponseDto,
+    description: 'Application liveness status retrieved successfully',
+  })
+  live(): HealthResponseDto {
     return {
       status: 'alive',
       timestamp: new Date().toISOString(),

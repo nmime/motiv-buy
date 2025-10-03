@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException,
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityRepository, EntityManager } from '@mikro-orm/core';
 import {
-  ITrafficService,
   CreateBotDto,
   BotValidationDto,
   BotCreationResponseDto,
@@ -17,7 +16,6 @@ import {
   BotStatus,
   BotAction,
   TrafficType,
-  OrderStatus,
   BotTokenValidationDto,
   BotTokenValidationResponseDto,
 } from '@app/feature-traffic-shared';
@@ -25,15 +23,15 @@ import {
   TrafficTargetEntity,
   TrafficSourceEntity,
   TrafficOrderEntity,
-  TrafficUserEntity,
   TrafficTargetType,
   TrafficSourceType,
   TrafficOrderType,
   TrafficOrderStatus,
   UserEntity,
+  TrafficTargetRepository,
+  TrafficSourceRepository,
+  TrafficOrderRepository,
 } from '@app/database';
-import { ITrafficTargetRepository, ITrafficSourceRepository, ITrafficOrderRepository } from '../repository';
-import { TrafficTargetMapper, TrafficSourceMapper, TrafficOrderMapper } from '../mapper';
 import { BotTokenValidationService } from '@app/feature-traffic-shared';
 
 /**
@@ -41,14 +39,14 @@ import { BotTokenValidationService } from '@app/feature-traffic-shared';
  * Implements buy/sell architecture for traffic management
  */
 @Injectable()
-export class TrafficService implements ITrafficService {
+export class TrafficService {
   private readonly logger = new Logger(TrafficService.name);
 
   constructor(
     private readonly em: EntityManager,
-    private readonly trafficTargetRepository: ITrafficTargetRepository,
-    private readonly trafficSourceRepository: ITrafficSourceRepository,
-    private readonly trafficOrderRepository: ITrafficOrderRepository,
+    private readonly trafficTargetRepository: TrafficTargetRepository,
+    private readonly trafficSourceRepository: TrafficSourceRepository,
+    private readonly trafficOrderRepository: TrafficOrderRepository,
     @InjectRepository(UserEntity)
     private readonly userRepository: EntityRepository<UserEntity>,
     private readonly botTokenValidationService: BotTokenValidationService,
@@ -88,7 +86,7 @@ export class TrafficService implements ITrafficService {
         message: 'Bot username is available',
       };
     } catch (error) {
-      this.logger.error(`Bot validation failed: ${error.message}`);
+      this.logger.error(`Bot validation failed: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException('Bot validation failed');
     }
   }
@@ -96,10 +94,10 @@ export class TrafficService implements ITrafficService {
   /**
    * Create bot for traffic sales
    */
-  async createBot(dto: CreateBotDto, userId: string, _botAuth?: unknown): Promise<BotCreationResponseDto> {
+  async createBot(dto: CreateBotDto, userId: string): Promise<BotCreationResponseDto> {
     this.logger.log(`Creating bot for user ${userId}: ${dto.botUsername}`);
 
-    await this.em.transactional(async (_em) => {
+    await this.em.transactional(async () => {
       // Validate user exists
       const user = await this.userRepository.findOne({ id: userId });
       if (!user) {
@@ -200,7 +198,7 @@ export class TrafficService implements ITrafficService {
       config: updatedConfig,
     });
 
-    return this.getBotSettings(userId, botId);
+    return this.getBotSettings(botId, userId);
   }
 
   /**
@@ -244,20 +242,22 @@ export class TrafficService implements ITrafficService {
   /**
    * Get all user bots
    */
-  async getUserBots(userId: string, _botAuth?: unknown): Promise<BotResponseDto[]> {
+  async getUserBots(userId: string): Promise<BotResponseDto[]> {
     const sources = await this.trafficSourceRepository.findByManager(userId);
 
-    return sources.map((source) => ({
-      botId: source.id,
-      botUsername: source.botUsername || '',
-      status: source.isActive ? BotStatus.Active : BotStatus.Paused,
-      trafficTypes: [TrafficType.PrivateMessages, TrafficType.GroupMessages],
-      totalEarnings: '0.0000', // Would be calculated from actual orders
-      todayEarnings: '0.0000',
-      activeOrders: 0, // Would be calculated from actual orders
-      lastActivity: source.updatedAt,
-      createdAt: source.createdAt,
-    }));
+    return sources.map(
+      (source): BotResponseDto => ({
+        botId: source.id,
+        botUsername: source.botUsername || '',
+        status: source.isActive ? BotStatus.Active : BotStatus.Paused,
+        trafficTypes: [TrafficType.PrivateMessages, TrafficType.GroupMessages],
+        totalEarnings: '0.0000', // Would be calculated from actual orders
+        todayEarnings: '0.0000',
+        activeOrders: 0, // Would be calculated from actual orders
+        lastActivity: source.updatedAt,
+        createdAt: source.createdAt,
+      }),
+    );
   }
 
   /**
@@ -275,7 +275,7 @@ export class TrafficService implements ITrafficService {
       throw new ForbiddenException('Access denied');
     }
 
-    return {
+    const response: BotResponseDto = {
       botId: source.id,
       botUsername: source.botUsername || '',
       status: source.isActive ? BotStatus.Active : BotStatus.Paused,
@@ -286,6 +286,8 @@ export class TrafficService implements ITrafficService {
       lastActivity: source.updatedAt,
       createdAt: source.createdAt,
     };
+
+    return response;
   }
 
   // ======================================================
@@ -295,18 +297,8 @@ export class TrafficService implements ITrafficService {
   /**
    * Get available traffic types and prices
    */
-  async getAvailableTraffic(_filters?: Record<string, unknown>): Promise<AvailableTrafficDto[]> {
-    const activeSources = await this.trafficSourceRepository.findActive();
-
-    // Aggregate available traffic by type
-    const trafficMap = new Map<
-      TrafficType,
-      {
-        totalAmount: number;
-        minPrice: number;
-        avgDeliveryTime: number;
-      }
-    >();
+  async getAvailableTraffic(): Promise<AvailableTrafficDto[]> {
+    await this.trafficSourceRepository.findActive();
 
     // For now, return static data - in real implementation,
     // this would be calculated from active sources
@@ -344,7 +336,7 @@ export class TrafficService implements ITrafficService {
   async createTrafficOrder(dto: CreateTrafficOrderDto, userId: string): Promise<TrafficOrderResponseDto> {
     this.logger.log(`Creating traffic order for user ${userId}: ${dto.trafficType}`);
 
-    return await this.em.transactional(async (_em) => {
+    return await this.em.transactional(async () => {
       // Validate user exists
       const user = await this.userRepository.findOne({ id: userId });
       if (!user) {
@@ -372,7 +364,7 @@ export class TrafficService implements ITrafficService {
       }
 
       // For now, use the first available source
-      const trafficSource = activeSources[0];
+      const [trafficSource] = activeSources;
 
       // Generate order ID
       const orderId = await this.trafficOrderRepository.generateOrderId();
@@ -409,7 +401,7 @@ export class TrafficService implements ITrafficService {
   /**
    * Get user's traffic orders
    */
-  async getUserTrafficOrders(userId: string, _filters?: Record<string, unknown>): Promise<TrafficOrderResponseDto[]> {
+  async getUserTrafficOrders(userId: string): Promise<TrafficOrderResponseDto[]> {
     const orders = await this.trafficOrderRepository.findByCreator(userId);
 
     return Promise.all(
@@ -530,20 +522,22 @@ export class TrafficService implements ITrafficService {
 
     const result = await this.botTokenValidationService.validateToken(dto, clientIp);
 
-    if (result.isErr()) {
+    if (result.err) {
+      const error = result.val;
+      const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.warn('Bot token validation failed', {
-        error: result.error.message,
+        error: errorMsg,
         operationContext: dto.operationContext,
       });
 
       // Return unsuccessful validation response instead of throwing
       return {
         isValid: false,
-        error: result.error.message,
+        error: errorMsg,
       };
     }
 
-    return result.value;
+    return result.val;
   }
 
   /**
@@ -592,7 +586,8 @@ export class TrafficService implements ITrafficService {
 
   private extractUsernameFromUrl(url: string): string {
     // Extract username from Telegram URL or return the URL as is
-    const match = url.match(/t\.me\/([^/?]+)/);
+    const regex = /t\.me\/([^/?]+)/;
+    const match = regex.exec(url);
 
     return match ? `@${match[1]}` : url;
   }
@@ -626,7 +621,7 @@ export class TrafficService implements ITrafficService {
   private mapOrderToResponseDto(
     order: TrafficOrderEntity,
     target: TrafficTargetEntity,
-    source: TrafficSourceEntity,
+    _source: TrafficSourceEntity,
   ): TrafficOrderResponseDto {
     const progressPercentage = order.targetCount > 0 ? Math.round((order.currentCount / order.targetCount) * 100) : 0;
 
@@ -641,7 +636,7 @@ export class TrafficService implements ITrafficService {
       completedAmount: order.currentCount,
       pricePerUnit: parseFloat(order.pricePerAction),
       totalCost: parseFloat(order.totalBudget),
-      status: order.status as OrderStatus,
+      status: order.status,
       progressPercentage,
       estimatedCompletion,
       createdAt: order.createdAt,

@@ -628,7 +628,7 @@ export class CallbackHandler {
         ip: '0.0.0.0', // Bot doesn't have IP info
       });
 
-      if (authResult.success) {
+      if (authResult.ok) {
         await ctx.reply(
           '✅ Registration completed successfully!\n\n' +
             'Your account has been created and you can now:\n' +

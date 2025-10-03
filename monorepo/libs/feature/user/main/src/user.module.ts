@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@app/database';
-import { UserController } from './controller';
 import { UserService } from './service';
 import { UserMapper } from './mapper';
 
@@ -12,6 +11,6 @@ import { UserMapper } from './mapper';
   imports: [DatabaseModule],
   controllers: [],
   providers: [UserService, UserMapper],
-  exports: [UserService],
+  exports: [UserService, UserMapper],
 })
 export class UserMainModule {}

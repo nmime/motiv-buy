@@ -32,16 +32,27 @@ export const BotTokenOperation = (operation: string) => SetMetadata(botTokenOper
  *
  * Usage: getCurrentBotAuth(@CurrentBotAuth() botAuth)
  */
-export const CurrentBotAuth = createParamDecorator((data: string | undefined, ctx: ExecutionContext) => {
-  const request = ctx.switchToHttp().getRequest<BotAuthenticatedRequest>();
-  const { botAuth } = request;
+export const CurrentBotAuth = createParamDecorator(
+  (
+    data: string | undefined,
+    ctx: ExecutionContext,
+  ): {
+    botId: string;
+    botUsername?: string;
+    permissions: string[];
+    expiresAt?: Date;
+    metadata?: Record<string, unknown>;
+  } | null => {
+    const request = ctx.switchToHttp().getRequest<BotAuthenticatedRequest>();
+    const { botAuth } = request;
 
-  if (!botAuth) {
-    return null;
-  }
+    if (!botAuth) {
+      return null;
+    }
 
-  return data ? botAuth[data as keyof typeof botAuth] : botAuth;
-});
+    return data ? (botAuth[data as keyof typeof botAuth] as never) : botAuth;
+  },
+);
 
 /**
  * Get current bot ID from request

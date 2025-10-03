@@ -58,6 +58,15 @@ export class UserEntity {
   @Property({ type: 'integer', default: 0, fieldName: 'referral_count' })
   referralCount = 0;
 
+  @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
+  isActive = true;
+
+  @Property({ type: 'boolean', default: false, fieldName: 'is_verified' })
+  isVerified = false;
+
+  @Property({ type: 'boolean', default: false, fieldName: 'is_admin' })
+  isAdmin = false;
+
   @Property({ type: 'uuid', nullable: true, fieldName: 'ref_link_level_1' })
   refLinkLevel1?: string;
 
@@ -95,7 +104,11 @@ export class UserEntity {
   createdOrders? = new Collection<TrafficOrderEntity>(this);
 
   constructor(
-    data: EntityConstructorData<UserEntity, 'id' | 'createdAt' | 'updatedAt', 'status' | 'role' | 'referralCount'>,
+    data: EntityConstructorData<
+      UserEntity,
+      'id' | 'createdAt' | 'updatedAt',
+      'status' | 'role' | 'referralCount' | 'isActive' | 'isVerified' | 'isAdmin'
+    >,
   ) {
     Object.assign(this, data);
   }

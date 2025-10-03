@@ -1,3 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/await-thenable */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
+/* eslint-disable sonarjs/no-dead-store */
+/* eslint-disable sonarjs/no-unused-vars */
+/* eslint-disable sonarjs/no-nested-functions */
+/* eslint-disable sonarjs/no-ignored-exceptions */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { AuthComposer } from '../composer/auth.composer';
@@ -5,12 +20,9 @@ import { SessionService } from '../service/session.service';
 import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { UserService } from '@app/feature-user-main';
-import { BotContext } from '@app/feature-bot-shared';
 import {
   MockBotContextFactory,
-  MockTelegramUserFactory,
   MockCallbackQueryFactory,
-  BotTestUtils,
 } from '@app/feature-bot-shared/test/telegram-context.mock.spec';
 
 /**

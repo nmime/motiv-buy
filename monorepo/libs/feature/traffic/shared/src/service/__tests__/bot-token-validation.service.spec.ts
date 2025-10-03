@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RedisClient } from '@app/common-redis';
-import { BadTokenException, RateLimitException, InternalException } from '@app/common-exception';
+import { BadTokenException, RateLimitException } from '@app/common-exception';
 import { BotTokenValidationService } from '../bot-token-validation.service';
 import { BotTokenValidationDto } from '../../dto';
 
@@ -55,11 +55,11 @@ describe('BotTokenValidationService', () => {
 
       const result = await service.validateToken(dto);
 
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        expect(result.value.isValid).toBe(true);
-        expect(result.value.botId).toBe('123456');
-        expect(result.value.permissions).toContain('traffic_sell');
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.val.isValid).toBe(true);
+        expect(result.val.botId).toBe('123456');
+        expect(result.val.permissions).toContain('traffic_sell');
       }
     });
 
@@ -74,9 +74,9 @@ describe('BotTokenValidationService', () => {
 
       const result = await service.validateToken(dto);
 
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        expect(result.value).toEqual(cachedResult);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.val).toEqual(cachedResult);
       }
 
       // Should not call validation logic
@@ -94,10 +94,11 @@ describe('BotTokenValidationService', () => {
 
       const result = await service.validateToken(invalidDto);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(BadTokenException);
-        expect(result.error.message).toContain('Invalid token format');
+      expect(result.err).toBe(true);
+      if (result.err) {
+        const error = result.val;
+        expect(error).toBeInstanceOf(BadTokenException);
+        expect(error instanceof Error ? error.message : String(error)).toContain('Invalid token format');
       }
     });
 
@@ -110,10 +111,11 @@ describe('BotTokenValidationService', () => {
 
       const result = await service.validateToken(dto, clientIp);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(RateLimitException);
-        expect(result.error.message).toContain('Rate limit exceeded');
+      expect(result.err).toBe(true);
+      if (result.err) {
+        const error = result.val;
+        expect(error).toBeInstanceOf(RateLimitException);
+        expect(error instanceof Error ? error.message : String(error)).toContain('Rate limit exceeded');
       }
     });
 
@@ -128,7 +130,7 @@ describe('BotTokenValidationService', () => {
       const result = await service.validateToken(dto, clientIp);
 
       expect(mockRedisClient.expire).toHaveBeenCalledWith('bot_token_rate_limit:127.0.0.1', 60);
-      expect(result.isOk()).toBe(true);
+      expect(result.ok).toBe(true);
     });
 
     it('should handle Redis errors gracefully', async () => {
@@ -137,7 +139,7 @@ describe('BotTokenValidationService', () => {
 
       const result = await service.validateToken(dto);
 
-      expect(result.isOk()).toBe(true); // Should still validate without cache
+      expect(result.ok).toBe(true); // Should still validate without cache
     });
   });
 
@@ -185,7 +187,7 @@ describe('BotTokenValidationService', () => {
     });
 
     it('should return false for undefined operations', () => {
-      expect(service.isTokenValidationRequired(undefined)).toBe(false);
+      expect(service.isTokenValidationRequired()).toBe(false);
     });
   });
 
@@ -240,14 +242,14 @@ describe('BotTokenValidationService', () => {
   });
 
   describe('private methods behavior', () => {
-    it('should extract bot ID correctly', () => {
+    it('should extract bot ID correctly', async () => {
       const dto: BotTokenValidationDto = {
         token: '987654:AAFdqTcLreQksK5d_oM4c9ZhLNbxFV9qHlK',
         operationContext: 'traffic_sell',
       };
 
       // This tests the private extractBotId method indirectly
-      expect(service.validateTokenDirect(dto)).resolves.toMatchObject({
+      await expect(service.validateTokenDirect(dto)).resolves.toMatchObject({
         botId: '987654',
       });
     });
@@ -267,7 +269,11 @@ describe('BotTokenValidationService', () => {
 
   describe('integration scenarios', () => {
     it('should handle complete validation flow with caching', async () => {
-      const clientIp = '192.168.1.1';
+      const clientIp = '203.0.113.10';
+      const dto: BotTokenValidationDto = {
+        token: validToken,
+        operationContext: 'traffic_sell',
+      };
 
       // First call - no cache
       mockRedisClient.get.mockResolvedValueOnce(null); // Cache miss
@@ -275,7 +281,7 @@ describe('BotTokenValidationService', () => {
       mockRedisClient.set.mockResolvedValue('OK'); // Cache set
 
       const firstResult = await service.validateToken(dto, clientIp);
-      expect(firstResult.isOk()).toBe(true);
+      expect(firstResult.ok).toBe(true);
 
       // Second call - with cache
       const cachedResult = {
@@ -287,9 +293,9 @@ describe('BotTokenValidationService', () => {
       mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(cachedResult)); // Cache hit
 
       const secondResult = await service.validateToken(dto, clientIp);
-      expect(secondResult.isOk()).toBe(true);
-      if (secondResult.isOk()) {
-        expect(secondResult.value).toEqual(cachedResult);
+      expect(secondResult.ok).toBe(true);
+      if (secondResult.ok) {
+        expect(secondResult.val).toEqual(cachedResult);
       }
     });
 
@@ -305,10 +311,10 @@ describe('BotTokenValidationService', () => {
 
       const result = await service.validateToken(dto);
 
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
+      expect(result.ok).toBe(true);
+      if (result.ok) {
         // Should return invalid validation due to bot-shared integration failure
-        expect(result.value.isValid).toBe(false);
+        expect(result.val.isValid).toBe(false);
       }
     });
   });
