@@ -13,7 +13,10 @@
         "outputPath": "dist/libs/database",
         "main": "libs/database/src/index.ts",
         "tsConfig": "libs/database/tsconfig.lib.json",
-        "assets": []
+        "assets": [],
+        "buildableProjectDepsInPackageJsonType": "dependencies",
+        "updateBuildableProjectDepsInPackageJson": true,
+        "generatePackageJson": true
       },
       "configurations": {
         "development": {

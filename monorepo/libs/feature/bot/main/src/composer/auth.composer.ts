@@ -5,7 +5,7 @@ import { SessionService } from '../service/session.service';
 import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { UserService } from '@app/feature-user-main';
-import { PlatformType } from '@app/database';
+import { PlatformType, UserEntity } from '@app/database';
 
 /**
  * Authentication State Enum
@@ -129,7 +129,7 @@ export class AuthComposer {
         case AuthState.VerificationFlow:
           return await this.composeVerificationMenu(ctx, VerificationType.Email);
         case AuthState.ProfileSetup:
-          return await this.composeProfileSetupMenu(ctx);
+          return await this.composePostAuthMenu(ctx, true);
         default:
           return await this.composeWelcomeMenu(ctx);
       }
@@ -382,7 +382,7 @@ export class AuthComposer {
     // Get user session to check verification state
     const userId = ctx.from?.id?.toString();
     const session = userId ? await this.sessionService.getSession(userId) : null;
-    const verificationAttempts = session?.data.cache?.verificationAttempts || 0;
+    const verificationAttempts = (session?.data.cache?.verificationAttempts as number | undefined) || 0;
 
     return {
       type: MenuType.Auth,
@@ -1033,7 +1033,7 @@ export class AuthComposer {
     return await this.composePostAuthMenu(ctx, false);
   }
 
-  private async composeWelcomeBackMenu(ctx: BotContext, user: any): Promise<MenuConfig> {
+  private async composeWelcomeBackMenu(ctx: BotContext, user: UserEntity): Promise<MenuConfig> {
     const userName = user.firstName || ctx.from?.first_name || 'User';
 
     return {
@@ -1078,7 +1078,7 @@ export class AuthComposer {
     };
   }
 
-  private async composeAlreadyRegisteredMenu(ctx: BotContext, user: any): Promise<MenuConfig> {
+  private async composeAlreadyRegisteredMenu(ctx: BotContext, user: UserEntity): Promise<MenuConfig> {
     const userName = user.firstName || ctx.from?.first_name || 'User';
 
     return {

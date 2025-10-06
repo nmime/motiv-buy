@@ -20,6 +20,7 @@ export enum TrafficOrderStatus {
   Completed = 'completed',
   Cancelled = 'cancelled',
   Failed = 'failed',
+  InProgress = 'in_progress',
 }
 
 /**

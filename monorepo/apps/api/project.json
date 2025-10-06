@@ -28,15 +28,13 @@
       "executor": "nx:run-commands",
       "defaultConfiguration": "development",
       "options": {
-        "command": "node -r @swc-node/register apps/api/src/main.ts",
-        "cwd": "{workspaceRoot}",
-        "envFile": "{workspaceRoot}/.env"
+        "command": "node -r @swc-node/register -r tsconfig-paths/register apps/api/src/main.ts",
+        "cwd": "{workspaceRoot}"
       },
       "configurations": {
         "development": {
-          "command": "node -r @swc-node/register apps/api/src/main.ts",
-          "cwd": "{workspaceRoot}",
-          "envFile": "{workspaceRoot}/.env"
+          "command": "node -r @swc-node/register -r tsconfig-paths/register apps/api/src/main.ts",
+          "cwd": "{workspaceRoot}"
         },
         "production": {
           "buildTarget": "api:build:production"

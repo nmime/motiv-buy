@@ -30,7 +30,15 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
   }): Promise<TrafficSourceEntity> {
     this.logger.log(`Creating traffic source: ${data.name}`);
 
-    const sourceData: Partial<TrafficSourceEntity> = {
+    const sourceData: {
+      name: string;
+      description?: string;
+      type: TrafficSourceType;
+      botToken?: string;
+      botUsername?: string;
+      telegramId?: string;
+      managedById?: string;
+    } = {
       name: data.name,
       description: data.description,
       type: data.type,
@@ -100,7 +108,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
     this.logger.log(`Traffic source deactivated: ${id}`);
   }
 
-  validateBotToken(botToken: string): boolean {
+  async validateBotToken(botToken: string): Promise<boolean> {
     try {
       // This would integrate with Telegram Bot API to validate the token
       // For now, we'll do basic validation

@@ -55,7 +55,26 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
   }): Promise<TrafficOrderEntity> {
     this.logger.log(`Creating traffic order: ${data.orderId}`);
 
-    const orderData: any = {
+    interface CreateOrderData {
+      orderId: string;
+      type: TrafficOrderType;
+      status: TrafficOrderStatus;
+      targetCount: number;
+      pricePerAction: string;
+      totalBudget: string;
+      description?: string;
+      targetUrl?: string;
+      requirements?: TrafficOrderRequirements;
+      startDate?: Date;
+      endDate?: Date;
+      creatorId: string;
+      trafficSourceId: string;
+      trafficTargetId: string;
+      assignedTrafficUserId?: string;
+      createdById?: string;
+    }
+
+    const orderData: CreateOrderData = {
       orderId: data.orderId,
       type: data.type,
       status: data.status,

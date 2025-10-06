@@ -82,7 +82,7 @@ export class DatabaseService {
   }
 
   createRequestContext() {
-    return async (request: FastifyRequest, reply: FastifyReply, done: () => void) => {
+    return async (_request: FastifyRequest, _reply: FastifyReply, done: () => void) => {
       RequestContext.create(this.getEntityManager(), done);
     };
   }

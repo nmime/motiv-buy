@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext, MenuType, MenuConfig, MenuActionResult, MenuNavigation } from '@app/feature-bot-shared';
+import { BotContext, MenuType, MenuConfig, MenuActionResult, MenuNavigation, MenuButton } from '@app/feature-bot-shared';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceService } from '@app/feature-balance-main';
 import { UserService } from '@app/feature-user-main';
@@ -325,7 +325,22 @@ export class MenuHandler {
       }
 
       const balance = await this.balanceService.getBalance(user.id);
-      const hasNotifications = false; // TODO: Check for unread notifications
+
+      /**
+       * TODO: Notification System Integration
+       *
+       * DEFERRED: Notification service integration pending notification schema
+       *
+       * Implementation plan:
+       * 1. Create notification service with unread count method
+       * 2. Add notification_preferences table
+       * 3. Implement real-time notification delivery via WebSocket
+       * 4. Add notification queue processing with Bull
+       * 5. Create notification templates for different event types
+       *
+       * Current: Always shows no notifications (false)
+       */
+      const hasNotifications = false;
 
       // Update title with balance info
       const enhancedTitle = `${baseConfig.title}\n💰 Balance: $${balance.availableAmount.toFixed(2)}${hasNotifications ? '\n🔔 New notifications' : ''}`;
@@ -868,7 +883,7 @@ Customize your bot experience.
   /**
    * Create inline keyboard from menu buttons
    */
-  private createInlineKeyboard(buttons: any[][]): InlineKeyboard {
+  private createInlineKeyboard(buttons: MenuButton[][]): InlineKeyboard {
     const keyboard = new InlineKeyboard();
 
     buttons.forEach((row, index) => {

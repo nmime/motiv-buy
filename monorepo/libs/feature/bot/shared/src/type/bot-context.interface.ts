@@ -31,10 +31,10 @@ export interface BotContext extends Context, SessionFlavor<BotSessionData> {
   metadata?: BotContextMetadata;
 
   /** Reply with HTML formatted text */
-  replyWithHTML(text: string, extra?: BotReplyExtra): Promise<any>;
+  replyWithHTML(text: string, extra?: BotReplyExtra): Promise<BotMessage>;
 
   /** Reply with Markdown formatted text */
-  replyWithMarkdown(text: string, extra?: BotReplyExtra): Promise<any>;
+  replyWithMarkdown(text: string, extra?: BotReplyExtra): Promise<BotMessage>;
 }
 
 /**
@@ -436,8 +436,7 @@ export interface BotKeyboardButtonPollType {
  *
  * Extended session data structure for bot interactions.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface BotSessionData extends Record<string, any> {
+export interface BotSessionData extends Record<string, unknown> {
   /** User session ID */
   sessionId?: string;
 
@@ -454,13 +453,13 @@ export interface BotSessionData extends Record<string, any> {
   menuHistory?: string[];
 
   /** Form data in progress */
-  formData?: Record<string, any>;
+  formData?: Record<string, unknown>;
 
   /** Cached user preferences */
-  preferences?: Record<string, any>;
+  preferences?: Record<string, unknown>;
 
   /** Temporary data */
-  temp?: Record<string, any>;
+  temp?: Record<string, unknown>;
 }
 
 /**
@@ -560,8 +559,7 @@ export interface BotMenuContext {
   currentMenu?: string;
 
   /** Menu parameters */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  menuParams?: Record<string, any>;
+  menuParams?: Record<string, unknown>;
 
   /** Menu breadcrumb */
   breadcrumb?: string[];
@@ -603,8 +601,7 @@ export interface BotContextMetadata {
   };
 
   /** Debug information */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  debug?: Record<string, any>;
+  debug?: Record<string, unknown>;
 
   /** Bot version */
   botVersion?: string;

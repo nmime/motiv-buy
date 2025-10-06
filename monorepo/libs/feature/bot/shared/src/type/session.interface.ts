@@ -23,8 +23,7 @@ export interface SessionInterface {
   expiresAt: Date;
 
   /** Session metadata */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -36,20 +35,20 @@ export interface SessionData {
   /** Current conversation state */
   conversationState?: ConversationState;
 
-  /** User preferences */
-  preferences?: UserPreferences;
+  /** User preferences (allows partial updates) */
+  preferences?: Partial<UserPreferences>;
 
   /** Temporary form data */
-  formData?: Record<string, any>;
+  formData?: Record<string, unknown>;
 
   /** Navigation state */
   navigationState?: NavigationState;
 
   /** Cache data */
-  cache?: Record<string, any>;
+  cache?: Record<string, unknown>;
 
   /** Custom session data */
-  custom?: Record<string, any>;
+  custom?: Record<string, unknown>;
 }
 
 /**

@@ -33,11 +33,17 @@ Thumbs.db
 .env.production.local
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pino-*.log
+lerna-debug.log*
+
+# PM2
+.pm2/
+pm2-*.log
 
 # Runtime data
 pids
@@ -76,3 +82,20 @@ claude-flow
 claude-flow.bat
 claude-flow.ps1
 hive-mind-prompt-*.txt
+
+# SSL Certificates (never commit)
+*.pem
+*.key
+*.crt
+config/nginx/ssl/*.pem
+config/nginx/ssl/*.key
+config/nginx/ssl/*.crt
+
+# Redis
+dump.rdb
+appendonly.aof
+
+# Temporary files
+tmp/
+temp/
+*.tmp

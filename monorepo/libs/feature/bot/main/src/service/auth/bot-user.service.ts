@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AuthUserService } from '@app/feature-auth-shared';
+import { AuthUserService, LinkType } from '@app/feature-auth-shared';
 import { UserEntity, PlatformType } from '@app/database';
 import { TelegramAuthParams } from '@app/feature-auth-shared';
 import { BotContext } from '@app/feature-bot-shared';
@@ -131,7 +131,20 @@ export class BotUserService {
       // Handle simple parameters
       if (param.includes('=')) {
         const pairs = param.split('&');
-        const params: any = {};
+
+        interface UTMParams {
+          utmSource?: string;
+          utmMedium?: string;
+          utmCampaign?: string;
+          utmContent?: string;
+          utmTerm?: string;
+          referralCode?: string;
+          refCode?: string;
+          linkType?: LinkType;
+          linkCode?: string;
+        }
+
+        const params: UTMParams = {};
 
         for (const pair of pairs) {
           const [key, value] = pair.split('=');
@@ -154,7 +167,7 @@ export class BotUserService {
                 params.refCode = decodeURIComponent(value);
                 break;
               case 'link_type':
-                params.linkType = decodeURIComponent(value);
+                params.linkType = decodeURIComponent(value) as LinkType;
                 break;
               case 'link_code':
                 params.linkCode = decodeURIComponent(value);

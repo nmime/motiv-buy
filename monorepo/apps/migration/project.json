@@ -28,10 +28,22 @@
       }
     },
     "serve": {
-      "executor": "@nx/js:node",
+      "executor": "nx:run-commands",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "migration-cli:build"
+        "command": "node -r @swc-node/register apps/migration/src/main.ts",
+        "cwd": "{workspaceRoot}",
+        "envFile": "{workspaceRoot}/.env"
+      },
+      "configurations": {
+        "development": {
+          "command": "node -r @swc-node/register apps/migration/src/main.ts",
+          "cwd": "{workspaceRoot}",
+          "envFile": "{workspaceRoot}/.env"
+        },
+        "production": {
+          "buildTarget": "migration-cli:build:production"
+        }
       }
     },
     "lint": {

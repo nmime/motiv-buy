@@ -50,15 +50,15 @@ export type EntityConstructorData<
 /**
  * Unified type for entity constructor classes that accept any constructor signature
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type EntityConstructor = new (...args: any[]) => any;
+export type EntityConstructor<T = unknown> = new (...args: never[]) => T;
 
 /**
  * Type-safe relation configuration for entity relationships
  */
 export interface RelationConfig {
   field: string;
-  entityClass: EntityConstructor;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  entityClass: new (...args: any[]) => any;
   required?: boolean;
 }
 

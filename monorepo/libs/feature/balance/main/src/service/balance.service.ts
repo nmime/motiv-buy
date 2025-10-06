@@ -30,10 +30,58 @@ export class BalanceService implements IBalanceService {
       // Create initial balance if not exists
       const newBalance = await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.Rub, '0');
 
-      return { amount: parseFloat(newBalance.balance), currency: 'RUB' };
+      return {
+        userId,
+        amount: 0,
+        currency: 'RUB',
+        availableAmount: 0,
+        pendingAmount: 0,
+        totalEarned: 0,
+      };
     }
 
-    return { amount: parseFloat(balance.balance), currency: 'RUB' };
+    const currentAmount = parseFloat(balance.balance);
+
+    // Get pending withdrawals to calculate available amount
+    const pendingWithdrawals = await this.userBalanceHistoryRepository.getUserTransactionHistory(
+      userId,
+      CurrencyType.Rub,
+      DbTransactionType.Withdrawal,
+      100,
+    );
+
+    const pendingAmount = pendingWithdrawals
+      .filter((t) => t.status === TransactionStatus.Pending)
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+    // Get all completed income transactions for total earned
+    const allTransactions = await this.userBalanceHistoryRepository.getUserTransactionHistory(
+      userId,
+      CurrencyType.Rub,
+      undefined,
+      1000,
+    );
+
+    const totalEarned = allTransactions
+      .filter(
+        (t) =>
+          t.status === TransactionStatus.Completed &&
+          (t.type === DbTransactionType.Deposit || t.type === DbTransactionType.ReferralBonus),
+      )
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+    // Get last transaction date
+    const lastTransaction = allTransactions.length > 0 ? allTransactions[0] : null;
+
+    return {
+      userId,
+      amount: currentAmount,
+      currency: 'RUB',
+      availableAmount: Math.max(0, currentAmount - pendingAmount),
+      pendingAmount,
+      totalEarned,
+      lastTransactionAt: lastTransaction?.createdAt,
+    };
   }
 
   async getTransactionHistory(userId: string, filter: TransactionFilterDto): Promise<TransactionDto[]> {
@@ -84,7 +132,22 @@ export class BalanceService implements IBalanceService {
       referenceId: `deposit-${userId}-${Date.now()}`,
     });
 
-    // FIXME: Integrate with actual payment gateway - implement payment provider integration including webhook handling
+    /**
+     * TODO: Payment Gateway Integration
+     *
+     * DEFERRED: Payment provider integration pending business requirements
+     *
+     * Requirements for implementation:
+     * 1. Select payment provider (Stripe, YooKassa, etc.)
+     * 2. Implement secure webhook handlers for payment status updates
+     * 3. Add transaction reconciliation logic
+     * 4. Implement refund and chargeback handling
+     * 5. Add PCI compliance measures
+     * 6. Set up environment-specific API keys configuration
+     *
+     * Current behavior: Returns mock payment URL for development
+     * Risk: Production deployment requires actual payment integration
+     */
     const paymentUrl = `https://payment.gateway/deposit/${userId}-${Date.now()}`;
 
     return { paymentUrl };

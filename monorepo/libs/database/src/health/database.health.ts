@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { HealthIndicatorResult, HealthIndicatorService } from '@nestjs/terminus';
+import { HealthIndicatorResult } from '@nestjs/terminus';
 import { DatabaseService } from '../service/database.service';
 
 /**
@@ -9,7 +9,6 @@ import { DatabaseService } from '../service/database.service';
 export class DatabaseHealthIndicator {
   constructor(
     private readonly databaseService: DatabaseService,
-    private readonly healthIndicatorService: HealthIndicatorService,
   ) {}
 
   /**

@@ -4,6 +4,7 @@ import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
 import { AsyncResult } from '@app/common-shared';
+import { Ok } from 'ts-results';
 import { TrafficOrderResponseDto } from '@app/feature-traffic-shared';
 import { TrafficService } from '../service/traffic.service';
 
@@ -52,7 +53,7 @@ export class TrafficTargetController {
   async getUserTrafficOrders(@CurrentUserId() userId: string): Promise<AsyncResult<TrafficOrderResponseDto[], Error>> {
     const result = await this.trafficService.getUserTrafficOrders(userId);
 
-    return { ok: true, val: result } as unknown as AsyncResult<TrafficOrderResponseDto[], Error>;
+    return Ok(result);
   }
 
   @Get(':targetId')
@@ -74,6 +75,7 @@ export class TrafficTargetController {
     @CurrentUserId() userId: string,
   ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
     const result = await this.trafficService.getTrafficOrder(targetId, userId);
-    return { ok: true, val: result } as any;
+
+    return Ok(result);
   }
 }

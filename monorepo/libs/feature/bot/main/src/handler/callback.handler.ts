@@ -736,7 +736,7 @@ export class CallbackHandler {
         return;
       }
 
-      const balance = await this.balanceService.getUserBalance(user.id);
+      const balance = await this.balanceService.getBalance(user.id);
       const membershipDays = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
 
       const statsText = `

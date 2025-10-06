@@ -25,8 +25,7 @@ export interface MenuConfig {
   description?: string;
 
   /** Menu metadata */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -48,8 +47,7 @@ export interface MenuButton {
   disabled?: boolean;
 
   /** Button metadata */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -90,5 +88,5 @@ export interface MenuActionResult {
   closeMenu?: boolean;
 
   /** Additional result data */
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }

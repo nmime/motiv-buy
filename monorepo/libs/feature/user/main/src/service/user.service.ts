@@ -162,8 +162,22 @@ export class UserService {
       return Err(new InternalException({ detail: 'Internal server error occurred' }));
     }
 
-    // For now, return the input settings (simplified implementation)
-    // FIXME: Implement proper user settings management with database persistence and validation
+    /**
+     * TODO: User Settings Persistence
+     *
+     * DEFERRED: Full user settings management pending schema design
+     *
+     * Requirements for implementation:
+     * 1. Design user_settings table schema with key-value pairs
+     * 2. Implement proper validation for settings values
+     * 3. Add settings history tracking for audit trail
+     * 4. Create settings migration system for schema updates
+     * 5. Implement settings caching layer (Redis)
+     * 6. Add settings versioning support
+     *
+     * Current behavior: Returns input values without persistence
+     * Risk: Settings are not persisted between sessions
+     */
     return Ok({
       limitNotificationsEnabled: settings.limitNotificationsEnabled ?? true,
       inactivityNotificationsEnabled: settings.inactivityNotificationsEnabled ?? true,

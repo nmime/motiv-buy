@@ -3,11 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader 
 import { CurrentUserId, JwtAuthGuard } from '@app/feature-auth-shared';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
-import {
-  BotTokenValidationDto,
-  BotTokenValidationResponseDto,
-  BotResponseDto,
-} from '@app/feature-traffic-shared';
+import { BotTokenValidationDto, BotTokenValidationResponseDto, BotResponseDto } from '@app/feature-traffic-shared';
 import { TrafficService } from '../service';
 
 /**
@@ -66,6 +62,7 @@ export class TrafficController {
   })
   async getBotPermissions(@Param('botId') botId: string): Promise<{ botId: string; permissions: string[] }> {
     const permissions = await this.trafficService.getBotPermissions(botId);
+
     return { botId, permissions };
   }
 

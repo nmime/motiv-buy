@@ -7,10 +7,8 @@ import { Store, storage } from 'nestjs-pino/storage';
 
 // Interface for requests with logger properties (extended by pino middleware)
 interface LoggerRequest {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  log?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  allLogs?: any[];
+  log?: import('pino').Logger;
+  allLogs?: import('pino').Logger[];
 }
 import { Params } from 'nestjs-pino/params';
 import { IncomingMessage, ServerResponse } from 'http';
@@ -61,8 +59,8 @@ function createLoggerMiddlewares(params: Record<string, unknown>, useExisting = 
   const middleware = pinoHttp(...(Array.isArray(params) ? params : [params]));
 
   // Set the root logger using type assertion to bypass readonly restriction
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  (PinoLogger as any).root = middleware.logger;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  (PinoLogger as { root?: unknown }).root = middleware.logger;
 
   return [middleware, bindLoggerMiddlewareFactory(useExisting)];
 }
@@ -263,8 +261,8 @@ export function createLogger(config: { name: string }) {
           const logData = { context, error, userId, appId, requestId };
 
           // Use type assertion to bypass strict typing for custom logger method
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          (method as any).apply(this, [logData, message, ...(params ?? [])]);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          (method as (...args: unknown[]) => void).apply(this, [logData, message, ...(params ?? [])]);
         },
       },
     },

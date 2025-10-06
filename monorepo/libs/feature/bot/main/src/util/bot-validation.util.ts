@@ -5,7 +5,7 @@
  * and user data. Includes security validation and sanitization.
  */
 
-import { BotContext, BotUser } from '@app/feature-bot-shared';
+import { BotUser } from '@app/feature-bot-shared';
 
 /**
  * Validation Result Interface
@@ -18,10 +18,10 @@ export interface ValidationResult {
   error?: string;
 
   /** Sanitized value (if applicable) */
-  sanitized?: any;
+  sanitized?: unknown;
 
   /** Additional validation metadata */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -97,6 +97,47 @@ export class BotValidationUtil {
     } = options;
 
     // Check for empty message
+    const emptyCheckResult = this.validateEmptyMessage(message, allowEmpty);
+    if (emptyCheckResult) {
+      return emptyCheckResult;
+    }
+
+    // Check message length
+    const lengthCheckResult = this.validateMessageLength(message, minLength, maxLength);
+    if (lengthCheckResult) {
+      return lengthCheckResult;
+    }
+
+    // Check prohibited words
+    const prohibitedWordsResult = this.checkProhibitedWords(message, prohibitedWords);
+    if (prohibitedWordsResult) {
+      return prohibitedWordsResult;
+    }
+
+    // Check allowed characters
+    if (allowedCharsRegex && !allowedCharsRegex.test(message)) {
+      return {
+        isValid: false,
+        error: 'Message contains invalid characters',
+      };
+    }
+
+    // Check content restrictions
+    const contentCheckResult = this.validateMessageContent(message, allowUrls, allowMentions, allowHashtags);
+    if (contentCheckResult) {
+      return contentCheckResult;
+    }
+
+    return {
+      isValid: true,
+      sanitized: this.sanitizeMessage(message),
+    };
+  }
+
+  /**
+   * Validate empty message
+   */
+  private static validateEmptyMessage(message: string, allowEmpty: boolean): ValidationResult | null {
     if (!message || message.trim().length === 0) {
       if (allowEmpty) {
         return { isValid: true, sanitized: message };
@@ -105,7 +146,13 @@ export class BotValidationUtil {
       return { isValid: false, error: 'Message cannot be empty' };
     }
 
-    // Check message length
+    return null;
+  }
+
+  /**
+   * Validate message length
+   */
+  private static validateMessageLength(message: string, minLength: number, maxLength: number): ValidationResult | null {
     if (message.length < minLength) {
       return {
         isValid: false,
@@ -120,7 +167,13 @@ export class BotValidationUtil {
       };
     }
 
-    // Check prohibited words
+    return null;
+  }
+
+  /**
+   * Check for prohibited words
+   */
+  private static checkProhibitedWords(message: string, prohibitedWords: string[]): ValidationResult | null {
     const lowerMessage = message.toLowerCase();
     for (const word of prohibitedWords) {
       if (lowerMessage.includes(word.toLowerCase())) {
@@ -131,15 +184,18 @@ export class BotValidationUtil {
       }
     }
 
-    // Check allowed characters
-    if (allowedCharsRegex && !allowedCharsRegex.test(message)) {
-      return {
-        isValid: false,
-        error: 'Message contains invalid characters',
-      };
-    }
+    return null;
+  }
 
-    // Check URLs if not allowed
+  /**
+   * Validate message content restrictions
+   */
+  private static validateMessageContent(
+    message: string,
+    allowUrls: boolean,
+    allowMentions: boolean,
+    allowHashtags: boolean,
+  ): ValidationResult | null {
     if (!allowUrls && this.containsUrl(message)) {
       return {
         isValid: false,
@@ -147,7 +203,6 @@ export class BotValidationUtil {
       };
     }
 
-    // Check mentions if not allowed
     if (!allowMentions && this.containsMention(message)) {
       return {
         isValid: false,
@@ -155,7 +210,6 @@ export class BotValidationUtil {
       };
     }
 
-    // Check hashtags if not allowed
     if (!allowHashtags && this.containsHashtag(message)) {
       return {
         isValid: false,
@@ -163,10 +217,7 @@ export class BotValidationUtil {
       };
     }
 
-    return {
-      isValid: true,
-      sanitized: this.sanitizeMessage(message),
-    };
+    return null;
   }
 
   /**
@@ -260,7 +311,8 @@ export class BotValidationUtil {
    * @returns Validation result
    */
   static validateEmail(email: string): ValidationResult {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Optimized email regex - simpler and faster, prevents ReDoS
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
     if (!email || !email.trim()) {
       return { isValid: false, error: 'Email is required' };
@@ -489,7 +541,7 @@ export class BotValidationUtil {
    * @returns True if valid
    */
   private static isValidUsername(username: string): boolean {
-    const usernameRegex = /^[a-zA-Z0-9_]{3,32}$/;
+    const usernameRegex = /^\w{3,32}$/;
 
     return usernameRegex.test(username);
   }

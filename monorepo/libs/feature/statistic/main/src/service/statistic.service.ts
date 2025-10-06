@@ -512,33 +512,53 @@ export class StatisticService {
 
   /**
    * Chart Data Methods - All with proper resource filtering
+   *
+   * TODO: Time-Series Chart Data Aggregation
+   *
+   * DEFERRED: Complex time-series aggregation pending performance optimization
+   *
+   * Implementation requirements:
+   * 1. Implement SQL GROUP BY with DATE_TRUNC for time intervals (hour/day/week/month)
+   * 2. Add efficient indexing on timestamp columns (created_at, completed_at)
+   * 3. Create materialized views for frequently accessed chart data
+   * 4. Implement caching layer with Redis for chart data (5-15 min TTL)
+   * 5. Add query optimization for large datasets (pagination, limit results)
+   * 6. Support multiple chart intervals: hourly, daily, weekly, monthly
+   * 7. Handle timezone conversions for accurate time-based grouping
+   *
+   * Current behavior: Returns empty arrays
+   * Impact: Chart endpoints return no data points until implemented
+   *
+   * Example SQL for implementation:
+   * SELECT
+   *   DATE_TRUNC('hour', completed_at) as timestamp,
+   *   COUNT(*) as count_of_actions,
+   *   SUM(CAST(reward AS DECIMAL)) as amount
+   * FROM traffic_actions
+   * WHERE traffic_source_id IN (user_sources)
+   *   AND status = 'completed'
+   *   AND completed_at BETWEEN $1 AND $2
+   * GROUP BY DATE_TRUNC('hour', completed_at)
+   * ORDER BY timestamp ASC
    */
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private getTrafficSourceChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
-    // FIXME: Implement real chart data aggregation with time-series grouping
-    // For now, return empty array until complex date grouping is implemented
     return Promise.resolve([]);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private getTrafficOrderChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
-    // FIXME: Implement real chart data aggregation with time-series grouping
-    // For now, return empty array until complex date grouping is implemented
     return Promise.resolve([]);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private getTrafficTargetChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
-    // FIXME: Implement real chart data aggregation with time-series grouping
-    // For now, return empty array until complex date grouping is implemented
     return Promise.resolve([]);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private getUserChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
-    // FIXME: Implement real chart data aggregation with time-series grouping
-    // For now, return empty array until complex date grouping is implemented
     return Promise.resolve([]);
   }
 

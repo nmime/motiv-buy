@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
-import { BotContext, MenuConfig, MenuType, MenuButton, KeyboardUtil, CallbackUtil } from '@app/feature-bot-shared';
+import { BotContext, MenuConfig, MenuType, MenuButton, KeyboardUtil, CallbackUtil, SessionInterface } from '@app/feature-bot-shared';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { AuthUserService } from '@app/feature-auth-shared';
-import { BalanceService } from '@app/feature-balance-main';
+import { BalanceService, BalanceDto } from '@app/feature-balance-main';
+import { UserEntity } from '@app/database';
 
 /**
  * Main Menu Composer
@@ -77,19 +78,19 @@ export class MainMenuComposer {
       // Get user data and session
       const session = await this.sessionService.getOrCreateSession(userId);
       const user = await this.authUserService.findByPlatformId(userId);
-      const balance = user ? await this.balanceService.getUserBalance(user.id) : null;
+      const balance = user ? await this.balanceService.getBalance(user.id) : null;
 
       // Personalize greeting
       const userName = ctx.from?.first_name || 'User';
       const greeting = this.getPersonalizedGreeting(userName, session?.data.preferences?.language || 'en');
 
       // Build dynamic menu based on user status
-      const buttons = await this.buildMainMenuButtons(ctx, user, balance, session);
+      const buttons = await this.buildMainMenuButtons(ctx, user || undefined, balance || undefined, session);
 
       return {
         type: MenuType.Main,
         title: greeting,
-        description: this.getMainMenuDescription(user, balance),
+        description: this.getMainMenuDescription(user || undefined, balance || undefined),
         buttons,
         isInline: true,
         metadata: {
@@ -121,7 +122,7 @@ export class MainMenuComposer {
 
     try {
       const session = await this.sessionService.getSession(userId || '');
-      const recentActions = session?.data.cache?.recentActions || [];
+      const recentActions = (session?.data.cache?.recentActions as unknown[] | undefined) || [];
       const preferences = session?.data.preferences;
 
       // Build contextual quick actions
@@ -173,7 +174,7 @@ export class MainMenuComposer {
         buttons,
         isInline: true,
         metadata: {
-          recentActionsCount: recentActions.length,
+          recentActionsCount: Array.isArray(recentActions) ? recentActions.length : 0,
           userPreferences: preferences,
         },
       };
@@ -196,7 +197,7 @@ export class MainMenuComposer {
    * @param session - User session (optional)
    * @returns Promise<MenuConfig> - Customized menu configuration
    */
-  async customizeMenuForUser(menu: MenuConfig, ctx: BotContext, user?: any, session?: any): Promise<MenuConfig> {
+  async customizeMenuForUser(menu: MenuConfig, ctx: BotContext, user?: UserEntity, session?: SessionInterface): Promise<MenuConfig> {
     const userId = ctx.from?.id;
     if (!userId) {
       return menu;
@@ -210,11 +211,6 @@ export class MainMenuComposer {
       // Apply user role-based customizations
       if (user) {
         customizedMenu.buttons = await this.applyRolePermissions(customizedMenu.buttons, user);
-
-        // Premium user features
-        if (user.isPremium) {
-          customizedMenu.buttons = this.addPremiumFeatures(customizedMenu.buttons);
-        }
 
         // Admin features
         if (user.isAdmin) {
@@ -232,7 +228,7 @@ export class MainMenuComposer {
 
       // Add breadcrumb navigation if enabled
       if (session?.data.navigationState) {
-        customizedMenu.buttons = this.addBreadcrumbNavigation(customizedMenu.buttons, session.data.navigationState);
+        customizedMenu.buttons = this.addBreadcrumbNavigation(customizedMenu.buttons, session.data.navigationState as unknown as Record<string, unknown>);
       }
 
       // Update metadata
@@ -477,7 +473,7 @@ export class MainMenuComposer {
 
   // Helper methods
 
-  private async buildMainMenuButtons(ctx: BotContext, user: any, balance: any, session: any): Promise<MenuButton[][]> {
+  private async buildMainMenuButtons(ctx: BotContext, user: UserEntity | undefined, balance: BalanceDto | undefined, session: SessionInterface | undefined): Promise<MenuButton[][]> {
     const buttons: MenuButton[][] = [];
 
     // Core features row
@@ -610,7 +606,7 @@ export class MainMenuComposer {
     return greetings[language] || greetings.en;
   }
 
-  private getMainMenuDescription(user?: any, balance?: any): string {
+  private getMainMenuDescription(user?: UserEntity, balance?: BalanceDto): string {
     if (!user) {
       return 'Please register to access all features.';
     }
@@ -630,14 +626,14 @@ export class MainMenuComposer {
     return parts.join(' • ');
   }
 
-  private async applyRolePermissions(buttons: MenuButton[][], user: any): Promise<MenuButton[][]> {
+  private async applyRolePermissions(buttons: MenuButton[][], user: UserEntity): Promise<MenuButton[][]> {
     // Filter buttons based on user permissions
     return buttons
       .filter((row) => row.some((button) => this.hasPermissionForButton(button, user)))
       .map((row) => row.filter((button) => this.hasPermissionForButton(button, user)));
   }
 
-  private hasPermissionForButton(button: MenuButton, user: any): boolean {
+  private hasPermissionForButton(button: MenuButton, user: UserEntity): boolean {
     const feature = button.metadata?.feature;
 
     switch (feature) {
@@ -676,13 +672,14 @@ export class MainMenuComposer {
     return [...buttons, adminRow];
   }
 
-  private applyUserPreferences(buttons: MenuButton[][], preferences: any): MenuButton[][] {
+  private applyUserPreferences(buttons: MenuButton[][], preferences: Record<string, unknown>): MenuButton[][] {
     // Apply user-specific preferences (hiding/showing features)
     return buttons.filter((row) => {
       return row.some((button) => {
-        const feature = button.metadata?.feature;
+        const feature = button.metadata?.feature as string | undefined;
+        const hiddenFeatures = (preferences as any)?.hiddenFeatures as string[] | undefined;
 
-        return !preferences?.hiddenFeatures?.includes(feature);
+        return !feature || !hiddenFeatures?.includes(feature);
       });
     });
   }
@@ -707,8 +704,10 @@ export class MainMenuComposer {
     return buttons;
   }
 
-  private addBreadcrumbNavigation(buttons: MenuButton[][], navigationState: any): MenuButton[][] {
-    if (navigationState.breadcrumb?.length > 0) {
+  private addBreadcrumbNavigation(buttons: MenuButton[][], navigationState: Record<string, unknown>): MenuButton[][] {
+    const breadcrumb = navigationState.breadcrumb as string[] | undefined;
+
+    if (breadcrumb && breadcrumb.length > 0) {
       const breadcrumbRow = [
         {
           text: '📍 Show Path',
@@ -733,11 +732,13 @@ export class MainMenuComposer {
     return text;
   }
 
-  private async updateMenuState(userId: string, menuType: MenuType, metadata?: any): Promise<void> {
+  private async updateMenuState(userId: string, menuType: MenuType, metadata?: Record<string, unknown>): Promise<void> {
     try {
       await this.sessionService.updateSession(userId, {
         navigationState: {
           currentLocation: menuType,
+          breadcrumb: [],
+          history: [],
           metadata: {
             lastMenuUpdate: Date.now(),
             menuMetadata: metadata,

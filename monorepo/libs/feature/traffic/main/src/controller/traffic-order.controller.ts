@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
 import { AsyncResult } from '@app/common-shared';
+import { Ok } from 'ts-results';
 import {
   CreateTrafficOrderDto,
   TrafficOrderDto,
@@ -42,7 +43,7 @@ export class TrafficOrderController {
   ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
     const result = await this.trafficService.createTrafficOrder(dto, userId);
 
-    return { ok: true, val: result } as unknown as AsyncResult<TrafficOrderResponseDto, Error>;
+    return Ok(result);
   }
 
   @Get()
@@ -72,14 +73,10 @@ export class TrafficOrderController {
     description: 'User traffic orders retrieved successfully',
     type: [TrafficOrderDto],
   })
-  async getUserTrafficOrders(
-    @CurrentUserId() userId: string,
-    @Query('status') status?: string,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
-  ): Promise<AsyncResult<TrafficOrderResponseDto[], Error>> {
+  async getUserTrafficOrders(@CurrentUserId() userId: string): Promise<AsyncResult<TrafficOrderResponseDto[], Error>> {
     const result = await this.trafficService.getUserTrafficOrders(userId);
-    return { ok: true, val: result } as any;
+
+    return Ok(result);
   }
 
   @Get(':orderId')
@@ -101,7 +98,8 @@ export class TrafficOrderController {
     @CurrentUserId() userId: string,
   ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
     const result = await this.trafficService.getTrafficOrder(orderId, userId);
-    return { ok: true, val: result } as any;
+
+    return Ok(result);
   }
 
   @Patch(':orderId')
@@ -124,7 +122,8 @@ export class TrafficOrderController {
     @CurrentUserId() userId: string,
   ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
     const result = await this.trafficService.updateTrafficOrder(orderId, dto, userId);
-    return { ok: true, val: result } as any;
+
+    return Ok(result);
   }
 
   @Delete(':orderId')
@@ -145,6 +144,7 @@ export class TrafficOrderController {
     @CurrentUserId() userId: string,
   ): Promise<AsyncResult<{ message: string }, Error>> {
     const result = await this.trafficService.cancelTrafficOrder(orderId, userId);
-    return { ok: true, val: result } as any;
+
+    return Ok(result);
   }
 }

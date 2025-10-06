@@ -6,7 +6,7 @@
  * and response generation.
  */
 
-import { BotContext, BotUser, BotMessage } from '../type';
+import { BotUser, BotMessage } from '../type';
 
 /**
  * Message Format Options

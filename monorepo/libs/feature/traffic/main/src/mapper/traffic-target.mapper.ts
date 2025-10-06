@@ -34,7 +34,19 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
   }): Promise<TrafficTargetEntity> {
     this.logger.log(`Creating traffic target: ${data.name}`);
 
-    const targetData: Partial<TrafficTargetEntity> = {
+    const targetData: {
+      name: string;
+      description?: string;
+      type: TrafficTargetType;
+      telegramId?: string;
+      username?: string;
+      inviteLink?: string;
+      pricePerMember?: string;
+      minMembers?: number;
+      maxMembers?: number;
+      requiresApproval?: boolean;
+      managedById?: string;
+    } = {
       name: data.name,
       description: data.description,
       type: data.type,

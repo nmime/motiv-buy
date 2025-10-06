@@ -206,18 +206,24 @@ export class SessionService {
           ? {
               ...session.data.preferences,
               ...data.preferences,
-              notifications: {
-                ...session.data.preferences?.notifications,
-                ...data.preferences.notifications,
-              },
-              display: {
-                ...session.data.preferences?.display,
-                ...data.preferences.display,
-              },
-              privacy: {
-                ...session.data.preferences?.privacy,
-                ...data.preferences.privacy,
-              },
+              ...(data.preferences.notifications && {
+                notifications: {
+                  ...session.data.preferences?.notifications,
+                  ...data.preferences.notifications,
+                },
+              }),
+              ...(data.preferences.display && {
+                display: {
+                  ...session.data.preferences?.display,
+                  ...data.preferences.display,
+                },
+              }),
+              ...(data.preferences.privacy && {
+                privacy: {
+                  ...session.data.preferences?.privacy,
+                  ...data.preferences.privacy,
+                },
+              }),
             }
           : session.data.preferences,
         navigationState: data.navigationState

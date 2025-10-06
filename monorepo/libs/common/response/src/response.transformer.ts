@@ -25,7 +25,7 @@ export class ResponseTransformer implements NestInterceptor, ExceptionFilter {
     app.useGlobalFilters(transformer);
   }
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
     return next.handle().pipe(
       map((result: unknown): unknown => {
         if (Result.isResult(result)) {
