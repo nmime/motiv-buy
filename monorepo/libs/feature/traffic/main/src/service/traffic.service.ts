@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityRepository, EntityManager } from '@mikro-orm/core';
+import { getErrorMessage, unknownToError } from '@app/common-shared';
 import {
   CreateBotDto,
   BotValidationDto,
@@ -85,8 +86,8 @@ export class TrafficService {
         exists: false,
         message: 'Bot username is available',
       };
-    } catch (error) {
-      this.logger.error(`Bot validation failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (err: unknown) {
+      this.logger.error(`Bot validation failed: ${getErrorMessage(err)}`);
       throw new BadRequestException('Bot validation failed');
     }
   }
@@ -566,7 +567,7 @@ export class TrafficService {
     if (!result.ok) {
       // When result.ok is false, result.val contains the error
       const error = result.val;
-      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorMsg = unknownToError(error);
       this.logger.warn('Bot token validation failed', {
         error: errorMsg,
         operationContext: dto.operationContext,
@@ -596,10 +597,10 @@ export class TrafficService {
   async getBotPermissions(botId: string): Promise<string[]> {
     try {
       return await this.botTokenValidationService.getBotPermissions(botId);
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Failed to get bot permissions', {
         botId,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(err),
       });
 
       return [];
@@ -615,9 +616,9 @@ export class TrafficService {
     try {
       await this.botTokenValidationService.invalidateToken(token);
       this.logger.debug('Bot token invalidated successfully');
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Failed to invalidate bot token', {
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(err),
       });
       // Don't throw - invalidation failure shouldn't break the flow
     }

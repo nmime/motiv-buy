@@ -24,8 +24,8 @@ export class BotAuthMiddleware {
     try {
       await this.authenticateUser(ctx);
       await next();
-    } catch (error) {
-      this.logger.error('Authentication middleware error', error, {
+    } catch (err: unknown) {
+      this.logger.error('Authentication middleware error', err, {
         telegramId: ctx.from?.id,
         chatId: ctx.chat?.id,
       });
@@ -57,9 +57,12 @@ export class BotAuthMiddleware {
 
         if (sessionUser && sessionUser.id) {
           // User found in session, use cached data
-          (ctx as any).user = sessionUser; // Cast to bypass type checking for now
-          (ctx as any).sessionId = existingSessionId;
-          (ctx as any).isNewUser = false;
+          // Safe dynamic property assignment to extend context
+          Object.assign(ctx, {
+            user: sessionUser,
+            sessionId: existingSessionId,
+            isNewUser: false,
+          });
 
           // Update session activity
           await this.botSessionService.updateSessionActivity(existingSessionId);
@@ -86,10 +89,12 @@ export class BotAuthMiddleware {
       // Update user activity
       await this.botUserService.updateUserActivity(user);
 
-      // Populate context
-      (ctx as any).user = user;
-      (ctx as any).sessionId = sessionId;
-      (ctx as any).isNewUser = isNewUser;
+      // Populate context - safe dynamic property assignment
+      Object.assign(ctx, {
+        user,
+        sessionId,
+        isNewUser,
+      });
 
       this.logger.debug('User authenticated and session created', {
         telegramId,
@@ -97,16 +102,16 @@ export class BotAuthMiddleware {
         sessionId,
         isNewUser,
       });
-    } catch (error) {
-      this.logger.error('Failed to authenticate user', error, {
+    } catch (err: unknown) {
+      this.logger.error('Failed to authenticate user', err, {
         telegramId,
       });
 
       // Clear any corrupted session data
       try {
         await this.botSessionService.clearUserSessions(telegramId);
-      } catch (clearError) {
-        this.logger.error('Failed to clear corrupted sessions', clearError, { telegramId });
+      } catch (clearErr: unknown) {
+        this.logger.error('Failed to clear corrupted sessions', clearErr, { telegramId });
       }
     }
   }

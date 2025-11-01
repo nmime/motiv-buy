@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { unknownToError } from '@app/common-shared';
 import { InjectRedis, RedisClient } from '@app/common-redis';
 import { AuthJwtPayloadDto } from '../dto';
 import { AuthConstant } from '../const';
@@ -28,8 +29,8 @@ export class AuthJwtCacheService {
       await this.redis.setex(cacheKey, AuthConstant.CacheTtlJwt, JSON.stringify(payload));
 
       await this.addToUserTokens(payload.userId, key);
-    } catch (error) {
-      this.logger.error('Failed to save JWT key to cache:', error);
+    } catch (error: unknown) {
+      this.logger.error('Failed to save JWT key to cache:', unknownToError(error));
     }
   }
 
@@ -43,8 +44,8 @@ export class AuthJwtCacheService {
       }
 
       return JSON.parse(cached) as AuthJwtPayloadDto;
-    } catch (error) {
-      this.logger.error('Failed to get JWT payload from cache:', error);
+    } catch (error: unknown) {
+      this.logger.error('Failed to get JWT payload from cache:', unknownToError(error));
 
       return null;
     }
@@ -54,8 +55,8 @@ export class AuthJwtCacheService {
     try {
       const cacheKey = this.getValidationCacheKey(jti);
       await this.redis.setex(cacheKey, AuthConstant.CacheTtlJwt, JSON.stringify(userData));
-    } catch (error) {
-      this.logger.error('Failed to cache validation result:', error);
+    } catch (error: unknown) {
+      this.logger.error('Failed to cache validation result:', unknownToError(error));
     }
   }
 
@@ -71,8 +72,8 @@ export class AuthJwtCacheService {
       const parsedData = JSON.parse(cached) as Partial<UserData>;
 
       return new UserData(parsedData);
-    } catch (error) {
-      this.logger.error('Failed to get cached validation:', error);
+    } catch (error: unknown) {
+      this.logger.error('Failed to get cached validation:', unknownToError(error));
 
       return null;
     }
@@ -87,8 +88,8 @@ export class AuthJwtCacheService {
       }
 
       return JSON.parse(tokensStr) as string[];
-    } catch (error) {
-      this.logger.error('Failed to get user tokens:', error);
+    } catch (error: unknown) {
+      this.logger.error('Failed to get user tokens:', unknownToError(error));
 
       return [];
     }
@@ -98,8 +99,8 @@ export class AuthJwtCacheService {
     try {
       const cacheKey = this.getUserTokensKey(String(userId));
       await this.redis.del(cacheKey);
-    } catch (error) {
-      this.logger.error('Failed to clear user tokens:', error);
+    } catch (error: unknown) {
+      this.logger.error('Failed to clear user tokens:', unknownToError(error));
     }
   }
 
@@ -113,8 +114,8 @@ export class AuthJwtCacheService {
         existing.push(jti);
         await this.redis.setex(cacheKey, AuthConstant.CacheTtlJwt, JSON.stringify(existing));
       }
-    } catch (error) {
-      this.logger.error('Failed to add to user tokens:', error);
+    } catch (error: unknown) {
+      this.logger.error('Failed to add to user tokens:', unknownToError(error));
     }
   }
 

@@ -1,3 +1,4 @@
+import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RedisClient } from '@app/common-redis';
 import { BadTokenException, RateLimitException } from '@app/common-exception';
@@ -98,7 +99,7 @@ describe('BotTokenValidationService', () => {
       if (result.err) {
         const error = result.val;
         expect(error).toBeInstanceOf(BadTokenException);
-        expect(error instanceof Error ? error.message : String(error)).toContain('Invalid token format');
+        expect(unknownToError(error)).toContain('Invalid token format');
       }
     });
 
@@ -115,7 +116,7 @@ describe('BotTokenValidationService', () => {
       if (result.err) {
         const error = result.val;
         expect(error).toBeInstanceOf(RateLimitException);
-        expect(error instanceof Error ? error.message : String(error)).toContain('Rate limit exceeded');
+        expect(unknownToError(error)).toContain('Rate limit exceeded');
       }
     });
 

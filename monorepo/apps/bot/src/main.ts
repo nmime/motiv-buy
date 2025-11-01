@@ -32,7 +32,7 @@ async function bootstrap() {
   });
 }
 
-bootstrap().catch((err) => {
+bootstrap().catch((err: unknown) => {
   Logger.error('❌ Error starting bot application', err);
   process.exit(1);
 });

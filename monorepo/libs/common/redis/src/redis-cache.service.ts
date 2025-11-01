@@ -26,8 +26,7 @@ export class RedisCacheService {
     } else {
       const result: T = await action();
 
-      // eslint-disable-next-line eqeqeq
-      if (result == null) {
+      if (result === null || result === undefined) {
         return result;
       }
 
@@ -44,7 +43,7 @@ export class RedisCacheService {
   async setHash<T>(hashKey: string, values: Record<string, T>, ttl: number): Promise<void> {
     const pipeline = this.redis.pipeline();
 
-    Object.entries(values).forEach(([field, value]) => {
+    Object.entries(values).forEach(([field, value]: [string, T]) => {
       pipeline.hset(hashKey, field, JSON.stringify(value));
     });
 
@@ -62,7 +61,7 @@ export class RedisCacheService {
     const result = await this.redis.hgetall(hashKey);
 
     return Object.entries(result).reduce(
-      (acc, [field, value]) => ({
+      (acc, [field, value]: [string, string]) => ({
         ...acc,
         [field]: JSON.parse(value) as T,
       }),

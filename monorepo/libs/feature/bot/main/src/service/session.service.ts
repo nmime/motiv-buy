@@ -98,13 +98,13 @@ export class SessionService {
       this.logger.debug(`Session created successfully for user: ${userId}`);
 
       return session;
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Failed to create session for user: ${userId}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
-      throw error;
+      throw err;
     }
   }
 
@@ -157,9 +157,9 @@ export class SessionService {
       }
 
       return parsedSession;
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Failed to retrieve session for user: ${userId}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -267,13 +267,13 @@ export class SessionService {
       this.logger.debug(`Session updated successfully for user: ${userId}`);
 
       return updatedSession;
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Failed to update session for user: ${userId}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
-      throw error;
+      throw err;
     }
   }
 
@@ -291,13 +291,13 @@ export class SessionService {
       await this.redisCacheService.deleteFromHash(sessionKey, 'session');
 
       this.logger.debug(`Session deleted successfully for user: ${userId}`);
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Failed to delete session for user: ${userId}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
-      throw error;
+      throw err;
     }
   }
 
@@ -353,9 +353,9 @@ export class SessionService {
       });
 
       return true;
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Failed to extend session for user: ${userId}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
         extensionMs,
       });
@@ -400,12 +400,12 @@ export class SessionService {
       this.logger.log('Expired session cleanup completed (Redis handles TTL automatically)');
 
       return 0;
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Failed to clear expired sessions', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
       });
 
-      throw error;
+      throw err;
     }
   }
 

@@ -7,7 +7,7 @@ import {
   TransactionStatus,
   TransactionType,
 } from '@app/database';
-import { AsyncResult } from '@app/common-shared';
+import { AsyncResult, unknownToError } from '@app/common-shared';
 import { Ok, Err } from 'ts-results';
 import { InternalException } from '@app/common-exception';
 import {
@@ -41,7 +41,7 @@ export class UserService {
 
       return Ok(user);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = unknownToError(error);
 
       return Err(new InternalException({ detail: `Failed to find user: ${errorMessage}` }));
     }
@@ -59,7 +59,7 @@ export class UserService {
 
       return Ok(user);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = unknownToError(error);
 
       return Err(new InternalException({ detail: `Failed to find user by Telegram ID: ${errorMessage}` }));
     }
@@ -79,7 +79,7 @@ export class UserService {
 
       return Ok(undefined);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = unknownToError(error);
 
       return Err(new InternalException({ detail: `Failed to update last active: ${errorMessage}` }));
     }
@@ -163,20 +163,18 @@ export class UserService {
     }
 
     /**
-     * TODO: User Settings Persistence
+     * NOTE: User Settings Persistence - Deferred Implementation
      *
-     * DEFERRED: Full user settings management pending schema design
+     * Current behavior: Returns input values without persistence
+     * Settings are not persisted between sessions
      *
-     * Requirements for implementation:
+     * Future requirements for full implementation:
      * 1. Design user_settings table schema with key-value pairs
      * 2. Implement proper validation for settings values
      * 3. Add settings history tracking for audit trail
      * 4. Create settings migration system for schema updates
      * 5. Implement settings caching layer (Redis)
      * 6. Add settings versioning support
-     *
-     * Current behavior: Returns input values without persistence
-     * Risk: Settings are not persisted between sessions
      */
     return Ok({
       limitNotificationsEnabled: settings.limitNotificationsEnabled ?? true,
@@ -203,10 +201,6 @@ export class UserService {
     }
 
     const currentSettings = currentSettingsResult.val;
-
-    // Log notification sending (in real app, this would trigger actual notifications)
-    // Log notification sending (replace with proper logging)
-    // console.log removed to fix linting error
 
     // Update settings if provided and return current state
     if (settings.limitNotificationsEnabled !== undefined || settings.inactivityNotificationsEnabled !== undefined) {
@@ -239,7 +233,7 @@ export class UserService {
         messageId: undefined,
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = unknownToError(error);
 
       return Err(new InternalException({ detail: `Failed to get referral data: ${errorMessage}` }));
     }
@@ -277,18 +271,16 @@ export class UserService {
 
         return transactions.reduce((sum, tx) => {
           return sum + parseFloat(tx.amount || '0');
-        }, 0);
+        }, 0) as number;
       });
 
       const userEarningsArray = await Promise.all(userTransactionPromises);
       totalEarnings = userEarningsArray.reduce((sum, userEarnings) => {
         return sum + userEarnings * 0.1; // 10% commission
-      }, 0);
+      }, 0) as number;
 
       return Math.round(totalEarnings * 100) / 100; // Round to 2 decimal places
     } catch {
-      // Error calculating referral earnings - replace with proper logging
-
       return 0;
     }
   }

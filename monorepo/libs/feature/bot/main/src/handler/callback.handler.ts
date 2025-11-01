@@ -1,3 +1,4 @@
+import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext, MenuType, MenuActionResult } from '@app/feature-bot-shared';
 import { AuthService } from '@app/feature-auth-main';
@@ -72,12 +73,12 @@ export class CallbackHandler {
 
       // Always answer callback query to remove loading state
       await ctx.answerCallbackQuery();
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error processing callback query', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
         callbackData: ctx.callbackQuery?.data,
-        stack: error instanceof Error ? error.stack : undefined,
+        stack: error instanceof Error ? err.stack : undefined,
       });
 
       // Answer callback query with error
@@ -551,7 +552,7 @@ export class CallbackHandler {
     try {
       await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
       await ctx.reply('Menu closed. Use /menu to open the main menu again.');
-    } catch (error) {
+    } catch (err: unknown) {
       await ctx.reply('Menu closed. Use /menu to open the main menu again.');
     }
   }
@@ -672,9 +673,9 @@ export class CallbackHandler {
           },
         });
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Registration error', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -709,9 +710,9 @@ export class CallbackHandler {
           inline_keyboard: [[{ text: '🚀 Start Over', callback_data: 'auth:start' }]],
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Logout error', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -774,9 +775,9 @@ export class CallbackHandler {
           ],
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error displaying profile stats', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -1149,11 +1150,11 @@ Statistics are updated in real-time as traffic and conversions occur.
           isActive: true,
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Failed to update callback activity', {
         userId,
         callbackData,
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
       });
     }
   }
@@ -1167,7 +1168,7 @@ Statistics are updated in real-time as traffic and conversions occur.
     this.logger.error('Callback processing error', {
       userId,
       error: error.message,
-      stack: error.stack,
+      stack: err.stack,
       callbackData: ctx.callbackQuery?.data,
     });
 

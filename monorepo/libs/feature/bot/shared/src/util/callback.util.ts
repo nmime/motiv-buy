@@ -1,5 +1,12 @@
 import { CallbackData } from '../type';
 
+interface ParsedCallbackJson {
+  action?: string;
+  params?: string[];
+  metadata?: Record<string, unknown>;
+  timestamp?: number;
+}
+
 /**
  * Callback Utility
  *
@@ -10,10 +17,10 @@ import { CallbackData } from '../type';
  */
 export class CallbackUtil {
   /** Maximum callback data length (Telegram limit) */
-  private static readonly MAX_CALLBACK_DATA_LENGTH = 64;
+  private static readonly maxCallbackDataLength = 64;
 
   /** Separator for callback data parts */
-  private static readonly SEPARATOR = ':';
+  private static readonly separator = ':';
 
   /**
    * Build callback data string from object
@@ -28,31 +35,31 @@ export class CallbackUtil {
 
       // Add parameters
       if (params.length > 0) {
-        callbackString += this.SEPARATOR + params.join(this.SEPARATOR);
+        callbackString += this.separator + params.join(this.separator);
       }
 
       // Add metadata if present and fits
       if (metadata && Object.keys(metadata).length > 0) {
         const metadataString = JSON.stringify(metadata);
-        const testString = callbackString + this.SEPARATOR + metadataString;
+        const testString = callbackString + this.separator + metadataString;
 
-        if (testString.length <= this.MAX_CALLBACK_DATA_LENGTH) {
+        if (testString.length <= this.maxCallbackDataLength) {
           callbackString = testString;
         }
       }
 
       // Truncate if too long
-      if (callbackString.length > this.MAX_CALLBACK_DATA_LENGTH) {
-        callbackString = callbackString.substring(0, this.MAX_CALLBACK_DATA_LENGTH);
+      if (callbackString.length > this.maxCallbackDataLength) {
+        callbackString = callbackString.substring(0, this.maxCallbackDataLength);
         // Ensure we don't cut in the middle of a parameter
-        const lastSeparator = callbackString.lastIndexOf(this.SEPARATOR);
+        const lastSeparator = callbackString.lastIndexOf(this.separator);
         if (lastSeparator > action.length) {
           callbackString = callbackString.substring(0, lastSeparator);
         }
       }
 
       return callbackString;
-    } catch (error) {
+    } catch {
       // Fallback to simple action if building fails
       return data.action;
     }
@@ -68,18 +75,18 @@ export class CallbackUtil {
     try {
       // Handle JSON format
       if (callbackString.startsWith('{') && callbackString.endsWith('}')) {
-        const parsed = JSON.parse(callbackString);
+        const parsed = JSON.parse(callbackString) as ParsedCallbackJson;
 
         return {
-          action: parsed.action || 'unknown',
-          params: parsed.params || [],
+          action: parsed.action ?? 'unknown',
+          params: parsed.params ?? [],
           metadata: parsed.metadata,
-          timestamp: parsed.timestamp || Date.now(),
+          timestamp: parsed.timestamp ?? Date.now(),
         };
       }
 
       // Handle delimited format
-      const parts = callbackString.split(this.SEPARATOR);
+      const parts = callbackString.split(this.separator);
       const action = parts[0] || 'unknown';
       const params = parts.slice(1);
 
@@ -91,7 +98,7 @@ export class CallbackUtil {
         const lastParam = params[params.length - 1];
         try {
           if (lastParam.startsWith('{') && lastParam.endsWith('}')) {
-            metadata = JSON.parse(lastParam);
+            metadata = JSON.parse(lastParam) as Record<string, unknown>;
             actualParams = params.slice(0, -1);
           }
         } catch {
@@ -105,12 +112,12 @@ export class CallbackUtil {
         metadata,
         timestamp: Date.now(),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       // Return minimal valid object on error
       return {
         action: 'error',
         params: [],
-        metadata: { originalData: callbackString, error: error instanceof Error ? error.message : 'Unknown error' },
+        metadata: { originalData: callbackString, error: err instanceof Error ? err.message : 'Unknown error' },
         timestamp: Date.now(),
       };
     }
@@ -151,7 +158,7 @@ export class CallbackUtil {
 
       // Check overall length when built
       const builtString = this.buildCallbackData(data);
-      if (builtString.length > this.MAX_CALLBACK_DATA_LENGTH) {
+      if (builtString.length > this.maxCallbackDataLength) {
         return false;
       }
 

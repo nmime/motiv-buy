@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { Context, InlineKeyboard, SessionFlavor } from 'grammy';
 
 /**

@@ -1,3 +1,4 @@
+import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { InlineKeyboard } from 'grammy';
 import {
@@ -94,9 +95,9 @@ export class MenuService {
       } else {
         await ctx.reply(actionResult.message || 'Action failed. Please try again.');
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Error handling menu action: ${callbackData}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
         callbackData,
       });
@@ -147,9 +148,9 @@ export class MenuService {
           reply_markup: keyboard,
         });
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Error navigating to menu: ${menuType}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
         menuType,
       });
@@ -174,9 +175,9 @@ export class MenuService {
       }
 
       return session.data.navigationState.history as MenuType[];
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Error getting menu history for user: ${userId}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -528,11 +529,11 @@ export class MenuService {
           },
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Failed to update navigation state', {
         userId,
         menuType,
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
       });
     }
   }

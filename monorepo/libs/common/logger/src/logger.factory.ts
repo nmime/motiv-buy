@@ -38,15 +38,12 @@ const protectedVariables = [
 
 function bindLoggerMiddlewareFactory(useExisting: boolean) {
   return function bindLoggerMiddleware(req: FastifyRequest & LoggerRequest, _res: FastifyReply, next: () => void) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     let { log } = req;
 
     if (!useExisting && req.allLogs && req.allLogs.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       log = req.allLogs[req.allLogs.length - 1];
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     storage.run(new Store(log), next);
   };
 }
@@ -59,7 +56,7 @@ function createLoggerMiddlewares(params: Record<string, unknown>, useExisting = 
   const middleware = pinoHttp(...(Array.isArray(params) ? params : [params]));
 
   // Set the root logger using type assertion to bypass readonly restriction
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
   (PinoLogger as { root?: unknown }).root = middleware.logger;
 
   return [middleware, bindLoggerMiddlewareFactory(useExisting)];
@@ -251,17 +248,15 @@ export function createLogger(config: { name: string }) {
 
           const cls = ClsServiceManager.getClsService();
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const userId = cls.get('userId');
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           const appId = cls.get('appId');
           const requestId = cls.getId();
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const logData = { context, error, userId, appId, requestId };
 
           // Use type assertion to bypass strict typing for custom logger method
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
           (method as (...args: unknown[]) => void).apply(this, [logData, message, ...(params ?? [])]);
         },
       },

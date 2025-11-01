@@ -1,6 +1,7 @@
 import { MikroORM } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
 import { Logger } from '@nestjs/common';
+import { handleError, getErrorMessage } from '@app/common-shared';
 import type { MigrationResult, MigrationStatus, FreshMigrationResult, SeederResult } from '../type';
 export class MigrationService {
   private migrator: Migrator;
@@ -25,9 +26,10 @@ export class MigrationService {
       });
 
       return migration.fileName;
-    } catch (error) {
-      this.logger.error('Failed to create migration:', error);
-      throw new Error(`Migration creation failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error: unknown) {
+      const { message } = handleError(error);
+      this.logger.error('Failed to create migration:', message);
+      throw new Error(`Migration creation failed: ${message}`);
     }
   }
 
@@ -36,11 +38,10 @@ export class MigrationService {
       const pending = await this.migrator.getPendingMigrations();
 
       return pending.map((migration) => ({ name: migration.name }));
-    } catch (error) {
-      this.logger.error('Failed to get pending migrations:', error);
-      throw new Error(
-        `Failed to retrieve pending migrations: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    } catch (error: unknown) {
+      const { message } = handleError(error);
+      this.logger.error('Failed to get pending migrations:', message);
+      throw new Error(`Failed to retrieve pending migrations: ${message}`);
     }
   }
 
@@ -52,11 +53,10 @@ export class MigrationService {
         name: migration.name,
         executedAt: migration.executed_at || new Date(),
       }));
-    } catch (error) {
-      this.logger.error('Failed to get executed migrations:', error);
-      throw new Error(
-        `Failed to retrieve executed migrations: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    } catch (error: unknown) {
+      const { message } = handleError(error);
+      this.logger.error('Failed to get executed migrations:', message);
+      throw new Error(`Failed to retrieve executed migrations: ${message}`);
     }
   }
 
@@ -71,9 +71,10 @@ export class MigrationService {
         executedMigrations: result.map((m) => m.name),
         executionTime: `${executionTime}ms`,
       };
-    } catch (error) {
-      this.logger.error('Migration up failed:', error);
-      throw new Error(`Migration execution failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error: unknown) {
+      const { message } = handleError(error);
+      this.logger.error('Migration up failed:', message);
+      throw new Error(`Migration execution failed: ${message}`);
     }
   }
 
@@ -87,9 +88,10 @@ export class MigrationService {
       }
 
       return executed.slice(targetIndex + 1).map((m) => m.name);
-    } catch (error) {
-      this.logger.error('Failed to determine rollback migrations:', error);
-      throw error;
+    } catch (error: unknown) {
+      const { message, error: err } = handleError(error);
+      this.logger.error('Failed to determine rollback migrations:', message);
+      throw err;
     }
   }
 
@@ -115,9 +117,10 @@ export class MigrationService {
         rolledBackMigrations: result.map((m) => m.name),
         executionTime: `${executionTime}ms`,
       };
-    } catch (error) {
-      this.logger.error('Migration down failed:', error);
-      throw new Error(`Migration rollback failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error: unknown) {
+      const { message } = handleError(error);
+      this.logger.error('Migration down failed:', message);
+      throw new Error(`Migration rollback failed: ${message}`);
     }
   }
 
@@ -129,9 +132,10 @@ export class MigrationService {
         executedMigrations: executed,
         pendingMigrations: pending,
       };
-    } catch (error) {
-      this.logger.error('Failed to get migration status:', error);
-      throw new Error(`Status check failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error: unknown) {
+      const { message } = handleError(error);
+      this.logger.error('Failed to get migration status:', message);
+      throw new Error(`Status check failed: ${message}`);
     }
   }
 
@@ -154,9 +158,10 @@ export class MigrationService {
         executedMigrations: migrationResult.map((m) => m.name),
         executionTime: `${executionTime}ms`,
       };
-    } catch (error) {
-      this.logger.error('Fresh migration failed:', error);
-      throw new Error(`Fresh migration failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error: unknown) {
+      const { message } = handleError(error);
+      this.logger.error('Fresh migration failed:', message);
+      throw new Error(`Fresh migration failed: ${message}`);
     }
   }
 
@@ -175,9 +180,10 @@ export class MigrationService {
         executedSeeders: seederClass ? [seederClass] : [],
         executionTime: `${executionTime}ms`,
       };
-    } catch (error) {
-      this.logger.error('Seeding failed:', error);
-      throw new Error(`Seeding failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error: unknown) {
+      const { message } = handleError(error);
+      this.logger.error('Seeding failed:', message);
+      throw new Error(`Seeding failed: ${message}`);
     }
   }
 }

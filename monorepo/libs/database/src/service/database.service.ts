@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MikroORM, EntityManager, RequestContext } from '@mikro-orm/core';
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { getErrorMessage, toError } from '@app/common-shared';
 import { createMikroOrmConfig } from '../config';
 import { DatabaseConfig } from '../config';
 
@@ -27,9 +28,11 @@ export class DatabaseService {
       const migrator = this.orm.getMigrator();
       await migrator.up();
       this.logger.log('Database migrations applied');
-    } catch (error) {
-      this.logger.error('Database connection failed:', error);
-      throw error;
+    } catch (err: unknown) {
+      const message = getErrorMessage(err);
+      this.logger.error('Database connection failed:', message);
+
+      throw toError(err);
     }
   }
 
@@ -69,8 +72,9 @@ export class DatabaseService {
         uptime: process.uptime(),
         type: this.config.type,
       };
-    } catch (error) {
-      this.logger.error('Database health check failed:', error);
+    } catch (err: unknown) {
+      const message = getErrorMessage(err);
+      this.logger.error('Database health check failed:', message);
 
       return {
         status: 'unhealthy',

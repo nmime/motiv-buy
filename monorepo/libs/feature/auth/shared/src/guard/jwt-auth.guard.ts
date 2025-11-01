@@ -1,3 +1,4 @@
+import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
 import { ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
@@ -75,9 +76,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       if (wasSet === 'OK') {
         void this.updateDatabaseActivity(userId, now);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.warn('Failed to track user activity', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(error),
       });
     }
   }
@@ -89,10 +90,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       await this.userRepository.nativeUpdate({ id: String(userId) }, { lastActiveAt: lastActiveTime });
 
       this.logger.debug('User lastActiveTime updated', { userId, lastActiveTime });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Failed to update database activity', {
         userId,
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(error),
       });
     }
   }

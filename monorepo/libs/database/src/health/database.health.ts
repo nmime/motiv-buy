@@ -1,3 +1,4 @@
+import { unknownToError } from '@app/common-shared';
 import { Injectable } from '@nestjs/common';
 import { HealthIndicatorResult } from '@nestjs/terminus';
 import { DatabaseService } from '../service/database.service';
@@ -7,9 +8,7 @@ import { DatabaseService } from '../service/database.service';
  */
 @Injectable()
 export class DatabaseHealthIndicator {
-  constructor(
-    private readonly databaseService: DatabaseService,
-  ) {}
+  constructor(private readonly databaseService: DatabaseService) {}
 
   /**
    * Ping check for database connectivity
@@ -32,8 +31,8 @@ export class DatabaseHealthIndicator {
       } else {
         throw new Error('Database connection failed');
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Database connection failed';
+    } catch (error: unknown) {
+      const errorMessage = unknownToError(error);
 
       throw new Error(errorMessage);
     }
@@ -56,8 +55,8 @@ export class DatabaseHealthIndicator {
           message: 'Database queries working',
         },
       };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Database query failed';
+    } catch (error: unknown) {
+      const errorMessage = unknownToError(error);
 
       throw new Error(errorMessage);
     }

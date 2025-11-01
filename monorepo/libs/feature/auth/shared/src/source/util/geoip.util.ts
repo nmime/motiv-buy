@@ -814,7 +814,7 @@ export const getGeoByIp = (ip: string | number): GeoLocation | undefined => {
       region: geo.region,
       city: geo.city,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     // Expected error for invalid IP addresses or lookup failures
     if (error instanceof Error) {
       // Use logger instead of console in production

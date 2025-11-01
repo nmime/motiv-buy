@@ -77,7 +77,8 @@ export class StatisticRepository {
       params.push(userId);
     }
 
-    const userStats = (await this.em.getConnection().execute(userStatsQuery, params)) as Record<string, unknown>[];
+    const userStatsRaw = await this.em.getConnection().execute(userStatsQuery, params);
+    const userStats = Array.isArray(userStatsRaw) ? userStatsRaw : [];
 
     // Balance statistics using raw SQL
     let balanceStatsQuery = `
@@ -98,19 +99,22 @@ export class StatisticRepository {
       balanceParamIndex++;
     }
 
-    const balanceStats = (await this.em.getConnection().execute(balanceStatsQuery, balanceParams)) as Record<
-      string,
-      unknown
-    >[];
+    const balanceStatsRaw = await this.em.getConnection().execute(balanceStatsQuery, balanceParams);
+    const balanceStats = Array.isArray(balanceStatsRaw) ? balanceStatsRaw : [];
 
-    const userRow = userStats[0] || {};
-    const balanceRow = balanceStats[0] || {};
+    const userRow: Record<string, unknown> =
+      userStats[0] && typeof userStats[0] === 'object' ? (userStats[0] as Record<string, unknown>) : {};
+
+    const balanceRow: Record<string, unknown> =
+      balanceStats[0] && typeof balanceStats[0] === 'object' ? (balanceStats[0] as Record<string, unknown>) : {};
 
     return {
-      totalUsers: Number(userRow.total_users) || 0,
-      activeUsers: Number(userRow.active_users) || 0,
-      totalTransactions: Number(balanceRow.total_transactions) || 0,
-      netBalanceChange: Number(balanceRow.net_balance_change) || 0,
+      totalUsers: Number(userRow && 'total_users' in userRow ? userRow.total_users : 0) || 0,
+      activeUsers: Number(userRow && 'active_users' in userRow ? userRow.active_users : 0) || 0,
+      totalTransactions:
+        Number(balanceRow && 'total_transactions' in balanceRow ? balanceRow.total_transactions : 0) || 0,
+      netBalanceChange:
+        Number(balanceRow && 'net_balance_change' in balanceRow ? balanceRow.net_balance_change : 0) || 0,
     };
   }
 
@@ -170,13 +174,16 @@ export class StatisticRepository {
       }
     }
 
-    const stats = (await this.em.getConnection().execute(query, params)) as Record<string, unknown>[];
-    const result = stats[0] || {};
-    const totalActions = Number(result.total_actions) || 0;
-    const totalReward = Number(result.total_reward) || 0;
+    const statsRaw = await this.em.getConnection().execute(query, params);
+    const stats: unknown[] = Array.isArray(statsRaw) ? statsRaw : [];
+    const result: Record<string, unknown> =
+      stats[0] && typeof stats[0] === 'object' ? (stats[0] as Record<string, unknown>) : {};
+
+    const totalActions = Number(result && 'total_actions' in result ? result.total_actions : 0) || 0;
+    const totalReward = Number(result && 'total_reward' in result ? result.total_reward : 0) || 0;
 
     return {
-      uniqueSourcesCount: Number(result.unique_sources_count) || 0,
+      uniqueSourcesCount: Number(result && 'unique_sources_count' in result ? result.unique_sources_count : 0) || 0,
       totalActions,
       totalReward,
       avgRewardPerAction: totalActions > 0 ? totalReward / totalActions : 0,
@@ -238,13 +245,16 @@ export class StatisticRepository {
       }
     }
 
-    const stats = (await this.em.getConnection().execute(query, params)) as Record<string, unknown>[];
-    const result = stats[0] || {};
-    const totalOrders = Number(result.total_orders_count) || 0;
-    const totalEarned = Number(result.total_earned) || 0;
+    const statsRaw = await this.em.getConnection().execute(query, params);
+    const stats: unknown[] = Array.isArray(statsRaw) ? statsRaw : [];
+    const result: Record<string, unknown> =
+      stats[0] && typeof stats[0] === 'object' ? (stats[0] as Record<string, unknown>) : {};
+
+    const totalOrders = Number(result && 'total_orders_count' in result ? result.total_orders_count : 0) || 0;
+    const totalEarned = Number(result && 'total_earned' in result ? result.total_earned : 0) || 0;
 
     return {
-      activeTargetsCount: Number(result.active_targets_count) || 0,
+      activeTargetsCount: Number(result && 'active_targets_count' in result ? result.active_targets_count : 0) || 0,
       totalOrdersCount: totalOrders,
       totalEarned,
       avgPricePerMember: totalOrders > 0 ? totalEarned / totalOrders : 0,
@@ -288,15 +298,17 @@ export class StatisticRepository {
 
     query += ` AND ${this.buildDateFilter('created_at', dateFilter)}`;
 
-    const stats = (await this.em.getConnection().execute(query, params)) as Record<string, unknown>[];
-    const result = stats[0] || {};
+    const statsRaw = await this.em.getConnection().execute(query, params);
+    const stats: unknown[] = Array.isArray(statsRaw) ? statsRaw : [];
+    const result: Record<string, unknown> =
+      stats[0] && typeof stats[0] === 'object' ? (stats[0] as Record<string, unknown>) : {};
 
     return {
-      totalOrders: Number(result.total_orders) || 0,
-      completedOrders: Number(result.completed_orders) || 0,
-      pendingOrders: Number(result.pending_orders) || 0,
-      totalBudget: Number(result.total_budget) || 0,
-      spentAmount: Number(result.spent_amount) || 0,
+      totalOrders: Number(result && 'total_orders' in result ? result.total_orders : 0) || 0,
+      completedOrders: Number(result && 'completed_orders' in result ? result.completed_orders : 0) || 0,
+      pendingOrders: Number(result && 'pending_orders' in result ? result.pending_orders : 0) || 0,
+      totalBudget: Number(result && 'total_budget' in result ? result.total_budget : 0) || 0,
+      spentAmount: Number(result && 'spent_amount' in result ? result.spent_amount : 0) || 0,
     };
   }
 
@@ -344,14 +356,16 @@ export class StatisticRepository {
 
     query += ` AND ${this.buildDateFilter('ta.created_at', dateFilter)}`;
 
-    const stats = (await this.em.getConnection().execute(query, params)) as Record<string, unknown>[];
-    const result = stats[0] || {};
+    const statsRaw = await this.em.getConnection().execute(query, params);
+    const stats: unknown[] = Array.isArray(statsRaw) ? statsRaw : [];
+    const result: Record<string, unknown> =
+      stats[0] && typeof stats[0] === 'object' ? (stats[0] as Record<string, unknown>) : {};
 
     return {
-      totalActions: Number(result.total_actions) || 0,
-      completedActions: Number(result.completed_actions) || 0,
-      pendingActions: Number(result.pending_actions) || 0,
-      totalReward: Number(result.total_reward) || 0,
+      totalActions: Number(result && 'total_actions' in result ? result.total_actions : 0) || 0,
+      completedActions: Number(result && 'completed_actions' in result ? result.completed_actions : 0) || 0,
+      pendingActions: Number(result && 'pending_actions' in result ? result.pending_actions : 0) || 0,
+      totalReward: Number(result && 'total_reward' in result ? result.total_reward : 0) || 0,
     };
   }
 
@@ -447,14 +461,16 @@ export class StatisticRepository {
     query += ` AND ${this.buildDateFilter('ta.created_at', dateFilter)}`;
     query += ` GROUP BY ${dateFormat} ORDER BY ${dateFormat} ASC`;
 
-    const results = (await this.em.getConnection().execute(query, params)) as Record<string, unknown>[];
-    const rows = results;
+    const resultsRaw = await this.em.getConnection().execute(query, params);
+    const results = Array.isArray(resultsRaw) ? resultsRaw : [];
 
-    return rows.map((row) => ({
-      date: safeStringify(row.date),
-      count: Number(row.count) || 0,
-      amount: Number(row.amount) || 0,
-    }));
+    return results
+      .filter((row): row is Record<string, unknown> => row !== null && typeof row === 'object')
+      .map((row) => ({
+        date: safeStringify(row && 'date' in row ? row.date : ''),
+        count: Number(row && 'count' in row ? row.count : 0) || 0,
+        amount: Number(row && 'amount' in row ? row.amount : 0) || 0,
+      }));
   }
 
   private async getTargetTimeSeriesData(
@@ -486,14 +502,16 @@ export class StatisticRepository {
     query += ` AND ${this.buildDateFilter('tor.created_at', dateFilter)}`;
     query += ` GROUP BY ${dateFormat} ORDER BY ${dateFormat} ASC`;
 
-    const results = (await this.em.getConnection().execute(query, params)) as Record<string, unknown>[];
-    const rows = results;
+    const resultsRaw = await this.em.getConnection().execute(query, params);
+    const results = Array.isArray(resultsRaw) ? resultsRaw : [];
 
-    return rows.map((row) => ({
-      date: safeStringify(row.date),
-      count: Number(row.count) || 0,
-      amount: Number(row.amount) || 0,
-    }));
+    return results
+      .filter((row): row is Record<string, unknown> => row !== null && typeof row === 'object')
+      .map((row) => ({
+        date: safeStringify(row && 'date' in row ? row.date : ''),
+        count: Number(row && 'count' in row ? row.count : 0) || 0,
+        amount: Number(row && 'amount' in row ? row.amount : 0) || 0,
+      }));
   }
 
   private async getOrderTimeSeriesData(
@@ -523,14 +541,16 @@ export class StatisticRepository {
     query += ` AND ${this.buildDateFilter('created_at', dateFilter)}`;
     query += ` GROUP BY ${dateFormat} ORDER BY ${dateFormat} ASC`;
 
-    const results = (await this.em.getConnection().execute(query, params)) as Record<string, unknown>[];
-    const rows = results;
+    const resultsRaw = await this.em.getConnection().execute(query, params);
+    const results = Array.isArray(resultsRaw) ? resultsRaw : [];
 
-    return rows.map((row) => ({
-      date: safeStringify(row.date),
-      count: Number(row.count) || 0,
-      amount: Number(row.amount) || 0,
-    }));
+    return results
+      .filter((row): row is Record<string, unknown> => row !== null && typeof row === 'object')
+      .map((row) => ({
+        date: safeStringify(row && 'date' in row ? row.date : ''),
+        count: Number(row && 'count' in row ? row.count : 0) || 0,
+        amount: Number(row && 'amount' in row ? row.amount : 0) || 0,
+      }));
   }
 
   private async getActionTimeSeriesData(
@@ -563,14 +583,16 @@ export class StatisticRepository {
     query += ` AND ${this.buildDateFilter('ta.created_at', dateFilter)}`;
     query += ` GROUP BY ${dateFormat} ORDER BY ${dateFormat} ASC`;
 
-    const results = (await this.em.getConnection().execute(query, params)) as Record<string, unknown>[];
-    const rows = results;
+    const resultsRaw = await this.em.getConnection().execute(query, params);
+    const results = Array.isArray(resultsRaw) ? resultsRaw : [];
 
-    return rows.map((row) => ({
-      date: safeStringify(row.date),
-      count: Number(row.count) || 0,
-      amount: Number(row.amount) || 0,
-    }));
+    return results
+      .filter((row): row is Record<string, unknown> => row !== null && typeof row === 'object')
+      .map((row) => ({
+        date: safeStringify(row && 'date' in row ? row.date : ''),
+        count: Number(row && 'count' in row ? row.count : 0) || 0,
+        amount: Number(row && 'amount' in row ? row.amount : 0) || 0,
+      }));
   }
 
   private async getUserTimeSeriesData(
@@ -594,13 +616,15 @@ export class StatisticRepository {
     query += ` AND ${this.buildDateFilter('ubh.created_at', dateFilter)}`;
     query += ` GROUP BY ${dateFormat} ORDER BY ${dateFormat} ASC`;
 
-    const results = (await this.em.getConnection().execute(query, params)) as Record<string, unknown>[];
-    const rows = results;
+    const resultsRaw = await this.em.getConnection().execute(query, params);
+    const results = Array.isArray(resultsRaw) ? resultsRaw : [];
 
-    return rows.map((row) => ({
-      date: safeStringify(row.date),
-      count: Number(row.count) || 0,
-      amount: Number(row.amount) || 0,
-    }));
+    return results
+      .filter((row): row is Record<string, unknown> => row !== null && typeof row === 'object')
+      .map((row) => ({
+        date: safeStringify(row && 'date' in row ? row.date : ''),
+        count: Number(row && 'count' in row ? row.count : 0) || 0,
+        amount: Number(row && 'amount' in row ? row.amount : 0) || 0,
+      }));
   }
 }

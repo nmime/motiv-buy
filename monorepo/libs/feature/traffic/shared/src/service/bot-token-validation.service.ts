@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis, RedisClient } from '@app/common-redis';
 import { Err, Ok, Result } from 'ts-results';
+import { getErrorMessage } from '@app/common-shared';
 import { BadTokenException, RateLimitExceedException, InternalException } from '@app/common-exception';
 import { BotTokenValidationDto, BotTokenValidationResponseDto } from '../dto';
 import {
@@ -75,8 +76,8 @@ export class BotTokenValidationService {
 
       // Handle validation result
       return this.handleValidationResult(dto, validationResult);
-    } catch (error) {
-      return this.handleValidationError(error, dto, clientIp);
+    } catch (err: unknown) {
+      return this.handleValidationError(err, dto, clientIp);
     }
   }
 
@@ -211,7 +212,7 @@ export class BotTokenValidationService {
    * Handle validation errors
    */
   private handleValidationError(
-    error: unknown,
+    err: unknown,
     dto: BotTokenValidationDto,
     clientIp?: string,
   ): Result<
@@ -224,10 +225,11 @@ export class BotTokenValidationService {
     | InternalException
   > {
     const correlationId = this.generateCorrelationId();
+    const errorMessage = getErrorMessage(err);
 
     this.logger.error('Token validation critical error', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
+      error: errorMessage,
+      stack: err instanceof Error ? err.stack : undefined,
       operationContext: dto.operationContext,
       correlationId,
       botId: this.extractBotId(dto.token),
@@ -235,7 +237,7 @@ export class BotTokenValidationService {
       timestamp: new Date().toISOString(),
     });
 
-    if (error instanceof Error && error.message.includes('bot-shared')) {
+    if (errorMessage.includes('bot-shared')) {
       return Err(new BotTokenServiceUnavailableException('Bot validation service is temporarily unavailable'));
     }
 
@@ -302,10 +304,10 @@ export class BotTokenValidationService {
       await this.redisClient.set(cacheKey, JSON.stringify(permissions), 'EX', 600);
 
       return permissions;
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.warn('Failed to get bot permissions', {
         botId,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(err),
       });
 
       return []; // Return empty permissions on error
@@ -331,9 +333,9 @@ export class BotTokenValidationService {
       this.logger.debug('Token validation cache invalidated', {
         botId: this.extractBotId(token),
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.warn('Failed to invalidate token cache', {
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(err),
       });
     }
   }
@@ -366,10 +368,10 @@ export class BotTokenValidationService {
       }
 
       return Ok(undefined);
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Rate limit check failed', {
         clientIp,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(err),
         correlationId: this.generateCorrelationId(),
       });
 
@@ -390,9 +392,9 @@ export class BotTokenValidationService {
       }
 
       return null;
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.warn('Failed to get cached validation', {
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(err),
       });
 
       return null;
@@ -408,9 +410,9 @@ export class BotTokenValidationService {
         const cacheKey = `${this.cachePrefix}:${this.hashToken(token)}`;
         await this.redisClient.set(cacheKey, JSON.stringify(result), 'EX', this.cacheExpiry);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.warn('Failed to cache validation result', {
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(err),
       });
     }
   }
@@ -454,10 +456,10 @@ export class BotTokenValidationService {
           operationContext: dto.operationContext,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Token validation with bot-shared failed', {
         botId,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(err),
       });
 
       return {

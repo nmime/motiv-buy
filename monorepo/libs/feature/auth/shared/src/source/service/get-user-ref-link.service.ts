@@ -41,21 +41,23 @@ export class GetUserRefLinkService {
       }
 
       return null;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Error resolving link user ID for type ${linkType} and code ${linkCode}`, error);
       throw error;
     }
   }
 
   private async resolveReferral(code: string): Promise<UserRefLink | null> {
-    const customRef = await this.userRefLinkRepository.findByRefCode(code);
+    const customRef = (await this.userRefLinkRepository.findByRefCode(code)) as UserRefLink | null;
     if (customRef && !customRef.isDeleted) {
+      const userIdValue = (customRef as unknown as { user: { id: string } }).user.id;
+
       return new UserRefLink({
         id: customRef.id,
         type: customRef.type,
         sourceType: customRef.sourceType,
         sourceId: customRef.sourceId,
-        userId: customRef.user.id,
+        userId: userIdValue,
         refCode: customRef.refCode,
         refCodeUniqueKey: customRef.refCodeUniqueKey,
         defaultUniqueKey: customRef.defaultUniqueKey,

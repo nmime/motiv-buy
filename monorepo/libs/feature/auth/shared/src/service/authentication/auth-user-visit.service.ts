@@ -56,7 +56,7 @@ export class AuthUserVisitService {
 
     try {
       return getGeoByIp(ip) ?? undefined;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Error while getting geo by ip', { ip, error });
 
       return undefined;

@@ -21,7 +21,7 @@ export class BotService {
     try {
       await this.botMainService.start();
       this.logger.log('Bot application service started successfully');
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Failed to start bot application service', error);
       throw error;
     }
@@ -34,7 +34,7 @@ export class BotService {
     try {
       await this.botMainService.stop();
       this.logger.log('Bot application service stopped successfully');
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Error stopping bot application service', error);
     }
   }

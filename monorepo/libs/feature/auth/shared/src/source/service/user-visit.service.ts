@@ -46,7 +46,7 @@ export class UserVisitService {
 
     const visitData = this.sourceRegisterService.prepareVisitData(visitParams, sourceParams, userRefLink);
 
-    return this.sourceRegisterService.registerVisit(visitData, entityManager);
+    return await this.sourceRegisterService.registerVisit(visitData, entityManager);
   }
 
   private prepareVisitDataParams(
@@ -79,7 +79,7 @@ export class UserVisitService {
 
     try {
       return getGeoByIp(ip);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Error while getting geo by ip', { ip, error });
 
       return undefined;

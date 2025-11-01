@@ -73,7 +73,7 @@ export class SourceRegisterService {
     );
 
     const visitFields: Record<string, unknown> = {};
-    visitObj.forEach(([key, value]) => {
+    visitObj.forEach(([key, value]: [string, unknown]) => {
       const snakeKey = this.camelToSnakeCase(key);
       visitFields[snakeKey] = value;
     });
@@ -84,12 +84,12 @@ export class SourceRegisterService {
     visitFields['telegram_last_name'] = telegramAuthParams?.lastName ?? null;
 
     const initialProperties: Record<string, unknown> = {};
-    Object.entries(visitFields).forEach(([key, value]) => {
+    Object.entries(visitFields).forEach(([key, value]: [string, unknown]) => {
       initialProperties[`initial_${key}`] = value;
     });
 
     const latestProperties: Record<string, unknown> = {};
-    Object.entries(visitFields).forEach(([key, value]) => {
+    Object.entries(visitFields).forEach(([key, value]: [string, unknown]) => {
       latestProperties[key] = value;
     });
 

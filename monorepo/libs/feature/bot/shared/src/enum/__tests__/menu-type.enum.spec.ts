@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import { MenuType } from '../menu-type.enum';
 
 describe('MenuType Enum', () => {

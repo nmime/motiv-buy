@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, Logger, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { FastifyRequest } from 'fastify';
+import { getErrorMessage } from '@app/common-shared';
 import { BotTokenValidationService } from '../service';
 import { BotTokenValidationDto } from '../dto';
 import { optionalBotTokenKey, requiredBotTokenKey, botTokenOperationKey } from '../decorator';
@@ -148,14 +149,14 @@ export class BotTokenValidationGuard implements CanActivate {
       });
 
       return true;
-    } catch (error) {
+    } catch (err: unknown) {
       // If it's already a known exception, re-throw it
-      if (error instanceof UnauthorizedException) {
-        throw error;
+      if (err instanceof UnauthorizedException) {
+        throw err;
       }
 
       this.logger.error('Bot token validation error', {
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(err),
         operationContext,
       });
 

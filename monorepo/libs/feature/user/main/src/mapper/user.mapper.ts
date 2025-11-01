@@ -6,11 +6,13 @@ import { UserReferralData, ReferralStatsData, ReferralLinkData, NotificationSett
 @Injectable()
 export class UserMapper {
   toResponse(user: UserEntity, referralData: UserReferralData): UserResponseDto {
+    const userData = user;
+
     return {
-      id: user.id,
-      name: user.firstName,
-      username: user.username,
-      language: user.languageCode,
+      id: userData.id,
+      name: userData.firstName ?? undefined,
+      username: userData.username ?? undefined,
+      language: userData.languageCode ?? undefined,
       referral: referralData,
     };
   }

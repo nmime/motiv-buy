@@ -1,5 +1,13 @@
+import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext, MenuType, MenuConfig, MenuActionResult, MenuNavigation, MenuButton } from '@app/feature-bot-shared';
+import {
+  BotContext,
+  MenuType,
+  MenuConfig,
+  MenuActionResult,
+  MenuNavigation,
+  MenuButton,
+} from '@app/feature-bot-shared';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceService } from '@app/feature-balance-main';
 import { UserService } from '@app/feature-user-main';
@@ -84,9 +92,9 @@ export class MenuHandler {
         userId,
         menuType,
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Error navigating to menu: ${menuType}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
         menuType,
       });
@@ -135,7 +143,7 @@ export class MenuHandler {
           // Close inline keyboard by editing message
           try {
             await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
-          } catch (error) {
+          } catch (err: unknown) {
             // Ignore edit errors for old messages
             this.logger.debug('Could not close menu - message too old or already edited');
           }
@@ -155,9 +163,9 @@ export class MenuHandler {
 
       // Update session with action activity
       await this.updateSessionActivity(userId, action, params);
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Error handling menu action: ${callbackData}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
         callbackData,
       });
@@ -187,9 +195,9 @@ export class MenuHandler {
         maxHistoryLength: this.MAX_BREADCRUMB_LENGTH,
         canGoBack: (navState.history as MenuType[])?.length > 0,
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Error getting menu navigation for user: ${userId}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -260,9 +268,9 @@ export class MenuHandler {
       });
 
       this.logger.debug(`Navigation history cleared for user: ${userId}`);
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error(`Error clearing navigation history for user: ${userId}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
     }
@@ -297,9 +305,9 @@ export class MenuHandler {
         default:
           return baseConfig;
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error generating dynamic menu content', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
         menuType,
       });
@@ -354,9 +362,9 @@ export class MenuHandler {
           hasNotifications,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error enhancing main menu', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -399,9 +407,9 @@ Last updated: ${new Date().toLocaleTimeString()}
           lastUpdated: new Date().toISOString(),
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error enhancing balance menu', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -440,9 +448,9 @@ Member since: ${new Date(user.createdAt).toLocaleDateString()}
           user,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error enhancing profile menu', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -489,9 +497,9 @@ Last updated: ${new Date().toLocaleTimeString()}
           todayStats,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error enhancing statistics menu', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -536,9 +544,9 @@ Monitor and optimize your traffic performance.
           totalVisits,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error enhancing traffic menu', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -577,9 +585,9 @@ Customize your bot experience.
           preferences,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error enhancing settings menu', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -823,11 +831,11 @@ Customize your bot experience.
           },
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Failed to update navigation state', {
         userId,
         menuType,
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
       });
     }
   }
@@ -925,9 +933,9 @@ Customize your bot experience.
         // Send new message
         await ctx.replyWithHTML(text, options);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error sending menu message', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         menuType: config.type,
         userId: ctx.from?.id,
       });
@@ -972,12 +980,12 @@ Customize your bot experience.
           isActive: true,
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Failed to update session activity', {
         userId,
         action,
         params,
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
       });
     }
   }
@@ -992,7 +1000,7 @@ Customize your bot experience.
       menuType,
       userId,
       error: error.message,
-      stack: error.stack,
+      stack: err.stack,
     });
 
     const errorMessage =
@@ -1030,7 +1038,7 @@ Customize your bot experience.
       callbackData,
       userId,
       error: error.message,
-      stack: error.stack,
+      stack: err.stack,
     });
 
     const errorMessage =

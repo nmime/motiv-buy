@@ -6,7 +6,9 @@ import { BaseI18nContext } from '../i18n-context';
 export class BotLangResolver implements I18nResolver {
   private readonly logger: Logger = new Logger(this.constructor.name);
 
-  constructor(@I18nResolverOptions() _keys: string[] = []) {}
+  constructor(@I18nResolverOptions() private readonly keys: string[] = []) {
+    // Initialize resolver with i18n keys
+  }
 
   resolve(context: ExecutionContext): string {
     const ctx: BaseI18nContext = context.getArgByIndex(0);

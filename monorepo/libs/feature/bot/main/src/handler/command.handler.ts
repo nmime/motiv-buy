@@ -122,12 +122,12 @@ export class CommandHandler {
         default:
           await this.handleUnknownCommand(ctx, command);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error processing command', {
         command,
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
-        stack: error instanceof Error ? error.stack : undefined,
+        stack: error instanceof Error ? err.stack : undefined,
       });
 
       await this.handleCommandError(error as Error, ctx, command);
@@ -212,9 +212,9 @@ export class CommandHandler {
           },
         });
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error in start command', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -367,9 +367,9 @@ export class CommandHandler {
           ],
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error fetching balance', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -454,9 +454,9 @@ export class CommandHandler {
       }
 
       await this.menuService.navigateToMenu(ctx, MenuType.Admin);
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error checking admin access', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -777,9 +777,9 @@ Export your data in various formats:
           ],
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error fetching status', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -829,7 +829,7 @@ Export your data in various formats:
       command,
       userId,
       error: error.message,
-      stack: error.stack,
+      stack: err.stack,
     });
 
     // Send user-friendly error message
@@ -888,12 +888,12 @@ Export your data in various formats:
           isActive: true,
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       // Log error but don't fail command processing
       this.logger.error('Failed to update user activity', {
         userId,
         command,
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
       });
     }
   }

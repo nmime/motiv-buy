@@ -16,7 +16,6 @@ export class TelegramWidgetAuthDto {
   })
   @IsString()
   @IsNotEmpty()
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   first_name!: string;
 
   @ApiProperty({
@@ -26,7 +25,6 @@ export class TelegramWidgetAuthDto {
   })
   @IsString()
   @IsOptional()
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   last_name?: string;
 
   @ApiProperty({
@@ -45,7 +43,6 @@ export class TelegramWidgetAuthDto {
   })
   @IsString()
   @IsOptional()
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   photo_url?: string;
 
   @ApiProperty({
@@ -54,7 +51,6 @@ export class TelegramWidgetAuthDto {
   })
   @IsNumberString()
   @IsNotEmpty()
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   auth_date!: string;
 
   @ApiProperty({

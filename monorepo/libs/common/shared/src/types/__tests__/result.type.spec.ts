@@ -72,7 +72,7 @@ describe('Result Type System', () => {
 
     it('should unwrapOrElse with actual value for Ok', () => {
       const result: Result<number, string> = Ok(42);
-      const value = unwrapOrElse(result, (err) => err.length);
+      const value = unwrapOrElse(result, () => 0);
       expect(value).toBe(42);
     });
   });
@@ -80,14 +80,14 @@ describe('Result Type System', () => {
   describe('Transformations', () => {
     it('should map Ok value', () => {
       const result = Ok(5);
-      const mapped = map(result, (x) => x * 2);
+      const mapped = map(result, (x: number) => x * 2);
       expect(mapped.ok).toBe(true);
       expect(mapped.val).toBe(10);
     });
 
     it('should not map Err value', () => {
       const result: Result<number, string> = Err('error');
-      const mapped = map(result, (x) => x * 2);
+      const mapped = map(result, (x: number) => x * 2);
       expect(mapped.err).toBe(true);
       expect(mapped.val).toBe('error');
     });
@@ -101,7 +101,7 @@ describe('Result Type System', () => {
 
     it('should not mapErr on Ok', () => {
       const result: Result<number, string> = Ok(42);
-      const mapped = mapErr(result, (err) => err.toUpperCase());
+      const mapped = mapErr(result, () => '');
       expect(mapped.ok).toBe(true);
       expect(mapped.val).toBe(42);
     });
@@ -109,12 +109,18 @@ describe('Result Type System', () => {
 
   describe('Chaining', () => {
     const divide = (a: number, b: number): Result<number, string> => {
-      if (b === 0) return Err('Division by zero');
+      if (b === 0) {
+        return Err('Division by zero');
+      }
+
       return Ok(a / b);
     };
 
     const sqrt = (n: number): Result<number, string> => {
-      if (n < 0) return Err('Negative number');
+      if (n < 0) {
+        return Err('Negative number');
+      }
+
       return Ok(Math.sqrt(n));
     };
 
@@ -146,33 +152,24 @@ describe('Result Type System', () => {
     });
 
     it('should fail if any result fails', () => {
-      const results: Result<number, string>[] = [
-        Ok(1),
-        Err('error'),
-        Ok(3),
-      ];
+      const results: Result<number, string>[] = [Ok(1), Err('error'), Ok(3)];
+
       const combined = all(results);
       expect(combined.err).toBe(true);
       expect(combined.val).toBe('error');
     });
 
     it('should return first Ok with any', () => {
-      const results: Result<number, string>[] = [
-        Err('error1'),
-        Ok(2),
-        Ok(3),
-      ];
+      const results: Result<number, string>[] = [Err('error1'), Ok(2), Ok(3)];
+
       const result = any(results);
       expect(result.ok).toBe(true);
       expect(result.val).toBe(2);
     });
 
     it('should return last Err if all fail', () => {
-      const results: Result<number, string>[] = [
-        Err('error1'),
-        Err('error2'),
-        Err('error3'),
-      ];
+      const results: Result<number, string>[] = [Err('error1'), Err('error2'), Err('error3')];
+
       const result = any(results);
       expect(result.err).toBe(true);
       expect(result.val).toBe('error3');
@@ -181,29 +178,32 @@ describe('Result Type System', () => {
 
   describe('Exception Handling', () => {
     it('should catch exceptions with tryCatch', () => {
-      const result = tryCatch(() => JSON.parse('invalid json'));
+      const result = tryCatch(() => JSON.parse('invalid json') as unknown);
       expect(result.err).toBe(true);
       expect(result.val).toBeInstanceOf(Error);
     });
 
     it('should return Ok for successful execution', () => {
-      const result = tryCatch(() => JSON.parse('{"valid": true}'));
+      const result = tryCatch(() => JSON.parse('{"valid": true}') as { valid: boolean });
       expect(result.ok).toBe(true);
       expect(result.val).toEqual({ valid: true });
     });
 
     it('should catch async exceptions', async () => {
       const result = await tryCatchAsync(async () => {
+        await Promise.resolve();
         throw new Error('Async error');
       });
+
       expect(result.err).toBe(true);
       expect(result.val).toBeInstanceOf(Error);
     });
 
     it('should return Ok for successful async execution', async () => {
       const result = await tryCatchAsync(async () => {
-        return 'success';
+        return await Promise.resolve('success');
       });
+
       expect(result.ok).toBe(true);
       expect(result.val).toBe('success');
     });
@@ -271,18 +271,20 @@ describe('Result Type System', () => {
     it('should map Ok to single type', () => {
       const result = Ok(42);
       const message = matchMap(result, {
-        ok: (val) => `Success: ${val}`,
-        err: (err) => `Error: ${err}`,
+        ok: (val: number) => `Success: ${val}`,
+        err: (err: string) => `Error: ${err}`,
       });
+
       expect(message).toBe('Success: 42');
     });
 
     it('should map Err to single type', () => {
       const result: Result<number, string> = Err('failed');
       const message = matchMap(result, {
-        ok: (val) => `Success: ${val}`,
-        err: (err) => `Error: ${err}`,
+        ok: (val: number) => `Success: ${val}`,
+        err: (err: string) => `Error: ${err}`,
       });
+
       expect(message).toBe('Error: failed');
     });
   });
@@ -305,9 +307,8 @@ describe('Result Type System', () => {
     });
 
     it('should work with Result type', () => {
-      const result: Result<string, DomainError> = Err(
-        new ValidationError('Invalid email'),
-      );
+      const result: Result<string, DomainError> = Err(new ValidationError('Invalid email'));
+
       expect(result.err).toBe(true);
       if (result.err) {
         expect(result.val).toBeInstanceOf(ValidationError);
@@ -328,31 +329,31 @@ describe('Result Type System', () => {
         if (!email.includes('@')) {
           return Err(new ValidationError('Invalid email format'));
         }
+
         return Ok(undefined);
       }
 
-      async findUser(email: string): Promise<User | null> {
+      findUser(email: string): User | null {
         // Simulate database lookup
         if (email === 'test@example.com') {
           return { id: '1', email, name: 'Test User' };
         }
+
         return null;
       }
 
-      async getUserByEmail(
-        email: string,
-      ): Promise<Result<User, DomainError>> {
+      async getUserByEmail(email: string): Promise<Result<User, DomainError>> {
         const validation = this.validateEmail(email);
         if (validation.err) {
-          return validation;
+          return await Promise.resolve(validation);
         }
 
-        const user = await this.findUser(email);
+        const user = this.findUser(email);
         if (!user) {
-          return Err(new NotFoundError('User not found', { email }));
+          return await Promise.resolve(Err(new NotFoundError('User not found', { email })));
         }
 
-        return Ok(user);
+        return await Promise.resolve(Ok(user));
       }
     }
 

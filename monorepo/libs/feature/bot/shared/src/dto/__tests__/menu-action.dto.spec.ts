@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { validate } from 'class-validator';
 import { MenuActionDto, MenuActionResponseDto } from '../menu-action.dto';
 import { MenuActionType } from '../../type/callback-data.interface';

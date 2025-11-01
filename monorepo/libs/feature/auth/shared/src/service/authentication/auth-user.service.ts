@@ -146,7 +146,7 @@ export class AuthUserService {
     let geo;
     try {
       geo = telegramAuthParams.ip ? getGeoByIp(telegramAuthParams.ip) : undefined;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Error while getting geo by ip', { ip: telegramAuthParams.ip, error });
       geo = undefined;
     }

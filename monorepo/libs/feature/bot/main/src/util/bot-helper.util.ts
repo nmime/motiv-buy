@@ -147,7 +147,7 @@ export class BotHelperUtil {
    * @param options - Extract options
    * @returns Extracted user data
    */
-  static extractUserData(user: BotUser, options: UserDataExtractOptions = {}): Record<string, any> {
+  static extractUserData(user: BotUser, options: UserDataExtractOptions = {}): Record<string, unknown> {
     const {
       includeId = true,
       includeUsername = true,
@@ -155,7 +155,7 @@ export class BotHelperUtil {
       includePremiumStatus = false,
     } = options;
 
-    const userData: Record<string, any> = {
+    const userData: Record<string, unknown> = {
       displayName: this.extractUserDisplayName(user, options),
       firstName: user.first_name,
       lastName: user.last_name || null,
@@ -252,9 +252,9 @@ export class BotHelperUtil {
    * @param data - Callback data string
    * @returns Parsed callback data
    */
-  static parseCallbackData(data: string): Record<string, any> {
+  static parseCallbackData(data: string): Record<string, unknown> {
     try {
-      return JSON.parse(data);
+      return JSON.parse(data) as Record<string, unknown>;
     } catch {
       // If not JSON, treat as simple string
       const parts = data.split(':');
@@ -272,10 +272,10 @@ export class BotHelperUtil {
    * @param data - Data object to encode
    * @returns Encoded callback data string
    */
-  static createCallbackData(data: Record<string, any>): string {
+  static createCallbackData(data: Record<string, unknown>): string {
     // Simple format for basic data
     if (Object.keys(data).length === 1 && data.action) {
-      return data.action;
+      return String(data.action);
     }
 
     if (Object.keys(data).length === 2 && data.action && data.value) {
@@ -464,43 +464,46 @@ export class BotHelperUtil {
       return 'text';
     }
 
-    if ((message as any).photo) {
+    // Use type-safe property checking for extended message properties
+    const extendedMessage = message as unknown as Record<string, unknown>;
+
+    if (extendedMessage.photo) {
       return 'photo';
     }
 
-    if ((message as any).video) {
+    if (extendedMessage.video) {
       return 'video';
     }
 
-    if ((message as any).audio) {
+    if (extendedMessage.audio) {
       return 'audio';
     }
 
-    if ((message as any).voice) {
+    if (extendedMessage.voice) {
       return 'voice';
     }
 
-    if ((message as any).document) {
+    if (extendedMessage.document) {
       return 'document';
     }
 
-    if ((message as any).sticker) {
+    if (extendedMessage.sticker) {
       return 'sticker';
     }
 
-    if ((message as any).location) {
+    if (extendedMessage.location) {
       return 'location';
     }
 
-    if ((message as any).contact) {
+    if (extendedMessage.contact) {
       return 'contact';
     }
 
-    if ((message as any).poll) {
+    if (extendedMessage.poll) {
       return 'poll';
     }
 
-    if ((message as any).dice) {
+    if (extendedMessage.dice) {
       return 'dice';
     }
 
@@ -518,8 +521,10 @@ export class BotHelperUtil {
       return message.text;
     }
 
-    if ((message as any).caption) {
-      return (message as any).caption;
+    // Use type-safe property checking for caption
+    const extendedMessage = message as unknown as Record<string, unknown>;
+    if (typeof extendedMessage.caption === 'string') {
+      return extendedMessage.caption;
     }
 
     return null;

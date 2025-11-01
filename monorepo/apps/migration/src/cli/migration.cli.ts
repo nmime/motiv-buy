@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { MikroORM } from '@mikro-orm/core';
 import { Logger } from '@nestjs/common';
+import { getErrorMessage } from '@app/common-shared';
 import { MigrationController } from './migration.controller';
 export class MigrationCLI {
   private controller: MigrationController;
@@ -29,8 +30,8 @@ export class MigrationCLI {
       .action(async (name: string, options: { type: string }) => {
         try {
           await this.controller.createMigration(name, options.type);
-        } catch (error) {
-          this.logger.error('Create migration failed:', error);
+        } catch (error: unknown) {
+          this.logger.error('Create migration failed:', getErrorMessage(error));
           process.exit(1);
         }
       });
@@ -44,8 +45,8 @@ export class MigrationCLI {
       .action(async (options: { to?: string }) => {
         try {
           await this.controller.runMigrationsUp(options.to);
-        } catch (error) {
-          this.logger.error('Migration up failed:', error);
+        } catch (error: unknown) {
+          this.logger.error('Migration up failed:', getErrorMessage(error));
           process.exit(1);
         }
       });
@@ -61,8 +62,8 @@ export class MigrationCLI {
         try {
           const steps = options.to ? undefined : parseInt(options.steps);
           await this.controller.runMigrationsDown(options.to, steps);
-        } catch (error) {
-          this.logger.error('Migration down failed:', error);
+        } catch (error: unknown) {
+          this.logger.error('Migration down failed:', getErrorMessage(error));
           process.exit(1);
         }
       });
@@ -75,8 +76,8 @@ export class MigrationCLI {
       .action(async () => {
         try {
           await this.controller.getMigrationStatus();
-        } catch (error) {
-          this.logger.error('Status check failed:', error);
+        } catch (error: unknown) {
+          this.logger.error('Status check failed:', getErrorMessage(error));
           process.exit(1);
         }
       });
@@ -90,8 +91,8 @@ export class MigrationCLI {
       .action(async (options: { force?: boolean }) => {
         try {
           await this.controller.freshMigration(options.force);
-        } catch (error) {
-          this.logger.error('Fresh migration failed:', error);
+        } catch (error: unknown) {
+          this.logger.error('Fresh migration failed:', getErrorMessage(error));
           process.exit(1);
         }
       });
@@ -105,8 +106,8 @@ export class MigrationCLI {
       .action(async (options: { class?: string }) => {
         try {
           await this.controller.runSeeders(options.class);
-        } catch (error) {
-          this.logger.error('Seeding failed:', error);
+        } catch (error: unknown) {
+          this.logger.error('Seeding failed:', getErrorMessage(error));
           process.exit(1);
         }
       });

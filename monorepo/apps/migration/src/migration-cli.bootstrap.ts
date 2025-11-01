@@ -24,7 +24,7 @@ export async function bootstrap(): Promise<void> {
     migrationCLI.registerCommands(program);
 
     await program.parseAsync(process.argv);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize migration CLI:', error);
     throw error;
   }

@@ -17,7 +17,7 @@ export class RedisHealthIndicator {
       const result = await this.redis.ping();
 
       return result === 'PONG' ? indicator.up() : indicator.down();
-    } catch (e) {
+    } catch (e: unknown) {
       const error = e instanceof Error ? e : new Error(`Unknown error: ${JSON.stringify(e)}`);
 
       return indicator.down({ message: error.message });

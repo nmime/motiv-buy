@@ -226,15 +226,19 @@ export class StatisticService {
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-    const rewardSumResult = (await this.em
+    const rewardSumResult = await this.em
       .getConnection()
       .execute(
         `SELECT COALESCE(SUM(CAST(reward AS DECIMAL)), 0) as "totalReward" FROM traffic_actions ta ${whereClause}`,
         parameters,
-      )) as Array<{ totalReward: string }>;
+      );
 
-    const [firstResult] = rewardSumResult;
-    const totalReward = parseFloat(firstResult?.totalReward || '0');
+    const firstResult = Array.isArray(rewardSumResult) && rewardSumResult.length > 0 ? rewardSumResult[0] : null;
+    const totalReward = parseFloat(
+      (firstResult && typeof firstResult === 'object' && 'totalReward' in firstResult
+        ? String(firstResult.totalReward)
+        : '0') || '0',
+    );
 
     return {
       type: StatisticType.TrafficSource,
@@ -301,19 +305,29 @@ export class StatisticService {
     }
 
     const orderWhereClause = orderWhereConditions.length > 0 ? `WHERE ${orderWhereConditions.join(' AND ')}` : '';
-    const budgetSumResult = (await this.em
+    const budgetSumResult = await this.em
       .getConnection()
       .execute(
         `SELECT COALESCE(SUM(CAST(budget AS DECIMAL)), 0) as "totalBudget", COALESCE(SUM(CAST(spent AS DECIMAL)), 0) as "totalSpent" FROM traffic_orders tor ${orderWhereClause}`,
         orderParameters,
-      )) as Array<{ totalBudget: string; totalSpent: string }>;
+      );
 
-    const [firstBudgetResult] = budgetSumResult;
-    const totalBudget = parseFloat(firstBudgetResult?.totalBudget || '0');
-    const totalSpent = parseFloat(firstBudgetResult?.totalSpent || '0');
+    const firstBudgetResult = Array.isArray(budgetSumResult) && budgetSumResult.length > 0 ? budgetSumResult[0] : null;
+
+    const totalBudget = parseFloat(
+      (firstBudgetResult && typeof firstBudgetResult === 'object' && 'totalBudget' in firstBudgetResult
+        ? String(firstBudgetResult.totalBudget)
+        : '0') || '0',
+    );
+
+    const totalSpent = parseFloat(
+      (firstBudgetResult && typeof firstBudgetResult === 'object' && 'totalSpent' in firstBudgetResult
+        ? String(firstBudgetResult.totalSpent)
+        : '0') || '0',
+    );
 
     // Database-level conditional counting for order statuses
-    const statusCountsResult = (await this.em.getConnection().execute(
+    const statusCountsResult = await this.em.getConnection().execute(
       `SELECT
         COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Completed}' THEN 1 END) as "completedOrders",
         COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Pending}' THEN 1 END) as "pendingOrders",
@@ -321,13 +335,38 @@ export class StatisticService {
         COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Active}' THEN 1 END) as "activeOrders"
        FROM traffic_orders tor ${orderWhereClause}`,
       orderParameters,
-    )) as Array<{ completedOrders: string; pendingOrders: string; inProgressOrders: string; activeOrders: string }>;
+    );
 
-    const [statusCounts] = statusCountsResult;
-    const completedOrders = parseInt(statusCounts?.completedOrders || '0', 10);
-    const pendingOrders = parseInt(statusCounts?.pendingOrders || '0', 10);
-    const inProgressOrders = parseInt(statusCounts?.inProgressOrders || '0', 10);
-    const activeOrders = parseInt(statusCounts?.activeOrders || '0', 10);
+    const statusCounts =
+      Array.isArray(statusCountsResult) && statusCountsResult.length > 0 ? statusCountsResult[0] : null;
+
+    const completedOrders = parseInt(
+      (statusCounts && typeof statusCounts === 'object' && 'completedOrders' in statusCounts
+        ? String(statusCounts.completedOrders)
+        : '0') || '0',
+      10,
+    );
+
+    const pendingOrders = parseInt(
+      (statusCounts && typeof statusCounts === 'object' && 'pendingOrders' in statusCounts
+        ? String(statusCounts.pendingOrders)
+        : '0') || '0',
+      10,
+    );
+
+    const inProgressOrders = parseInt(
+      (statusCounts && typeof statusCounts === 'object' && 'inProgressOrders' in statusCounts
+        ? String(statusCounts.inProgressOrders)
+        : '0') || '0',
+      10,
+    );
+
+    const activeOrders = parseInt(
+      (statusCounts && typeof statusCounts === 'object' && 'activeOrders' in statusCounts
+        ? String(statusCounts.activeOrders)
+        : '0') || '0',
+      10,
+    );
 
     const pendingOrdersCount = pendingOrders + inProgressOrders + activeOrders;
 
@@ -397,7 +436,7 @@ export class StatisticService {
       orderTargetParameters.push(new Date(query.endDate));
     }
 
-    const [targetStatsResults, orderStatsResults] = (await Promise.all([
+    const [targetStatsResults, orderStatsResults] = await Promise.all([
       // Get target count and average price per member with native SQL
       this.em.getConnection().execute(
         `SELECT COUNT(tt.id) as "totalTargets",
@@ -417,23 +456,38 @@ export class StatisticService {
          WHERE ${orderTargetWhereConditions.join(' AND ')}`,
         orderTargetParameters,
       ),
-    ])) as [unknown[], unknown[]];
+    ]);
 
-    const [targetStats] = targetStatsResults as Array<{
-      totalTargets: string;
-      activeTargets: string;
-      avgPricePerMember: string;
-    }>;
+    const targetStats =
+      Array.isArray(targetStatsResults) && targetStatsResults.length > 0 ? targetStatsResults[0] : null;
 
-    const [orderStats] = orderStatsResults as Array<{
-      totalOrders: string;
-      totalEarned: string;
-    }>;
+    const orderStats = Array.isArray(orderStatsResults) && orderStatsResults.length > 0 ? orderStatsResults[0] : null;
 
-    const activeTargetsCount = parseInt(targetStats?.activeTargets || '0', 10);
-    const totalOrdersCount = parseInt(orderStats?.totalOrders || '0', 10);
-    const totalEarned = parseFloat(orderStats?.totalEarned || '0');
-    const avgPricePerMember = parseFloat(targetStats?.avgPricePerMember || '0');
+    const activeTargetsCount = parseInt(
+      (targetStats && typeof targetStats === 'object' && 'activeTargets' in targetStats
+        ? String(targetStats.activeTargets)
+        : '0') || '0',
+      10,
+    );
+
+    const totalOrdersCount = parseInt(
+      (orderStats && typeof orderStats === 'object' && 'totalOrders' in orderStats
+        ? String(orderStats.totalOrders)
+        : '0') || '0',
+      10,
+    );
+
+    const totalEarned = parseFloat(
+      (orderStats && typeof orderStats === 'object' && 'totalEarned' in orderStats
+        ? String(orderStats.totalEarned)
+        : '0') || '0',
+    );
+
+    const avgPricePerMember = parseFloat(
+      (targetStats && typeof targetStats === 'object' && 'avgPricePerMember' in targetStats
+        ? String(targetStats.avgPricePerMember)
+        : '0') || '0',
+    );
 
     return {
       type: StatisticType.TrafficTarget,
@@ -477,7 +531,7 @@ export class StatisticService {
       userParameters.push(new Date(query.endDate));
     }
 
-    const [userTransactionStatsResults, activeUsersCount] = (await Promise.all([
+    const [userTransactionStatsResults, activeUsersCount] = await Promise.all([
       // Aggregate user balance transactions with native SQL
       this.em.getConnection().execute(
         `SELECT COUNT(ubh.id) as "totalTransactions", COALESCE(SUM(CAST(amount AS DECIMAL)), 0) as "netBalanceChange"
@@ -488,15 +542,25 @@ export class StatisticService {
 
       // Count active users efficiently
       this.userRepository.count({ status: UserStatus.Active }),
-    ])) as [unknown[], number];
+    ]);
 
-    const [userTransactionStats] = userTransactionStatsResults as Array<{
-      totalTransactions: string;
-      netBalanceChange: string;
-    }>;
+    const userTransactionStats =
+      Array.isArray(userTransactionStatsResults) && userTransactionStatsResults.length > 0
+        ? userTransactionStatsResults[0]
+        : null;
 
-    const totalTransactions = parseInt(userTransactionStats?.totalTransactions || '0', 10);
-    const netBalanceChange = parseFloat(userTransactionStats?.netBalanceChange || '0');
+    const totalTransactions = parseInt(
+      (userTransactionStats && typeof userTransactionStats === 'object' && 'totalTransactions' in userTransactionStats
+        ? String(userTransactionStats.totalTransactions)
+        : '0') || '0',
+      10,
+    );
+
+    const netBalanceChange = parseFloat(
+      (userTransactionStats && typeof userTransactionStats === 'object' && 'netBalanceChange' in userTransactionStats
+        ? String(userTransactionStats.netBalanceChange)
+        : '0') || '0',
+    );
 
     return {
       type: StatisticType.User,

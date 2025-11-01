@@ -254,7 +254,7 @@ export class BotHelperUtil {
    */
   static parseCallbackData(data: string): Record<string, unknown> {
     try {
-      return JSON.parse(data);
+      return JSON.parse(data) as Record<string, unknown>;
     } catch {
       // If not JSON, treat as simple string
       const parts = data.split(':');

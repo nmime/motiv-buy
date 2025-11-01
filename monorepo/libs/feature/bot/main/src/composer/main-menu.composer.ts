@@ -1,6 +1,7 @@
+import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
-import { BotContext, MenuConfig, MenuType, MenuButton, KeyboardUtil, CallbackUtil, SessionInterface } from '@app/feature-bot-shared';
+import { BotContext, MenuConfig, MenuType, MenuButton, CallbackUtil, SessionInterface } from '@app/feature-bot-shared';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { AuthUserService } from '@app/feature-auth-shared';
@@ -100,9 +101,9 @@ export class MainMenuComposer {
           isVerified: user?.isVerified || false,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error composing main menu', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -178,9 +179,9 @@ export class MainMenuComposer {
           userPreferences: preferences,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error composing quick actions menu', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -197,7 +198,12 @@ export class MainMenuComposer {
    * @param session - User session (optional)
    * @returns Promise<MenuConfig> - Customized menu configuration
    */
-  async customizeMenuForUser(menu: MenuConfig, ctx: BotContext, user?: UserEntity, session?: SessionInterface): Promise<MenuConfig> {
+  async customizeMenuForUser(
+    menu: MenuConfig,
+    ctx: BotContext,
+    user?: UserEntity,
+    session?: SessionInterface,
+  ): Promise<MenuConfig> {
     const userId = ctx.from?.id;
     if (!userId) {
       return menu;
@@ -228,7 +234,10 @@ export class MainMenuComposer {
 
       // Add breadcrumb navigation if enabled
       if (session?.data.navigationState) {
-        customizedMenu.buttons = this.addBreadcrumbNavigation(customizedMenu.buttons, session.data.navigationState as unknown as Record<string, unknown>);
+        customizedMenu.buttons = this.addBreadcrumbNavigation(
+          customizedMenu.buttons,
+          session.data.navigationState as unknown as Record<string, unknown>,
+        );
       }
 
       // Update metadata
@@ -241,9 +250,9 @@ export class MainMenuComposer {
       };
 
       return customizedMenu;
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error customizing menu for user', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -359,9 +368,9 @@ export class MainMenuComposer {
       if (userId) {
         await this.updateMenuState(userId, MenuType.Main, menuConfig.metadata);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error handling main menu', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
       });
 
@@ -380,9 +389,9 @@ export class MainMenuComposer {
       // Use the menu service for navigation
       await this.menuService.navigateToMenu(ctx, menuType);
       await ctx.answerCallbackQuery(`📱 Navigated to ${menuType}`);
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error handling menu navigation', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         menuType,
         userId: ctx.from?.id,
       });
@@ -401,9 +410,9 @@ export class MainMenuComposer {
     try {
       await this.processQuickAction(ctx, action);
       await ctx.answerCallbackQuery(`⚡ ${action} executed`);
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error handling quick action', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         action,
         userId: ctx.from?.id,
       });
@@ -434,9 +443,9 @@ export class MainMenuComposer {
       }
 
       await ctx.answerCallbackQuery('🔄 Menu refreshed');
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error handling refresh', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
       });
 
@@ -461,9 +470,9 @@ export class MainMenuComposer {
         breadcrumb.length > 0 ? `📍 Navigation Path:\n${breadcrumb.join(' → ')}` : '📍 You are at the main menu';
 
       await ctx.answerCallbackQuery(breadcrumbText, { show_alert: true });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error handling breadcrumb', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
       });
 
@@ -473,7 +482,12 @@ export class MainMenuComposer {
 
   // Helper methods
 
-  private async buildMainMenuButtons(ctx: BotContext, user: UserEntity | undefined, balance: BalanceDto | undefined, session: SessionInterface | undefined): Promise<MenuButton[][]> {
+  private async buildMainMenuButtons(
+    ctx: BotContext,
+    user: UserEntity | undefined,
+    balance: BalanceDto | undefined,
+    session: SessionInterface | undefined,
+  ): Promise<MenuButton[][]> {
     const buttons: MenuButton[][] = [];
 
     // Core features row
@@ -677,7 +691,10 @@ export class MainMenuComposer {
     return buttons.filter((row) => {
       return row.some((button) => {
         const feature = button.metadata?.feature as string | undefined;
-        const hiddenFeatures = (preferences as any)?.hiddenFeatures as string[] | undefined;
+        interface PreferencesWithHidden extends Record<string, unknown> {
+          hiddenFeatures?: string[];
+        }
+        const hiddenFeatures = (preferences as PreferencesWithHidden)?.hiddenFeatures;
 
         return !feature || !hiddenFeatures?.includes(feature);
       });
@@ -745,9 +762,9 @@ export class MainMenuComposer {
           },
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error updating menu state', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
         menuType,
       });

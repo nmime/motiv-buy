@@ -40,7 +40,7 @@ describe('Auth Performance and Load Tests', () => {
       extendSession: jest.fn(),
       isSessionValid: jest.fn(),
       clearExpiredSessions: jest.fn(),
-    } as any;
+    } as jest.Mocked<SessionService>;
 
     mockAuthService = {
       auth: jest.fn(),
@@ -49,13 +49,13 @@ describe('Auth Performance and Load Tests', () => {
       logout: jest.fn(),
       sendVerificationCode: jest.fn(),
       verifyCode: jest.fn(),
-    } as any;
+    } as jest.Mocked<AuthService>;
 
     mockAuthUserService = {
       findOrCreateByBot: jest.fn(),
       findOrCreateByWebAuth: jest.fn(),
       findByPlatformId: jest.fn(),
-    } as any;
+    } as jest.Mocked<AuthUserService>;
 
     mockUserService = {
       findById: jest.fn(),

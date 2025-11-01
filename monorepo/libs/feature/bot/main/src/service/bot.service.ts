@@ -71,10 +71,13 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
       // Install basic context setup middleware
       this.bot.use(async (ctx, next) => {
-        // Set up basic user context
+        // Set up basic user context - extend context dynamically
         if (ctx.from) {
-          (ctx as any).userId = ctx.from.id.toString();
-          (ctx as any).isAuthenticated = true; // Simplified for now
+          // Safe dynamic property assignment
+          Object.assign(ctx, {
+            userId: ctx.from.id.toString(),
+            isAuthenticated: true,
+          });
         }
 
         await next();
@@ -86,7 +89,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         const error = err.error as Error;
         this.logger.error('Bot error occurred', {
           error: error.message,
-          stack: error.stack,
+          stack: err.stack,
           userId: ctx.userId,
           messageText: ctx.message?.text,
         });
@@ -101,12 +104,12 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       this.registerCallbackHandlers();
 
       this.logger.log('Bot service initialized successfully');
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Failed to initialize bot service', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
       });
 
-      throw error;
+      throw err;
     }
   }
 
@@ -131,13 +134,13 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       this.isRunning = true;
       await this.bot.start();
       this.logger.log('Bot started successfully');
-    } catch (error) {
+    } catch (err: unknown) {
       this.isRunning = false;
       this.logger.error('Failed to start bot', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
       });
 
-      throw error;
+      throw err;
     }
   }
 
@@ -156,9 +159,9 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       await this.bot.stop();
       this.isRunning = false;
       this.logger.log('Bot stopped successfully');
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Failed to stop bot', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
       });
     }
   }
@@ -206,10 +209,10 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         default:
           await this.handleUnknownCommand(ctx);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error processing command', {
         command,
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
       });
 
@@ -228,7 +231,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     try {
       this.logger.error('Bot error occurred', {
         error: error.message,
-        stack: error.stack,
+        stack: err.stack,
         userId: ctx?.from?.id,
       });
 

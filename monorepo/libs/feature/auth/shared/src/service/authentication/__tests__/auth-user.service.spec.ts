@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/require-await, @typescript-eslint/no-unused-vars, @typescript-eslint/unbound-method, sonarjs/no-dead-store, no-await-in-loop */
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unused-vars, @typescript-eslint/unbound-method, sonarjs/no-dead-store, no-await-in-loop */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
@@ -47,20 +47,19 @@ describe('AuthUserService', () => {
     },
   };
 
-  const createMockUser = (overrides: Partial<UserEntity> = {}): UserEntity =>
-    ({
-      id: 'user-123',
-      telegramId: '123456789',
-      firstName: 'John',
-      lastName: 'Doe',
-      username: 'johndoe',
-      email: 'john@example.com',
-      languageCode: 'en',
-      isActive: true,
-      createdAt: new Date('2023-01-01T00:00:00Z'),
-      updatedAt: new Date('2023-01-01T00:00:00Z'),
-      ...overrides,
-    }) as any as UserEntity;
+  const createMockUser = (overrides: Partial<UserEntity> = {}): UserEntity => ({
+    id: 'user-123',
+    telegramId: '123456789',
+    firstName: 'John',
+    lastName: 'Doe',
+    username: 'johndoe',
+    email: 'john@example.com',
+    languageCode: 'en',
+    isActive: true,
+    createdAt: new Date('2023-01-01T00:00:00Z'),
+    updatedAt: new Date('2023-01-01T00:00:00Z'),
+    ...overrides,
+  });
 
   const createMockUserRefLink = (): UserRefLink => ({
     userId: 'ref-user-123',

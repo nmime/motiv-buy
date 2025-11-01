@@ -2,6 +2,7 @@
  * Result Type System - Re-exports from ts-results
  */
 
+import { toError } from '../utils/error.utils';
 import type { Result as TsResult } from 'ts-results';
 import { Ok as TsOk, Err as TsErr } from 'ts-results';
 
@@ -22,7 +23,7 @@ export function unwrapOr<T, E>(result: TsResult<T, E>, defaultValue: T): T {
 }
 
 export function unwrapOrElse<T, E>(result: TsResult<T, E>, fn: (error: E) => T): T {
-  return result.ok ? result.val : fn(result.val as E);
+  return result.ok ? result.val : fn(result.val);
 }
 
 export function map<T, U, E>(result: TsResult<T, E>, fn: (value: T) => U): TsResult<U, E> {
@@ -40,26 +41,34 @@ export function andThen<T, U, E>(result: TsResult<T, E>, fn: (value: T) => TsRes
 export function all<T, E>(results: TsResult<T, E>[]): TsResult<T[], E> {
   const values: T[] = [];
   for (const result of results) {
-    if (result.err) return TsErr(result.val as E);
-    values.push(result.val as T);
+    if (result.err) {
+      return TsErr(result.val);
+    }
+
+    values.push(result.val);
   }
+
   return TsOk(values);
 }
 
 export function any<T, E>(results: TsResult<T, E>[]): TsResult<T, E> {
   let lastErr: TsResult<T, E> | null = null;
   for (const result of results) {
-    if (result.ok) return result;
+    if (result.ok) {
+      return result;
+    }
+
     lastErr = result;
   }
+
   return lastErr ?? TsErr(new Error('Empty results array') as unknown as E);
 }
 
 export function tryCatch<T>(fn: () => T): TsResult<T, Error> {
   try {
     return TsOk(fn());
-  } catch (error) {
-    return TsErr(error instanceof Error ? error : new Error(String(error)));
+  } catch (error: unknown) {
+    return TsErr(toError(error));
   }
 }
 
@@ -67,14 +76,14 @@ export function tryCatchAsync<T>(fn: () => Promise<T>): Promise<TsResult<T, Erro
   return (async () => {
     try {
       return TsOk(await fn());
-    } catch (error) {
-      return TsErr(error instanceof Error ? error : new Error(String(error)));
+    } catch (error: unknown) {
+      return TsErr(toError(error));
     }
   })();
 }
 
 export function fromNullable<T, E>(value: T | null | undefined, error: E): TsResult<T, E> {
-  return value != null ? TsOk(value) : TsErr(error);
+  return value !== null && value !== undefined ? TsOk(value) : TsErr(error);
 }
 
 export function toNullable<T, E>(result: TsResult<T, E>): T | null {
@@ -82,12 +91,7 @@ export function toNullable<T, E>(result: TsResult<T, E>): T | null {
 }
 
 export function isResult<T, E>(value: unknown): value is TsResult<T, E> {
-  return (
-    value != null &&
-    typeof value === 'object' &&
-    'ok' in value &&
-    'err' in value
-  );
+  return value !== null && value !== undefined && typeof value === 'object' && 'ok' in value && 'err' in value;
 }
 
 export function match<T, E>(
@@ -95,24 +99,21 @@ export function match<T, E>(
   handlers: { ok: (value: T) => void; err: (error: E) => void },
 ): void {
   if (result.ok) {
-    handlers.ok(result.val as T);
+    handlers.ok(result.val);
   } else {
-    handlers.err(result.val as E);
+    handlers.err(result.val);
   }
 }
 
-export function matchMap<T, E, U>(
-  result: TsResult<T, E>,
-  handlers: { ok: (value: T) => U; err: (error: E) => U },
-): U {
-  return result.ok ? handlers.ok(result.val as T) : handlers.err(result.val as E);
+export function matchMap<T, E, U>(result: TsResult<T, E>, handlers: { ok: (value: T) => U; err: (error: E) => U }): U {
+  return result.ok ? handlers.ok(result.val) : handlers.err(result.val);
 }
 
 export class DomainError extends Error {
   constructor(
     message: string,
-    public readonly code: string,
-    public readonly context?: Record<string, unknown>,
+    readonly code: string,
+    readonly context?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'DomainError';

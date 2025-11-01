@@ -1,3 +1,4 @@
+import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
 import { BotContext, MenuConfig, MenuType, MenuButton, CallbackUtil } from '@app/feature-bot-shared';
@@ -133,9 +134,9 @@ export class AuthComposer {
         default:
           return await this.composeWelcomeMenu(ctx);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error composing auth gateway', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -642,9 +643,9 @@ export class AuthComposer {
       if (userId) {
         await this.updateAuthState(userId, AuthState.Unauthenticated);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error handling auth start', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
       });
 
@@ -671,9 +672,9 @@ export class AuthComposer {
       if (userId) {
         await this.updateAuthState(userId, AuthState.LoginFlow);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error handling login', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
       });
 
@@ -700,9 +701,9 @@ export class AuthComposer {
       if (userId) {
         await this.updateAuthState(userId, AuthState.RegisterFlow);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error handling registration', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId: ctx.from?.id,
       });
 
@@ -781,9 +782,9 @@ export class AuthComposer {
       } else {
         throw new Error('Authentication failed');
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Quick registration error', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -836,9 +837,9 @@ export class AuthComposer {
 
       // Update auth state
       await this.updateAuthState(userId, AuthState.Unauthenticated);
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Logout error', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -1000,9 +1001,9 @@ export class AuthComposer {
         default:
           return AuthState.Unauthenticated;
       }
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error getting auth state', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
       });
 
@@ -1019,9 +1020,9 @@ export class AuthComposer {
           isActive: true,
         },
       });
-    } catch (error) {
+    } catch (err: unknown) {
       this.logger.error('Error updating auth state', {
-        error: error instanceof Error ? error.message : String(error),
+        error: unknownToError(err),
         userId,
         state,
       });

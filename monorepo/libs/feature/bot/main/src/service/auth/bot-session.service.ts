@@ -49,9 +49,9 @@ export class BotSessionService {
       await this.redisCacheService.setHash(telegramKey, { sessionId }, this.SESSION_TTL);
 
       this.logger.debug(`Session stored for user ${user.telegramId}`, { sessionId });
-    } catch (error) {
-      this.logger.error('Failed to store user session', error, { sessionId, userId: user.id });
-      throw error;
+    } catch (err: unknown) {
+      this.logger.error('Failed to store user session', err, { sessionId, userId: user.id });
+      throw err;
     }
   }
 
@@ -67,6 +67,7 @@ export class BotSessionService {
         return null;
       }
 
+      // Use type assertion for enum values from Redis
       return {
         id: sessionData.userId,
         telegramId: sessionData.telegramId,
@@ -74,13 +75,13 @@ export class BotSessionService {
         firstName: sessionData.firstName,
         lastName: sessionData.lastName,
         languageCode: sessionData.languageCode,
-        status: sessionData.status as any,
-        role: sessionData.role as any,
+        status: sessionData.status as unknown,
+        role: sessionData.role as unknown,
         createdAt: sessionData.createdAt ? new Date(sessionData.createdAt) : undefined,
         lastActiveAt: sessionData.lastActiveAt ? new Date(sessionData.lastActiveAt) : undefined,
-      };
-    } catch (error) {
-      this.logger.error('Failed to get user session', error, { sessionId });
+      } as Partial<UserEntity>;
+    } catch (err: unknown) {
+      this.logger.error('Failed to get user session', err, { sessionId });
 
       return null;
     }
@@ -95,8 +96,8 @@ export class BotSessionService {
       const data = await this.redisCacheService.getHash<string>(telegramKey);
 
       return data.sessionId || null;
-    } catch (error) {
-      this.logger.error('Failed to get session ID by telegram ID', error, { telegramId });
+    } catch (err: unknown) {
+      this.logger.error('Failed to get session ID by telegram ID', err, { telegramId });
 
       return null;
     }
@@ -109,8 +110,8 @@ export class BotSessionService {
     try {
       const sessionKey = this.getSessionKey(sessionId);
       await this.redisCacheService.setHash(sessionKey, { lastActiveAt: new Date().toISOString() }, this.SESSION_TTL);
-    } catch (error) {
-      this.logger.error('Failed to update session activity', error, { sessionId });
+    } catch (err: unknown) {
+      this.logger.error('Failed to update session activity', err, { sessionId });
     }
   }
 
@@ -128,8 +129,8 @@ export class BotSessionService {
       }
 
       this.logger.debug(`Session removed`, { sessionId, telegramId });
-    } catch (error) {
-      this.logger.error('Failed to remove user session', error, { sessionId, telegramId });
+    } catch (err: unknown) {
+      this.logger.error('Failed to remove user session', err, { sessionId, telegramId });
     }
   }
 
@@ -144,8 +145,8 @@ export class BotSessionService {
       if (data.sessionId) {
         await this.removeUserSession(data.sessionId, telegramId);
       }
-    } catch (error) {
-      this.logger.error('Failed to clear user sessions', error, { telegramId });
+    } catch (err: unknown) {
+      this.logger.error('Failed to clear user sessions', err, { telegramId });
     }
   }
 

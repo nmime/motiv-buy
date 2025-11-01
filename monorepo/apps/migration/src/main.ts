@@ -9,7 +9,7 @@ import { logger } from './util';
 async function main(): Promise<void> {
   try {
     await bootstrap();
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Migration CLI failed to start:', error);
     process.exit(1);
   }

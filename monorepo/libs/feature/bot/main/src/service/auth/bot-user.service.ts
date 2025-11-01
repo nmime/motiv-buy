@@ -63,13 +63,13 @@ export class BotUserService {
       });
 
       return { user, isNewUser };
-    } catch (error) {
-      this.logger.error('Failed to find or create user', error, {
+    } catch (err: unknown) {
+      this.logger.error('Failed to find or create user', err, {
         telegramId: ctx.from?.id,
         username: ctx.from?.username,
       });
 
-      throw error;
+      throw err;
     }
   }
 
@@ -101,8 +101,8 @@ export class BotUserService {
       }
 
       return undefined;
-    } catch (error) {
-      this.logger.warn('Failed to extract source parameters', error);
+    } catch (err: unknown) {
+      this.logger.warn('Failed to extract source parameters', err);
 
       return undefined;
     }
@@ -115,7 +115,16 @@ export class BotUserService {
     try {
       // Try to parse as JSON (for complex parameters)
       if (param.startsWith('{') && param.endsWith('}')) {
-        const parsed = JSON.parse(decodeURIComponent(param));
+        interface ParsedParam {
+          utm_source?: string;
+          utm_medium?: string;
+          utm_campaign?: string;
+          utm_content?: string;
+          ref_code?: string;
+          link_type?: string;
+          link_code?: string;
+        }
+        const parsed = JSON.parse(decodeURIComponent(param)) as ParsedParam;
 
         return {
           utmSource: parsed.utm_source,
@@ -123,7 +132,7 @@ export class BotUserService {
           utmCampaign: parsed.utm_campaign,
           utmContent: parsed.utm_content,
           refCode: parsed.ref_code,
-          linkType: parsed.link_type,
+          linkType: parsed.link_type as LinkType | undefined,
           linkCode: parsed.link_code,
         };
       }
@@ -180,8 +189,8 @@ export class BotUserService {
       }
 
       return undefined;
-    } catch (error) {
-      this.logger.warn('Failed to parse start parameters', error, { param });
+    } catch (err: unknown) {
+      this.logger.warn('Failed to parse start parameters', err, { param });
 
       return undefined;
     }
@@ -208,8 +217,8 @@ export class BotUserService {
         userId: user.id,
         telegramId: user.telegramId,
       });
-    } catch (error) {
-      this.logger.warn('Failed to update user activity', error, { userId: user.id });
+    } catch (err: unknown) {
+      this.logger.warn('Failed to update user activity', err, { userId: user.id });
     }
   }
 }
