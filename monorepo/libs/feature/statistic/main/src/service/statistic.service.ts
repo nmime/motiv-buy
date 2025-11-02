@@ -606,22 +606,18 @@ export class StatisticService {
    * ORDER BY timestamp ASC
    */
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private getTrafficSourceChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
     return Promise.resolve([]);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private getTrafficOrderChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
     return Promise.resolve([]);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private getTrafficTargetChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
     return Promise.resolve([]);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private getUserChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
     return Promise.resolve([]);
   }

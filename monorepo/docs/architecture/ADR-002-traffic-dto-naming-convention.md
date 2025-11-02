@@ -7,11 +7,13 @@
 ## Context
 
 The traffic-main module imports `TrafficOrderDto` and `TrafficOrderStatusDto` from traffic-shared, but these DTOs don't exist. Available DTOs use different naming:
+
 - `TrafficOrderResponseDto` (detailed order with status)
 - `CreateTrafficOrderDto` (order creation)
 - `UpdateTrafficOrderDto` (order updates)
 
 ### Error Messages
+
 ```
 error TS2305: Module '"@app/feature-traffic-shared"' has no exported member 'TrafficOrderDto'.
 error TS2305: Module '"@app/feature-traffic-shared"' has no exported member 'TrafficOrderStatusDto'.
@@ -39,23 +41,28 @@ export type TrafficOrderStatusDto = Pick<TrafficOrderResponseDto, 'status' | 'pr
 ## Alternatives Considered
 
 ### Option 1: Create New Separate DTOs
+
 **Rejected**: Creates unnecessary duplication and divergence
 
 ### Option 2: Rename Existing DTOs
+
 **Rejected**: Breaking change across all consumers
 
 ### Option 3: Update All Import Statements
+
 **Rejected**: Higher risk, more files to modify
 
 ## Implementation
 
 ### Phase 1: Add Type Aliases (Immediate)
+
 ```typescript
 export type TrafficOrderDto = TrafficOrderResponseDto;
 export type TrafficOrderStatusDto = Pick<TrafficOrderResponseDto, 'status' | 'progressPercentage'>;
 ```
 
 ### Phase 2: Update Index Exports
+
 ```typescript
 export * from './traffic-purchase.dto';
 // Ensures all aliases are re-exported
@@ -64,12 +71,14 @@ export * from './traffic-purchase.dto';
 ## Consequences
 
 ### Positive
+
 - Zero breaking changes to existing code
 - Clear semantic meaning for DTOs
 - Easy to refactor later if needed
 - Maintains type safety
 
 ### Negative
+
 - Introduces multiple names for same concept
 - May confuse new developers (mitigated by documentation)
 
@@ -91,6 +100,7 @@ This follows the **Adapter Pattern** at the type level, allowing old interfaces 
 - **Runtime Performance**: No impact (compile-time only)
 
 ## References
+
 - TypeScript Type Aliases Documentation
 - NestJS DTO Best Practices
 - API Versioning Strategies

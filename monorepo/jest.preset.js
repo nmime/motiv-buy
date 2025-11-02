@@ -29,7 +29,4 @@ module.exports = {
     '!src/main.ts',
   ],
   coverageReporters: ['text', 'lcov', 'html'],
-  
-  // Setup configuration
-  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
 };

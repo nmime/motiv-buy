@@ -1,5 +1,5 @@
 {
-  "name": "database",
+  "name": "@app/database",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/database/src",
   "projectType": "library",
@@ -14,9 +14,16 @@
         "main": "libs/database/src/index.ts",
         "tsConfig": "libs/database/tsconfig.lib.json",
         "assets": [],
-        "buildableProjectDepsInPackageJsonType": "dependencies",
-        "updateBuildableProjectDepsInPackageJson": true,
-        "generatePackageJson": true
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": { "afterDeclarations": true }
+          }
+        ]
       },
       "configurations": {
         "development": {

@@ -12,7 +12,17 @@
         "outputPath": "dist/apps/migration",
         "main": "apps/migration/src/main.ts",
         "tsConfig": "apps/migration/tsconfig.json",
-        "assets": []
+        "assets": [],
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": { "afterDeclarations": true }
+          }
+        ]
       },
       "configurations": {
         "development": {
@@ -28,18 +38,16 @@
       }
     },
     "serve": {
-      "executor": "nx:run-commands",
+      "executor": "@nx/js:node",
       "defaultConfiguration": "development",
+      "dependsOn": ["build"],
       "options": {
-        "command": "node -r @swc-node/register apps/migration/src/main.ts",
-        "cwd": "{workspaceRoot}",
-        "envFile": "{workspaceRoot}/.env"
+        "buildTarget": "migration-cli:build",
+        "runBuildTargetDependencies": true
       },
       "configurations": {
         "development": {
-          "command": "node -r @swc-node/register apps/migration/src/main.ts",
-          "cwd": "{workspaceRoot}",
-          "envFile": "{workspaceRoot}/.env"
+          "buildTarget": "migration-cli:build"
         },
         "production": {
           "buildTarget": "migration-cli:build:production"

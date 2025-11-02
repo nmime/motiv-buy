@@ -80,15 +80,15 @@ export class BotTokenValidationGuard implements CanActivate {
 
     // 3. Query parameter
     const query = request.query as Record<string, unknown> | undefined;
-    const queryToken = query?.bot_token;
+    const queryToken = query?.['bot_token'];
     if (queryToken && typeof queryToken === 'string') {
       return queryToken;
     }
 
     // 4. Request body (if present)
     const body = request.body as Record<string, unknown> | undefined;
-    if (body?.botToken && typeof body.botToken === 'string') {
-      return body.botToken;
+    if (body?.['botToken'] && typeof body['botToken'] === 'string') {
+      return body['botToken'];
     }
 
     return null;

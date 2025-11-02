@@ -6,13 +6,13 @@ These variables contain sensitive information and MUST be changed before product
 
 ### Security & Authentication
 
-| Variable | Current Value | Production Action | Generate Command |
-|----------|---------------|-------------------|------------------|
-| `BOT_TOKEN` | `TODO_GET_FROM_BOTFATHER` | Get from [@BotFather](https://t.me/BotFather) | Create bot via Telegram |
-| `JWT_SECRET` | `TODO_GENERATE_SECURE_JWT_SECRET_MINIMUM_32_CHARACTERS` | Generate secure random string | `openssl rand -base64 32` |
-| `DB_PASSWORD` | `password` | Generate secure password | `openssl rand -base64 24` |
-| `REDIS_PASSWORD` | `TODO_SECURE_REDIS_PASSWORD` | Generate secure password | `openssl rand -base64 24` |
-| `GRAFANA_PASSWORD` | `TODO_SECURE_GRAFANA_PASSWORD` | Choose secure password | Manual selection |
+| Variable           | Current Value                                           | Production Action                             | Generate Command          |
+| ------------------ | ------------------------------------------------------- | --------------------------------------------- | ------------------------- |
+| `BOT_TOKEN`        | `TODO_GET_FROM_BOTFATHER`                               | Get from [@BotFather](https://t.me/BotFather) | Create bot via Telegram   |
+| `JWT_SECRET`       | `TODO_GENERATE_SECURE_JWT_SECRET_MINIMUM_32_CHARACTERS` | Generate secure random string                 | `openssl rand -base64 32` |
+| `DB_PASSWORD`      | `password`                                              | Generate secure password                      | `openssl rand -base64 24` |
+| `REDIS_PASSWORD`   | `TODO_SECURE_REDIS_PASSWORD`                            | Generate secure password                      | `openssl rand -base64 24` |
+| `GRAFANA_PASSWORD` | `TODO_SECURE_GRAFANA_PASSWORD`                          | Choose secure password                        | Manual selection          |
 
 ---
 
@@ -136,24 +136,28 @@ SSL_KEY_PATH=/etc/nginx/ssl/key.pem    # SSL private key path
 ## 🔧 How to Generate Secure Values
 
 ### JWT Secret
+
 ```bash
 openssl rand -base64 32
 # Example output: yK8z9vXnR2mP4wQtL6hS1eF7gJ3bN5aC0dU2oI8pM9x=
 ```
 
 ### Database Password
+
 ```bash
 openssl rand -base64 24
 # Example output: kP9mN2vB6xC8sT4eR7wQ1zA5
 ```
 
 ### Redis Password
+
 ```bash
 openssl rand -base64 24
 # Example output: wX3bN7mV9cR2pK5tL8eS4gF6
 ```
 
 ### Telegram Bot Token
+
 1. Open Telegram
 2. Search for [@BotFather](https://t.me/BotFather)
 3. Send `/newbot` command
@@ -165,6 +169,7 @@ openssl rand -base64 24
 ## 🌍 Environment-Specific Configurations
 
 ### Development (.env)
+
 ```bash
 NODE_ENV=development
 DB_HOST=localhost
@@ -176,6 +181,7 @@ DEBUG_MODE=true
 ```
 
 ### Production (.env.production)
+
 ```bash
 NODE_ENV=production
 DB_HOST=postgres-prod             # Production database hostname
@@ -189,6 +195,7 @@ CORS_ENABLED=false                # Disable if not needed
 ```
 
 ### Staging (.env.staging)
+
 ```bash
 NODE_ENV=staging
 DB_HOST=postgres-staging
@@ -204,17 +211,19 @@ LOG_LEVEL=info
 ### Never Commit These Values
 
 **DO NOT** commit the following to version control:
+
 - `BOT_TOKEN` - Telegram bot token
 - `JWT_SECRET` - JWT signing secret
 - `DB_PASSWORD` - Database password
 - `REDIS_PASSWORD` - Redis password
 - `GRAFANA_PASSWORD` - Grafana admin password
 - `SENTRY_DSN` - Sentry DSN (contains project identifier)
-- SSL certificates (*.pem, *.key, *.crt)
+- SSL certificates (_.pem, _.key, \*.crt)
 
 ### Current .gitignore Protection
 
 The following are already in `.gitignore`:
+
 - `.env`
 - `.env.local`
 - `.env.production`
@@ -227,12 +236,14 @@ The following are already in `.gitignore`:
 ## 🚀 Quick Setup Guide
 
 ### Step 1: Copy Template
+
 ```bash
 cd /Users/nmi/IT/Projects/motiv-buy/monorepo
 cp .env.example .env
 ```
 
 ### Step 2: Generate Secrets
+
 ```bash
 # Generate JWT secret
 echo "JWT_SECRET=$(openssl rand -base64 32)" >> .env.local
@@ -245,12 +256,14 @@ echo "REDIS_PASSWORD=$(openssl rand -base64 24)" >> .env.local
 ```
 
 ### Step 3: Get Bot Token
+
 1. Visit [@BotFather](https://t.me/BotFather) on Telegram
 2. Create a new bot
 3. Copy the token
 4. Add to `.env`: `BOT_TOKEN=your_token_here`
 
 ### Step 4: Verify Configuration
+
 ```bash
 # Check that all required variables are set
 grep "TODO" .env
@@ -261,13 +274,13 @@ grep "TODO" .env
 
 ## 📊 Variable Usage by Service
 
-| Variable | API | Bot | Database | Redis | Migration |
-|----------|-----|-----|----------|-------|-----------|
-| `BOT_TOKEN` | ❌ | ✅ | ❌ | ❌ | ❌ |
-| `JWT_SECRET` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `DB_*` | ✅ | ✅ | ✅ | ❌ | ✅ |
-| `REDIS_*` | ✅ | ✅ | ❌ | ✅ | ❌ |
-| `PORT` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Variable     | API | Bot | Database | Redis | Migration |
+| ------------ | --- | --- | -------- | ----- | --------- |
+| `BOT_TOKEN`  | ❌  | ✅  | ❌       | ❌    | ❌        |
+| `JWT_SECRET` | ✅  | ✅  | ❌       | ❌    | ❌        |
+| `DB_*`       | ✅  | ✅  | ✅       | ❌    | ✅        |
+| `REDIS_*`    | ✅  | ✅  | ❌       | ✅    | ❌        |
+| `PORT`       | ✅  | ❌  | ❌       | ❌    | ❌        |
 
 ---
 

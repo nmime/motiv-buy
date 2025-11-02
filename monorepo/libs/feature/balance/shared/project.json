@@ -11,7 +11,17 @@
         "outputPath": "dist/libs/feature/balance/shared",
         "main": "libs/feature/balance/shared/src/index.ts",
         "tsConfig": "libs/feature/balance/shared/tsconfig.lib.json",
-        "assets": []
+        "assets": [],
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": { "afterDeclarations": true }
+          }
+        ]
       }
     },
     "lint": {

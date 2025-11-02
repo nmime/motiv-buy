@@ -6,8 +6,7 @@ import { BalanceService } from '@app/feature-balance-main';
 import { UserService } from '@app/feature-user-main';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
-import { AsyncResult } from '@app/common-shared';
-import { Ok, Err } from 'ts-results';
+import { unknownToError } from '@app/common-shared';
 
 /**
  * Command Handler
@@ -127,10 +126,10 @@ export class CommandHandler {
         command,
         error: unknownToError(err),
         userId: ctx.from?.id,
-        stack: error instanceof Error ? err.stack : undefined,
+        stack: err instanceof Error ? err.stack : undefined,
       });
 
-      await this.handleCommandError(error as Error, ctx, command);
+      await this.handleCommandError(err as Error, ctx, command);
     }
   }
 
@@ -829,7 +828,7 @@ Export your data in various formats:
       command,
       userId,
       error: error.message,
-      stack: err.stack,
+      stack: error.stack,
     });
 
     // Send user-friendly error message

@@ -59,10 +59,7 @@ function sqrt(n: number): Result<number, string> {
 
 // Chain: parse -> divide -> sqrt
 const chainedResult = andThen(
-  andThen(
-    parseNumber('100'),
-    (n) => divide(n, 4),
-  ),
+  andThen(parseNumber('100'), (n) => divide(n, 4)),
   sqrt,
 );
 
@@ -104,10 +101,7 @@ class UserService {
     return Ok(user);
   }
 
-  async authenticateUser(
-    email: string,
-    password: string,
-  ): AsyncDomainResult<User> {
+  async authenticateUser(email: string, password: string): AsyncDomainResult<User> {
     if (!email || !password) {
       return Err(new ValidationError('Email and password are required'));
     }
@@ -115,9 +109,7 @@ class UserService {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Find user by email
-    const user = Array.from(this.users.values()).find(
-      (u) => u.email === email,
-    );
+    const user = Array.from(this.users.values()).find((u) => u.email === email);
 
     if (!user) {
       return Err(new UnauthorizedError('Invalid credentials'));
@@ -131,10 +123,7 @@ class UserService {
     return Ok(user);
   }
 
-  async updateUserName(
-    id: string,
-    newName: string,
-  ): AsyncDomainResult<User> {
+  async updateUserName(id: string, newName: string): AsyncDomainResult<User> {
     if (!newName || newName.trim() === '') {
       return Err(new ValidationError('Name cannot be empty'));
     }
@@ -199,10 +188,7 @@ async function demonstrateRealWorldUsage() {
 
   // Authentication success
   console.log('\n=== Example 4d: Authentication Success ===');
-  const authResult = await userService.authenticateUser(
-    'john@example.com',
-    'password123',
-  );
+  const authResult = await userService.authenticateUser('john@example.com', 'password123');
   match(authResult, {
     ok: (user) => console.log('✓ Authenticated as:', user.name),
     err: (error) => console.error('✗ Auth failed:', error.message),
@@ -210,10 +196,7 @@ async function demonstrateRealWorldUsage() {
 
   // Authentication failure
   console.log('\n=== Example 4e: Authentication Failure ===');
-  const authFailResult = await userService.authenticateUser(
-    'john@example.com',
-    'wrongpassword',
-  );
+  const authFailResult = await userService.authenticateUser('john@example.com', 'wrongpassword');
   match(authFailResult, {
     ok: (user) => console.log('✓ Authenticated as:', user.name),
     err: (error) => console.error('✗ Auth failed:', `[${error.code}]`, error.message),

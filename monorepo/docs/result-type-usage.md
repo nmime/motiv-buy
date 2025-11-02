@@ -153,9 +153,9 @@ const error = andThen(divide(100, 0), sqrt); // Err('Division by zero')
 import { all, any } from '@app/common-shared';
 
 const results = [
-  divide(10, 2),  // Ok(5)
-  divide(20, 4),  // Ok(5)
-  divide(30, 6),  // Ok(5)
+  divide(10, 2), // Ok(5)
+  divide(20, 4), // Ok(5)
+  divide(30, 6), // Ok(5)
 ];
 
 // Combine all - fails if any fails
@@ -163,9 +163,9 @@ const combined = all(results); // Ok([5, 5, 5])
 
 // Get first success
 const first = any([
-  divide(10, 0),  // Err
-  divide(20, 4),  // Ok(5)
-  divide(30, 6),  // Ok(5)
+  divide(10, 0), // Err
+  divide(20, 4), // Ok(5)
+  divide(30, 6), // Ok(5)
 ]); // Ok(5)
 ```
 
@@ -268,8 +268,8 @@ class UserService {
       return Err(
         new InternalError('Failed to update user', {
           id,
-          error: error instanceof Error ? error.message : 'Unknown'
-        })
+          error: error instanceof Error ? error.message : 'Unknown',
+        }),
       );
     }
   }
@@ -320,9 +320,7 @@ class UserRegistrationService {
     }
 
     if (dto.password.length < 8) {
-      return Err(
-        new ValidationError('Password must be at least 8 characters')
-      );
+      return Err(new ValidationError('Password must be at least 8 characters'));
     }
 
     return Ok(undefined);
@@ -351,9 +349,7 @@ class UserRegistrationService {
     }
 
     if (existsResult.val) {
-      return Err(
-        new ConflictError('User already exists', { email: dto.email })
-      );
+      return Err(new ConflictError('User already exists', { email: dto.email }));
     }
 
     // Create user
@@ -374,7 +370,7 @@ class UserRegistrationService {
       return Err(
         new InternalError('Failed to create user', {
           error: error instanceof Error ? error.message : 'Unknown',
-        })
+        }),
       );
     }
   }

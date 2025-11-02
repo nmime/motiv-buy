@@ -20,36 +20,36 @@ Before deploying to production, ensure all environment variables are configured 
 
 ### Critical Security Variables (MUST BE SET)
 
-| Variable | Description | How to Generate | Required |
-|----------|-------------|-----------------|----------|
-| `BOT_TOKEN` | Telegram Bot Token | Get from [@BotFather](https://t.me/BotFather) | ✅ YES |
-| `JWT_SECRET` | JWT signing secret | `openssl rand -base64 32` | ✅ YES |
-| `DB_PASSWORD` | PostgreSQL password | `openssl rand -base64 24` | ✅ YES |
-| `REDIS_PASSWORD` | Redis password | `openssl rand -base64 24` | ✅ YES |
-| `GRAFANA_PASSWORD` | Grafana admin password | Choose secure password | ✅ YES |
+| Variable           | Description            | How to Generate                               | Required |
+| ------------------ | ---------------------- | --------------------------------------------- | -------- |
+| `BOT_TOKEN`        | Telegram Bot Token     | Get from [@BotFather](https://t.me/BotFather) | ✅ YES   |
+| `JWT_SECRET`       | JWT signing secret     | `openssl rand -base64 32`                     | ✅ YES   |
+| `DB_PASSWORD`      | PostgreSQL password    | `openssl rand -base64 24`                     | ✅ YES   |
+| `REDIS_PASSWORD`   | Redis password         | `openssl rand -base64 24`                     | ✅ YES   |
+| `GRAFANA_PASSWORD` | Grafana admin password | Choose secure password                        | ✅ YES   |
 
 ### Production Configuration Variables
 
-| Variable | Default | Production Value | Required |
-|----------|---------|------------------|----------|
-| `NODE_ENV` | development | `production` | ✅ YES |
-| `PROJECT_NAME` | motiv-buy | `motiv-buy` | ✅ YES |
-| `DB_HOST` | localhost | Database hostname | ✅ YES |
-| `DB_PORT` | 5432 | `5432` | ✅ YES |
-| `DB_USERNAME` | postgres | `motiv_user` | ✅ YES |
-| `DB_DATABASE` | motiv_buy | `motiv_buy_production` | ✅ YES |
-| `REDIS_HOST` | localhost | Redis hostname | ✅ YES |
-| `REDIS_PORT` | 6379 | `6379` | ✅ YES |
-| `PORT` | 3000 | `3000` | ✅ YES |
-| `LOG_LEVEL` | debug | `warn` or `error` | ✅ YES |
+| Variable       | Default     | Production Value       | Required |
+| -------------- | ----------- | ---------------------- | -------- |
+| `NODE_ENV`     | development | `production`           | ✅ YES   |
+| `PROJECT_NAME` | motiv-buy   | `motiv-buy`            | ✅ YES   |
+| `DB_HOST`      | localhost   | Database hostname      | ✅ YES   |
+| `DB_PORT`      | 5432        | `5432`                 | ✅ YES   |
+| `DB_USERNAME`  | postgres    | `motiv_user`           | ✅ YES   |
+| `DB_DATABASE`  | motiv_buy   | `motiv_buy_production` | ✅ YES   |
+| `REDIS_HOST`   | localhost   | Redis hostname         | ✅ YES   |
+| `REDIS_PORT`   | 6379        | `6379`                 | ✅ YES   |
+| `PORT`         | 3000        | `3000`                 | ✅ YES   |
+| `LOG_LEVEL`    | debug       | `warn` or `error`      | ✅ YES   |
 
 ### Optional Production Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `SENTRY_DSN` | Error tracking DSN | Recommended |
-| `SSL_CERT_PATH` | SSL certificate path | For HTTPS |
-| `SSL_KEY_PATH` | SSL private key path | For HTTPS |
+| Variable        | Description          | Required    |
+| --------------- | -------------------- | ----------- |
+| `SENTRY_DSN`    | Error tracking DSN   | Recommended |
+| `SSL_CERT_PATH` | SSL certificate path | For HTTPS   |
+| `SSL_KEY_PATH`  | SSL private key path | For HTTPS   |
 
 ---
 
@@ -58,12 +58,14 @@ Before deploying to production, ensure all environment variables are configured 
 ### Method 1: Docker Compose (Recommended)
 
 **Prerequisites:**
+
 - Docker Engine 20.10+
 - Docker Compose v2.0+
 
 **Steps:**
 
 1. **Configure Environment Variables**
+
 ```bash
 cd /Users/nmi/IT/Projects/motiv-buy/monorepo
 cp .env.example .env.production
@@ -71,6 +73,7 @@ nano .env.production
 ```
 
 2. **Set Production Variables in .env.production**
+
 ```bash
 NODE_ENV=production
 PROJECT_NAME=motiv-buy
@@ -82,21 +85,25 @@ GRAFANA_PASSWORD=your_secure_password
 ```
 
 3. **Build Production Images**
+
 ```bash
 docker-compose -f docker-compose-prod.yml build
 ```
 
 4. **Run Database Migrations**
+
 ```bash
 docker-compose -f docker-compose-prod.yml run --rm migration-dev npm run migration:run
 ```
 
 5. **Start Production Services**
+
 ```bash
 docker-compose -f docker-compose-prod.yml up -d
 ```
 
 6. **Verify Deployment**
+
 ```bash
 # Check service health
 docker-compose -f docker-compose-prod.yml ps
@@ -109,6 +116,7 @@ docker-compose -f docker-compose-prod.yml logs -f api-prod
 ```
 
 7. **Enable Monitoring (Optional)**
+
 ```bash
 docker-compose -f docker-compose-prod.yml --profile monitoring up -d
 ```
@@ -118,33 +126,39 @@ docker-compose -f docker-compose-prod.yml --profile monitoring up -d
 ### Method 2: PM2 (Node.js Process Manager)
 
 **Prerequisites:**
+
 - Node.js 20+
 - PM2 installed globally: `npm install -g pm2`
 
 **Steps:**
 
 1. **Configure Environment Variables**
+
 ```bash
 # Edit .env with production values
 nano .env
 ```
 
 2. **Install Dependencies**
+
 ```bash
 npm install --production
 ```
 
 3. **Build Application**
+
 ```bash
 npm run build
 ```
 
 4. **Run Database Migrations**
+
 ```bash
 npm run migration:prod
 ```
 
 5. **Start with PM2**
+
 ```bash
 # Production mode
 pm2 start ecosystem.config.js --env production
@@ -154,6 +168,7 @@ pm2 start ecosystem.config.js --env staging
 ```
 
 6. **Configure PM2 Startup**
+
 ```bash
 # Generate startup script
 pm2 startup
@@ -163,6 +178,7 @@ pm2 save
 ```
 
 7. **Monitor Applications**
+
 ```bash
 # View status
 pm2 status
@@ -181,17 +197,20 @@ pm2 logs
 ### Using Let's Encrypt (Free)
 
 1. **Install Certbot**
+
 ```bash
 sudo apt-get update
 sudo apt-get install certbot
 ```
 
 2. **Obtain Certificate**
+
 ```bash
 sudo certbot certonly --standalone -d your-domain.com
 ```
 
 3. **Copy Certificates to Project**
+
 ```bash
 mkdir -p /Users/nmi/IT/Projects/motiv-buy/monorepo/config/nginx/ssl
 sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem config/nginx/ssl/cert.pem
@@ -199,6 +218,7 @@ sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem config/nginx/ssl/key.p
 ```
 
 4. **Update Nginx Configuration**
+
 ```bash
 # Edit config/nginx/nginx-prod.conf
 # Update server_name to your-domain.com
@@ -206,6 +226,7 @@ nano config/nginx/nginx-prod.conf
 ```
 
 5. **Set Auto-Renewal**
+
 ```bash
 sudo crontab -e
 # Add: 0 3 * * * certbot renew --quiet
@@ -218,6 +239,7 @@ sudo crontab -e
 ### Production Database Setup
 
 1. **Create Production Database**
+
 ```sql
 CREATE DATABASE motiv_buy_production;
 CREATE USER motiv_user WITH ENCRYPTED PASSWORD 'your_secure_password';
@@ -225,6 +247,7 @@ GRANT ALL PRIVILEGES ON DATABASE motiv_buy_production TO motiv_user;
 ```
 
 2. **Run Migrations**
+
 ```bash
 # Docker
 docker-compose -f docker-compose-prod.yml run --rm migration-dev npm run migration:run
@@ -234,6 +257,7 @@ npm run migration:prod
 ```
 
 3. **Backup Strategy**
+
 ```bash
 # Create backup script
 cat > backup-db.sh << 'EOF'
@@ -258,10 +282,10 @@ crontab -e
 
 ### Access Monitoring Tools
 
-| Tool | URL | Default Credentials |
-|------|-----|---------------------|
-| Grafana | http://localhost:3002 | admin / `$GRAFANA_PASSWORD` |
-| Prometheus | http://localhost:9090 | No auth |
+| Tool       | URL                   | Default Credentials         |
+| ---------- | --------------------- | --------------------------- |
+| Grafana    | http://localhost:3002 | admin / `$GRAFANA_PASSWORD` |
+| Prometheus | http://localhost:9090 | No auth                     |
 
 ### Key Metrics to Monitor
 
@@ -292,11 +316,13 @@ crontab -e
 ## 🔍 Health Checks
 
 ### API Health Endpoint
+
 ```bash
 curl http://localhost:3001/health
 ```
 
 **Expected Response:**
+
 ```json
 {
   "status": "ok",
@@ -319,6 +345,7 @@ curl http://localhost:3001/health
 ### Common Issues
 
 #### 1. Application Won't Start
+
 ```bash
 # Check logs
 docker-compose -f docker-compose-prod.yml logs api-prod
@@ -332,6 +359,7 @@ pm2 logs motiv-buy-api
 ```
 
 #### 2. Database Connection Error
+
 ```bash
 # Verify database is running
 docker-compose -f docker-compose-prod.yml ps postgres-prod
@@ -343,6 +371,7 @@ psql -h localhost -U motiv_user -d motiv_buy_production
 ```
 
 #### 3. Redis Connection Error
+
 ```bash
 # Verify Redis is running
 docker-compose -f docker-compose-prod.yml ps redis-prod

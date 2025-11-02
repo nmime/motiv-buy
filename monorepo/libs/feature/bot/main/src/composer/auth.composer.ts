@@ -1,4 +1,4 @@
-import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
+import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
 import { BotContext, MenuConfig, MenuType, MenuButton, CallbackUtil } from '@app/feature-bot-shared';
@@ -851,7 +851,7 @@ export class AuthComposer {
 
   private async handleRegistrationFlow(ctx: BotContext): Promise<void> {
     const callbackData = ctx.callbackQuery?.data || '';
-    const method = callbackData.split('_')[1]; // e.g., register_email -> email
+    const [, method] = callbackData.split('_'); // e.g., register_email -> email
 
     await ctx.answerCallbackQuery(`📝 ${method} registration selected`);
     // Implement specific registration flow based on method
@@ -859,7 +859,7 @@ export class AuthComposer {
 
   private async handleLoginFlow(ctx: BotContext): Promise<void> {
     const callbackData = ctx.callbackQuery?.data || '';
-    const method = callbackData.split('_')[1]; // e.g., login_email -> email
+    const [, method] = callbackData.split('_'); // e.g., login_email -> email
 
     await ctx.answerCallbackQuery(`🔐 ${method} login selected`);
     // Implement specific login flow based on method
@@ -1119,7 +1119,7 @@ export class AuthComposer {
     };
   }
 
-  private getDefaultAuthMenu(ctx: BotContext): MenuConfig {
+  private getDefaultAuthMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Auth,
       title: '🔐 Authentication',

@@ -23,12 +23,12 @@ async function bootstrap() {
   Logger.log('🤖 Telegram Bot Application is running');
   Logger.log(`🌍 Environment: ${appConfig.nodeEnv}`);
 
-  process.once('SIGINT', () => {
-    void botService.stop();
+  process.once('SIGINT', async () => {
+    await botService.stop();
   });
 
-  process.once('SIGTERM', () => {
-    void botService.stop();
+  process.once('SIGTERM', async () => {
+    await botService.stop();
   });
 }
 

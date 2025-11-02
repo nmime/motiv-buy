@@ -21,9 +21,9 @@ The TypeScript compilation was failing due to type incompatibilities between the
 Made the following changes to `/libs/common/exception/src/type/exception-class.type.ts`:
 
 ```typescript
-export type ExceptionClass<DataType extends OptionalClassConstructor = undefined> = (
-  new (...args: unknown[]) => BaseException<DataType>
-) & {
+export type ExceptionClass<DataType extends OptionalClassConstructor = undefined> = (new (
+  ...args: unknown[]
+) => BaseException<DataType>) & {
   readonly kind: ExceptionKind;
   readonly dataType?: DataType;
   readonly problemType?: string;
@@ -32,6 +32,7 @@ export type ExceptionClass<DataType extends OptionalClassConstructor = undefined
 ```
 
 **Key Changes:**
+
 - Added default generic parameter `= undefined`
 - Made all static properties optional with `?`
 - Added `readonly` modifiers for immutability
@@ -47,38 +48,46 @@ export type ExceptionClass<DataType extends OptionalClassConstructor = undefined
 ## Consequences
 
 ### Positive
+
 - All 25 projects now compile successfully
 - No breaking changes to existing exception classes
 - Better type inference for decorators
 - Improved developer experience
 
 ### Negative
+
 - Slight reduction in type strictness (mitigated by readonly modifiers)
 - Requires understanding of TypeScript's structural typing
 
 ## Alternative Considered
 
 **Option 1:** Create wrapper types for each exception class
+
 - **Rejected**: Too much boilerplate and maintenance overhead
 
 **Option 2:** Use conditional types to infer constructor signatures
+
 - **Rejected**: Overly complex and fragile type system
 
 **Option 3:** Separate decorator types from exception types
+
 - **Rejected**: Would break existing API contracts
 
 ## Implementation Notes
 
 The change leverages TypeScript's structural type system where:
+
 1. Constructor signatures are checked structurally, not nominally
 2. `unknown[]` accepts any argument list
 3. Optional properties with defaults provide flexibility
 4. `readonly` enforces immutability at compile time
 
 ## Related ADRs
+
 - ADR-002: DTO Export Strategy (see traffic module fixes)
 
 ## References
+
 - TypeScript Handbook: Structural Type System
 - NestJS Exception Handling Patterns
 - Problem Details for HTTP APIs (RFC 7807)

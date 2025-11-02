@@ -6,7 +6,7 @@
  * and response generation.
  */
 
-import { BotContext, BotUser, BotMessage } from '@app/feature-bot-shared';
+import { BotUser, BotMessage } from '@app/feature-bot-shared';
 
 /**
  * Message Format Options
@@ -56,6 +56,49 @@ export interface UserDataExtractOptions {
   /** Custom display name template */
   customTemplate?: string;
 }
+
+/**
+ * Extracted User Data
+ */
+export interface ExtractedUserData {
+  /** User display name */
+  displayName: string;
+
+  /** First name */
+  firstName: string;
+
+  /** Last name */
+  lastName: string | null;
+
+  /** User ID */
+  id?: number;
+
+  /** Username */
+  username?: string | null;
+
+  /** Language code */
+  languageCode?: string | null;
+
+  /** Premium status */
+  isPremium?: boolean;
+}
+
+/**
+ * Callback Data
+ */
+export interface CallbackData {
+  /** Action identifier */
+  action?: string;
+
+  /** Action value */
+  value?: string;
+
+  /** Additional data fields */
+  [key: string]: unknown;
+}
+
+// We use Grammy's Message type directly for extended message properties
+// as it properly includes all media types without index signatures
 
 /**
  * Bot Helper Utilities Class
@@ -147,7 +190,7 @@ export class BotHelperUtil {
    * @param options - Extract options
    * @returns Extracted user data
    */
-  static extractUserData(user: BotUser, options: UserDataExtractOptions = {}): Record<string, unknown> {
+  static extractUserData(user: BotUser, options: UserDataExtractOptions = {}): ExtractedUserData {
     const {
       includeId = true,
       includeUsername = true,
@@ -155,7 +198,7 @@ export class BotHelperUtil {
       includePremiumStatus = false,
     } = options;
 
-    const userData: Record<string, unknown> = {
+    const userData: ExtractedUserData = {
       displayName: this.extractUserDisplayName(user, options),
       firstName: user.first_name,
       lastName: user.last_name || null,
@@ -227,10 +270,7 @@ export class BotHelperUtil {
    * @returns Unique request ID
    */
   static generateRequestId(): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substr(2, 9);
-
-    return `req_${timestamp}_${random}`;
+    return `req_${crypto.randomUUID()}`;
   }
 
   /**
@@ -240,10 +280,7 @@ export class BotHelperUtil {
    * @returns Correlation ID
    */
   static generateCorrelationId(prefix = 'corr'): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substr(2, 9);
-
-    return `${prefix}_${timestamp}_${random}`;
+    return `${prefix}_${crypto.randomUUID()}`;
   }
 
   /**
@@ -252,9 +289,9 @@ export class BotHelperUtil {
    * @param data - Callback data string
    * @returns Parsed callback data
    */
-  static parseCallbackData(data: string): Record<string, unknown> {
+  static parseCallbackData(data: string): CallbackData {
     try {
-      return JSON.parse(data) as Record<string, unknown>;
+      return JSON.parse(data) as CallbackData;
     } catch {
       // If not JSON, treat as simple string
       const parts = data.split(':');
@@ -272,7 +309,7 @@ export class BotHelperUtil {
    * @param data - Data object to encode
    * @returns Encoded callback data string
    */
-  static createCallbackData(data: Record<string, unknown>): string {
+  static createCallbackData(data: CallbackData): string {
     // Simple format for basic data
     if (Object.keys(data).length === 1 && data.action) {
       return String(data.action);
@@ -464,46 +501,45 @@ export class BotHelperUtil {
       return 'text';
     }
 
-    // Use type-safe property checking for extended message properties
-    const extendedMessage = message as unknown as Record<string, unknown>;
-
-    if (extendedMessage.photo) {
+    // Use 'in' operator for type-safe property checking
+    // TypeScript properly narrows types with 'in' operator
+    if ('photo' in message) {
       return 'photo';
     }
 
-    if (extendedMessage.video) {
+    if ('video' in message) {
       return 'video';
     }
 
-    if (extendedMessage.audio) {
+    if ('audio' in message) {
       return 'audio';
     }
 
-    if (extendedMessage.voice) {
+    if ('voice' in message) {
       return 'voice';
     }
 
-    if (extendedMessage.document) {
+    if ('document' in message) {
       return 'document';
     }
 
-    if (extendedMessage.sticker) {
+    if ('sticker' in message) {
       return 'sticker';
     }
 
-    if (extendedMessage.location) {
+    if ('location' in message) {
       return 'location';
     }
 
-    if (extendedMessage.contact) {
+    if ('contact' in message) {
       return 'contact';
     }
 
-    if (extendedMessage.poll) {
+    if ('poll' in message) {
       return 'poll';
     }
 
-    if (extendedMessage.dice) {
+    if ('dice' in message) {
       return 'dice';
     }
 
@@ -521,10 +557,9 @@ export class BotHelperUtil {
       return message.text;
     }
 
-    // Use type-safe property checking for caption
-    const extendedMessage = message as unknown as Record<string, unknown>;
-    if (typeof extendedMessage.caption === 'string') {
-      return extendedMessage.caption;
+    // Use 'in' operator for type-safe caption checking
+    if ('caption' in message && typeof message.caption === 'string') {
+      return message.caption;
     }
 
     return null;

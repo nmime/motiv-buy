@@ -538,13 +538,8 @@ export class BotTokenValidationService {
 
   /**
    * Generate correlation ID for request tracking using crypto
-   * Note: Math.random() is used here for performance as correlation IDs don't
-   * require cryptographic security, only uniqueness for tracing purposes
    */
   private generateCorrelationId(): string {
-    // Using Date.now() for timestamp component is acceptable for correlation IDs
-    // as they don't require cryptographic security, just uniqueness
-    // Math.random() is acceptable here for correlation IDs as they don't need cryptographic security
-    return `bot-token-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    return `bot-token-${crypto.randomUUID()}`;
   }
 }

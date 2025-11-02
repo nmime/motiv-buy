@@ -385,22 +385,26 @@ erDiagram
 ## Resource Ownership & Access Control
 
 ### Traffic Sources
+
 - **Owner**: `managed_by_id` → UserEntity
 - **Access**: User can only see statistics for traffic sources they manage
 - **Related Data**: TrafficOrders, TrafficActions, TrafficUsers
 
 ### Traffic Targets
+
 - **Owner**: `managed_by_id` → UserEntity
 - **Access**: User can only see statistics for traffic targets they manage
 - **Related Data**: TrafficOrders received, member counts, earnings
 
 ### Traffic Orders
+
 - **Owner**: `creator_id` → UserEntity (who created the order)
 - **Creator**: `created_by_id` → UserEntity (who submitted it to system)
 - **Access**: Users can see orders they created or have permissions for
 - **Related Data**: TrafficActions, spending, completion rates
 
 ### Users
+
 - **Self**: Users can see their own statistics
 - **Admin**: Admin users can see all user statistics
 - **Related Data**: Balance history, referrals, order participation
@@ -408,6 +412,7 @@ erDiagram
 ## Query Optimization Guidelines
 
 ### Indexes Required
+
 ```sql
 -- Traffic Sources
 CREATE INDEX idx_traffic_sources_managed_by ON traffic_sources(managed_by_id);
@@ -430,12 +435,15 @@ CREATE INDEX idx_balance_history_type ON user_balance_history(user_id, type);
 ```
 
 ### Aggregation Queries
+
 Use PostgreSQL window functions and aggregations for performance:
+
 - `COUNT()`, `SUM()`, `AVG()` at database level
 - `date_trunc()` for time series grouping
 - CTEs for complex multi-table statistics
 
 ### Resource Filtering Pattern
+
 All statistics queries must include ownership filtering:
 
 ```typescript
@@ -443,14 +451,14 @@ All statistics queries must include ownership filtering:
 const sources = await repository.find({
   managed_by_id: userId,
   is_active: true,
-  ...(dateFilters)
+  ...dateFilters,
 });
 
 // Traffic Order Stats - only orders created by user
 const orders = await repository.find({
   creator_id: userId,
-  ...(statusFilters),
-  ...(dateFilters)
+  ...statusFilters,
+  ...dateFilters,
 });
 ```
 

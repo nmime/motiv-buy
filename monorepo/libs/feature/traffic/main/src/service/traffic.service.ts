@@ -676,7 +676,7 @@ export class TrafficService {
    * Find sources by manager (placeholder - needs proper implementation)
    * @param _managerId - Manager user ID (currently unused, awaiting entity field implementation)
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   private async findSourcesByManager(_managerId: string): Promise<TrafficSourceEntity[]> {
     // This would need a managedById field in the entity
     // For now, return all sources (to be implemented properly)
@@ -690,7 +690,7 @@ export class TrafficService {
    * @param sourceId - Traffic source ID
    * @param _userId - User ID to check access for (currently unused, awaiting ownership implementation)
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   private async validateSourceAccess(sourceId: string, _userId: string): Promise<boolean> {
     const source = await this.findSourceById(sourceId);
 

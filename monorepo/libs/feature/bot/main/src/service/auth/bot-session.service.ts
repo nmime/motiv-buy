@@ -10,8 +10,8 @@ import { UserEntity } from '@app/database';
 @Injectable()
 export class BotSessionService {
   private readonly logger = new Logger(BotSessionService.name);
-  private readonly SESSION_TTL = 86400; // 24 hours in seconds
-  private readonly SESSION_PREFIX = 'bot:session:';
+  private readonly sessionTtl = 86400; // 24 hours in seconds
+  private readonly sessionPrefix = 'bot:session:';
 
   constructor(private readonly redisCacheService: RedisCacheService) {}
 
@@ -19,7 +19,7 @@ export class BotSessionService {
    * Generate session ID for user
    */
   generateSessionId(telegramId: string): string {
-    return `${telegramId}_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    return `${telegramId}_${crypto.randomUUID()}`;
   }
 
   /**
@@ -42,11 +42,11 @@ export class BotSessionService {
         lastActiveAt: user.lastActiveAt?.toISOString(),
       };
 
-      await this.redisCacheService.setHash(sessionKey, sessionData, this.SESSION_TTL);
+      await this.redisCacheService.setHash(sessionKey, sessionData, this.sessionTtl);
 
       // Also store by telegram ID for quick lookup
       const telegramKey = this.getTelegramKey(user.telegramId);
-      await this.redisCacheService.setHash(telegramKey, { sessionId }, this.SESSION_TTL);
+      await this.redisCacheService.setHash(telegramKey, { sessionId }, this.sessionTtl);
 
       this.logger.debug(`Session stored for user ${user.telegramId}`, { sessionId });
     } catch (err: unknown) {
@@ -109,7 +109,7 @@ export class BotSessionService {
   async updateSessionActivity(sessionId: string): Promise<void> {
     try {
       const sessionKey = this.getSessionKey(sessionId);
-      await this.redisCacheService.setHash(sessionKey, { lastActiveAt: new Date().toISOString() }, this.SESSION_TTL);
+      await this.redisCacheService.setHash(sessionKey, { lastActiveAt: new Date().toISOString() }, this.sessionTtl);
     } catch (err: unknown) {
       this.logger.error('Failed to update session activity', err, { sessionId });
     }
@@ -154,13 +154,13 @@ export class BotSessionService {
    * Generate Redis key for session
    */
   private getSessionKey(sessionId: string): string {
-    return `${this.SESSION_PREFIX}${sessionId}`;
+    return `${this.sessionPrefix}${sessionId}`;
   }
 
   /**
    * Generate Redis key for telegram ID lookup
    */
   private getTelegramKey(telegramId: string): string {
-    return `${this.SESSION_PREFIX}telegram:${telegramId}`;
+    return `${this.sessionPrefix}telegram:${telegramId}`;
   }
 }

@@ -1,4 +1,4 @@
-import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
+import { unknownToError } from '@app/common-shared';
 import { ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
@@ -43,9 +43,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const result = super.canActivate(context);
 
     if (result instanceof Promise) {
-      return result.then((isAuthenticated: boolean) => {
+      return result.then(async (isAuthenticated: boolean) => {
         if (isAuthenticated) {
-          void this.trackUserActivity(context);
+          await this.trackUserActivity(context);
         }
 
         return isAuthenticated;
@@ -53,7 +53,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     if (result === true) {
-      void this.trackUserActivity(context);
+      this.trackUserActivity(context).catch((error) => {
+        this.logger.error('Failed to track user activity', error);
+      });
     }
 
     return result;
@@ -74,7 +76,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       const wasSet = await this.redisClient.set(activityKey, now, 'EX', this.activityThrottleSeconds, 'NX');
 
       if (wasSet === 'OK') {
-        void this.updateDatabaseActivity(userId, now);
+        this.updateDatabaseActivity(userId, now).catch((error) => {
+          this.logger.error('Failed to update database activity', error);
+        });
       }
     } catch (error: unknown) {
       this.logger.warn('Failed to track user activity', {

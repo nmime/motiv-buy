@@ -11,22 +11,30 @@
         "outputPath": "dist/apps/bot",
         "main": "apps/bot/src/main.ts",
         "tsConfig": "apps/bot/tsconfig.app.json",
-        "assets": []
+        "assets": [],
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": { "afterDeclarations": true }
+          }
+        ]
       }
     },
     "serve": {
-      "executor": "nx:run-commands",
+      "executor": "@nx/js:node",
       "defaultConfiguration": "development",
+      "dependsOn": ["build"],
       "options": {
-        "command": "node -r @swc-node/register apps/bot/src/main.ts",
-        "cwd": "{workspaceRoot}",
-        "envFile": "{workspaceRoot}/.env"
+        "buildTarget": "bot:build",
+        "runBuildTargetDependencies": true
       },
       "configurations": {
         "development": {
-          "command": "node -r @swc-node/register apps/bot/src/main.ts",
-          "cwd": "{workspaceRoot}",
-          "envFile": "{workspaceRoot}/.env"
+          "buildTarget": "bot:build"
         },
         "production": {
           "buildTarget": "bot:build:production"

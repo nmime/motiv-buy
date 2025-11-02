@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SessionInterface, SessionData } from '@app/feature-bot-shared';
 import { RedisCacheService } from '@app/common-redis';
-import { AsyncResult } from '@app/common-shared';
-import { Ok, Err } from 'ts-results';
+import { unknownToError } from '@app/common-shared';
 
 /**
  * Session Service
@@ -15,9 +14,9 @@ import { Ok, Err } from 'ts-results';
 @Injectable()
 export class SessionService {
   private readonly logger = new Logger(SessionService.name);
-  private readonly SESSION_PREFIX = 'bot:session:';
-  private readonly DEFAULT_SESSION_TTL = 24 * 60 * 60; // 24 hours in seconds
-  private readonly MAX_SESSION_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
+  private readonly sessionPrefix = 'bot:session:';
+  private readonly defaultSessionTtl = 24 * 60 * 60; // 24 hours in seconds
+  private readonly maxSessionTtl = 7 * 24 * 60 * 60; // 7 days in seconds
 
   constructor(private readonly redisCacheService: RedisCacheService) {}
 
@@ -32,7 +31,7 @@ export class SessionService {
   async createSession(
     userId: string,
     initialData?: Partial<SessionData>,
-    ttlSeconds: number = this.DEFAULT_SESSION_TTL,
+    ttlSeconds: number = this.defaultSessionTtl,
   ): Promise<SessionInterface> {
     try {
       this.logger.debug(`Creating session for user: ${userId}`, {
@@ -261,7 +260,7 @@ export class SessionService {
 
       // Store updated session in Redis
       const sessionKey = this.getSessionKey(userId);
-      const currentTtl = ttlSeconds || this.DEFAULT_SESSION_TTL;
+      const currentTtl = ttlSeconds || this.defaultSessionTtl;
       await this.redisCacheService.setHash(sessionKey, { session: updatedSession }, currentTtl);
 
       this.logger.debug(`Session updated successfully for user: ${userId}`);
@@ -322,7 +321,7 @@ export class SessionService {
    * @param extensionMs - Milliseconds to extend session
    * @returns Promise<boolean> - Success status
    */
-  async extendSession(userId: string, extensionMs: number = this.DEFAULT_SESSION_TTL * 1000): Promise<boolean> {
+  async extendSession(userId: string, extensionMs: number = this.defaultSessionTtl * 1000): Promise<boolean> {
     try {
       this.logger.debug(`Extending session for user: ${userId} by ${extensionMs}ms`);
 
@@ -334,7 +333,7 @@ export class SessionService {
       }
 
       // Calculate new expiration time (capped at max TTL)
-      const newExpirationTime = Math.min(Date.now() + extensionMs, Date.now() + this.MAX_SESSION_TTL * 1000);
+      const newExpirationTime = Math.min(Date.now() + extensionMs, Date.now() + this.maxSessionTtl * 1000);
 
       const updatedSession: SessionInterface = {
         ...session,
@@ -413,6 +412,6 @@ export class SessionService {
    * Generate Redis key for session
    */
   private getSessionKey(userId: string): string {
-    return `${this.SESSION_PREFIX}${userId}`;
+    return `${this.sessionPrefix}${userId}`;
   }
 }

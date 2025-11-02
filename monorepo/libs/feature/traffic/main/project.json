@@ -11,7 +11,17 @@
         "outputPath": "dist/libs/feature/traffic/main",
         "main": "libs/feature/traffic/main/src/index.ts",
         "tsConfig": "libs/feature/traffic/main/tsconfig.lib.json",
-        "assets": []
+        "assets": [],
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": { "afterDeclarations": true }
+          }
+        ]
       }
     },
     "lint": {

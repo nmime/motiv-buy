@@ -1,14 +1,7 @@
-import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
+import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { InlineKeyboard } from 'grammy';
-import {
-  BotContext,
-  MenuConfig,
-  MenuType,
-  MenuButton,
-  MenuNavigation,
-  MenuActionResult,
-} from '@app/feature-bot-shared';
+import { BotContext, MenuConfig, MenuType, MenuButton, MenuActionResult } from '@app/feature-bot-shared';
 import { SessionService } from './session.service';
 
 /**
@@ -22,7 +15,7 @@ import { SessionService } from './session.service';
 @Injectable()
 export class MenuService {
   private readonly logger = new Logger(MenuService.name);
-  private readonly MAX_HISTORY_LENGTH = 10;
+  private readonly maxHistoryLength = 10;
 
   constructor(private readonly sessionService: SessionService) {}
 
@@ -242,7 +235,7 @@ export class MenuService {
     };
   }
 
-  private generateProfileMenu(ctx: BotContext): MenuConfig {
+  private generateProfileMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Profile,
       title: 'Your Profile 👤',
@@ -262,7 +255,7 @@ export class MenuService {
     };
   }
 
-  private generateSettingsMenu(ctx: BotContext): MenuConfig {
+  private generateSettingsMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Settings,
       title: 'Settings ⚙️',
@@ -286,7 +279,7 @@ export class MenuService {
     };
   }
 
-  private generateBalanceMenu(ctx: BotContext): MenuConfig {
+  private generateBalanceMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Balance,
       title: 'Balance & Earnings 💰',
@@ -306,7 +299,7 @@ export class MenuService {
     };
   }
 
-  private generateTrafficMenu(ctx: BotContext): MenuConfig {
+  private generateTrafficMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Traffic,
       title: 'Traffic Management 🎯',
@@ -329,7 +322,7 @@ export class MenuService {
     };
   }
 
-  private generateStatisticsMenu(ctx: BotContext): MenuConfig {
+  private generateStatisticsMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Statistics,
       title: 'Statistics 📈',
@@ -352,7 +345,7 @@ export class MenuService {
     };
   }
 
-  private generateHelpMenu(ctx: BotContext): MenuConfig {
+  private generateHelpMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Help,
       title: 'Help & Support ❓',
@@ -376,7 +369,7 @@ export class MenuService {
     };
   }
 
-  private generateCampaignMenu(ctx: BotContext): MenuConfig {
+  private generateCampaignMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Campaign,
       title: 'Campaign Management 📋',
@@ -396,7 +389,7 @@ export class MenuService {
     };
   }
 
-  private generateWithdrawalMenu(ctx: BotContext): MenuConfig {
+  private generateWithdrawalMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Withdrawal,
       title: 'Withdrawal 💸',
@@ -416,7 +409,7 @@ export class MenuService {
     };
   }
 
-  private generateReferralMenu(ctx: BotContext): MenuConfig {
+  private generateReferralMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Referral,
       title: 'Referral Program 🤝',
@@ -436,7 +429,7 @@ export class MenuService {
     };
   }
 
-  private generateAdminMenu(ctx: BotContext): MenuConfig {
+  private generateAdminMenu(_ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Admin,
       title: 'Admin Panel 🔧',
@@ -456,7 +449,7 @@ export class MenuService {
     };
   }
 
-  private generateDefaultMenu(ctx: BotContext, menuType: MenuType): MenuConfig {
+  private generateDefaultMenu(_ctx: BotContext, menuType: MenuType): MenuConfig {
     return {
       type: menuType,
       title: 'Menu',
@@ -513,7 +506,7 @@ export class MenuService {
         newHistory.push(currentState.currentLocation as MenuType);
 
         // Limit history size
-        if (newHistory.length > this.MAX_HISTORY_LENGTH) {
+        if (newHistory.length > this.maxHistoryLength) {
           newHistory.shift();
         }
       }

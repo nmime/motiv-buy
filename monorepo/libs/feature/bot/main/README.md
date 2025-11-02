@@ -5,6 +5,7 @@ Core business logic module for Telegram bot functionality in the Motiv-Buy platf
 ## Overview
 
 This library contains the main business logic for bot operations including:
+
 - Bot orchestration and lifecycle management
 - Menu management and navigation
 - Session handling and state management
@@ -82,6 +83,7 @@ npm run test:feature-bot-main
 ## Development
 
 This library follows the established coding standards:
+
 - TypeScript strict mode
 - Comprehensive JSDoc documentation
 - Service-oriented architecture

@@ -100,25 +100,25 @@ module.exports = {
   // PM2 Deploy Configuration (optional)
   deploy: {
     production: {
-      user: 'deploy',
-      host: ['your-production-server.com'],
-      ref: 'origin/master',
-      repo: 'git@github.com:yourusername/motiv-buy.git',
-      path: '/var/www/motiv-buy',
+      'user': 'deploy',
+      'host': ['your-production-server.com'],
+      'ref': 'origin/master',
+      'repo': 'git@github.com:yourusername/motiv-buy.git',
+      'path': '/var/www/motiv-buy',
       'post-deploy': 'npm install && npm run build && pm2 reload ecosystem.config.js --env production',
-      env: {
+      'env': {
         NODE_ENV: 'production',
       },
     },
 
     staging: {
-      user: 'deploy',
-      host: ['your-staging-server.com'],
-      ref: 'origin/develop',
-      repo: 'git@github.com:yourusername/motiv-buy.git',
-      path: '/var/www/motiv-buy-staging',
+      'user': 'deploy',
+      'host': ['your-staging-server.com'],
+      'ref': 'origin/develop',
+      'repo': 'git@github.com:yourusername/motiv-buy.git',
+      'path': '/var/www/motiv-buy-staging',
       'post-deploy': 'npm install && npm run build && pm2 reload ecosystem.config.js --env staging',
-      env: {
+      'env': {
         NODE_ENV: 'staging',
       },
     },

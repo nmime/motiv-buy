@@ -2,13 +2,12 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { Bot, Context, session, SessionFlavor } from 'grammy';
 import { BotContext, BotCommand } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
-import { AsyncResult } from '@app/common-shared';
-import { Ok, Err } from 'ts-results';
+import { unknownToError } from '@app/common-shared';
 
 /**
  * Extended Grammy Context with session support
  */
-interface BotSessionContext extends Context, SessionFlavor<Record<string, any>> {
+interface BotSessionContext extends Context, SessionFlavor<Record<string, unknown>> {
   userId?: string;
   isAuthenticated?: boolean;
   userData?: {
@@ -216,7 +215,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         userId: ctx.from?.id,
       });
 
-      await this.handleError(error as Error, ctx);
+      await this.handleError(err as Error, ctx);
     }
   }
 
@@ -231,7 +230,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     try {
       this.logger.error('Bot error occurred', {
         error: error.message,
-        stack: err.stack,
+        stack: error.stack,
         userId: ctx?.from?.id,
       });
 
@@ -304,8 +303,6 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.bot.on('callback_query:data', async (ctx) => {
-      const callbackData = ctx.callbackQuery.data;
-
       // Handle callback queries (simplified for now)
       await ctx.answerCallbackQuery('Feature coming soon!');
     });
@@ -402,7 +399,11 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         return await ctx.editMessageText(text, extra);
       },
       answerCallbackQuery: async (text?: string, extra?: Record<string, unknown>) => {
-        return await ctx.answerCallbackQuery(text, extra);
+        if (extra && Object.keys(extra).length > 0) {
+          return await ctx.answerCallbackQuery({ text, ...extra });
+        }
+
+        return await ctx.answerCallbackQuery(text);
       },
       session: ctx.session,
       state: ctx.userData,

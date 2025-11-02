@@ -11,6 +11,7 @@ A comprehensive Result type system has been implemented in `/Users/nmi/IT/Projec
 **Location**: `/Users/nmi/IT/Projects/motiv-buy/monorepo/libs/common/shared/src/types/result.type.ts`
 
 **Exports**:
+
 - `Ok<T>` - Constructor for success results
 - `Err<E>` - Constructor for error results
 - `Result<T, E>` - Union type for Ok<T> | Err<E>
@@ -19,32 +20,39 @@ A comprehensive Result type system has been implemented in `/Users/nmi/IT/Projec
 ### 2. Helper Functions
 
 **Type Guards**:
+
 - `isOk<T, E>(result)` - Check if result is Ok
 - `isErr<T, E>(result)` - Check if result is Err
 - `isResult(value)` - Check if value is a Result
 
 **Unwrapping**:
+
 - `unwrapOr<T, E>(result, defaultValue)` - Unwrap or return default
 - `unwrapOrElse<T, E>(result, fn)` - Unwrap or compute from error
 
 **Transformations**:
+
 - `map<T, U, E>(result, fn)` - Map success value
 - `mapErr<T, E, F>(result, fn)` - Map error value
 - `andThen<T, U, E>(result, fn)` - Chain operations (flatMap)
 
 **Combining**:
+
 - `all<T, E>(results)` - Combine all results (fails if any fails)
 - `any<T, E>(results)` - Get first success or last error
 
 **Exception Handling**:
+
 - `tryCatch<T>(fn)` - Wrap throwing function
 - `tryCatchAsync<T>(fn)` - Wrap async throwing function
 
 **Nullable Conversion**:
+
 - `fromNullable<T, E>(value, error)` - Convert nullable to Result
 - `toNullable<T, E>(result)` - Convert Result to nullable
 
 **Pattern Matching**:
+
 - `match<T, E>(result, handlers)` - Execute side effects
 - `matchMap<T, E, U>(result, handlers)` - Map to single type
 
@@ -61,6 +69,7 @@ Pre-built error types for common scenarios:
 - `InternalError` - For internal errors (code: INTERNAL_ERROR)
 
 **Domain Result Types**:
+
 - `DomainResult<T>` - Result<T, DomainError>
 - `AsyncDomainResult<T>` - Promise<Result<T, DomainError>>
 
@@ -93,12 +102,7 @@ if (result.ok) {
 ### With Domain Errors
 
 ```typescript
-import {
-  AsyncDomainResult,
-  ValidationError,
-  NotFoundError,
-  match
-} from '@app/common-shared';
+import { AsyncDomainResult, ValidationError, NotFoundError, match } from '@app/common-shared';
 
 async function getUserById(id: string): AsyncDomainResult<User> {
   if (!id) {
@@ -137,6 +141,7 @@ import { Ok, Err, Result, ... } from '@app/common-shared';
 ```
 
 The types are built on top of the existing `ts-results` package (already installed in package.json) and extend it with:
+
 - Additional helper functions
 - Domain-specific error classes
 - TypeScript-friendly type guards
@@ -145,6 +150,7 @@ The types are built on top of the existing `ts-results` package (already install
 ## Testing
 
 Run tests:
+
 ```bash
 cd /Users/nmi/IT/Projects/motiv-buy/monorepo
 npm run test -- libs/common/shared
@@ -153,6 +159,7 @@ npm run test -- libs/common/shared
 ## Build Verification
 
 The library builds successfully and exports are confirmed:
+
 ```bash
 cd /Users/nmi/IT/Projects/motiv-buy/monorepo
 npm run build:libs
@@ -223,6 +230,7 @@ match(result, {
 ## Architecture Decision
 
 This implementation:
+
 - ✅ Uses the existing `ts-results` package (already in dependencies)
 - ✅ Extends it with domain-specific utilities
 - ✅ Avoids duplication (re-exports AsyncResult from class-constructor.types)
@@ -232,6 +240,7 @@ This implementation:
 ## Support
 
 For questions or issues with the Result type system:
+
 1. Check the documentation in `docs/result-type-usage.md`
 2. Review the test file for usage examples
 3. Refer to ts-results documentation for advanced features

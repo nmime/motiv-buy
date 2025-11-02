@@ -7,6 +7,7 @@ The Motiv-Buy platform consists of several interconnected entities that manage t
 ## Entity Relationships
 
 ### User Management Domain
+
 ```
 ┌─────────────────┐
 │     User        │
@@ -36,6 +37,7 @@ The Motiv-Buy platform consists of several interconnected entities that manage t
 ```
 
 ### Traffic Management Domain
+
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │  TrafficSource  │    │  TrafficOrder   │    │  TrafficTarget  │
@@ -90,6 +92,7 @@ The Motiv-Buy platform consists of several interconnected entities that manage t
 ```
 
 ### Financial Domain
+
 ```
 ┌─────────────────┐    ┌─────────────────────┐
 │   UserBalance   │    │ UserBalanceHistory  │
@@ -108,6 +111,7 @@ The Motiv-Buy platform consists of several interconnected entities that manage t
 ```
 
 ### Additional Supporting Entities
+
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │  UserSettings   │    │ TrafficUser     │    │  UserRefLink    │
@@ -129,6 +133,7 @@ The Motiv-Buy platform consists of several interconnected entities that manage t
 ## Key Relationships
 
 ### Primary Foreign Key Relationships
+
 1. **User → UserBalance** (1:N): Users can have multiple currency balances
 2. **User → UserBalanceHistory** (1:N): All financial transactions are tracked
 3. **User → TrafficSource** (1:N): Users can manage multiple traffic sources
@@ -139,6 +144,7 @@ The Motiv-Buy platform consists of several interconnected entities that manage t
 8. **TrafficSource → TrafficActions** (1:N): Sources track all their actions
 
 ### Composite Relationships
+
 - **TrafficOrder**: Links User (creator), TrafficSource, TrafficTarget, and TrafficUser
 - **TrafficActions**: Links TrafficOrder and TrafficSource for action tracking
 - **UserBalanceHistory**: Tracks all financial movements with reference IDs
@@ -146,11 +152,13 @@ The Motiv-Buy platform consists of several interconnected entities that manage t
 ## Database Features
 
 ### Indexes
+
 - **Performance**: All foreign keys are indexed
 - **Search**: Common query fields (telegram_id, username, status, type) are indexed
 - **Time-based**: Created_at fields are indexed for temporal queries
 
 ### Data Types
+
 - **UUIDs**: All primary keys use PostgreSQL UUID v7 for performance
 - **Timestamps**: All entities have timestamptz for created_at/updated_at
 - **Decimals**: Financial amounts use precise decimal types
@@ -158,6 +166,7 @@ The Motiv-Buy platform consists of several interconnected entities that manage t
 - **Enums**: Status and type fields use typed enums for consistency
 
 ### Audit Trail
+
 - **Creation Tracking**: All entities track creation timestamp
 - **Modification Tracking**: All entities track last update timestamp
 - **User Attribution**: Orders and financial transactions track creating user
@@ -166,6 +175,7 @@ The Motiv-Buy platform consists of several interconnected entities that manage t
 ## Statistics Query Optimization
 
 ### Resource Filtering Strategy
+
 Each statistics query must filter by the appropriate resource ID:
 
 1. **User Statistics** → Filter by `user.id`
@@ -175,12 +185,14 @@ Each statistics query must filter by the appropriate resource ID:
 5. **Traffic Action Statistics** → Filter by `traffic_action.traffic_source_id` or `traffic_order_id`
 
 ### Index Optimization
+
 - Date range queries use `created_at` indexes
 - Resource filtering uses foreign key indexes
 - Status filtering uses enum indexes
 - Composite queries benefit from multi-column indexes
 
 ### Aggregation Opportunities
+
 - Count operations can use database-level counting
 - Sum operations can use database-level aggregation
 - Time grouping can use PostgreSQL date functions

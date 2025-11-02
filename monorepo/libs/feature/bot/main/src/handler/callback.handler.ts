@@ -1,6 +1,6 @@
-import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
+import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext, MenuType, MenuActionResult } from '@app/feature-bot-shared';
+import { BotContext, MenuType } from '@app/feature-bot-shared';
 import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceService } from '@app/feature-balance-main';
@@ -78,7 +78,7 @@ export class CallbackHandler {
         error: unknownToError(err),
         userId: ctx.from?.id,
         callbackData: ctx.callbackQuery?.data,
-        stack: error instanceof Error ? err.stack : undefined,
+        stack: err instanceof Error ? err.stack : undefined,
       });
 
       // Answer callback query with error
@@ -90,7 +90,7 @@ export class CallbackHandler {
         });
       }
 
-      await this.handleCallbackError(ctx, error as Error);
+      await this.handleCallbackError(ctx, err as Error);
     }
   }
 
@@ -211,7 +211,7 @@ export class CallbackHandler {
    * Handle authentication callbacks
    */
   private async handleAuthCallback(ctx: BotContext, params: string[]): Promise<void> {
-    const subAction = params[0];
+    const [subAction] = params;
     const userId = ctx.from?.id?.toString();
 
     if (!userId) {
@@ -248,7 +248,7 @@ export class CallbackHandler {
    * Handle profile-related callbacks
    */
   private async handleProfileCallback(ctx: BotContext, params: string[]): Promise<void> {
-    const subAction = params[0];
+    const [subAction] = params;
     const userId = ctx.from?.id?.toString();
 
     if (!userId) {
@@ -307,7 +307,7 @@ export class CallbackHandler {
    * Handle settings callbacks
    */
   private async handleSettingsCallback(ctx: BotContext, params: string[]): Promise<void> {
-    const subAction = params[0];
+    const [subAction] = params;
     const userId = ctx.from?.id?.toString();
 
     if (!userId) {
@@ -351,7 +351,7 @@ export class CallbackHandler {
    * Handle balance-related callbacks
    */
   private async handleBalanceCallback(ctx: BotContext, params: string[]): Promise<void> {
-    const subAction = params[0];
+    const [subAction] = params;
     const userId = ctx.from?.id?.toString();
 
     if (!userId) {
@@ -392,7 +392,7 @@ export class CallbackHandler {
    * Handle help callbacks
    */
   private async handleHelpCallback(ctx: BotContext, params: string[]): Promise<void> {
-    const subAction = params[0];
+    const [subAction] = params;
 
     switch (subAction) {
       case 'faq':
@@ -462,40 +462,40 @@ export class CallbackHandler {
   /**
    * Handle various other callback types
    */
-  private async handleStatsCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleStatsCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await ctx.reply('📊 Statistics feature coming soon!');
   }
 
-  private async handleTrafficCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleTrafficCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await ctx.reply('🎯 Traffic management coming soon!');
   }
 
-  private async handleCampaignCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleCampaignCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await ctx.reply('📋 Campaign management coming soon!');
   }
 
-  private async handleWithdrawalCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleWithdrawalCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await ctx.reply('💸 Withdrawal system coming soon!');
   }
 
-  private async handleReferralCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleReferralCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await ctx.reply('🤝 Referral program coming soon!');
   }
 
-  private async handleAdminCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleAdminCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await ctx.reply('🔧 Admin panel access restricted.');
   }
 
-  private async handleVerifyCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleVerifyCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await ctx.reply('✅ Verification system coming soon!');
   }
 
-  private async handleExportCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleExportCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await ctx.reply('📥 Data export coming soon!');
   }
 
   private async handleResetCallback(ctx: BotContext, params: string[]): Promise<void> {
-    const subAction = params[0];
+    const [subAction] = params;
     const userId = ctx.from?.id?.toString();
 
     if (!userId) {
@@ -522,12 +522,12 @@ export class CallbackHandler {
     }
   }
 
-  private async handleNotificationsCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleNotificationsCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await ctx.reply('🔔 Notification settings coming soon!');
   }
 
   private async handleLanguageCallback(ctx: BotContext, params: string[]): Promise<void> {
-    const language = params[0];
+    const [language] = params;
     const userId = ctx.from?.id?.toString();
 
     if (!userId || !language) {
@@ -540,24 +540,24 @@ export class CallbackHandler {
   }
 
   private async handleCommandCallback(ctx: BotContext, params: string[]): Promise<void> {
-    const command = params[0];
+    const [command] = params;
     await ctx.reply(`Executing command: /${command}\n\nPlease use the actual /${command} command instead.`);
   }
 
-  private async handleBackCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleBackCallback(ctx: BotContext, _params: string[]): Promise<void> {
     await this.menuHandler.goBack(ctx);
   }
 
-  private async handleCloseCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleCloseCallback(ctx: BotContext, _params: string[]): Promise<void> {
     try {
-      await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+      await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } });
       await ctx.reply('Menu closed. Use /menu to open the main menu again.');
-    } catch (err: unknown) {
+    } catch {
       await ctx.reply('Menu closed. Use /menu to open the main menu again.');
     }
   }
 
-  private async handleRefreshCallback(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleRefreshCallback(ctx: BotContext, _params: string[]): Promise<void> {
     const userId = ctx.from?.id?.toString();
     if (!userId) {
       await ctx.reply('🔒 Authentication required.');
@@ -1168,7 +1168,7 @@ Statistics are updated in real-time as traffic and conversions occur.
     this.logger.error('Callback processing error', {
       userId,
       error: error.message,
-      stack: err.stack,
+      stack: error.stack,
       callbackData: ctx.callbackQuery?.data,
     });
 

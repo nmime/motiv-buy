@@ -91,6 +91,7 @@ export class MyModule {}
 ## Design Principles
 
 This shared library follows these principles:
+
 - **Type Safety**: Comprehensive TypeScript definitions
 - **Reusability**: Generic utilities that work across implementations
 - **Validation**: Strong input validation for all DTOs

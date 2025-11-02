@@ -1,5 +1,5 @@
 # Development Docker Compose Configuration
-# Uses common prefixes and YAML anchors for maintainability
+# Uses common prefixes and YAML anchors for maintainability (matching production)
 
 # ==========================================
 # YAML ANCHORS - Common Configuration
@@ -9,17 +9,17 @@
 x-common-defaults: &common-defaults
   restart: unless-stopped
   networks:
-    - motiv-buy-network-dev
+    - ${PROJECT_NAME}-network-dev
 
 # Common healthcheck configurations
 x-healthcheck-fast: &healthcheck-fast
-  interval: 5s
+  interval: 10s
   timeout: 3s
   retries: 5
 
 x-healthcheck-standard: &healthcheck-standard
-  interval: 10s
-  timeout: 5s
+  interval: 30s
+  timeout: 10s
   retries: 3
 
 # Common environment variables
@@ -32,17 +32,19 @@ x-db-env: &db-env
   DB_HOST: postgres-dev
   DB_PORT: 5432
   DB_NAME: ${PROJECT_NAME}_${NODE_ENV:-development}
-  DB_USER: ${PROJECT_NAME}_dev
-  DB_PASSWORD: dev_password_123
+  DB_USER: ${DB_USER:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD:-postgres}
 
 x-redis-env: &redis-env
   REDIS_HOST: redis-dev
   REDIS_PORT: 6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-}
 
-# Common volume patterns
-x-app-volumes: &app-volumes
-  - ./package.json:/app/package.json:ro
-  - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+x-nats-env: &nats-env
+  NATS_URL: nats://nats-dev:4222
+  NATS_CLIENT_NAME: ${PROJECT_NAME}-app
+  NATS_USER: ${NATS_USER:-}
+  NATS_PASSWORD: ${NATS_PASSWORD:-}
 
 # ==========================================
 # SERVICES
@@ -51,22 +53,20 @@ x-app-volumes: &app-volumes
 services:
   # PostgreSQL Database
   postgres-dev:
-    image: postgres:18rc1-alpine
+    image: postgres:16-alpine
     container_name: ${PROJECT_NAME}-postgres-dev
     <<: *common-defaults
     environment:
       POSTGRES_DB: ${PROJECT_NAME}_${NODE_ENV:-development}
-      POSTGRES_USER: ${PROJECT_NAME}_dev
-      POSTGRES_PASSWORD: dev_password_123
-      POSTGRES_HOST_AUTH_METHOD: trust
-    volumes:
-      - motiv_buy_postgres_dev_data:/var/lib/postgresql/data
-      - ./scripts/init-db-dev.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-      - ./scripts/seed-dev-data.sql:/docker-entrypoint-initdb.d/seed-data.sql:ro
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_HOST_AUTH_METHOD: md5
     ports:
-      - '${DB_PORT:-5432}:5432'
+      - '${DB_PORT_EXTERNAL:-5433}:5432'
+    volumes:
+      - ${PROJECT_NAME}_postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${PROJECT_NAME}_dev -d ${PROJECT_NAME}_${NODE_ENV:-development}']
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${PROJECT_NAME}_${NODE_ENV:-development}']
       <<: *healthcheck-fast
 
   # Redis Cache
@@ -74,177 +74,55 @@ services:
     image: redis:7-alpine
     container_name: ${PROJECT_NAME}-redis-dev
     <<: *common-defaults
-    command: redis-server --save 20 1 --loglevel warning
-    volumes:
-      - motiv_buy_redis_dev_data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    command: ${REDIS_PASSWORD:+redis-server --requirepass ${REDIS_PASSWORD}}${REDIS_PASSWORD:-redis-server}
     ports:
-      - '${REDIS_PORT:-6379}:6379'
+      - '${REDIS_PORT_EXTERNAL:-6381}:6379'
+    volumes:
+      - ${PROJECT_NAME}_redis_dev_data:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       <<: *healthcheck-fast
 
-  # API Application (with hot reload)
-  api-dev:
-    build:
-      context: .
-      dockerfile: ./apps/api/Dockerfile.dev
-      target: ${NODE_ENV:-development}
-    container_name: ${PROJECT_NAME}-api-dev
+  # NATS JetStream
+  nats-dev:
+    image: nats:latest
+    container_name: ${PROJECT_NAME}-nats-dev
     <<: *common-defaults
-    environment:
-      <<: [*common-env, *db-env, *redis-env]
-      PORT: ${PORT:-3000}
-      JWT_SECRET: ${JWT_SECRET:-development_jwt_secret_not_for_production}
-      LOG_LEVEL: ${LOG_LEVEL:-debug}
-      RATE_LIMIT_MAX: 1000
-      RATE_LIMIT_WINDOW: 60000
-      HOT_RELOAD: true
-    volumes:
-      - ./package.json:/app/package.json:ro
-      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
-      - ./apps/api/src:/app/apps/api/src:ro
-      - ./libs:/app/libs:ro
+    command: >
+      --jetstream
+      --store_dir=/data
+      --http_port=8222
+      ${NATS_USER:+--user=${NATS_USER}}
+      ${NATS_PASSWORD:+--pass=${NATS_PASSWORD}}
     ports:
-      - '${PORT:-3000}:${PORT:-3000}'
-      - '9229:9229' # Node.js debugging port
-    depends_on:
-      postgres-dev:
-        condition: service_healthy
-      redis-dev:
-        condition: service_healthy
+      - '${NATS_PORT_EXTERNAL:-4222}:4222'
+      - '${NATS_MONITOR_PORT:-8222}:8222'
+      - '${NATS_CLUSTER_PORT:-6222}:6222'
+    volumes:
+      - ${PROJECT_NAME}_nats_dev_data:/data
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:${PORT:-3000}/health']
-      <<: *healthcheck-standard
-    command: ['npm', 'run', 'dev:api']
-
-  # Bot Application (with hot reload)
-  bot-dev:
-    build:
-      context: .
-      dockerfile: ./apps/bot/Dockerfile.dev
-      target: ${NODE_ENV:-development}
-    container_name: ${PROJECT_NAME}-bot-dev
-    <<: *common-defaults
-    environment:
-      <<: [*common-env, *db-env, *redis-env]
-      BOT_TOKEN: ${TELEGRAM_BOT_TOKEN_DEV:-your_dev_bot_token}
-      API_BASE_URL: http://api-dev:${PORT:-3000}
-      LOG_LEVEL: ${LOG_LEVEL:-debug}
-      HOT_RELOAD: true
-    volumes:
-      - ./package.json:/app/package.json:ro
-      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
-      - ./apps/bot/src:/app/apps/bot/src:ro
-      - ./libs:/app/libs:ro
-    depends_on:
-      api-dev:
-        condition: service_healthy
-      postgres-dev:
-        condition: service_healthy
-      redis-dev:
-        condition: service_healthy
-    command: ['npm', 'run', 'dev:bot']
-
-  # Database Admin (pgAdmin)
-  pgadmin-dev:
-    image: dpage/pgadmin4:latest
-    container_name: ${PROJECT_NAME}-pgadmin-dev
-    <<: *common-defaults
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@${PROJECT_NAME}.local
-      PGADMIN_DEFAULT_PASSWORD: admin123
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
-    volumes:
-      - motiv_buy_pgadmin_dev_data:/var/lib/pgadmin
-      - ./config/pgadmin/servers.json:/pgadmin4/servers.json:ro
-    ports:
-      - '${PGADMIN_PORT:-8080}:80'
-    depends_on:
-      - postgres-dev
-    profiles:
-      - admin-tools
-
-  # Redis Admin (Redis Commander)
-  redis-commander-dev:
-    image: rediscommander/redis-commander:latest
-    container_name: ${PROJECT_NAME}-redis-commander-dev
-    <<: *common-defaults
-    environment:
-      REDIS_HOSTS: local:redis-dev:6379
-      HTTP_USER: admin
-      HTTP_PASSWORD: admin123
-    ports:
-      - '${REDIS_COMMANDER_PORT:-8081}:8081'
-    depends_on:
-      - redis-dev
-    profiles:
-      - admin-tools
-
-  # Email Testing (Mailcatcher)
-  mailcatcher-dev:
-    image: sj26/mailcatcher
-    container_name: ${PROJECT_NAME}-mailcatcher-dev
-    <<: *common-defaults
-    ports:
-      - '${MAILCATCHER_WEB_PORT:-1080}:1080' # Web interface
-      - '${MAILCATCHER_SMTP_PORT:-1025}:1025' # SMTP server
-    profiles:
-      - dev-tools
-
-  # File Watcher (for live reload)
-  watcher-dev:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile.watcher
-    container_name: ${PROJECT_NAME}-watcher-dev
-    <<: *common-defaults
-    volumes:
-      - ./:/app:ro
-      - /app/node_modules
-      - /app/dist
-    profiles:
-      - dev-tools
-    command: ['npm', 'run', 'watch']
-
-  # Migration Runner
-  migration-dev:
-    build:
-      context: .
-      dockerfile: ./apps/migration/Dockerfile.dev
-      target: ${NODE_ENV:-development}
-    container_name: ${PROJECT_NAME}-migration-dev
-    <<: *common-defaults
-    environment:
-      <<: [*common-env, *db-env, *redis-env]
-    volumes:
-      - ./apps/migration/src:/app/apps/migration/src:ro
-      - ./libs:/app/libs:ro
-      - ./migrations:/app/migrations:ro
-    depends_on:
-      postgres-dev:
-        condition: service_healthy
-    profiles:
-      - migration
-    command: ['npm', 'run', 'migration:run']
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8222/healthz']
+      <<: *healthcheck-fast
 
 # ==========================================
 # NETWORKS
 # ==========================================
 
 networks:
-  motiv-buy-network-dev:
+  ${PROJECT_NAME}-network-dev:
     driver: bridge
-    name: motiv-buy-development
+    name: ${PROJECT_NAME}-${NODE_ENV:-development}
 
 # ==========================================
 # VOLUMES
 # ==========================================
 
 volumes:
-  motiv_buy_postgres_dev_data:
-    name: motiv-buy-postgres-dev-data
-  motiv_buy_redis_dev_data:
-    name: motiv-buy-redis-dev-data
-  motiv_buy_pgadmin_dev_data:
-    name: motiv-buy-pgadmin-dev-data
+  ${PROJECT_NAME}_postgres_dev_data:
+    name: ${PROJECT_NAME}-postgres-dev-data
+  ${PROJECT_NAME}_redis_dev_data:
+    name: ${PROJECT_NAME}-redis-dev-data
+  ${PROJECT_NAME}_nats_dev_data:
+    name: ${PROJECT_NAME}-nats-dev-data

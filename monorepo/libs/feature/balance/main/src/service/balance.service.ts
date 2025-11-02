@@ -28,7 +28,7 @@ export class BalanceService implements IBalanceService {
 
     if (!balance) {
       // Create initial balance if not exists
-      const newBalance = await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.Rub, '0');
+      await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.Rub, '0');
 
       return {
         userId,

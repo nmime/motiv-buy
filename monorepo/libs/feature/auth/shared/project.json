@@ -13,10 +13,6 @@
         "main": "libs/feature/auth/shared/src/index.ts",
         "tsConfig": "libs/feature/auth/shared/tsconfig.lib.json",
         "assets": [],
-        "additionalEntryPoints": [],
-        "buildableProjectDepsInPackageJsonType": "dependencies",
-        "updateBuildableProjectDepsInPackageJson": true,
-        "generatePackageJson": true,
         "transformers": [
           {
             "name": "typescript-transform-paths/nx-transformer",
