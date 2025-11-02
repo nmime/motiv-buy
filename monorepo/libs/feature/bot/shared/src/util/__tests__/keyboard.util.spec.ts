@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, sonarjs/no-nested-functions */
 import { KeyboardUtil } from '../keyboard.util';
 import { MenuConfig, MenuType } from '../../type';
 

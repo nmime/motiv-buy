@@ -64,7 +64,7 @@ export interface ConversationState {
   availableSteps?: string[];
 
   /** Conversation context */
-  context: Record<string, any>;
+  context: Record<string, unknown>;
 
   /** Whether conversation is active */
   isActive: boolean;
@@ -156,5 +156,5 @@ export interface NavigationState {
   history: string[];
 
   /** Navigation metadata */
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, no-useless-escape, sonarjs/no-nested-functions */
 import { CallbackUtil } from '../callback.util';
 
 describe('CallbackUtil', () => {

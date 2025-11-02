@@ -1,4 +1,4 @@
-import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
+import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
 import { BotContext, MenuConfig, MenuType, MenuButton, CallbackUtil, SessionInterface } from '@app/feature-bot-shared';
@@ -405,7 +405,7 @@ export class MainMenuComposer {
    */
   private async handleQuickAction(ctx: BotContext): Promise<void> {
     const callbackData = ctx.callbackQuery?.data || '';
-    const action = callbackData.split(':')[1];
+    const [, action] = callbackData.split(':');
 
     try {
       await this.processQuickAction(ctx, action);
@@ -469,7 +469,7 @@ export class MainMenuComposer {
       const breadcrumbText =
         breadcrumb.length > 0 ? `📍 Navigation Path:\n${breadcrumb.join(' → ')}` : '📍 You are at the main menu';
 
-      await ctx.answerCallbackQuery(breadcrumbText, { show_alert: true });
+      await ctx.answerCallbackQuery({ text: breadcrumbText, show_alert: true });
     } catch (err: unknown) {
       this.logger.error('Error handling breadcrumb', {
         error: unknownToError(err),
@@ -482,12 +482,14 @@ export class MainMenuComposer {
 
   // Helper methods
 
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   private async buildMainMenuButtons(
     ctx: BotContext,
     user: UserEntity | undefined,
     balance: BalanceDto | undefined,
     session: SessionInterface | undefined,
   ): Promise<MenuButton[][]> {
+    /* eslint-enable @typescript-eslint/no-unused-vars */
     const buttons: MenuButton[][] = [];
 
     // Core features row
@@ -773,7 +775,7 @@ export class MainMenuComposer {
 
   private async processQuickAction(ctx: BotContext, action: string): Promise<void> {
     switch (action) {
-      case 'quick_menu':
+      case 'quick_menu': {
         const quickMenu = await this.composeQuickActionsMenu(ctx);
         const keyboard = this.createInlineKeyboard(quickMenu);
         await ctx.editMessageText(this.formatMenuText(quickMenu), {
@@ -782,6 +784,7 @@ export class MainMenuComposer {
         });
 
         break;
+      }
 
       case 'refresh_all':
         await this.handleRefresh(ctx);

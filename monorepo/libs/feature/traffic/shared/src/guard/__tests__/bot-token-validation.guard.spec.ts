@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/void-use, sonarjs/no-hardcoded-ip */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

@@ -1,6 +1,11 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsOptional, IsNumberString } from 'class-validator';
 
+/**
+ * Telegram Widget Authentication DTO
+ * Note: Property names use snake_case to match Telegram API format
+ */
 export class TelegramWidgetAuthDto {
   @ApiProperty({
     description: 'Telegram user ID',

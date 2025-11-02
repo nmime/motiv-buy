@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unused-vars, @typescript-eslint/unbound-method, sonarjs/no-dead-store, no-await-in-loop */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars, sonarjs/no-dead-store, no-await-in-loop */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';

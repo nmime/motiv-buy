@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-expressions, no-useless-escape */
 import { validate } from 'class-validator';
 import { MenuActionDto, MenuActionResponseDto } from '../menu-action.dto';
 import { MenuActionType } from '../../type/callback-data.interface';

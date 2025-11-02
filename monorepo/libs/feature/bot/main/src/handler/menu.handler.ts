@@ -1,4 +1,4 @@
-import { unknownToError, toError, unknownToErrorObject } from '@app/common-shared';
+import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   BotContext,
@@ -29,7 +29,7 @@ import { InlineKeyboard } from 'grammy';
 @Injectable()
 export class MenuHandler {
   private readonly logger = new Logger(MenuHandler.name);
-  private readonly MAX_BREADCRUMB_LENGTH = 5;
+  private readonly maxBreadcrumbLength = 5;
 
   constructor(
     private readonly authUserService: AuthUserService,
@@ -55,7 +55,7 @@ export class MenuHandler {
     options?: {
       updateHistory?: boolean;
       clearBreadcrumb?: boolean;
-      customData?: Record<string, any>;
+      customData?: Record<string, unknown>;
     },
   ): Promise<void> {
     try {
@@ -99,7 +99,7 @@ export class MenuHandler {
         menuType,
       });
 
-      await this.handleMenuError(ctx, error as Error, menuType);
+      await this.handleMenuError(ctx, err as Error, menuType);
     }
   }
 
@@ -142,8 +142,8 @@ export class MenuHandler {
         if (actionResult.closeMenu) {
           // Close inline keyboard by editing message
           try {
-            await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
-          } catch (err: unknown) {
+            await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } });
+          } catch {
             // Ignore edit errors for old messages
             this.logger.debug('Could not close menu - message too old or already edited');
           }
@@ -170,7 +170,7 @@ export class MenuHandler {
         callbackData,
       });
 
-      await this.handleActionError(ctx, error as Error, callbackData);
+      await this.handleActionError(ctx, err as Error, callbackData);
     }
   }
 
@@ -192,7 +192,7 @@ export class MenuHandler {
       return {
         currentMenu: navState.currentLocation as MenuType,
         history: (navState.history as MenuType[]) || [],
-        maxHistoryLength: this.MAX_BREADCRUMB_LENGTH,
+        maxHistoryLength: this.maxBreadcrumbLength,
         canGoBack: (navState.history as MenuType[])?.length > 0,
       };
     } catch (err: unknown) {
@@ -613,14 +613,15 @@ Customize your bot experience.
 
         return { success: true };
 
-      case 'refresh':
-        const currentNav = await this.getMenuNavigation(userId);
+      case 'refresh': {
+        const currentNav = await this.getMenuNavigation(userId || '');
 
         return {
           success: true,
           nextMenu: currentNav?.currentMenu || MenuType.Main,
           message: '🔄 Menu refreshed',
         };
+      }
 
       case 'close':
         return {
@@ -665,6 +666,7 @@ Customize your bot experience.
   /**
    * Handle balance-related actions
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async handleBalanceAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'current':
@@ -681,6 +683,7 @@ Customize your bot experience.
   /**
    * Handle profile-related actions
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async handleProfileAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'edit':
@@ -722,6 +725,7 @@ Customize your bot experience.
   /**
    * Handle statistics-related actions
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async handleStatsAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'overview':
@@ -740,6 +744,7 @@ Customize your bot experience.
   /**
    * Handle traffic-related actions
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async handleTrafficAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'live':
@@ -758,6 +763,7 @@ Customize your bot experience.
   /**
    * Handle help-related actions
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async handleHelpAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'faq':
@@ -783,7 +789,7 @@ Customize your bot experience.
     options?: {
       updateHistory?: boolean;
       clearBreadcrumb?: boolean;
-      customData?: Record<string, any>;
+      customData?: Record<string, unknown>;
     },
   ): Promise<void> {
     try {
@@ -801,8 +807,8 @@ Customize your bot experience.
         newHistory.push(currentState.currentLocation as MenuType);
 
         // Limit history size
-        if (newHistory.length > this.MAX_BREADCRUMB_LENGTH) {
-          newHistory = newHistory.slice(-this.MAX_BREADCRUMB_LENGTH);
+        if (newHistory.length > this.maxBreadcrumbLength) {
+          newHistory = newHistory.slice(-this.maxBreadcrumbLength);
         }
       }
 
@@ -813,8 +819,8 @@ Customize your bot experience.
         }
 
         // Limit breadcrumb size
-        if (newBreadcrumb.length > this.MAX_BREADCRUMB_LENGTH) {
-          newBreadcrumb = newBreadcrumb.slice(-this.MAX_BREADCRUMB_LENGTH);
+        if (newBreadcrumb.length > this.maxBreadcrumbLength) {
+          newBreadcrumb = newBreadcrumb.slice(-this.maxBreadcrumbLength);
         }
       }
 
@@ -954,7 +960,7 @@ Customize your bot experience.
   /**
    * Handle action-specific data
    */
-  private async handleActionData(ctx: BotContext, data: Record<string, any>): Promise<void> {
+  private async handleActionData(ctx: BotContext, data: Record<string, unknown>): Promise<void> {
     // Process any additional data from menu actions
     this.logger.debug('Handling action data', {
       userId: ctx.from?.id,
@@ -1000,7 +1006,7 @@ Customize your bot experience.
       menuType,
       userId,
       error: error.message,
-      stack: err.stack,
+      stack: error.stack,
     });
 
     const errorMessage =
@@ -1038,7 +1044,7 @@ Customize your bot experience.
       callbackData,
       userId,
       error: error.message,
-      stack: err.stack,
+      stack: error.stack,
     });
 
     const errorMessage =
