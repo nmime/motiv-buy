@@ -119,11 +119,39 @@ export class PaymentService {
   }
 
   /**
+   * Map cryptocurrency enum to CurrencyType for balance operations
+   * This ensures we check/deduct the correct currency balance
+   */
+  private mapCryptocurrencyToCurrencyType(crypto: string): CurrencyType {
+    // Direct mapping for supported currencies
+    const mapping: Record<string, CurrencyType> = {
+      'USDT': CurrencyType.Usdt,
+      'TON': CurrencyType.Ton,
+      'BTC': CurrencyType.Btc,
+      'ETH': CurrencyType.Eth,
+      'LTC': CurrencyType.Ltc,
+      'BNB': CurrencyType.Bnb,
+      'TRX': CurrencyType.Trx,
+      'USDC': CurrencyType.Usdc,
+      'RUB': CurrencyType.Rub,
+    };
+
+    const currencyType = mapping[crypto.toUpperCase()];
+    if (!currencyType) {
+      throw new Error(`Unsupported cryptocurrency: ${crypto}`);
+    }
+
+    return currencyType;
+  }
+
+  /**
    * Create withdrawal transfer for user
    * Validates balance, deducts amount, and initiates transfer
    *
    * SECURITY: Uses pessimistic locking to prevent race condition where multiple
    * concurrent withdrawal requests could both pass balance check and cause negative balance
+   *
+   * FIXED: Now checks balance in requested currency (was always checking RUB)
    */
   async createWithdrawal(userId: string, dto: CreateTransferDto): AsyncResult<TransferResponseDto, Error> {
     // Store balance before transaction for potential rollback
@@ -134,18 +162,25 @@ export class PaymentService {
     try {
       this.logger.log(`Creating withdrawal for user ${userId}: ${dto.amount} ${dto.currency}`);
 
+      // Map requested cryptocurrency to currency type for balance check
+      const currencyType = this.mapCryptocurrencyToCurrencyType(dto.currency);
+
       // Use database transaction with pessimistic locking to prevent race conditions
       const result = await this.em.transactional(async (em) => {
         // CRITICAL: Lock balance row to prevent concurrent withdrawals
         // This ensures atomic balance check and deduction
+        // FIXED: Now checks balance in REQUESTED currency, not always RUB
         const balanceEntity = await em.findOne(
           'UserBalanceEntity',
-          { userId, currencyType: CurrencyType.Rub },
+          { userId, currencyType },
           { lockMode: LockMode.PESSIMISTIC_WRITE }
         );
 
         if (!balanceEntity) {
-          throw new Error(`Balance not found for user ${userId}`);
+          throw new Error(
+            `Balance not found for user ${userId} in currency ${dto.currency}. ` +
+            `User may not have a balance in this currency.`
+          );
         }
 
         // Store original balance for rollback (captured BEFORE any modifications)
@@ -157,10 +192,12 @@ export class PaymentService {
         // Atomic balance check (now safe from race conditions due to lock)
         if (availableAmount < requestedAmount) {
           this.logger.warn(
-            `Insufficient balance for withdrawal. Available: ${availableAmount}, Requested: ${requestedAmount}`,
+            `Insufficient balance for withdrawal. Currency: ${dto.currency}, Available: ${availableAmount}, Requested: ${requestedAmount}`,
           );
 
-          throw new Error(`Insufficient balance. Available: ${availableAmount}, Requested: ${requestedAmount}`);
+          throw new Error(
+            `Insufficient balance in ${dto.currency}. Available: ${availableAmount}, Requested: ${requestedAmount}`
+          );
         }
 
         // Create transfer via payment provider BEFORE deducting balance
@@ -181,8 +218,9 @@ export class PaymentService {
         transferCreated = true;
 
         // Now deduct balance atomically within the locked transaction
+        // FIXED: Deduct from REQUESTED currency balance, not always RUB
         const newBalance = (availableAmount - requestedAmount).toString();
-        await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.Rub, newBalance);
+        await this.userBalanceRepository.createOrUpdateBalance(userId, currencyType, newBalance);
 
         // Save transaction to database
         const transaction = em.create(PaymentTransactionEntity, {
@@ -231,17 +269,20 @@ export class PaymentService {
       // Only rollback if we successfully deducted (transfer was created with provider)
       if (transferCreated && balanceBeforeTransaction !== null) {
         try {
+          // FIXED: Rollback in REQUESTED currency, not always RUB
+          const currencyType = this.mapCryptocurrencyToCurrencyType(dto.currency);
           await this.userBalanceRepository.createOrUpdateBalance(
             userId,
-            CurrencyType.Rub,
+            currencyType,
             balanceBeforeTransaction
           );
           this.logger.warn(
-            `Balance rollback performed for user ${userId}: restored to ${balanceBeforeTransaction}`
+            `Balance rollback performed for user ${userId} in ${dto.currency}: restored to ${balanceBeforeTransaction}`
           );
         } catch (rollbackError) {
           this.logger.error('CRITICAL: Failed to rollback balance after withdrawal failure', {
             userId,
+            currency: dto.currency,
             originalBalance: balanceBeforeTransaction,
             error: rollbackError,
           });
@@ -715,45 +756,81 @@ export class PaymentService {
   /**
    * Refund user balance after failed withdrawal
    * Internal helper method for reversing balance deduction
+   *
+   * SECURITY: Uses pessimistic locking to prevent race condition where multiple
+   * concurrent refund requests could both pass idempotency check and double-refund
+   *
+   * FIXED: Added pessimistic locking for atomic idempotency check + refund
+   * FIXED: Now refunds in correct currency (was always RUB)
    */
   private async refundUserBalance(
     transaction: PaymentTransactionEntity,
     logContext: Record<string, unknown>,
   ): Promise<void> {
     try {
-      // Check if refund already processed
-      if (transaction.metadata?.['balanceRefunded']) {
-        this.logger.warn(`Balance already refunded for transaction: ${transaction.id}`, logContext);
+      // Map transaction currency to CurrencyType for balance operations
+      const currencyType = this.mapCryptocurrencyToCurrencyType(transaction.currency);
 
-        return;
-      }
+      // Use database transaction with pessimistic locking to prevent race conditions
+      await this.em.transactional(async (em) => {
+        // CRITICAL: Reload transaction with pessimistic lock for atomic idempotency check
+        // This prevents race condition where two concurrent refunds both pass the check
+        const lockedTransaction = await em.findOne(
+          PaymentTransactionEntity,
+          { id: transaction.id },
+          { lockMode: LockMode.PESSIMISTIC_WRITE },
+        );
 
-      this.logger.log(`Refunding balance for user ${transaction.userId}: ${transaction.amount}`, logContext);
+        if (!lockedTransaction) {
+          throw new Error(`Transaction not found: ${transaction.id}`);
+        }
 
-      // Get current balance
-      const balance = await this.userBalanceRepository.findByUserAndCurrency(transaction.userId, CurrencyType.Rub);
+        // Atomic idempotency check - now safe from race conditions
+        if (lockedTransaction.metadata?.['balanceRefunded']) {
+          this.logger.warn(`Balance already refunded for transaction: ${transaction.id}`, logContext);
+          return;
+        }
 
-      if (!balance) {
-        throw new Error(`Balance not found for user ${transaction.userId}`);
-      }
+        this.logger.log(
+          `Refunding balance for user ${lockedTransaction.userId}: ${lockedTransaction.amount} ${lockedTransaction.currency}`,
+          logContext,
+        );
 
-      const refundAmount = parseFloat(transaction.amount);
-      const currentBalance = parseFloat(balance.balance);
-      const newBalance = (currentBalance + refundAmount).toString();
+        // Get current balance
+        const balance = await this.userBalanceRepository.findByUserAndCurrency(
+          lockedTransaction.userId,
+          currencyType,
+        );
 
-      // Update balance
-      await this.userBalanceRepository.createOrUpdateBalance(transaction.userId, CurrencyType.Rub, newBalance);
+        if (!balance) {
+          throw new Error(
+            `Balance not found for user ${lockedTransaction.userId} in currency ${lockedTransaction.currency}`
+          );
+        }
 
-      // Mark as refunded
-      transaction.metadata = {
-        ...transaction.metadata,
-        balanceRefunded: true,
-        balanceRefundedAt: new Date().toISOString(),
-        balanceBefore: currentBalance.toString(),
-        balanceAfter: newBalance,
-      };
+        const refundAmount = parseFloat(lockedTransaction.amount);
+        const currentBalance = parseFloat(balance.balance);
+        const newBalance = (currentBalance + refundAmount).toString();
 
-      await this.em.flush();
+        // Update balance with proper currency
+        await this.userBalanceRepository.createOrUpdateBalance(
+          lockedTransaction.userId,
+          currencyType,
+          newBalance,
+        );
+
+        // Mark as refunded atomically within the locked transaction
+        lockedTransaction.metadata = {
+          ...lockedTransaction.metadata,
+          balanceRefunded: true,
+          balanceRefundedAt: new Date().toISOString(),
+          balanceBefore: currentBalance.toString(),
+          balanceAfter: newBalance,
+          currency: lockedTransaction.currency, // Track which currency was refunded
+        };
+
+        // Flush happens automatically at end of transactional block
+      });
 
       this.logger.log(`Balance refunded successfully for transaction: ${transaction.id}`, logContext);
     } catch (error) {
