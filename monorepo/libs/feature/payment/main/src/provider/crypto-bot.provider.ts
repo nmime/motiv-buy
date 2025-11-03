@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+// @ts-ignore - crypto-bot-api uses modern exports that require newer moduleResolution
 import { ClientEmitter } from 'crypto-bot-api';
 import { createHash, createHmac } from 'crypto';
 import { Err, Ok, Result, AsyncResult, toError } from '@app/common-shared';

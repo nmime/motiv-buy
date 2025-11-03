@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsDateString } from 'class-validator';
+import { IsOptional, IsEnum, IsDateString, IsString } from 'class-validator';
 import { StatisticType } from './statistic-query.dto';
 
 export enum ChartInterval {
@@ -41,6 +41,14 @@ export class LineChartQueryDto {
   @IsOptional()
   @IsEnum(ChartInterval)
   interval?: ChartInterval = ChartInterval.Hour;
+
+  @ApiPropertyOptional({
+    description: 'Optional user ID for user-specific chart data',
+    example: 'uuid-user-id',
+  })
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }
 
 export class ChartDataPointDto {

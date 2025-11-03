@@ -22,6 +22,7 @@ import {
   ChartInterval,
 } from '../dto';
 import { ServiceStatisticResponse, ServiceLineChartData } from '../type';
+import { StatisticRepository, TimeSeriesData } from '../repository/statistic.repository';
 
 /**
  * Statistic Service - Business relationship-based filtering with permission checks
@@ -45,6 +46,7 @@ export class StatisticService {
     private readonly trafficSourceRepository: TrafficSourceRepository,
     private readonly trafficActionsRepository: TrafficActionsRepository,
     private readonly userRepository: UserRepository,
+    private readonly statisticRepository: StatisticRepository,
   ) {}
 
   private readonly statisticHandlers = {
@@ -650,7 +652,7 @@ export class StatisticService {
       interval,
     );
 
-    return timeSeriesData.map((point) => ({
+    return timeSeriesData.map((point: TimeSeriesData) => ({
       date: point.date,
       countOfActions: point.count,
       amountEarnedOrSpent: point.amount,
@@ -672,7 +674,7 @@ export class StatisticService {
       interval,
     );
 
-    return timeSeriesData.map((point) => ({
+    return timeSeriesData.map((point: TimeSeriesData) => ({
       date: point.date,
       countOfActions: point.count,
       amountEarnedOrSpent: -point.amount, // Negative because user is spending
@@ -694,7 +696,7 @@ export class StatisticService {
       interval,
     );
 
-    return timeSeriesData.map((point) => ({
+    return timeSeriesData.map((point: TimeSeriesData) => ({
       date: point.date,
       countOfActions: point.count,
       amountEarnedOrSpent: point.amount, // Positive because user earns from targets
@@ -717,7 +719,7 @@ export class StatisticService {
       interval,
     );
 
-    return timeSeriesData.map((point) => ({
+    return timeSeriesData.map((point: TimeSeriesData) => ({
       date: point.date,
       countOfActions: point.count,
       amountEarnedOrSpent: point.amount,

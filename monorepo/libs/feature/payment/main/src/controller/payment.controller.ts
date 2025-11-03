@@ -11,7 +11,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
 import { PaymentService, TransactionQueryOptions } from '../service/payment.service';
@@ -29,34 +29,26 @@ import { PaymentTransactionEntity } from '../entity/payment-transaction.entity';
  * DTO for transaction list query parameters
  */
 class TransactionQueryDto {
-  @ApiQuery({
-    name: 'type',
-    required: false,
+  @ApiPropertyOptional({
     enum: PaymentType,
     description: 'Filter by transaction type',
   })
   type?: PaymentType;
 
-  @ApiQuery({
-    name: 'status',
-    required: false,
+  @ApiPropertyOptional({
     enum: PaymentStatus,
     description: 'Filter by transaction status',
   })
   status?: PaymentStatus;
 
-  @ApiQuery({
-    name: 'limit',
-    required: false,
+  @ApiPropertyOptional({
     type: Number,
     description: 'Maximum number of transactions to return',
     example: 50,
   })
   limit?: number;
 
-  @ApiQuery({
-    name: 'offset',
-    required: false,
+  @ApiPropertyOptional({
     type: Number,
     description: 'Number of transactions to skip for pagination',
     example: 0,
@@ -68,13 +60,28 @@ class TransactionQueryDto {
  * DTO for transaction list response
  */
 class TransactionListResponseDto {
-  @ApiResponse({
-    status: 200,
-    description: 'Transaction list with pagination',
+  @ApiProperty({
+    type: [PaymentTransactionEntity],
+    description: 'List of payment transactions',
   })
   transactions!: PaymentTransactionEntity[];
+
+  @ApiProperty({
+    type: Number,
+    description: 'Total count of transactions',
+  })
   total!: number;
+
+  @ApiProperty({
+    type: Number,
+    description: 'Limit used for pagination',
+  })
   limit!: number;
+
+  @ApiProperty({
+    type: Number,
+    description: 'Offset used for pagination',
+  })
   offset!: number;
 }
 
