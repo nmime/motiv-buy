@@ -27,6 +27,7 @@ export class BalanceActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -34,6 +35,7 @@ export class BalanceActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -52,10 +54,11 @@ export class BalanceActionHandler {
   /**
    * Handle transaction history view
    */
-  async handleTransactionHistory(ctx: BotContext, page: number = 1): Promise<void> {
+  async handleTransactionHistory(ctx: BotContext, page = 1): Promise<void> {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -63,6 +66,7 @@ export class BalanceActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -82,6 +86,7 @@ export class BalanceActionHandler {
 
       if (transactions.length === 0) {
         await ctx.reply('No transaction history found.');
+
         return;
       }
 
@@ -111,6 +116,7 @@ export class BalanceActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -118,12 +124,14 @@ export class BalanceActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
       // Check if user is verified
       if (!user.isVerified) {
         await ctx.reply('❌ You must verify your account before making withdrawals. Use the Profile menu to verify.');
+
         return;
       }
 
@@ -131,6 +139,7 @@ export class BalanceActionHandler {
 
       if (balances.length === 0) {
         await ctx.reply('❌ You have no balance available for withdrawal.');
+
         return;
       }
 
@@ -158,6 +167,7 @@ export class BalanceActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -212,10 +222,7 @@ export class BalanceActionHandler {
    */
   private async formatBalanceView(balances: UserBalanceEntity[]): Promise<string> {
     if (balances.length === 0) {
-      return (
-        '<b>💰 Your Balance</b>\n\n' +
-        '<i>No balances found. Start earning by completing traffic orders!</i>'
-      );
+      return '<b>💰 Your Balance</b>\n\n' + '<i>No balances found. Start earning by completing traffic orders!</i>';
     }
 
     let text = '<b>💰 Your Balance</b>\n\n';
@@ -277,9 +284,7 @@ export class BalanceActionHandler {
       const availableBalance = parseFloat(balance.getAvailableBalance());
 
       if (availableBalance > 0) {
-        keyboard
-          .text(`${currency.symbol} ${currency.code}`, `withdraw:currency:${currency.id}`)
-          .row();
+        keyboard.text(`${currency.symbol} ${currency.code}`, `withdraw:currency:${currency.id}`).row();
       }
     }
 

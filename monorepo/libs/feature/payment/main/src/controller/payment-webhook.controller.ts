@@ -197,6 +197,7 @@ export class PaymentWebhookController {
           ...logContext,
           error: error.message,
         });
+
         throw error;
       }
 
@@ -238,6 +239,7 @@ export class PaymentWebhookController {
       this.logger.error('Failed to sanitize webhook body', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
+
       throw new BadRequestException('Invalid webhook payload format');
     }
   }

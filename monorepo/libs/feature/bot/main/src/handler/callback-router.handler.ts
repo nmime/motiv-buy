@@ -37,7 +37,7 @@ export class CallbackRouterHandler {
       return;
     }
 
-    const data = ctx.callbackQuery.data;
+    const { data } = ctx.callbackQuery;
 
     try {
       // Check rate limit
@@ -45,6 +45,7 @@ export class CallbackRouterHandler {
 
       if (!isAllowed) {
         await ctx.answerCallbackQuery('Rate limit exceeded');
+
         return;
       }
 
@@ -179,6 +180,7 @@ export class CallbackRouterHandler {
         } else {
           await this.profileHandler.handleProfileEditStart(ctx);
         }
+
         break;
       case 'details':
         await this.profileHandler.handleProfileDetails(ctx);
@@ -259,6 +261,7 @@ export class CallbackRouterHandler {
         if (params.length > 0) {
           await this.orderHandler.handleOrderDetails(ctx, params[0]);
         }
+
         break;
       default:
         await this.handleOrdersMenu(ctx);
@@ -277,6 +280,7 @@ export class CallbackRouterHandler {
         if (params.length > 0) {
           await this.settingsHandler.handleLanguageChange(ctx, params[0]);
         }
+
         break;
       case 'notifications':
         await this.settingsHandler.handleNotificationSettings(ctx);
@@ -285,6 +289,7 @@ export class CallbackRouterHandler {
         if (params.length > 0) {
           await this.settingsHandler.handleNotificationToggle(ctx, params[0]);
         }
+
         break;
       case 'preferences':
         await this.settingsHandler.handlePreferencesSettings(ctx);

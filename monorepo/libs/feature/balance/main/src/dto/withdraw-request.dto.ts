@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional, Matches, MaxLength, Min, IsNumber } from 'class-validator';
+import { IsString, IsEnum, IsOptional, MaxLength, Min, IsNumber } from 'class-validator';
 import { Cryptocurrency } from '@app/feature-payment-shared';
 
 /**

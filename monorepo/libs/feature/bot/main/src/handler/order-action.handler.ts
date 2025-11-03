@@ -8,12 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import {
-  UserEntity,
-  TrafficOrderEntity,
-  TrafficOrderStatus,
-  TrafficOrderType,
-} from '@app/database';
+import { UserEntity, TrafficOrderEntity, TrafficOrderStatus, TrafficOrderType } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 
 @Injectable()
@@ -28,10 +23,11 @@ export class OrderActionHandler {
   /**
    * Handle active orders view
    */
-  async handleActiveOrders(ctx: BotContext, page: number = 1): Promise<void> {
+  async handleActiveOrders(ctx: BotContext, page = 1): Promise<void> {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -39,6 +35,7 @@ export class OrderActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -61,6 +58,7 @@ export class OrderActionHandler {
 
       if (orders.length === 0) {
         await ctx.reply('You have no active orders. Create one to get started!');
+
         return;
       }
 
@@ -86,10 +84,11 @@ export class OrderActionHandler {
   /**
    * Handle completed orders view
    */
-  async handleCompletedOrders(ctx: BotContext, page: number = 1): Promise<void> {
+  async handleCompletedOrders(ctx: BotContext, page = 1): Promise<void> {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -97,6 +96,7 @@ export class OrderActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -119,6 +119,7 @@ export class OrderActionHandler {
 
       if (orders.length === 0) {
         await ctx.reply('You have no completed orders yet.');
+
         return;
       }
 
@@ -148,6 +149,7 @@ export class OrderActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -155,12 +157,14 @@ export class OrderActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
       // Check if user is verified
       if (!user.isVerified) {
         await ctx.reply('❌ You must verify your account before creating orders. Use the Profile menu to verify.');
+
         return;
       }
 
@@ -188,6 +192,7 @@ export class OrderActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -201,6 +206,7 @@ export class OrderActionHandler {
 
       if (!order) {
         await ctx.reply('Order not found.');
+
         return;
       }
 
@@ -222,6 +228,7 @@ export class OrderActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -252,12 +259,7 @@ export class OrderActionHandler {
   /**
    * Format orders list
    */
-  private formatOrdersList(
-    orders: TrafficOrderEntity[],
-    title: string,
-    page: number,
-    totalPages: number,
-  ): string {
+  private formatOrdersList(orders: TrafficOrderEntity[], title: string, page: number, totalPages: number): string {
     let text = `<b>📦 ${title}</b> (Page ${page}/${totalPages})\n\n`;
 
     for (const order of orders) {
@@ -327,6 +329,7 @@ export class OrderActionHandler {
    */
   private createOrderTypeKeyboard() {
     const { InlineKeyboard } = require('grammy');
+
     return new InlineKeyboard()
       .text('👥 Join', 'order:type:join')
       .text('👀 View', 'order:type:view')
@@ -344,6 +347,7 @@ export class OrderActionHandler {
    */
   private createOrderDetailsKeyboard(orderId: string) {
     const { InlineKeyboard } = require('grammy');
+
     return new InlineKeyboard()
       .text('🔄 Refresh', `order:details:${orderId}`)
       .row()

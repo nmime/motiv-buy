@@ -1,5 +1,5 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum, Ref } from '@mikro-orm/core';
-import { CurrencyType } from './UserBalance.entity';
+import { CurrencyCode } from './Currency.entity';
 import { EntityConstructorData, UserBalanceMetadata, assignEntityData } from '../type';
 import { UserEntity } from './User.entity';
 
@@ -38,8 +38,8 @@ export class UserBalanceHistoryEntity {
   user!: Ref<UserEntity>;
 
   @Property({ type: 'varchar', length: 10, fieldName: 'currency' })
-  @Enum(() => CurrencyType)
-  currency!: CurrencyType;
+  @Enum(() => CurrencyCode)
+  currency!: CurrencyCode;
 
   @Property({ type: 'varchar', length: 20, fieldName: 'type' })
   @Enum(() => TransactionType)

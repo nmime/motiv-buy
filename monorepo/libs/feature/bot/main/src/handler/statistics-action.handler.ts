@@ -8,12 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import {
-  UserEntity,
-  TrafficOrderEntity,
-  TrafficOrderStatus,
-  UserBalanceHistoryEntity,
-} from '@app/database';
+import { UserEntity, TrafficOrderEntity, TrafficOrderStatus, UserBalanceHistoryEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 
 interface UserStatistics {
@@ -42,6 +37,7 @@ export class StatisticsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -49,6 +45,7 @@ export class StatisticsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -71,6 +68,7 @@ export class StatisticsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -78,6 +76,7 @@ export class StatisticsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -100,6 +99,7 @@ export class StatisticsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -107,6 +107,7 @@ export class StatisticsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -129,6 +130,7 @@ export class StatisticsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -136,6 +138,7 @@ export class StatisticsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -200,6 +203,7 @@ export class StatisticsActionHandler {
     const ordersByStatus = orders.reduce(
       (acc, order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
+
         return acc;
       },
       {} as Record<string, number>,
@@ -208,6 +212,7 @@ export class StatisticsActionHandler {
     const ordersByType = orders.reduce(
       (acc, order) => {
         acc[order.type] = (acc[order.type] || 0) + 1;
+
         return acc;
       },
       {} as Record<string, number>,
@@ -262,6 +267,7 @@ export class StatisticsActionHandler {
         if (amount > 0) {
           acc[entry.type] = (acc[entry.type] || 0) + amount;
         }
+
         return acc;
       },
       {} as Record<string, number>,
@@ -269,6 +275,7 @@ export class StatisticsActionHandler {
 
     const last7Days = history.filter((entry) => {
       const daysDiff = (Date.now() - entry.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+
       return daysDiff <= 7;
     });
 

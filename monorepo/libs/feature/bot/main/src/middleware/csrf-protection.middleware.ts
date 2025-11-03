@@ -66,6 +66,7 @@ export class CsrfProtectionMiddleware {
       });
 
       await ctx.reply('❌ Security validation failed. Please try again.');
+
       return false;
     }
 
@@ -80,6 +81,7 @@ export class CsrfProtectionMiddleware {
 
       await ctx.reply('❌ Your session has expired. Please start again.');
       this.clearToken(ctx);
+
       return false;
     }
 
@@ -91,6 +93,7 @@ export class CsrfProtectionMiddleware {
       });
 
       await ctx.reply('❌ Security validation failed. Please try again.');
+
       return false;
     }
 
@@ -103,6 +106,7 @@ export class CsrfProtectionMiddleware {
       });
 
       await ctx.reply('❌ Invalid action. Please start again.');
+
       return false;
     }
 
@@ -167,7 +171,7 @@ export class CsrfProtectionMiddleware {
       return next();
     }
 
-    const data = ctx.callbackQuery.data;
+    const { data } = ctx.callbackQuery;
     const [action] = data.split(':');
 
     // Only check CSRF for protected actions
@@ -186,6 +190,7 @@ export class CsrfProtectionMiddleware {
 
       await ctx.answerCallbackQuery('Security validation failed');
       await ctx.reply('❌ Security validation failed. Please try again.');
+
       return;
     }
 
@@ -194,6 +199,7 @@ export class CsrfProtectionMiddleware {
 
     if (!isValid) {
       await ctx.answerCallbackQuery('Security validation failed');
+
       return;
     }
 

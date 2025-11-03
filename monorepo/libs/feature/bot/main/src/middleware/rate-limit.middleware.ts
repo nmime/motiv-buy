@@ -56,7 +56,7 @@ export class RateLimitMiddleware {
   /**
    * Check if user is rate limited
    */
-  async checkRateLimit(ctx: BotContext, actionType: string = 'message'): Promise<boolean> {
+  async checkRateLimit(ctx: BotContext, actionType = 'message'): Promise<boolean> {
     if (!ctx.from) {
       return true; // Allow if no user info (shouldn't happen in normal flow)
     }
@@ -110,9 +110,7 @@ export class RateLimitMiddleware {
             `Please try again in ${Math.ceil((config.blockDurationMs || 0) / 1000 / 60)} minutes.`,
         );
       } else {
-        await ctx.reply(
-          `⚠️ Rate limit exceeded. Please wait ${remainingSeconds} second(s) before trying again.`,
-        );
+        await ctx.reply(`⚠️ Rate limit exceeded. Please wait ${remainingSeconds} second(s) before trying again.`);
       }
 
       this.logger.warn('Rate limit exceeded', {
@@ -144,6 +142,7 @@ export class RateLimitMiddleware {
     if (Date.now() > blockedUntil) {
       // Block expired, remove it
       this.blockedUsers.delete(userId);
+
       return false;
     }
 
@@ -164,6 +163,7 @@ export class RateLimitMiddleware {
         keysToDelete.push(key);
       }
     }
+
     keysToDelete.forEach((key) => this.rateLimits.delete(key));
   }
 
@@ -198,7 +198,10 @@ export class RateLimitMiddleware {
   /**
    * Get rate limit status for user
    */
-  getRateLimitStatus(userId: string, actionType: string = 'message'): {
+  getRateLimitStatus(
+    userId: string,
+    actionType = 'message',
+  ): {
     remaining: number;
     resetAt: number;
     isBlocked: boolean;

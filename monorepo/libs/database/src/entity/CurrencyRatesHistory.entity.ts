@@ -15,9 +15,9 @@ export enum RateProvider {
   Kraken = 'KRAKEN', // Public API, unlimited
 
   // Fiat providers (free tier)
-  ExchangeRateAPI = 'EXCHANGERATE_API', // 1500 calls/month free
+  ExchangeRateApi = 'EXCHANGERATE_API', // 1500 calls/month free
   Frankfurter = 'FRANKFURTER', // ECB data, unlimited free
-  FreeCurrencyAPI = 'FREECURRENCY_API', // 5000 calls/month free
+  FreeCurrencyApi = 'FREECURRENCY_API', // 5000 calls/month free
 
   // Fallback
   CentralBank = 'CENTRAL_BANK',

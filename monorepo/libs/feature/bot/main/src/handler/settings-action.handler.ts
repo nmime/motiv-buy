@@ -8,12 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import {
-  UserEntity,
-  UserSettingsEntity,
-  SettingType,
-  NotificationType,
-} from '@app/database';
+import { UserEntity, UserSettingsEntity, SettingType, NotificationType } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { BotValidationUtil } from '../util/bot-validation.util';
 
@@ -50,6 +45,7 @@ export class SettingsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -57,6 +53,7 @@ export class SettingsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -79,6 +76,7 @@ export class SettingsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -86,6 +84,7 @@ export class SettingsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -107,6 +106,7 @@ export class SettingsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -120,6 +120,7 @@ export class SettingsActionHandler {
 
       if (!validation.isValid || !this.SUPPORTED_LANGUAGES.includes(validation.sanitized as string)) {
         await ctx.reply('❌ Invalid language code.');
+
         return;
       }
 
@@ -127,6 +128,7 @@ export class SettingsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -151,6 +153,7 @@ export class SettingsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -158,6 +161,7 @@ export class SettingsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -178,6 +182,7 @@ export class SettingsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -185,6 +190,7 @@ export class SettingsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -211,6 +217,7 @@ export class SettingsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -238,6 +245,7 @@ export class SettingsActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -245,6 +253,7 @@ export class SettingsActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -268,6 +277,7 @@ export class SettingsActionHandler {
     const settingsMap = settings.reduce(
       (acc, setting) => {
         acc[setting.key] = setting.getValue();
+
         return acc;
       },
       {} as Record<string, any>,
@@ -327,6 +337,7 @@ export class SettingsActionHandler {
    */
   private getSettingValue(settings: UserSettingsEntity[], key: string, defaultValue: boolean): boolean {
     const setting = settings.find((s) => s.key === key);
+
     return setting ? (setting.getValue() as boolean) : defaultValue;
   }
 
@@ -455,26 +466,15 @@ export class SettingsActionHandler {
    */
   private createNotificationKeyboard(prefs: any) {
     const { InlineKeyboard } = require('grammy');
+
     return new InlineKeyboard()
-      .text(
-        `${prefs.balance ? '✅' : '❌'} Balance`,
-        'settings:notify:balance',
-      )
+      .text(`${prefs.balance ? '✅' : '❌'} Balance`, 'settings:notify:balance')
       .text(`${prefs.trade ? '✅' : '❌'} Trade`, 'settings:notify:trade')
       .row()
-      .text(
-        `${prefs.referral ? '✅' : '❌'} Referral`,
-        'settings:notify:referral',
-      )
-      .text(
-        `${prefs.system ? '✅' : '❌'} System`,
-        'settings:notify:system',
-      )
+      .text(`${prefs.referral ? '✅' : '❌'} Referral`, 'settings:notify:referral')
+      .text(`${prefs.system ? '✅' : '❌'} System`, 'settings:notify:system')
       .row()
-      .text(
-        `${prefs.marketing ? '✅' : '❌'} Marketing`,
-        'settings:notify:marketing',
-      )
+      .text(`${prefs.marketing ? '✅' : '❌'} Marketing`, 'settings:notify:marketing')
       .row()
       .text('« Back', 'menu:settings');
   }
@@ -484,15 +484,10 @@ export class SettingsActionHandler {
    */
   private createPrivacyKeyboard(prefs: any) {
     const { InlineKeyboard } = require('grammy');
+
     return new InlineKeyboard()
-      .text(
-        `${prefs.showProfile ? '✅' : '❌'} Profile`,
-        'settings:privacy:profile',
-      )
-      .text(
-        `${prefs.showStats ? '✅' : '❌'} Stats`,
-        'settings:privacy:stats',
-      )
+      .text(`${prefs.showProfile ? '✅' : '❌'} Profile`, 'settings:privacy:profile')
+      .text(`${prefs.showStats ? '✅' : '❌'} Stats`, 'settings:privacy:stats')
       .row()
       .text('« Back', 'menu:settings');
   }

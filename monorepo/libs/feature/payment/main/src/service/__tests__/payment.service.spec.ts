@@ -102,7 +102,7 @@ describe('PaymentService', () => {
   /**
    * Create mock user balance
    */
-  const createMockBalance = (balance: string = '1000.00'): any => ({
+  const createMockBalance = (balance = '1000.00'): any => ({
     userId: TEST_USER_ID,
     currency: CurrencyType.Rub,
     balance,
@@ -173,6 +173,7 @@ describe('PaymentService', () => {
     if (module) {
       await module.close();
     }
+
     jest.clearAllMocks();
   });
 
@@ -422,9 +423,7 @@ describe('PaymentService', () => {
       const mockBalance = createMockBalance('1000.00');
       const mockTransfer = createMockTransfer();
 
-      mockUserBalanceRepository.findByUserAndCurrency
-        .mockResolvedValueOnce(mockBalance)
-        .mockResolvedValueOnce(null); // Rollback fails - balance not found
+      mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValueOnce(mockBalance).mockResolvedValueOnce(null); // Rollback fails - balance not found
 
       mockProvider.createTransfer.mockResolvedValue(Ok(mockTransfer));
       mockEntityManager.transactional.mockRejectedValue(new Error('Transaction failed'));
@@ -432,10 +431,7 @@ describe('PaymentService', () => {
       const result = await service.createWithdrawal(TEST_USER_ID, createTransferDto);
 
       expect(result.err).toBe(true);
-      expect(Logger.prototype.error).toHaveBeenCalledWith(
-        'Failed to rollback balance',
-        expect.any(Error),
-      );
+      expect(Logger.prototype.error).toHaveBeenCalledWith('Failed to rollback balance', expect.any(Error));
     });
 
     it('should store metadata with balance information', async () => {
@@ -512,10 +508,7 @@ describe('PaymentService', () => {
 
   describe('getUserTransactions', () => {
     it('should retrieve user transactions with pagination', async () => {
-      const mockTransactions = [
-        createMockTransaction({ id: 'tx-1' }),
-        createMockTransaction({ id: 'tx-2' }),
-      ];
+      const mockTransactions = [createMockTransaction({ id: 'tx-1' }), createMockTransaction({ id: 'tx-2' })];
 
       mockTransactionRepository.count.mockResolvedValue(10);
       mockTransactionRepository.find.mockResolvedValue(mockTransactions);
@@ -617,6 +610,7 @@ describe('PaymentService', () => {
         status: PaymentStatus.Pending,
         metadata: null,
       });
+
       const mockBalance = createMockBalance('100.00');
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -691,6 +685,7 @@ describe('PaymentService', () => {
         status: PaymentStatus.Pending,
         metadata: { existingKey: 'existingValue' },
       });
+
       const mockBalance = createMockBalance();
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -731,6 +726,7 @@ describe('PaymentService', () => {
       const mockTransaction = createMockTransaction({
         status: PaymentStatus.Pending,
       });
+
       const mockProviderTransaction = {
         transactionId: TEST_INVOICE_ID,
         invoiceId: TEST_INVOICE_ID,
@@ -740,6 +736,7 @@ describe('PaymentService', () => {
         paidAt: new Date(),
         fee: '1.00',
       };
+
       const mockBalance = createMockBalance();
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -788,6 +785,7 @@ describe('PaymentService', () => {
         status: PaymentStatus.Pending,
         metadata: null,
       });
+
       const mockProviderTransaction = {
         transactionId: TEST_INVOICE_ID,
         invoiceId: TEST_INVOICE_ID,
@@ -797,6 +795,7 @@ describe('PaymentService', () => {
         paidAt: new Date(),
         fee: null,
       };
+
       const mockBalance = createMockBalance('100.00');
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -814,6 +813,7 @@ describe('PaymentService', () => {
         status: PaymentStatus.Pending,
         metadata: { balanceCredited: true },
       });
+
       const mockProviderTransaction = {
         transactionId: TEST_INVOICE_ID,
         invoiceId: TEST_INVOICE_ID,
@@ -841,6 +841,7 @@ describe('PaymentService', () => {
         type: PaymentType.TopUp,
         status: PaymentStatus.Pending,
       });
+
       const mockProviderTransaction = {
         transactionId: TEST_INVOICE_ID,
         invoiceId: TEST_INVOICE_ID,
@@ -850,6 +851,7 @@ describe('PaymentService', () => {
         paidAt: new Date(),
         fee: '0.50',
       };
+
       const mockBalance = createMockBalance();
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -872,6 +874,7 @@ describe('PaymentService', () => {
         type: PaymentType.Withdraw,
         status: PaymentStatus.Processing,
       });
+
       const mockProviderTransfer = {
         transferId: TEST_INVOICE_ID,
         amount: TEST_AMOUNT,
@@ -914,6 +917,7 @@ describe('PaymentService', () => {
       const mockTransaction = createMockTransaction({
         status: PaymentStatus.Pending,
       });
+
       const mockProviderTransaction = {
         transactionId: TEST_INVOICE_ID,
         invoiceId: TEST_INVOICE_ID,
@@ -941,6 +945,7 @@ describe('PaymentService', () => {
       const mockTransaction = createMockTransaction({
         metadata: null,
       });
+
       const mockBalance = createMockBalance('500.00');
 
       mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
@@ -973,9 +978,7 @@ describe('PaymentService', () => {
       await service['creditUserBalance'](mockTransaction);
 
       expect(mockUserBalanceRepository.findByUserAndCurrency).not.toHaveBeenCalled();
-      expect(Logger.prototype.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Balance already credited'),
-      );
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('Balance already credited'));
     });
 
     it('should throw on balance not found', async () => {
@@ -983,9 +986,7 @@ describe('PaymentService', () => {
 
       mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(null);
 
-      await expect(service['creditUserBalance'](mockTransaction)).rejects.toThrow(
-        'Balance not found',
-      );
+      await expect(service['creditUserBalance'](mockTransaction)).rejects.toThrow('Balance not found');
     });
   });
 
@@ -1043,6 +1044,7 @@ describe('PaymentService', () => {
         status: PaymentStatus.Pending,
         metadata: null,
       });
+
       const mockBalance = createMockBalance();
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -1134,6 +1136,7 @@ describe('PaymentService', () => {
         status: PaymentStatus.Pending,
         expiresAt: new Date('2020-01-01'), // Expired
       });
+
       const mockProviderTransaction = {
         transactionId: TEST_INVOICE_ID,
         invoiceId: TEST_INVOICE_ID,

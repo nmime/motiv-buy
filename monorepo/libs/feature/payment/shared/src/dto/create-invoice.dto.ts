@@ -1,5 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional, IsInt, Min, Max, MaxLength, Matches, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  MaxLength,
+  Matches,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
 import { Cryptocurrency } from '../enum/cryptocurrency.enum';
 
 /**
@@ -11,7 +23,11 @@ import { Cryptocurrency } from '../enum/cryptocurrency.enum';
 export class AmountRangeValidator implements ValidatorConstraintInterface {
   validate(amount: string): boolean {
     const num = parseFloat(amount);
-    if (isNaN(num)) return false;
+
+    if (isNaN(num)) {
+      return false;
+    }
+
     return num >= 0.01 && num <= 1000000.0;
   }
 

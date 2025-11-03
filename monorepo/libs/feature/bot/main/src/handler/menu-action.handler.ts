@@ -41,6 +41,7 @@ export class MenuActionHandler {
       return { action, params };
     } catch (error) {
       this.logger.error('Failed to parse callback data', { data, error });
+
       return { action: 'unknown', params: {} };
     }
   }
@@ -50,6 +51,7 @@ export class MenuActionHandler {
    */
   sanitizeCallbackData(data: string): string {
     const validation = BotValidationUtil.sanitizeInput(data);
+
     return validation.substring(0, 64); // Telegram callback data max length
   }
 
@@ -186,18 +188,14 @@ export class MenuActionHandler {
   /**
    * Create back to menu button
    */
-  createBackButton(returnTo: string = 'menu:main'): InlineKeyboard {
+  createBackButton(returnTo = 'menu:main'): InlineKeyboard {
     return new InlineKeyboard().text('« Back', returnTo);
   }
 
   /**
    * Create pagination keyboard
    */
-  createPaginationKeyboard(
-    currentPage: number,
-    totalPages: number,
-    actionPrefix: string,
-  ): InlineKeyboard {
+  createPaginationKeyboard(currentPage: number, totalPages: number, actionPrefix: string): InlineKeyboard {
     const keyboard = new InlineKeyboard();
 
     if (totalPages <= 1) {
@@ -245,6 +243,7 @@ export class MenuActionHandler {
   async validateMenuAccess(ctx: BotContext, requiredRole?: string): Promise<boolean> {
     if (!ctx.from) {
       await ctx.reply('Authentication required. Please use /start to begin.');
+
       return false;
     }
 

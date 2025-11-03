@@ -104,6 +104,7 @@ describe('PaymentService - Race Condition Tests', () => {
           if (balanceCheckCount === 2) {
             // Simulate first request completing: 100 - 80 = 20
             lockedBalanceValue = '20.00';
+
             return { ...mockBalanceEntity, balance: lockedBalanceValue };
           }
         }
@@ -118,12 +119,13 @@ describe('PaymentService - Race Condition Tests', () => {
           amount: withdrawalAmount,
           currency: Cryptocurrency.Usdt,
           fee: '0.50',
-        })
+        }),
       );
 
       // Mock balance update
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
         lockedBalanceValue = balance;
+
         return { userId: uid, balance } as any;
       });
 
@@ -156,7 +158,7 @@ describe('PaymentService - Race Condition Tests', () => {
       expect(mockEm.findOne).toHaveBeenCalledWith(
         'UserBalanceEntity',
         expect.objectContaining({ userId }),
-        expect.objectContaining({ lockMode: LockMode.PESSIMISTIC_WRITE })
+        expect.objectContaining({ lockMode: LockMode.PESSIMISTIC_WRITE }),
       );
 
       // Verify final balance is correct (100 - 80 = 20, not negative)
@@ -185,7 +187,7 @@ describe('PaymentService - Race Condition Tests', () => {
           transferId: 'transfer-2',
           amount: '30.00',
           currency: Cryptocurrency.Usdt,
-        })
+        }),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockResolvedValue({} as any);
@@ -209,7 +211,7 @@ describe('PaymentService - Race Condition Tests', () => {
       expect(mockEm.findOne).toHaveBeenCalledWith(
         'UserBalanceEntity',
         expect.any(Object),
-        expect.objectContaining({ lockMode: LockMode.PESSIMISTIC_WRITE })
+        expect.objectContaining({ lockMode: LockMode.PESSIMISTIC_WRITE }),
       );
     });
   });
@@ -241,11 +243,12 @@ describe('PaymentService - Race Condition Tests', () => {
           transferId: 'transfer-3',
           amount: withdrawalAmount,
           currency: Cryptocurrency.Usdt,
-        })
+        }),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
         capturedBalanceForRollback = balance;
+
         return { userId: uid, balance } as any;
       });
 
@@ -273,7 +276,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const userId = 'user-999';
       const balanceBeforeTransaction = '75.00';
 
-      let balanceReadOrder: string[] = [];
+      const balanceReadOrder: string[] = [];
 
       mockEm.transactional.mockImplementation(async (callback) => {
         throw new Error('Simulated failure');
@@ -281,15 +284,17 @@ describe('PaymentService - Race Condition Tests', () => {
 
       mockEm.findOne.mockImplementation(async () => {
         balanceReadOrder.push('balance_read_in_transaction');
+
         return { userId, balance: balanceBeforeTransaction };
       });
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-4', amount: '25.00', currency: Cryptocurrency.Usdt })
+        Ok({ transferId: 'transfer-4', amount: '25.00', currency: Cryptocurrency.Usdt }),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
         balanceReadOrder.push(`balance_set_to_${balance}`);
+
         return { userId: uid, balance } as any;
       });
 
@@ -391,14 +396,13 @@ describe('PaymentService - Race Condition Tests', () => {
       });
 
       // Provider failure
-      mockProvider.createTransfer.mockResolvedValue(
-        Err(new Error('Transfer rejected by provider'))
-      );
+      mockProvider.createTransfer.mockResolvedValue(Err(new Error('Transfer rejected by provider')));
 
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
         if (balance === originalBalance) {
           rollbackPerformed = true;
         }
+
         return { userId: uid, balance } as any;
       });
 
@@ -433,7 +437,7 @@ describe('PaymentService - Race Condition Tests', () => {
       });
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-5', amount: exactBalance, currency: Cryptocurrency.Usdt })
+        Ok({ transferId: 'transfer-5', amount: exactBalance, currency: Cryptocurrency.Usdt }),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockResolvedValue({} as any);
@@ -457,7 +461,7 @@ describe('PaymentService - Race Condition Tests', () => {
       expect(mockBalanceRepository.createOrUpdateBalance).toHaveBeenCalledWith(
         userId,
         CurrencyType.Rub,
-        '0.00' // Balance should be exactly zero
+        '0.00', // Balance should be exactly zero
       );
     });
 
@@ -476,7 +480,7 @@ describe('PaymentService - Race Condition Tests', () => {
       });
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-6', amount: smallWithdrawal, currency: Cryptocurrency.Usdt })
+        Ok({ transferId: 'transfer-6', amount: smallWithdrawal, currency: Cryptocurrency.Usdt }),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockResolvedValue({} as any);
@@ -513,13 +517,11 @@ describe('PaymentService - Race Condition Tests', () => {
       });
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-7', amount: '50.00', currency: Cryptocurrency.Usdt })
+        Ok({ transferId: 'transfer-7', amount: '50.00', currency: Cryptocurrency.Usdt }),
       );
 
       // Rollback also fails (worst case scenario)
-      mockBalanceRepository.createOrUpdateBalance.mockRejectedValue(
-        new Error('Database connection lost')
-      );
+      mockBalanceRepository.createOrUpdateBalance.mockRejectedValue(new Error('Database connection lost'));
 
       const withdrawalDto: CreateTransferDto = {
         userId,

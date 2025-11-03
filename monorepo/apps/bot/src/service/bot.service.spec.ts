@@ -425,6 +425,7 @@ describe('BotService', () => {
       const neverResolve = new Promise(() => {
         /* never resolves */
       });
+
       mockBotMainService.start.mockReturnValue(neverResolve as Promise<void>);
 
       // Add timeout to prevent test hanging

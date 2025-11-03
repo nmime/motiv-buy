@@ -125,15 +125,15 @@ export class PaymentService {
   private mapCryptocurrencyToCurrencyType(crypto: string): CurrencyType {
     // Direct mapping for supported currencies
     const mapping: Record<string, CurrencyType> = {
-      'USDT': CurrencyType.Usdt,
-      'TON': CurrencyType.Ton,
-      'BTC': CurrencyType.Btc,
-      'ETH': CurrencyType.Eth,
-      'LTC': CurrencyType.Ltc,
-      'BNB': CurrencyType.Bnb,
-      'TRX': CurrencyType.Trx,
-      'USDC': CurrencyType.Usdc,
-      'RUB': CurrencyType.Rub,
+      USDT: CurrencyType.Usdt,
+      TON: CurrencyType.Ton,
+      BTC: CurrencyType.Btc,
+      ETH: CurrencyType.Eth,
+      LTC: CurrencyType.Ltc,
+      BNB: CurrencyType.Bnb,
+      TRX: CurrencyType.Trx,
+      USDC: CurrencyType.Usdc,
+      RUB: CurrencyType.Rub,
     };
 
     const currencyType = mapping[crypto.toUpperCase()];
@@ -173,13 +173,13 @@ export class PaymentService {
         const balanceEntity = await em.findOne(
           'UserBalanceEntity',
           { userId, currencyType },
-          { lockMode: LockMode.PESSIMISTIC_WRITE }
+          { lockMode: LockMode.PESSIMISTIC_WRITE },
         );
 
         if (!balanceEntity) {
           throw new Error(
             `Balance not found for user ${userId} in currency ${dto.currency}. ` +
-            `User may not have a balance in this currency.`
+              `User may not have a balance in this currency.`,
           );
         }
 
@@ -196,7 +196,7 @@ export class PaymentService {
           );
 
           throw new Error(
-            `Insufficient balance in ${dto.currency}. Available: ${availableAmount}, Requested: ${requestedAmount}`
+            `Insufficient balance in ${dto.currency}. Available: ${availableAmount}, Requested: ${requestedAmount}`,
           );
         }
 
@@ -271,13 +271,10 @@ export class PaymentService {
         try {
           // FIXED: Rollback in REQUESTED currency, not always RUB
           const currencyType = this.mapCryptocurrencyToCurrencyType(dto.currency);
-          await this.userBalanceRepository.createOrUpdateBalance(
-            userId,
-            currencyType,
-            balanceBeforeTransaction
-          );
+          await this.userBalanceRepository.createOrUpdateBalance(userId, currencyType, balanceBeforeTransaction);
+
           this.logger.warn(
-            `Balance rollback performed for user ${userId} in ${dto.currency}: restored to ${balanceBeforeTransaction}`
+            `Balance rollback performed for user ${userId} in ${dto.currency}: restored to ${balanceBeforeTransaction}`,
           );
         } catch (rollbackError) {
           this.logger.error('CRITICAL: Failed to rollback balance after withdrawal failure', {
@@ -439,10 +436,7 @@ export class PaymentService {
    * @param updateDto - Webhook update data from payment provider
    * @param requestId - Unique request ID for tracking and debugging
    */
-  async processWebhook(
-    updateDto: WebhookUpdateDto,
-    requestId?: string,
-  ): AsyncResult<PaymentTransactionEntity, Error> {
+  async processWebhook(updateDto: WebhookUpdateDto, requestId?: string): AsyncResult<PaymentTransactionEntity, Error> {
     const logContext = { requestId, updateType: updateDto.updateType, payloadId: updateDto.payload.id };
 
     try {
@@ -467,6 +461,7 @@ export class PaymentService {
 
         default:
           this.logger.warn(`Unsupported webhook type: ${updateDto.updateType}`, logContext);
+
           return Err(new Error(`Unsupported webhook type: ${updateDto.updateType}`));
       }
     } catch (error) {
@@ -788,6 +783,7 @@ export class PaymentService {
         // Atomic idempotency check - now safe from race conditions
         if (lockedTransaction.metadata?.['balanceRefunded']) {
           this.logger.warn(`Balance already refunded for transaction: ${transaction.id}`, logContext);
+
           return;
         }
 
@@ -797,14 +793,11 @@ export class PaymentService {
         );
 
         // Get current balance
-        const balance = await this.userBalanceRepository.findByUserAndCurrency(
-          lockedTransaction.userId,
-          currencyType,
-        );
+        const balance = await this.userBalanceRepository.findByUserAndCurrency(lockedTransaction.userId, currencyType);
 
         if (!balance) {
           throw new Error(
-            `Balance not found for user ${lockedTransaction.userId} in currency ${lockedTransaction.currency}`
+            `Balance not found for user ${lockedTransaction.userId} in currency ${lockedTransaction.currency}`,
           );
         }
 
@@ -813,11 +806,7 @@ export class PaymentService {
         const newBalance = (currentBalance + refundAmount).toString();
 
         // Update balance with proper currency
-        await this.userBalanceRepository.createOrUpdateBalance(
-          lockedTransaction.userId,
-          currencyType,
-          newBalance,
-        );
+        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, currencyType, newBalance);
 
         // Mark as refunded atomically within the locked transaction
         lockedTransaction.metadata = {
@@ -838,6 +827,7 @@ export class PaymentService {
         ...logContext,
         error: toError(error).message,
       });
+
       throw error;
     }
   }
@@ -945,6 +935,7 @@ export class PaymentService {
         // Atomic idempotency check - now safe from race conditions
         if (lockedTransaction.metadata?.['balanceCredited']) {
           this.logger.warn(`Balance already credited for transaction: ${transaction.id}`);
+
           return;
         }
 
@@ -967,11 +958,7 @@ export class PaymentService {
         const newBalance = (currentBalance + creditAmount).toString();
 
         // Update balance with proper type safety
-        await this.userBalanceRepository.createOrUpdateBalance(
-          lockedTransaction.userId,
-          CurrencyType.Rub,
-          newBalance,
-        );
+        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, CurrencyType.Rub, newBalance);
 
         // Mark as credited atomically within the locked transaction
         lockedTransaction.metadata = {

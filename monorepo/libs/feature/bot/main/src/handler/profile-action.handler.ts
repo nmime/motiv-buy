@@ -28,6 +28,7 @@ export class ProfileActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -35,6 +36,7 @@ export class ProfileActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -56,6 +58,7 @@ export class ProfileActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -82,6 +85,7 @@ export class ProfileActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -90,6 +94,7 @@ export class ProfileActionHandler {
 
       if (!validation.isValid) {
         await ctx.reply(`❌ ${validation.error}\n\nPlease try again or use /cancel to abort.`);
+
         return;
       }
 
@@ -97,6 +102,7 @@ export class ProfileActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -131,6 +137,7 @@ export class ProfileActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -138,6 +145,7 @@ export class ProfileActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
@@ -157,6 +165,7 @@ export class ProfileActionHandler {
     try {
       if (!ctx.from) {
         await ctx.reply('Please authenticate first using /start');
+
         return;
       }
 
@@ -164,11 +173,13 @@ export class ProfileActionHandler {
 
       if (!user) {
         await ctx.reply('User not found. Please use /start to register.');
+
         return;
       }
 
       if (user.isVerified) {
         await ctx.reply('✅ Your account is already verified!');
+
         return;
       }
 
@@ -222,7 +233,10 @@ export class ProfileActionHandler {
   /**
    * Validate profile field
    */
-  private validateProfileField(field: string, value: string): { isValid: boolean; error?: string; sanitized?: unknown } {
+  private validateProfileField(
+    field: string,
+    value: string,
+  ): { isValid: boolean; error?: string; sanitized?: unknown } {
     switch (field) {
       case 'username':
         return BotValidationUtil.validateUsername(value);
@@ -297,6 +311,7 @@ export class ProfileActionHandler {
    */
   private createProfileEditKeyboard() {
     const { InlineKeyboard } = require('grammy');
+
     return new InlineKeyboard()
       .text('✏️ First Name', 'profile:edit:firstName')
       .text('✏️ Last Name', 'profile:edit:lastName')
