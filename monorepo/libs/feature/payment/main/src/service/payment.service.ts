@@ -121,48 +121,66 @@ export class PaymentService {
   /**
    * Create withdrawal transfer for user
    * Validates balance, deducts amount, and initiates transfer
+   *
+   * SECURITY: Uses pessimistic locking to prevent race condition where multiple
+   * concurrent withdrawal requests could both pass balance check and cause negative balance
    */
   async createWithdrawal(userId: string, dto: CreateTransferDto): AsyncResult<TransferResponseDto, Error> {
+    // Store balance before transaction for potential rollback
+    let balanceBeforeTransaction: string | null = null;
+    let transferCreated = false;
+    let transfer: any = null;
+
     try {
       this.logger.log(`Creating withdrawal for user ${userId}: ${dto.amount} ${dto.currency}`);
 
-      // Check user balance
-      const balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyType.Rub);
-
-      if (!balance) {
-        throw new Error(`Balance not found for user ${userId}`);
-      }
-
-      const availableAmount = parseFloat(balance.balance);
-      const requestedAmount = parseFloat(dto.amount);
-
-      if (availableAmount < requestedAmount) {
-        this.logger.warn(
-          `Insufficient balance for withdrawal. Available: ${availableAmount}, Requested: ${requestedAmount}`,
+      // Use database transaction with pessimistic locking to prevent race conditions
+      const result = await this.em.transactional(async (em) => {
+        // CRITICAL: Lock balance row to prevent concurrent withdrawals
+        // This ensures atomic balance check and deduction
+        const balanceEntity = await em.findOne(
+          'UserBalanceEntity',
+          { userId, currencyType: CurrencyType.Rub },
+          { lockMode: LockMode.PESSIMISTIC_WRITE }
         );
 
-        return Err(new Error(`Insufficient balance. Available: ${availableAmount}, Requested: ${requestedAmount}`));
-      }
+        if (!balanceEntity) {
+          throw new Error(`Balance not found for user ${userId}`);
+        }
 
-      // Create transfer via payment provider
-      const transferResult = await this.provider.createTransfer({
-        userId: dto.userId,
-        amount: dto.amount,
-        currency: dto.currency,
-        comment: dto.comment,
-      });
+        // Store original balance for rollback (captured BEFORE any modifications)
+        balanceBeforeTransaction = (balanceEntity as any).balance;
 
-      if (transferResult.err) {
-        this.logger.error('Failed to create transfer with provider', transferResult.val);
+        const availableAmount = parseFloat(balanceBeforeTransaction);
+        const requestedAmount = parseFloat(dto.amount);
 
-        return Err(toError(transferResult.val || 'Failed to create transfer with payment provider'));
-      }
+        // Atomic balance check (now safe from race conditions due to lock)
+        if (availableAmount < requestedAmount) {
+          this.logger.warn(
+            `Insufficient balance for withdrawal. Available: ${availableAmount}, Requested: ${requestedAmount}`,
+          );
 
-      const transfer = transferResult.val;
+          throw new Error(`Insufficient balance. Available: ${availableAmount}, Requested: ${requestedAmount}`);
+        }
 
-      // Use transaction to ensure atomicity
-      await this.em.transactional(async (em) => {
-        // Deduct balance immediately (optimistic approach)
+        // Create transfer via payment provider BEFORE deducting balance
+        // This ensures we don't deduct if provider rejects the transfer
+        const transferResult = await this.provider.createTransfer({
+          userId: dto.userId,
+          amount: dto.amount,
+          currency: dto.currency,
+          comment: dto.comment,
+        });
+
+        if (transferResult.err) {
+          this.logger.error('Failed to create transfer with provider', transferResult.val);
+          throw toError(transferResult.val || 'Failed to create transfer with payment provider');
+        }
+
+        transfer = transferResult.val;
+        transferCreated = true;
+
+        // Now deduct balance atomically within the locked transaction
         const newBalance = (availableAmount - requestedAmount).toString();
         await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.Rub, newBalance);
 
@@ -179,8 +197,9 @@ export class PaymentService {
           fee: transfer.fee || null,
           metadata: {
             telegramUserId: dto.userId,
-            balanceBefore: availableAmount.toString(),
+            balanceBefore: balanceBeforeTransaction,
             balanceAfter: newBalance,
+            balanceLockedAt: new Date().toISOString(),
           },
         });
 
@@ -188,34 +207,19 @@ export class PaymentService {
 
         this.logger.log(`Withdrawal created: ${transaction.id} (provider: ${transfer.transferId})`);
 
-        // Return response DTO
-        const response: TransferResponseDto = {
-          id: transaction.id,
-          userId: dto.userId,
-          amount: transaction.amount,
-          currency: transaction.currency,
-          status: transaction.status,
-          comment: dto.comment,
-          createdAt: transaction.createdAt.toISOString(),
-          completedAt: transfer.completedAt?.toISOString(),
-        };
-
-        return response;
+        // Return transaction to outer scope
+        return transaction;
       });
 
-      // Fetch the saved transaction to return
-      const savedTransaction = await this.transactionRepository.findOne({
-        providerTransactionId: transfer.transferId,
-      });
-
+      // Build response DTO from saved transaction
       const response: TransferResponseDto = {
-        id: savedTransaction!.id,
+        id: result.id,
         userId: dto.userId,
-        amount: savedTransaction!.amount,
-        currency: savedTransaction!.currency,
-        status: savedTransaction!.status,
+        amount: result.amount,
+        currency: result.currency,
+        status: result.status,
         comment: dto.comment,
-        createdAt: savedTransaction!.createdAt.toISOString(),
+        createdAt: result.createdAt.toISOString(),
         completedAt: transfer.completedAt?.toISOString(),
       };
 
@@ -223,18 +227,27 @@ export class PaymentService {
     } catch (error) {
       this.logger.error('Error creating withdrawal', error);
 
-      // Attempt to rollback balance if transaction failed
-      try {
-        const balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyType.Rub);
-
-        if (balance) {
-          const currentAmount = parseFloat(balance.balance);
-          const rollbackAmount = (currentAmount + parseFloat(dto.amount)).toString();
-          await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.Rub, rollbackAmount);
-          this.logger.warn(`Balance rollback performed for user ${userId}`);
+      // CRITICAL: Rollback balance using captured balanceBeforeTransaction
+      // Only rollback if we successfully deducted (transfer was created with provider)
+      if (transferCreated && balanceBeforeTransaction !== null) {
+        try {
+          await this.userBalanceRepository.createOrUpdateBalance(
+            userId,
+            CurrencyType.Rub,
+            balanceBeforeTransaction
+          );
+          this.logger.warn(
+            `Balance rollback performed for user ${userId}: restored to ${balanceBeforeTransaction}`
+          );
+        } catch (rollbackError) {
+          this.logger.error('CRITICAL: Failed to rollback balance after withdrawal failure', {
+            userId,
+            originalBalance: balanceBeforeTransaction,
+            error: rollbackError,
+          });
+          // This is a critical error - balance was deducted but transaction failed
+          // Manual intervention may be required
         }
-      } catch (rollbackError) {
-        this.logger.error('Failed to rollback balance', rollbackError);
       }
 
       return Err(toError(error));
@@ -876,10 +889,10 @@ export class PaymentService {
         const currentBalance = parseFloat(balance.balance);
         const newBalance = (currentBalance + creditAmount).toString();
 
-        // Update balance
+        // Update balance with proper type safety
         await this.userBalanceRepository.createOrUpdateBalance(
           lockedTransaction.userId,
-          'RUB' as any, // Note: Currency mapping
+          CurrencyType.Rub,
           newBalance,
         );
 

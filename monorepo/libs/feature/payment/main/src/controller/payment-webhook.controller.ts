@@ -20,6 +20,41 @@ import { WebhookUpdateDto } from '@app/feature-payment-shared';
 /**
  * Controller for handling payment webhook callbacks
  * Implements secure webhook processing with signature verification
+ *
+ * SECURITY ARCHITECTURE:
+ * =====================
+ *
+ * 1. CSRF PROTECTION: NOT APPLIED
+ *    - Webhooks use HMAC-SHA256 signature verification instead of CSRF tokens
+ *    - CSRF protection would break legitimate webhook requests from payment providers
+ *    - Signature verification provides stronger security than CSRF for webhooks
+ *
+ * 2. SIGNATURE VERIFICATION: REQUIRED
+ *    - All webhook requests MUST include 'crypto-pay-api-signature' header
+ *    - Signature is HMAC-SHA256 hash of request body using shared secret
+ *    - Requests with missing or invalid signatures are rejected (401 Unauthorized)
+ *
+ * 3. RATE LIMITING: ENABLED
+ *    - 100 requests per minute per IP address
+ *    - Prevents brute force attacks and DoS attempts
+ *    - Legitimate webhooks typically <10 requests per minute
+ *
+ * 4. INPUT VALIDATION:
+ *    - Payload size limited to 100KB (prevents memory exhaustion)
+ *    - Strict type checking on all webhook fields
+ *    - ISO date validation for timestamps
+ *    - Regex sanitization to prevent injection attacks
+ *
+ * 5. ERROR HANDLING:
+ *    - Returns 200 OK even on processing errors (prevents unnecessary retries)
+ *    - Only returns 401 for authentication failures (invalid signature)
+ *    - All errors logged with full context for investigation
+ *
+ * WHY NO CSRF PROTECTION:
+ * - CSRF tokens protect against unauthorized actions from authenticated users
+ * - Webhooks are server-to-server requests, not user-initiated
+ * - Payment providers don't have CSRF tokens (they're external services)
+ * - Signature verification is cryptographically stronger than CSRF tokens
  */
 @ApiTags('Payment Webhooks')
 @Controller('payment/webhook')
