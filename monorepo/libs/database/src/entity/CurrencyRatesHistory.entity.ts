@@ -4,11 +4,22 @@ import { CurrencyEntity } from './Currency.entity';
 
 /**
  * Rate provider sources for redundancy and accuracy
+ * Free tier providers with fallback support
  */
 export enum RateProvider {
-  CoinGecko = 'COINGECKO',
-  Binance = 'BINANCE',
-  CryptoCompare = 'CRYPTOCOMPARE',
+  // Crypto providers (free tier)
+  CoinGecko = 'COINGECKO', // 50 calls/min, no API key required
+  Binance = 'BINANCE', // 2400 calls/min, no API key required
+  CryptoCompare = 'CRYPTOCOMPARE', // 100k calls/month free
+  CoinCap = 'COINCAP', // Unlimited free tier
+  Kraken = 'KRAKEN', // Public API, unlimited
+
+  // Fiat providers (free tier)
+  ExchangeRateAPI = 'EXCHANGERATE_API', // 1500 calls/month free
+  Frankfurter = 'FRANKFURTER', // ECB data, unlimited free
+  FreeCurrencyAPI = 'FREECURRENCY_API', // 5000 calls/month free
+
+  // Fallback
   CentralBank = 'CENTRAL_BANK',
   Manual = 'MANUAL',
 }
