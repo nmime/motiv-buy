@@ -13,9 +13,6 @@
         "tsConfig": "libs/feature/balance/main/tsconfig.lib.json",
         "assets": [],
         "additionalEntryPoints": [],
-        "buildableProjectDepsInPackageJsonType": "dependencies",
-        "updateBuildableProjectDepsInPackageJson": true,
-        "generatePackageJson": true,
         "transformers": [
           {
             "name": "typescript-transform-paths/nx-transformer",

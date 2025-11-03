@@ -12,7 +12,6 @@
         "main": "apps/api/src/main.ts",
         "tsConfig": "apps/api/tsconfig.app.json",
         "assets": [],
-        "generatePackageJson": true,
         "clean": true,
         "transformers": [
           {
@@ -29,8 +28,7 @@
         "production": {
           "optimization": true,
           "extractLicenses": true,
-          "inspect": false,
-          "generatePackageJson": true
+          "inspect": false
         }
       }
     },

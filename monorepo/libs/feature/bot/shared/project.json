@@ -14,8 +14,6 @@
         "tsConfig": "libs/feature/bot/shared/tsconfig.lib.json",
         "assets": [],
         "additionalEntryPoints": [],
-        "buildableProjectDepsInPackageJsonType": "dependencies",
-        "updateBuildableProjectDepsInPackageJson": true,
         "transformers": [
           {
             "name": "typescript-transform-paths/nx-transformer",
