@@ -72,6 +72,16 @@ export class StatisticService {
       throw new Error('Statistic type is required');
     }
 
+    // Validate date range
+    if (query.fromDate && query.endDate) {
+      const fromDate = new Date(query.fromDate);
+      const endDate = new Date(query.endDate);
+
+      if (fromDate > endDate) {
+        throw new Error('fromDate must be before endDate');
+      }
+    }
+
     const handler = this.statisticHandlers[query.type];
     if (!handler) {
       throw new Error(`Unsupported statistic type: ${String(query.type)}`);
@@ -87,6 +97,29 @@ export class StatisticService {
   }
 
   async getLineChartData(userId: string, query: LineChartQueryDto): Promise<ServiceLineChartData> {
+    // Validate required parameters
+    if (!query.fromDate || !query.endDate) {
+      throw new Error('Both fromDate and endDate are required for chart data');
+    }
+
+    // Validate date range
+    const fromDate = new Date(query.fromDate);
+    const endDate = new Date(query.endDate);
+
+    if (isNaN(fromDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error('Invalid date format. Use YYYY-MM-DD or ISO 8601');
+    }
+
+    if (fromDate > endDate) {
+      throw new Error('fromDate must be before endDate');
+    }
+
+    // Validate date range is not too large (max 1 year)
+    const oneYearInMs = 365 * 24 * 60 * 60 * 1000;
+    if (endDate.getTime() - fromDate.getTime() > oneYearInMs) {
+      throw new Error('Date range cannot exceed 1 year');
+    }
+
     const handler = this.chartDataHandlers[query.type];
     if (!handler) {
       throw new Error(`Unsupported chart type: ${String(query.type)}`);
@@ -121,6 +154,29 @@ export class StatisticService {
 
   async getSharedLineChartData(shareToken: string, query: LineChartQueryDto): Promise<ServiceLineChartData> {
     const { userId, statisticType } = this.validateAndParseShareToken(shareToken);
+
+    // Validate required parameters
+    if (!query.fromDate || !query.endDate) {
+      throw new Error('Both fromDate and endDate are required for chart data');
+    }
+
+    // Validate date range
+    const fromDate = new Date(query.fromDate);
+    const endDate = new Date(query.endDate);
+
+    if (isNaN(fromDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error('Invalid date format. Use YYYY-MM-DD or ISO 8601');
+    }
+
+    if (fromDate > endDate) {
+      throw new Error('fromDate must be before endDate');
+    }
+
+    // Validate date range is not too large (max 1 year)
+    const oneYearInMs = 365 * 24 * 60 * 60 * 1000;
+    if (endDate.getTime() - fromDate.getTime() > oneYearInMs) {
+      throw new Error('Date range cannot exceed 1 year');
+    }
 
     const handler = this.chartDataHandlers[statisticType];
     const dataPoints = await handler(userId, query);
@@ -576,50 +632,96 @@ export class StatisticService {
 
   /**
    * Chart Data Methods - All with proper resource filtering
-   *
-   * TODO: Time-Series Chart Data Aggregation
-   *
-   * DEFERRED: Complex time-series aggregation pending performance optimization
-   *
-   * Implementation requirements:
-   * 1. Implement SQL GROUP BY with DATE_TRUNC for time intervals (hour/day/week/month)
-   * 2. Add efficient indexing on timestamp columns (created_at, completed_at)
-   * 3. Create materialized views for frequently accessed chart data
-   * 4. Implement caching layer with Redis for chart data (5-15 min TTL)
-   * 5. Add query optimization for large datasets (pagination, limit results)
-   * 6. Support multiple chart intervals: hourly, daily, weekly, monthly
-   * 7. Handle timezone conversions for accurate time-based grouping
-   *
-   * Current behavior: Returns empty arrays
-   * Impact: Chart endpoints return no data points until implemented
-   *
-   * Example SQL for implementation:
-   * SELECT
-   *   DATE_TRUNC('hour', completed_at) as timestamp,
-   *   COUNT(*) as count_of_actions,
-   *   SUM(CAST(reward AS DECIMAL)) as amount
-   * FROM traffic_actions
-   * WHERE traffic_source_id IN (user_sources)
-   *   AND status = 'completed'
-   *   AND completed_at BETWEEN $1 AND $2
-   * GROUP BY DATE_TRUNC('hour', completed_at)
-   * ORDER BY timestamp ASC
+   * Implemented using repository time-series aggregation methods
    */
 
-  private getTrafficSourceChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
-    return Promise.resolve([]);
+  private async getTrafficSourceChartData(userId: string, query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
+    const dateFilter = {
+      fromDate: query.fromDate ? new Date(query.fromDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+    };
+
+    const interval = query.interval ?? ChartInterval.Hour;
+    const timeSeriesData = await this.statisticRepository.getTimeSeriesData(
+      userId,
+      'source',
+      undefined,
+      dateFilter,
+      interval,
+    );
+
+    return timeSeriesData.map((point) => ({
+      date: point.date,
+      countOfActions: point.count,
+      amountEarnedOrSpent: point.amount,
+    }));
   }
 
-  private getTrafficOrderChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
-    return Promise.resolve([]);
+  private async getTrafficOrderChartData(userId: string, query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
+    const dateFilter = {
+      fromDate: query.fromDate ? new Date(query.fromDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+    };
+
+    const interval = query.interval ?? ChartInterval.Hour;
+    const timeSeriesData = await this.statisticRepository.getTimeSeriesData(
+      userId,
+      'order',
+      undefined,
+      dateFilter,
+      interval,
+    );
+
+    return timeSeriesData.map((point) => ({
+      date: point.date,
+      countOfActions: point.count,
+      amountEarnedOrSpent: -point.amount, // Negative because user is spending
+    }));
   }
 
-  private getTrafficTargetChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
-    return Promise.resolve([]);
+  private async getTrafficTargetChartData(userId: string, query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
+    const dateFilter = {
+      fromDate: query.fromDate ? new Date(query.fromDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+    };
+
+    const interval = query.interval ?? ChartInterval.Hour;
+    const timeSeriesData = await this.statisticRepository.getTimeSeriesData(
+      userId,
+      'target',
+      undefined,
+      dateFilter,
+      interval,
+    );
+
+    return timeSeriesData.map((point) => ({
+      date: point.date,
+      countOfActions: point.count,
+      amountEarnedOrSpent: point.amount, // Positive because user earns from targets
+    }));
   }
 
-  private getUserChartData(_userId: string, _query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
-    return Promise.resolve([]);
+  private async getUserChartData(userId: string, query: LineChartQueryDto): Promise<ChartDataPointDto[]> {
+    const dateFilter = {
+      fromDate: query.fromDate ? new Date(query.fromDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+    };
+
+    const targetUserId = query.userId || userId;
+    const interval = query.interval ?? ChartInterval.Hour;
+    const timeSeriesData = await this.statisticRepository.getTimeSeriesData(
+      userId,
+      'user',
+      targetUserId,
+      dateFilter,
+      interval,
+    );
+
+    return timeSeriesData.map((point) => ({
+      date: point.date,
+      countOfActions: point.count,
+      amountEarnedOrSpent: point.amount,
+    }));
   }
 
   private formatPeriod(fromDate?: string, endDate?: string): string {
