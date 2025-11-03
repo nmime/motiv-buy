@@ -3,6 +3,7 @@ import { Bot, Context, session, SessionFlavor } from 'grammy';
 import { BotContext, BotCommand } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
 import { unknownToError } from '@app/common-shared';
+import { OrderHandler } from '../features/order/order.handler';
 
 /**
  * Extended Grammy Context with session support
@@ -34,7 +35,10 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   private bot: Bot<BotSessionContext> | null = null;
   private isRunning = false;
 
-  constructor(private readonly botConfigService: BotConfigService) {}
+  constructor(
+    private readonly botConfigService: BotConfigService,
+    private readonly orderHandler: OrderHandler,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     await this.initialize();
@@ -101,6 +105,9 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
       // Register callback query handlers
       this.registerCallbackHandlers();
+
+      // Register feature handlers (Order feature)
+      this.registerFeatureHandlers();
 
       this.logger.log('Bot service initialized successfully');
     } catch (err: unknown) {
@@ -302,10 +309,25 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    // Fallback handler for unhandled callbacks
     this.bot.on('callback_query:data', async (ctx) => {
-      // Handle callback queries (simplified for now)
+      // This will only trigger if no feature handler caught it
       await ctx.answerCallbackQuery('Feature coming soon!');
     });
+  }
+
+  /**
+   * Register feature handlers
+   */
+  private registerFeatureHandlers(): void {
+    if (!this.bot) {
+      return;
+    }
+
+    // Register Order feature handlers
+    this.bot.use(this.orderHandler.getComposer());
+
+    this.logger.log('Feature handlers registered successfully');
   }
 
   /**
@@ -412,21 +434,30 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
   // Command handlers
   private async handleStartCommand(ctx: BotContext): Promise<void> {
-    await ctx.reply(
-      'Welcome to MotivBuy! 🚀\n\n' +
-        "I'm here to help you manage your traffic campaigns and earnings.\n\n" +
-        'Use /menu to see available options or /help for assistance.',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '📋 Main Menu', callback_data: 'menu:main' },
-              { text: '❓ Help', callback_data: 'menu:help' },
-            ],
+    // Import main menu from order feature
+    const message = `═══════════════════════════════════════
+        <b>SubGram - Реклама в телеграм ботах</b>
+             12,403 monthly users
+═══════════════════════════════════════
+
+Выбери нужный пункт 👇`;
+
+    await ctx.replyWithHTML(message, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '👥 Купить подписчиков', callback_data: 'order:list' }],
+          [
+            { text: '🤖 Продажа трафика', callback_data: 'traffic:manage' },
+            { text: '📋 Мои заказы', callback_data: 'order:list' },
           ],
-        },
+          [
+            { text: '👤 Профиль', callback_data: 'profile:view' },
+            { text: '💰 Баланс', callback_data: 'balance:view' },
+          ],
+          [{ text: '🏢 Тех. поддержка', callback_data: 'support:contact' }],
+        ],
       },
-    );
+    });
   }
 
   private async handleHelpCommand(ctx: BotContext): Promise<void> {
