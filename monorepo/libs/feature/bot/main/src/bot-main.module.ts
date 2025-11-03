@@ -9,6 +9,7 @@ import { TrafficSharedModule } from '@app/feature-traffic-shared';
 import { BotService } from './service';
 import { BotConfigService } from './config';
 import { MenuService, SessionService } from './service';
+import { OrderModule } from './features/order/order.module';
 
 /**
  * Bot Main Module
@@ -39,6 +40,7 @@ import { MenuService, SessionService } from './service';
     BalanceSharedModule,
     StatisticSharedModule,
     TrafficSharedModule,
+    OrderModule,
   ],
   providers: [BotConfigService, BotService, MenuService, SessionService],
   exports: [BotConfigService, BotService, MenuService, SessionService],

@@ -29,6 +29,17 @@ export interface BotContext extends Context, SessionFlavor<BotSessionData> {
   /** Request metadata */
   metadata?: BotContextMetadata;
 
+  /**
+   * I18n translation function
+   * Automatically uses user's language from session
+   */
+  t(key: string, options?: Record<string, any>): string;
+
+  /**
+   * User's current language code (from session or Telegram)
+   */
+  language: string;
+
   /** Reply with HTML formatted text */
   replyWithHTML(text: string, extra?: BotReplyExtra): Promise<BotMessage>;
 
@@ -456,6 +467,9 @@ export interface BotSessionData extends Record<string, unknown> {
 
   /** Cached user preferences */
   preferences?: Record<string, unknown>;
+
+  /** User's language preference */
+  language?: string;
 
   /** Temporary data */
   temp?: Record<string, unknown>;
