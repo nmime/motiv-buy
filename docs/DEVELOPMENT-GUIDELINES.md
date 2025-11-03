@@ -962,9 +962,9 @@ export class UserNotFoundException extends Exception({
   problemType: 'user_not_found',
   title: 'User Not Found',
 }) {
-  constructor(userId?: string) {
+  constructor() {
     super({
-      detail: userId ? `User ${userId} not found` : 'User not found',
+      detail: 'User not found',
     });
   }
 }
