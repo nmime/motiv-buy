@@ -153,9 +153,7 @@ describe('StatisticService', () => {
         interval: ChartInterval.Day,
       };
 
-      await expect(service.getLineChartData(mockUserId, query)).rejects.toThrow(
-        'fromDate must be before endDate',
-      );
+      await expect(service.getLineChartData(mockUserId, query)).rejects.toThrow('fromDate must be before endDate');
     });
 
     it('should throw error if date range exceeds 1 year', async () => {
@@ -166,9 +164,7 @@ describe('StatisticService', () => {
         interval: ChartInterval.Day,
       };
 
-      await expect(service.getLineChartData(mockUserId, query)).rejects.toThrow(
-        'Date range cannot exceed 1 year',
-      );
+      await expect(service.getLineChartData(mockUserId, query)).rejects.toThrow('Date range cannot exceed 1 year');
     });
 
     it('should throw error for invalid date format', async () => {
@@ -286,9 +282,9 @@ describe('StatisticService', () => {
       };
 
       // Mock the database response
-      entityManager.getConnection().execute = jest.fn().mockResolvedValue([
-        { totalReward: 0, uniqueSourcesCount: 0, totalActions: 0 },
-      ]);
+      entityManager.getConnection().execute = jest
+        .fn()
+        .mockResolvedValue([{ totalReward: 0, uniqueSourcesCount: 0, totalActions: 0 }]);
 
       await expect(service.getStatistics(mockUserId, query)).rejects.toThrow('fromDate must be before endDate');
     });

@@ -309,10 +309,43 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    // Fallback handler for unhandled callbacks
+    // Import handlers dynamically to avoid circular dependencies
+    const { CallbackRouterHandler } = require('../handler/callback-router.handler');
+    const { MenuActionHandler } = require('../handler/menu-action.handler');
+    const { ProfileActionHandler } = require('../handler/profile-action.handler');
+    const { BalanceActionHandler } = require('../handler/balance-action.handler');
+    const { StatisticsActionHandler } = require('../handler/statistics-action.handler');
+    const { OrderActionHandler } = require('../handler/order-action.handler');
+    const { SettingsActionHandler } = require('../handler/settings-action.handler');
+    const { RateLimitMiddleware } = require('../middleware/rate-limit.middleware');
+
+    // Get EntityManager from context
+    const em = this.bot.api.config.use(async (prev, method, payload, signal) => {
+      return await prev(method, payload, signal);
+    });
+
+    // Note: In production, these should be injected via dependency injection
+    // For now, we'll create instances directly
+    const menuHandler = new MenuActionHandler();
+    const rateLimitMiddleware = new RateLimitMiddleware();
+    const profileHandler = new ProfileActionHandler(null as any, menuHandler);
+    const balanceHandler = new BalanceActionHandler(null as any, menuHandler);
+    const statisticsHandler = new StatisticsActionHandler(null as any, menuHandler);
+    const orderHandler = new OrderActionHandler(null as any, menuHandler);
+    const settingsHandler = new SettingsActionHandler(null as any, menuHandler);
+
+    const callbackRouter = new CallbackRouterHandler(
+      menuHandler,
+      profileHandler,
+      balanceHandler,
+      statisticsHandler,
+      orderHandler,
+      settingsHandler,
+      rateLimitMiddleware,
+    );
+
     this.bot.on('callback_query:data', async (ctx) => {
-      // This will only trigger if no feature handler caught it
-      await ctx.answerCallbackQuery('Feature coming soon!');
+      await callbackRouter.routeCallback(this.mapContextToBotContext(ctx));
     });
   }
 
@@ -486,19 +519,37 @@ For support, contact @support or use the /support command.
   }
 
   private async handleProfileCommand(ctx: BotContext): Promise<void> {
-    await ctx.reply('👤 Profile feature coming soon!');
+    const { ProfileActionHandler } = require('../handler/profile-action.handler');
+    const { MenuActionHandler } = require('../handler/menu-action.handler');
+    const menuHandler = new MenuActionHandler();
+    const profileHandler = new ProfileActionHandler(null as any, menuHandler);
+    await profileHandler.handleProfileView(ctx);
   }
 
   private async handleSettingsCommand(ctx: BotContext): Promise<void> {
-    await ctx.reply('⚙️ Settings feature coming soon!');
+    const { SettingsActionHandler } = require('../handler/settings-action.handler');
+    const { MenuActionHandler } = require('../handler/menu-action.handler');
+    const menuHandler = new MenuActionHandler();
+    const settingsHandler = new SettingsActionHandler(null as any, menuHandler);
+    await settingsHandler.handleSettingsView(ctx);
   }
 
   private async handleBalanceCommand(ctx: BotContext): Promise<void> {
-    await ctx.reply('💰 Balance feature coming soon!');
+    const { BalanceActionHandler } = require('../handler/balance-action.handler');
+    const { MenuActionHandler } = require('../handler/menu-action.handler');
+    const menuHandler = new MenuActionHandler();
+    const balanceHandler = new BalanceActionHandler(null as any, menuHandler);
+    await balanceHandler.handleBalanceView(ctx);
   }
 
   private async handleMenuCommand(ctx: BotContext): Promise<void> {
-    await ctx.reply('📋 Main menu feature coming soon!');
+    const { MenuActionHandler } = require('../handler/menu-action.handler');
+    const menuHandler = new MenuActionHandler();
+    const keyboard = menuHandler.createMainMenuKeyboard();
+    await ctx.reply('📋 <b>Main Menu</b>\n\nSelect an option below:', {
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    });
   }
 
   private async handleUnknownCommand(ctx: BotContext): Promise<void> {

@@ -53,6 +53,7 @@ describe('StatisticRepository', () => {
         count: 10,
         amount: 100,
       });
+
       expect(entityManager.getConnection().execute).toHaveBeenCalled();
     });
 
@@ -175,6 +176,7 @@ describe('StatisticRepository', () => {
         totalTransactions: 500,
         netBalanceChange: 5000,
       });
+
       expect(entityManager.getConnection().execute).toHaveBeenCalledTimes(2);
     });
 

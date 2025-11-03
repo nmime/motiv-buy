@@ -1,6 +1,37 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional, MaxLength, Matches } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  MaxLength,
+  Matches,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
 import { Cryptocurrency } from '../enum/cryptocurrency.enum';
+
+/**
+ * Custom validator to ensure withdrawal amount is within acceptable range
+ * Minimum: 1.00 (prevent dust withdrawals that cost more in fees)
+ * Maximum: 100,000.00 (prevent extremely large withdrawals without verification)
+ */
+@ValidatorConstraint({ name: 'withdrawalAmountRange', async: false })
+export class WithdrawalAmountRangeValidator implements ValidatorConstraintInterface {
+  validate(amount: string): boolean {
+    const num = parseFloat(amount);
+
+    if (isNaN(num)) {
+      return false;
+    }
+
+    return num >= 1.0 && num <= 100000.0;
+  }
+
+  defaultMessage(): string {
+    return 'Withdrawal amount must be between 1.00 and 100,000.00';
+  }
+}
 
 /**
  * DTO for creating withdrawal transfers
@@ -19,14 +50,17 @@ export class CreateTransferDto {
   userId!: string;
 
   @ApiProperty({
-    description: 'Amount to withdraw in cryptocurrency units (positive decimal string)',
+    description: 'Amount to withdraw in cryptocurrency units (1.00 - 100,000.00)',
     example: '50.25',
     pattern: '^\\d+(\\.\\d+)?$',
+    minimum: 1.0,
+    maximum: 100000.0,
   })
   @IsString()
   @Matches(/^\d+(\.\d+)?$/, {
     message: 'Amount must be a positive number string',
   })
+  @Validate(WithdrawalAmountRangeValidator)
   amount!: string;
 
   @ApiProperty({

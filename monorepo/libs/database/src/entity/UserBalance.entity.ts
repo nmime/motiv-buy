@@ -3,22 +3,6 @@ import { EntityConstructorData, assignEntityData } from '../type';
 import { UserEntity } from './User.entity';
 import { CurrencyEntity } from './Currency.entity';
 
-/**
- * @deprecated Use CurrencyEntity instead
- * Kept for backwards compatibility during migration
- */
-export enum CurrencyType {
-  Rub = 'RUB',
-  Usdt = 'USDT',
-  Ton = 'TON',
-  Btc = 'BTC',
-  Eth = 'ETH',
-  Ltc = 'LTC',
-  Bnb = 'BNB',
-  Trx = 'TRX',
-  Usdc = 'USDC',
-}
-
 @Entity({ tableName: 'user_balances' })
 @Index({ name: 'ix__user_balances__user_id', properties: ['user'] })
 @Index({ name: 'ix__user_balances__currency_id', properties: ['currency'] })

@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, Enum, Index, OneToMany, Collection } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, Enum, Index, Unique, OneToMany, Collection } from '@mikro-orm/core';
 import { EntityConstructorData, assignEntityData } from '../type';
 import { CurrencyRatesHistoryEntity } from './CurrencyRatesHistory.entity';
 
@@ -19,12 +19,11 @@ export enum CurrencyCode {
   Eur = 'EUR',
   Rub = 'RUB',
 
-  // Cryptocurrencies
+  // Cryptocurrencies (most commonly used)
   Usdt = 'USDT',
   Ton = 'TON',
   Btc = 'BTC',
   Eth = 'ETH',
-  Ltc = 'LTC',
   Bnb = 'BNB',
   Trx = 'TRX',
   Usdc = 'USDC',
@@ -36,7 +35,7 @@ export enum CurrencyCode {
  * All rates are based on USD as the base currency
  */
 @Entity({ tableName: 'currencies' })
-@Index({ name: 'ix__currencies__code', properties: ['code'], unique: true })
+@Unique({ name: 'ix__currencies__code', properties: ['code'] })
 @Index({ name: 'ix__currencies__type', properties: ['type'] })
 @Index({ name: 'ix__currencies__is_active', properties: ['isActive'] })
 export class CurrencyEntity {

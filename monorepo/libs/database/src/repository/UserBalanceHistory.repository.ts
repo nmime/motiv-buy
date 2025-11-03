@@ -1,7 +1,7 @@
 import { EntityManager, EntityRepository, QueryOrder, FilterQuery, ref } from '@mikro-orm/core';
 import { TransactionStatus, TransactionType, UserBalanceHistoryEntity } from '../entity/UserBalanceHistory.entity';
 import { UserEntity } from '../entity/User.entity';
-import { CurrencyType } from '../entity/UserBalance.entity';
+import { CurrencyCode } from '../entity/Currency.entity';
 import { UserBalanceMetadata } from '../type';
 
 export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHistoryEntity> {
@@ -23,7 +23,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
 
   async findByUserAndCurrency(
     user: UserEntity,
-    currency: CurrencyType,
+    currency: CurrencyCode,
     limit = 50,
   ): Promise<UserBalanceHistoryEntity[]> {
     return this.find(
@@ -64,7 +64,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
 
   async createTransaction(data: {
     userId: string;
-    currency: CurrencyType;
+    currency: CurrencyCode;
     type: TransactionType;
     amount: string;
     balanceBefore: string;
@@ -105,7 +105,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
 
   async getTransactionStats(
     user?: UserEntity,
-    currency?: CurrencyType,
+    currency?: CurrencyCode,
     days = 30,
   ): Promise<{
     totalTransactions: number;
@@ -158,7 +158,7 @@ export class UserBalanceHistoryRepository extends EntityRepository<UserBalanceHi
 
   async getUserTransactionHistory(
     telegramId: string,
-    currency?: CurrencyType,
+    currency?: CurrencyCode,
     type?: TransactionType,
     limit = 50,
   ): Promise<UserBalanceHistoryEntity[]> {

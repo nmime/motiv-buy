@@ -3,13 +3,12 @@ import { IBalanceService } from '../interfaces/balance.service.interface';
 import {
   UserBalanceRepository,
   UserBalanceHistoryRepository,
-  CurrencyType,
+  CurrencyCode,
   TransactionType as DbTransactionType,
   TransactionStatus,
 } from '@app/database';
 import { CreateInvoiceDto, CreateTransferDto, PaymentService } from '@app/feature-payment-main';
 import { CurrencyRateService } from './currency-rate.service';
-import { CurrencyCode } from '@app/database';
 import { Result, Ok, Err } from '@app/common-shared';
 import { BalanceDto, TransactionDto, TransactionFilterDto, TransactionType } from '../dto';
 import { TopUpRequestDto } from '../dto/topup-request.dto';
@@ -34,11 +33,11 @@ export class BalanceService implements IBalanceService {
    * Get user balance with all details
    */
   async getBalance(userId: string): Promise<BalanceDto> {
-    const balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyType.Rub);
+    const balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyCode.Rub);
 
     if (!balance) {
       // Create initial balance if not exists
-      await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyType.Rub, '0');
+      await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyCode.Rub, '0');
 
       return {
         userId,
@@ -55,7 +54,7 @@ export class BalanceService implements IBalanceService {
     // Get pending withdrawals to calculate available amount
     const pendingWithdrawals = await this.userBalanceHistoryRepository.getUserTransactionHistory(
       userId,
-      CurrencyType.Rub,
+      CurrencyCode.Rub,
       DbTransactionType.Withdrawal,
       100,
     );
@@ -67,7 +66,7 @@ export class BalanceService implements IBalanceService {
     // Get all completed income transactions for total earned
     const allTransactions = await this.userBalanceHistoryRepository.getUserTransactionHistory(
       userId,
-      CurrencyType.Rub,
+      CurrencyCode.Rub,
       undefined,
       1000,
     );
@@ -104,14 +103,14 @@ export class BalanceService implements IBalanceService {
       const dbType = this.mapToDbTransactionType(filter.type);
       transactions = await this.userBalanceHistoryRepository.getUserTransactionHistory(
         userId,
-        CurrencyType.Rub,
+        CurrencyCode.Rub,
         dbType,
         50,
       );
     } else {
       transactions = await this.userBalanceHistoryRepository.getUserTransactionHistory(
         userId,
-        CurrencyType.Rub,
+        CurrencyCode.Rub,
         undefined,
         50,
       );
@@ -255,22 +254,6 @@ export class BalanceService implements IBalanceService {
 
       return Err(error instanceof Error ? error : new Error(String(error)));
     }
-  }
-
-  /**
-   * Legacy method - deprecated, use requestTopUp
-   */
-  async requestDeposit(userId: string, request: any): Promise<{ paymentUrl: string }> {
-    this.logger.warn('requestDeposit is deprecated, use requestTopUp instead');
-    throw new Error('Use requestTopUp method instead');
-  }
-
-  /**
-   * Legacy method - deprecated, use requestWithdrawal
-   */
-  async requestWithdrawal_old(userId: string, request: any): Promise<{ transactionId: string }> {
-    this.logger.warn('requestWithdrawal_old is deprecated');
-    throw new Error('Use requestWithdrawal method instead');
   }
 
   private mapFromDbTransactionType(dbType: DbTransactionType): TransactionType {

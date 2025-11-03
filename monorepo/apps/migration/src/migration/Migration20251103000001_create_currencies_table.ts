@@ -32,7 +32,7 @@ export class Migration20251103000001_create_currencies_table extends Migration {
       CREATE INDEX "ix__currencies__is_active" ON "currencies" ("is_active");
     `);
 
-    // Insert default currencies
+    // Insert default currencies (most commonly used)
     this.addSql(`
       INSERT INTO "currencies" ("code", "name", "symbol", "type", "rate_to_usd", "decimal_places")
       VALUES
@@ -45,8 +45,7 @@ export class Migration20251103000001_create_currencies_table extends Migration {
         ('Usdc', 'USD Coin', 'USDC', 'CRYPTO', '1.0', 6),
         ('Bnb', 'Binance Coin', 'BNB', 'CRYPTO', '300.0', 8),
         ('Ton', 'Toncoin', 'TON', 'CRYPTO', '2.5', 8),
-        ('Trx', 'Tron', 'TRX', 'CRYPTO', '0.10', 6),
-        ('Ltc', 'Litecoin', 'Ł', 'CRYPTO', '70.0', 8)
+        ('Trx', 'Tron', 'TRX', 'CRYPTO', '0.10', 6)
       ON CONFLICT (code) DO NOTHING;
     `);
 

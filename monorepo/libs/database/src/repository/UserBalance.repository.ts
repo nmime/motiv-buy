@@ -1,13 +1,14 @@
 import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
-import { CurrencyType, UserBalanceEntity } from '../entity';
+import { UserBalanceEntity } from '../entity';
 import { UserEntity } from '../entity/User.entity';
+import { CurrencyCode } from '../entity/Currency.entity';
 
 export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
   constructor(em: EntityManager) {
     super(em, UserBalanceEntity);
   }
 
-  async findByUserAndCurrency(userId: string, currency: CurrencyType): Promise<UserBalanceEntity | null> {
+  async findByUserAndCurrency(userId: string, currency: CurrencyCode): Promise<UserBalanceEntity | null> {
     return this.findOne({ user: userId, currency });
   }
 
@@ -15,7 +16,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     return this.find({ user: { telegramId } }, { populate: ['user'] });
   }
 
-  async createOrUpdateBalance(userId: string, currency: CurrencyType, balance: string): Promise<UserBalanceEntity> {
+  async createOrUpdateBalance(userId: string, currency: CurrencyCode, balance: string): Promise<UserBalanceEntity> {
     let userBalance = await this.findOne({ user: userId, currency });
 
     if (!userBalance) {
@@ -31,7 +32,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     return userBalance;
   }
 
-  async updateBalance(user: UserEntity, currency: CurrencyType, newBalance: string): Promise<UserBalanceEntity | null> {
+  async updateBalance(user: UserEntity, currency: CurrencyCode, newBalance: string): Promise<UserBalanceEntity | null> {
     const userBalance = await this.findByUserAndCurrency(user.id, currency);
     if (userBalance) {
       userBalance.balance = newBalance;
@@ -41,7 +42,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     return userBalance;
   }
 
-  async lockBalance(user: UserEntity, currency: CurrencyType, amount: string): Promise<boolean> {
+  async lockBalance(user: UserEntity, currency: CurrencyCode, amount: string): Promise<boolean> {
     const userBalance = await this.findByUserAndCurrency(user.id, currency);
     if (!userBalance) {
       return false;
@@ -61,7 +62,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     return false;
   }
 
-  async unlockBalance(user: UserEntity, currency: CurrencyType, amount: string): Promise<boolean> {
+  async unlockBalance(user: UserEntity, currency: CurrencyCode, amount: string): Promise<boolean> {
     const userBalance = await this.findByUserAndCurrency(user.id, currency);
     if (!userBalance) {
       return false;
@@ -81,7 +82,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     return false;
   }
 
-  async getTotalBalanceByCurrency(currency: CurrencyType): Promise<string> {
+  async getTotalBalanceByCurrency(currency: CurrencyCode): Promise<string> {
     const result = (await this.em
       .getConnection()
       .execute(
@@ -94,7 +95,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
 
   async getUserBalanceSummary(user: UserEntity): Promise<
     Record<
-      CurrencyType,
+      CurrencyCode,
       {
         available: string;
         locked: string;
