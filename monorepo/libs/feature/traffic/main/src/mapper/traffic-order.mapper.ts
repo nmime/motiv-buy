@@ -13,6 +13,7 @@ import {
 } from '@app/database';
 import { ITrafficOrderRepository } from '../repository';
 import { randomBytes } from 'crypto';
+import { sum, toDisplayString } from '@app/common-shared/util';
 
 /**
  * MikroORM mapper implementation for traffic order repository
@@ -262,11 +263,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
     // Calculate total spent
     const orders = await this.trafficOrderRepository.find({ creator: userId }, { fields: ['spentAmount'] });
 
-    const totalSpent = orders
-      .reduce((sum, order) => {
-        return sum + parseFloat(order.spentAmount || '0');
-      }, 0)
-      .toFixed(4);
+    const totalSpent = toDisplayString(sum(orders.map((order) => order.spentAmount || '0')), 4);
 
     return {
       totalOrders,

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException,
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityRepository, EntityManager } from '@mikro-orm/core';
 import { getErrorMessage, unknownToError } from '@app/common-shared';
+import { multiply, percentage, toDbString, toNumber } from '@app/common-shared/util';
 import {
   CreateBotDto,
   BotValidationDto,
@@ -389,8 +390,8 @@ export class TrafficService {
       // Generate order ID
       const orderId = this.generateOrderId();
 
-      // Calculate total cost
-      const totalCost = dto.amount * dto.pricePerUnit;
+      // Calculate total cost using Decimal.js for precision
+      const totalCost = toDbString(multiply(dto.amount, dto.pricePerUnit), 4);
 
       // Create traffic order
       const order = await this.createOrderEntity({
@@ -399,7 +400,7 @@ export class TrafficService {
         status: TrafficOrderStatus.Pending,
         targetCount: dto.amount,
         pricePerAction: dto.pricePerUnit.toString(),
-        totalBudget: totalCost.toString(),
+        totalBudget: totalCost,
         description: dto.targetAudience,
         targetUrl: dto.targetUrl,
         requirements: {
@@ -504,7 +505,7 @@ export class TrafficService {
 
     if (dto.amount && order.status === TrafficOrderStatus.Pending) {
       updateData.targetCount = dto.amount;
-      updateData.totalBudget = (dto.amount * parseFloat(order.pricePerAction)).toString();
+      updateData.totalBudget = toDbString(multiply(dto.amount, order.pricePerAction), 4);
     }
 
     const updatedOrder = await this.updateOrder(order.id, updateData);
@@ -883,7 +884,7 @@ export class TrafficService {
     target: TrafficTargetEntity,
     source: TrafficSourceEntity, // eslint-disable-line @typescript-eslint/no-unused-vars -- Source parameter is kept for future use when we need to include source-specific data
   ): TrafficOrderResponseDto {
-    const progressPercentage = order.targetCount > 0 ? Math.round((order.currentCount / order.targetCount) * 100) : 0;
+    const progressPercentage = order.targetCount > 0 ? toNumber(percentage(order.currentCount, order.targetCount)) : 0;
 
     const estimatedCompletion = new Date();
     estimatedCompletion.setHours(estimatedCompletion.getHours() + 24); // Default 24h

@@ -2,6 +2,7 @@ import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Ref } from '@mi
 import { EntityConstructorData, assignEntityData } from '../type';
 import { UserEntity } from './User.entity';
 import { CurrencyEntity } from './Currency.entity';
+import { add, toDbString } from '@app/common-shared';
 
 @Entity({ tableName: 'user_balances' })
 @Index({ name: 'ix__user_balances__user_id', properties: ['user'] })
@@ -52,9 +53,7 @@ export class UserBalanceEntity {
   }
 
   getTotalBalance(): string {
-    const total = parseFloat(this.balance) + parseFloat(this.lockedBalance);
-
-    return total.toString();
+    return toDbString(add(this.balance, this.lockedBalance), 8);
   }
 
   getAvailableBalance(): string {

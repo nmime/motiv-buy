@@ -10,6 +10,7 @@ import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { UserEntity, TrafficOrderEntity, TrafficOrderStatus, TrafficOrderType } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
+import { decimal, toDisplayString } from '@app/common-shared/util';
 
 @Injectable()
 export class OrderActionHandler {
@@ -263,13 +264,17 @@ export class OrderActionHandler {
     let text = `<b>📦 ${title}</b> (Page ${page}/${totalPages})\n\n`;
 
     for (const order of orders) {
-      const progress = ((order.currentCount / order.targetCount) * 100).toFixed(1);
+      const progress = decimal(order.currentCount)
+        .div(order.targetCount)
+        .mul(100);
+      const progressDisplay = toDisplayString(progress, 1);
       const statusEmoji = this.getStatusEmoji(order.status);
+      const budgetDisplay = toDisplayString(order.totalBudget, 2);
 
       text +=
         `${statusEmoji} <b>${order.type}</b> - <code>${order.orderId}</code>\n` +
-        `Progress: ${order.currentCount}/${order.targetCount} (${progress}%)\n` +
-        `Budget: $${parseFloat(order.totalBudget).toFixed(2)}\n` +
+        `Progress: ${order.currentCount}/${order.targetCount} (${progressDisplay}%)\n` +
+        `Budget: $${budgetDisplay}\n` +
         `Status: ${order.status}\n\n`;
     }
 
@@ -282,10 +287,17 @@ export class OrderActionHandler {
    * Format order details
    */
   private async formatOrderDetails(order: TrafficOrderEntity): Promise<string> {
-    const progress = ((order.currentCount / order.targetCount) * 100).toFixed(1);
+    const progress = decimal(order.currentCount)
+      .div(order.targetCount)
+      .mul(100);
+    const progressDisplay = toDisplayString(progress, 1);
     const statusEmoji = this.getStatusEmoji(order.status);
     const source = await order.trafficSource.load();
     const target = await order.trafficTarget.load();
+
+    const totalBudgetDisplay = toDisplayString(order.totalBudget, 2);
+    const spentAmountDisplay = toDisplayString(order.spentAmount, 2);
+    const pricePerActionDisplay = toDisplayString(order.pricePerAction, 4);
 
     return (
       `${statusEmoji} <b>Order Details</b>\n\n` +
@@ -295,11 +307,11 @@ export class OrderActionHandler {
       `<b>Progress:</b>\n` +
       `• Current: ${order.currentCount}\n` +
       `• Target: ${order.targetCount}\n` +
-      `• Completion: ${progress}%\n\n` +
+      `• Completion: ${progressDisplay}%\n\n` +
       `<b>Budget:</b>\n` +
-      `• Total: $${parseFloat(order.totalBudget).toFixed(2)}\n` +
-      `• Spent: $${parseFloat(order.spentAmount).toFixed(2)}\n` +
-      `• Price per Action: $${parseFloat(order.pricePerAction).toFixed(4)}\n\n` +
+      `• Total: $${totalBudgetDisplay}\n` +
+      `• Spent: $${spentAmountDisplay}\n` +
+      `• Price per Action: $${pricePerActionDisplay}\n\n` +
       `<b>Source:</b> ${source.name}\n` +
       `<b>Target:</b> ${target.name}\n\n` +
       `${order.description ? `<b>Description:</b>\n${order.description}\n\n` : ''}` +

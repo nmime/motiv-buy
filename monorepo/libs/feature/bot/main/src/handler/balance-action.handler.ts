@@ -10,6 +10,7 @@ import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { UserEntity, UserBalanceEntity, UserBalanceHistoryEntity, CurrencyEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
+import { decimal, toDisplayString, toNumber } from '@app/common-shared/util';
 
 @Injectable()
 export class BalanceActionHandler {
@@ -229,15 +230,15 @@ export class BalanceActionHandler {
 
     for (const balance of balances) {
       const currency = await balance.currency.load();
-      const availableBalance = parseFloat(balance.getAvailableBalance());
-      const lockedBalance = parseFloat(balance.getLockedBalance());
-      const totalBalance = parseFloat(balance.getTotalBalance());
+      const availableBalanceDisplay = toDisplayString(balance.getAvailableBalance(), 8);
+      const lockedBalanceDisplay = toDisplayString(balance.getLockedBalance(), 8);
+      const totalBalanceDisplay = toDisplayString(balance.getTotalBalance(), 8);
 
       text +=
         `<b>${currency.code}:</b>\n` +
-        `  Available: ${availableBalance.toFixed(8)} ${currency.symbol}\n` +
-        `  Locked: ${lockedBalance.toFixed(8)} ${currency.symbol}\n` +
-        `  Total: ${totalBalance.toFixed(8)} ${currency.symbol}\n\n`;
+        `  Available: ${availableBalanceDisplay} ${currency.symbol}\n` +
+        `  Locked: ${lockedBalanceDisplay} ${currency.symbol}\n` +
+        `  Total: ${totalBalanceDisplay} ${currency.symbol}\n\n`;
     }
 
     text += '<i>Use the buttons below to manage your balance.</i>';
@@ -257,9 +258,10 @@ export class BalanceActionHandler {
 
     for (const tx of transactions) {
       const currency = await tx.currency.load();
-      const amount = parseFloat(tx.amount);
-      const amountText = amount >= 0 ? `+${amount}` : amount.toString();
-      const emoji = amount >= 0 ? '📈' : '📉';
+      const amount = decimal(tx.amount);
+      const isPositive = amount.greaterThanOrEqualTo(0);
+      const amountText = isPositive ? `+${toDisplayString(amount, 8)}` : toDisplayString(amount, 8);
+      const emoji = isPositive ? '📈' : '📉';
 
       text +=
         `${emoji} <b>${tx.type}</b>\n` +
@@ -281,9 +283,9 @@ export class BalanceActionHandler {
 
     for (const balance of balances) {
       const currency = await balance.currency.load();
-      const availableBalance = parseFloat(balance.getAvailableBalance());
+      const availableBalance = decimal(balance.getAvailableBalance());
 
-      if (availableBalance > 0) {
+      if (availableBalance.greaterThan(0)) {
         keyboard.text(`${currency.symbol} ${currency.code}`, `withdraw:currency:${currency.id}`).row();
       }
     }

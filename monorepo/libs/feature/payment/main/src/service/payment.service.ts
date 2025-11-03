@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
+import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared/util';
 import { PaymentTransactionEntity } from '../entity/payment-transaction.entity';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';
 import { UserBalanceRepository, CurrencyCode } from '@app/database';
@@ -189,17 +190,17 @@ export class PaymentService {
           throw new Error('Balance data is invalid');
         }
 
-        const availableAmount = parseFloat(balanceBeforeTransaction);
-        const requestedAmount = parseFloat(dto.amount);
+        const availableAmount = decimal(balanceBeforeTransaction);
+        const requestedAmount = decimal(dto.amount);
 
         // Atomic balance check (now safe from race conditions due to lock)
-        if (availableAmount < requestedAmount) {
+        if (lessThan(availableAmount, requestedAmount)) {
           this.logger.warn(
-            `Insufficient balance for withdrawal. Currency: ${dto.currency}, Available: ${availableAmount}, Requested: ${requestedAmount}`,
+            `Insufficient balance for withdrawal. Currency: ${dto.currency}, Available: ${availableAmount.toString()}, Requested: ${requestedAmount.toString()}`,
           );
 
           throw new Error(
-            `Insufficient balance in ${dto.currency}. Available: ${availableAmount}, Requested: ${requestedAmount}`,
+            `Insufficient balance in ${dto.currency}. Available: ${availableAmount.toString()}, Requested: ${requestedAmount.toString()}`,
           );
         }
 
@@ -222,7 +223,7 @@ export class PaymentService {
 
         // Now deduct balance atomically within the locked transaction
         // FIXED: Deduct from REQUESTED currency balance, not always RUB
-        const newBalance = (availableAmount - requestedAmount).toString();
+        const newBalance = toDbString(subtract(availableAmount, requestedAmount), 8);
         await this.userBalanceRepository.createOrUpdateBalance(userId, currencyCode, newBalance);
 
         // Save transaction to database
@@ -804,9 +805,9 @@ export class PaymentService {
           );
         }
 
-        const refundAmount = parseFloat(lockedTransaction.amount);
-        const currentBalance = parseFloat(balance.balance);
-        const newBalance = (currentBalance + refundAmount).toString();
+        const refundAmount = decimal(lockedTransaction.amount);
+        const currentBalance = decimal(balance.balance);
+        const newBalance = toDbString(add(currentBalance, refundAmount), 8);
 
         // Update balance with proper currency
         await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, currencyCode, newBalance);
@@ -956,9 +957,9 @@ export class PaymentService {
           throw new Error(`Balance not found for user ${lockedTransaction.userId}`);
         }
 
-        const creditAmount = parseFloat(lockedTransaction.amount);
-        const currentBalance = parseFloat(balance.balance);
-        const newBalance = (currentBalance + creditAmount).toString();
+        const creditAmount = decimal(lockedTransaction.amount);
+        const currentBalance = decimal(balance.balance);
+        const newBalance = toDbString(add(currentBalance, creditAmount), 8);
 
         // Update balance with proper type safety
         await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, CurrencyCode.Rub, newBalance);

@@ -10,6 +10,7 @@ import {
 import { CreateInvoiceDto, CreateTransferDto, PaymentService } from '@app/feature-payment-main';
 import { CurrencyRateService } from './currency-rate.service';
 import { Result, Ok, Err } from '@app/common-shared';
+import { decimal, sum, subtract, ensureNonNegative, toNumber } from '@app/common-shared/util';
 import { BalanceDto, TransactionDto, TransactionFilterDto, TransactionType } from '../dto';
 import { TopUpRequestDto } from '../dto/topup-request.dto';
 import { WithdrawRequestDto } from '../dto/withdraw-request.dto';
@@ -49,7 +50,7 @@ export class BalanceService implements IBalanceService {
       };
     }
 
-    const currentAmount = parseFloat(balance.balance);
+    const currentAmount = decimal(balance.balance);
 
     // Get pending withdrawals to calculate available amount
     const pendingWithdrawals = await this.userBalanceHistoryRepository.getUserTransactionHistory(
@@ -59,9 +60,11 @@ export class BalanceService implements IBalanceService {
       100,
     );
 
-    const pendingAmount = pendingWithdrawals
-      .filter((t) => t.status === TransactionStatus.Pending)
-      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const pendingAmountDecimal = sum(
+      pendingWithdrawals
+        .filter((t) => t.status === TransactionStatus.Pending)
+        .map((t) => t.amount)
+    );
 
     // Get all completed income transactions for total earned
     const allTransactions = await this.userBalanceHistoryRepository.getUserTransactionHistory(
@@ -71,24 +74,28 @@ export class BalanceService implements IBalanceService {
       1000,
     );
 
-    const totalEarned = allTransactions
-      .filter(
-        (t) =>
-          t.status === TransactionStatus.Completed &&
-          (t.type === DbTransactionType.Deposit || t.type === DbTransactionType.ReferralBonus),
-      )
-      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const totalEarnedDecimal = sum(
+      allTransactions
+        .filter(
+          (t) =>
+            t.status === TransactionStatus.Completed &&
+            (t.type === DbTransactionType.Deposit || t.type === DbTransactionType.ReferralBonus),
+        )
+        .map((t) => t.amount)
+    );
 
     // Get last transaction date
     const lastTransaction = allTransactions.length > 0 ? allTransactions[0] : null;
 
+    const availableAmountDecimal = ensureNonNegative(subtract(currentAmount, pendingAmountDecimal));
+
     return {
       userId,
-      amount: currentAmount,
+      amount: toNumber(currentAmount),
       currency: 'RUB',
-      availableAmount: Math.max(0, currentAmount - pendingAmount),
-      pendingAmount,
-      totalEarned,
+      availableAmount: toNumber(availableAmountDecimal),
+      pendingAmount: toNumber(pendingAmountDecimal),
+      totalEarned: toNumber(totalEarnedDecimal),
       lastTransactionAt: lastTransaction?.createdAt,
     };
   }
@@ -118,7 +125,7 @@ export class BalanceService implements IBalanceService {
 
     return transactions.map((transaction) => ({
       id: transaction.id,
-      amount: parseFloat(transaction.amount),
+      amount: toNumber(decimal(transaction.amount)),
       type: this.mapFromDbTransactionType(transaction.type),
       date: transaction.createdAt,
       description: transaction.description || 'Transaction',

@@ -10,6 +10,7 @@ import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { UserEntity, TrafficOrderEntity, TrafficOrderStatus, UserBalanceHistoryEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
+import { decimal, sum, toNumber, toDisplayString } from '@app/common-shared/util';
 
 interface UserStatistics {
   totalOrders: number;
@@ -173,15 +174,13 @@ export class StatisticsActionHandler {
       amount: { $gt: '0' },
     });
 
-    const totalEarnings = earnings.reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+    const totalEarnings = toNumber(sum(earnings.map((e) => e.amount)));
 
-    const avgOrderValue = totalOrders > 0 ? totalEarnings / totalOrders : 0;
-    const successRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
+    const avgOrderValue = totalOrders > 0 ? toNumber(decimal(totalEarnings).div(totalOrders)) : 0;
+    const successRate = totalOrders > 0 ? toNumber(decimal(completedOrders).div(totalOrders).mul(100)) : 0;
 
     // Calculate referral earnings
-    const referralEarnings = earnings
-      .filter((e) => e.type === 'referral_bonus')
-      .reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+    const referralEarnings = toNumber(sum(earnings.filter((e) => e.type === 'referral_bonus').map((e) => e.amount)));
 
     return {
       totalOrders,
@@ -218,7 +217,7 @@ export class StatisticsActionHandler {
       {} as Record<string, number>,
     );
 
-    const totalSpent = orders.reduce((sum, order) => sum + parseFloat(order.spentAmount), 0);
+    const totalSpent = toNumber(sum(orders.map((order) => order.spentAmount)));
 
     return {
       ordersByStatus,
@@ -241,7 +240,8 @@ export class StatisticsActionHandler {
     const totalActions = orders.reduce((sum, order) => sum + order.currentCount, 0);
     const totalTargetActions = orders.reduce((sum, order) => sum + order.targetCount, 0);
 
-    const completionRate = totalTargetActions > 0 ? (totalActions / totalTargetActions) * 100 : 0;
+    const completionRate =
+      totalTargetActions > 0 ? toNumber(decimal(totalActions).div(totalTargetActions).mul(100)) : 0;
 
     return {
       totalActions,
@@ -263,9 +263,9 @@ export class StatisticsActionHandler {
 
     const earningsByType = history.reduce(
       (acc, entry) => {
-        const amount = parseFloat(entry.amount);
-        if (amount > 0) {
-          acc[entry.type] = (acc[entry.type] || 0) + amount;
+        const amount = decimal(entry.amount);
+        if (amount.greaterThan(0)) {
+          acc[entry.type] = toNumber(decimal(acc[entry.type] || 0).plus(amount));
         }
 
         return acc;
@@ -279,9 +279,9 @@ export class StatisticsActionHandler {
       return daysDiff <= 7;
     });
 
-    const earningsLast7Days = last7Days
-      .filter((e) => parseFloat(e.amount) > 0)
-      .reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+    const earningsLast7Days = toNumber(
+      sum(last7Days.filter((e) => decimal(e.amount).greaterThan(0)).map((e) => e.amount)),
+    );
 
     return {
       earningsByType,
@@ -308,11 +308,11 @@ export class StatisticsActionHandler {
       `• Active: ${stats.activeOrders}\n` +
       `• Completed: ${stats.completedOrders}\n\n` +
       `<b>💰 Earnings:</b>\n` +
-      `• Total: $${stats.totalEarnings.toFixed(2)}\n` +
-      `• Avg per Order: $${stats.avgOrderValue.toFixed(2)}\n` +
-      `• Referral Earnings: $${stats.referralEarnings.toFixed(2)}\n\n` +
+      `• Total: $${toDisplayString(stats.totalEarnings, 2)}\n` +
+      `• Avg per Order: $${toDisplayString(stats.avgOrderValue, 2)}\n` +
+      `• Referral Earnings: $${toDisplayString(stats.referralEarnings, 2)}\n\n` +
       `<b>📈 Performance:</b>\n` +
-      `• Success Rate: ${stats.successRate.toFixed(1)}%\n` +
+      `• Success Rate: ${toDisplayString(stats.successRate, 1)}%\n` +
       `• Total Referrals: ${user.referralCount}\n\n` +
       `<i>Select an option below for detailed statistics.</i>`
     );
@@ -334,7 +334,7 @@ export class StatisticsActionHandler {
       text += `• ${type}: ${count}\n`;
     }
 
-    text += `\n<b>Total Spent:</b> $${stats.totalSpent.toFixed(2)}\n`;
+    text += `\n<b>Total Spent:</b> $${toDisplayString(stats.totalSpent, 2)}\n`;
     text += `<b>Total Orders:</b> ${stats.totalOrders}`;
 
     return text;
@@ -348,7 +348,7 @@ export class StatisticsActionHandler {
       '<b>🎯 Traffic Statistics</b>\n\n' +
       `<b>Total Actions Completed:</b> ${stats.totalActions}\n` +
       `<b>Target Actions:</b> ${stats.totalTargetActions}\n` +
-      `<b>Completion Rate:</b> ${stats.completionRate.toFixed(1)}%\n` +
+      `<b>Completion Rate:</b> ${toDisplayString(stats.completionRate, 1)}%\n` +
       `<b>Total Orders:</b> ${stats.totalOrders}\n\n` +
       `<i>Keep completing orders to improve your statistics!</i>`
     );
@@ -362,10 +362,10 @@ export class StatisticsActionHandler {
 
     text += '<b>Earnings by Type:</b>\n';
     for (const [type, amount] of Object.entries(stats.earningsByType)) {
-      text += `• ${type}: $${(amount as number).toFixed(2)}\n`;
+      text += `• ${type}: $${toDisplayString(amount as number, 2)}\n`;
     }
 
-    text += `\n<b>Last 7 Days:</b> $${stats.earningsLast7Days.toFixed(2)}\n`;
+    text += `\n<b>Last 7 Days:</b> $${toDisplayString(stats.earningsLast7Days, 2)}\n`;
     text += `<b>Total Transactions:</b> ${stats.totalTransactions}`;
 
     return text;

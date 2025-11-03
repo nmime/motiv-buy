@@ -8,6 +8,7 @@ import {
   TrafficUserEntity,
 } from '../entity';
 import { UserEntity } from '../entity';
+import { decimal, greaterThanOrEqualTo, lessThanOrEqualTo, sum, divide, multiply, toNumber } from '@app/common-shared/util';
 
 export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity> {
   constructor(em: EntityManager) {
@@ -60,9 +61,11 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
         return false;
       }
 
-      const budget = parseFloat(order.totalBudget);
+      const budget = decimal(order.totalBudget);
+      const min = decimal(minBudget);
+      const max = decimal(maxBudget);
 
-      return budget >= minBudget && budget <= maxBudget;
+      return greaterThanOrEqualTo(budget, min) && lessThanOrEqualTo(budget, max);
     });
   }
 
@@ -193,8 +196,8 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     ]);
 
     const orders = await this.findAll();
-    const totalBudget = orders.reduce((sum, order) => sum + parseFloat(order.totalBudget || '0'), 0);
-    const totalSpent = orders.reduce((sum, order) => sum + parseFloat(order.spentAmount || '0'), 0);
+    const totalBudget = toNumber(sum(orders.map((order) => decimal(order.totalBudget || '0'))));
+    const totalSpent = toNumber(sum(orders.map((order) => decimal(order.spentAmount || '0'))));
 
     return {
       total,
@@ -234,6 +237,6 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   async getCompletionRate(): Promise<number> {
     const [total, completed] = await Promise.all([this.count(), this.count({ status: TrafficOrderStatus.Completed })]);
 
-    return total > 0 ? (completed / total) * 100 : 0;
+    return total > 0 ? toNumber(multiply(divide(decimal(completed), decimal(total)), decimal(100))) : 0;
   }
 }
