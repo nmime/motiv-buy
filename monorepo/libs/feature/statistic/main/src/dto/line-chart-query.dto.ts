@@ -13,13 +13,14 @@ export enum ChartInterval {
  * Line chart query DTO for time-series chart data
  */
 export class LineChartQueryDto {
-  @ApiProperty({
-    description: 'Type of statistic for chart data',
+  @ApiPropertyOptional({
+    description: 'Type of statistic for chart data (optional for public endpoints with share token)',
     enum: StatisticType,
     example: StatisticType.TrafficSource,
   })
+  @IsOptional()
   @IsEnum(StatisticType)
-  type!: StatisticType;
+  type?: StatisticType;
 
   @ApiProperty({
     description: 'Chart start date (YYYY-MM-DD or ISO 8601)',
@@ -44,4 +45,11 @@ export class LineChartQueryDto {
   @IsOptional()
   @IsEnum(ChartInterval)
   interval?: ChartInterval = ChartInterval.Hour;
+
+  @ApiPropertyOptional({
+    description: 'Optional user ID for user-specific chart data',
+    example: 'uuid-user-id',
+  })
+  @IsOptional()
+  userId?: string;
 }
