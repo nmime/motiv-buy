@@ -93,9 +93,7 @@ export class CryptoBotProvider implements IPaymentProvider {
 
   constructor(private readonly paymentConfig: PaymentConfigService) {
     this.apiToken = this.paymentConfig.getCryptoBotApiToken();
-    this.baseUrl = this.paymentConfig.isTestnet()
-      ? 'https://testnet-pay.crypt.bot/api'
-      : 'https://pay.crypt.bot/api';
+    this.baseUrl = this.paymentConfig.isTestnet() ? 'https://testnet-pay.crypt.bot/api' : 'https://pay.crypt.bot/api';
 
     this.logger.log(`CryptoBotProvider initialized (testnet: ${this.paymentConfig.isTestnet()})`);
   }
@@ -103,7 +101,11 @@ export class CryptoBotProvider implements IPaymentProvider {
   /**
    * Make HTTP request to Crypto Pay API
    */
-  private async makeRequest<T>(method: string, endpoint: string, params?: Record<string, unknown>): Promise<CryptoPayResponse<T>> {
+  private async makeRequest<T>(
+    method: string,
+    endpoint: string,
+    params?: Record<string, unknown>,
+  ): Promise<CryptoPayResponse<T>> {
     const url = `${this.baseUrl}/${endpoint}`;
 
     try {
@@ -119,12 +121,16 @@ export class CryptoBotProvider implements IPaymentProvider {
         options.body = JSON.stringify(params);
       } else if (params && method === 'GET') {
         const queryString = new URLSearchParams(
-          Object.entries(params).reduce((acc, [key, value]) => {
-            if (value !== undefined && value !== null) {
-              acc[key] = String(value);
-            }
-            return acc;
-          }, {} as Record<string, string>),
+          Object.entries(params).reduce(
+            (acc, [key, value]) => {
+              if (value !== undefined && value !== null) {
+                return { ...acc, [key]: String(value) };
+              }
+
+              return acc;
+            },
+            {} as Record<string, string>,
+          ),
         ).toString();
 
         const fullUrl = queryString ? `${url}?${queryString}` : url;
