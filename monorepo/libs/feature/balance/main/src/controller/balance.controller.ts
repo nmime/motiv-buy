@@ -2,7 +2,8 @@ import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { BalanceService } from '../service/balance.service';
 import { CurrencyRateService } from '../service/currency-rate.service';
-import { PaymentService, CreateInvoiceDto, CreateTransferDto } from '@app/feature-payment-main';
+import { PaymentService } from '@app/feature-payment-main';
+import { CreateInvoiceDto, CreateTransferDto } from '@app/feature-payment-shared';
 import { BalanceDto, TransactionDto, TransactionFilterDto, TopUpRequestDto, WithdrawRequestDto } from '../dto';
 import { ApiProblemExceptions, InternalException, UnauthorizedException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
@@ -110,7 +111,7 @@ export class BalanceController {
     );
 
     if (rubAmountResult.err) {
-      throw new InternalException('Failed to convert currency', { cause: rubAmountResult.val });
+      throw new InternalException({ detail: 'Failed to convert currency', cause: rubAmountResult.val });
     }
 
     const rubAmount = rubAmountResult.val;
@@ -126,7 +127,7 @@ export class BalanceController {
     const invoiceResult = await this.paymentService.createTopUp(userId, invoiceDto);
 
     if (invoiceResult.err) {
-      throw new InternalException('Failed to create top-up invoice', { cause: invoiceResult.val });
+      throw new InternalException({ detail: 'Failed to create top-up invoice', cause: invoiceResult.val });
     }
 
     const invoice = invoiceResult.val;
@@ -172,9 +173,9 @@ export class BalanceController {
     const balance = await this.balanceService.getBalance(userId);
 
     if (balance.availableAmount < request.amount) {
-      throw new InternalException(
-        `Insufficient balance. Available: ${balance.availableAmount} RUB, Requested: ${request.amount} RUB`,
-      );
+      throw new InternalException({
+        detail: `Insufficient balance. Available: ${balance.availableAmount} RUB, Requested: ${request.amount} RUB`,
+      });
     }
 
     // Map Cryptocurrency enum to CurrencyCode enum
@@ -188,14 +189,14 @@ export class BalanceController {
     );
 
     if (cryptoAmountResult.err) {
-      throw new InternalException('Failed to convert currency', { cause: cryptoAmountResult.val });
+      throw new InternalException({ detail: 'Failed to convert currency', cause: cryptoAmountResult.val });
     }
 
     const cryptoAmount = cryptoAmountResult.val;
 
     // Create transfer via payment service
     const transferDto: CreateTransferDto = {
-      userId: request.telegramUserId,
+      userId: request.telegramUserId.toString(),
       amount: cryptoAmount,
       currency: request.currency,
       comment: request.comment || `Withdrawal from balance: ${request.amount} RUB`,
@@ -204,7 +205,7 @@ export class BalanceController {
     const transferResult = await this.paymentService.createWithdrawal(userId, transferDto);
 
     if (transferResult.err) {
-      throw new InternalException('Failed to create withdrawal', { cause: transferResult.val });
+      throw new InternalException({ detail: 'Failed to create withdrawal', cause: transferResult.val });
     }
 
     const transfer = transferResult.val;
@@ -228,14 +229,15 @@ export class BalanceController {
         return CurrencyCode.Btc;
       case Cryptocurrency.Eth:
         return CurrencyCode.Eth;
-      case Cryptocurrency.Ltc:
-        return CurrencyCode.Ltc;
       case Cryptocurrency.Bnb:
         return CurrencyCode.Bnb;
       case Cryptocurrency.Trx:
         return CurrencyCode.Trx;
       case Cryptocurrency.Usdc:
         return CurrencyCode.Usdc;
+      case Cryptocurrency.Jet:
+        // JET is testnet only and not in CurrencyCode enum
+        throw new Error(`JET cryptocurrency is testnet only and not supported for balance operations`);
       default:
         throw new Error(`Unsupported cryptocurrency: ${crypto}`);
     }

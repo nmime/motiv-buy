@@ -7,7 +7,8 @@ import {
   TransactionType as DbTransactionType,
   TransactionStatus,
 } from '@app/database';
-import { CreateInvoiceDto, CreateTransferDto, PaymentService } from '@app/feature-payment-main';
+import { PaymentService } from '@app/feature-payment-main';
+import { CreateInvoiceDto, CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
 import { CurrencyRateService } from './currency-rate.service';
 import { Result, Ok, Err } from '@app/common-shared';
 import { BalanceDto, TransactionDto, TransactionFilterDto, TransactionType } from '../dto';
@@ -137,10 +138,12 @@ export class BalanceService implements IBalanceService {
     try {
       this.logger.log(`Creating top-up request for user ${userId}: ${request.amount} ${request.currency}`);
 
-      // Convert crypto amount to RUB
-      const rubAmountResult = await this.currencyRateService.convertToRub(
+      // Convert crypto amount to RUB - map cryptocurrency to currency code
+      const currencyCode = this.mapCryptocurrencyToCode(request.currency);
+      const rubAmountResult = await this.currencyRateService.convertAmount(
         request.amount,
-        request.currency as unknown as CurrencyCode,
+        currencyCode,
+        CurrencyCode.Rub,
       );
 
       if (rubAmountResult.err) {
@@ -211,10 +214,12 @@ export class BalanceService implements IBalanceService {
         );
       }
 
-      // Convert RUB to cryptocurrency
-      const cryptoAmountResult = await this.currencyRateService.convertFromRub(
+      // Convert RUB to cryptocurrency - map cryptocurrency to currency code
+      const currencyCode = this.mapCryptocurrencyToCode(request.currency);
+      const cryptoAmountResult = await this.currencyRateService.convertAmount(
         request.amount.toString(),
-        request.currency as unknown as CurrencyCode,
+        CurrencyCode.Rub,
+        currencyCode,
       );
 
       if (cryptoAmountResult.err) {
@@ -227,7 +232,7 @@ export class BalanceService implements IBalanceService {
 
       // Create transfer via payment service
       const transferDto: CreateTransferDto = {
-        userId: request.telegramUserId,
+        userId: request.telegramUserId.toString(),
         amount: cryptoAmount,
         currency: request.currency,
         comment: request.comment || `Withdrawal from balance: ${request.amount} RUB`,
@@ -281,6 +286,33 @@ export class BalanceService implements IBalanceService {
         return DbTransactionType.Deposit;
       default:
         return DbTransactionType.Deposit;
+    }
+  }
+
+  /**
+   * Map Cryptocurrency enum from payment-shared to CurrencyCode from database
+   */
+  private mapCryptocurrencyToCode(crypto: Cryptocurrency): CurrencyCode {
+    switch (crypto) {
+      case Cryptocurrency.Usdt:
+        return CurrencyCode.Usdt;
+      case Cryptocurrency.Ton:
+        return CurrencyCode.Ton;
+      case Cryptocurrency.Btc:
+        return CurrencyCode.Btc;
+      case Cryptocurrency.Eth:
+        return CurrencyCode.Eth;
+      case Cryptocurrency.Bnb:
+        return CurrencyCode.Bnb;
+      case Cryptocurrency.Trx:
+        return CurrencyCode.Trx;
+      case Cryptocurrency.Usdc:
+        return CurrencyCode.Usdc;
+      case Cryptocurrency.Jet:
+        // JET is testnet only and not in CurrencyCode enum
+        throw new Error(`JET cryptocurrency is testnet only and not supported for balance operations`);
+      default:
+        throw new Error(`Unsupported cryptocurrency: ${crypto}`);
     }
   }
 }
