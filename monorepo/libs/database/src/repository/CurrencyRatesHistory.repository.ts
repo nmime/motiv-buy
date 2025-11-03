@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
+import { EntityManager, ref } from '@mikro-orm/core';
 import { CurrencyRatesHistoryEntity, RateProvider } from '../entity/CurrencyRatesHistory.entity';
 import { CurrencyEntity, CurrencyCode } from '../entity/Currency.entity';
 
@@ -19,12 +19,16 @@ export class CurrencyRatesHistoryRepository {
     rateToUsd: string,
     reliabilityScore = 100,
   ): Promise<CurrencyRatesHistoryEntity> {
-    const entry = this.em.create(CurrencyRatesHistoryEntity, {
-      currencyId,
+    const currencyRef = this.em.getReference(CurrencyEntity, currencyId);
+    const entry = new CurrencyRatesHistoryEntity({
+      currency: ref(currencyRef),
       provider,
       rateToUsd,
-      reliabilityScore,
     });
+
+    if (reliabilityScore !== 100) {
+      entry.reliabilityScore = reliabilityScore;
+    }
 
     await this.em.persistAndFlush(entry);
 
@@ -117,7 +121,7 @@ export class CurrencyRatesHistoryRepository {
     };
 
     if (provider) {
-      filters.provider = provider;
+      filters['provider'] = provider;
     }
 
     return this.em.find(CurrencyRatesHistoryEntity, filters, {

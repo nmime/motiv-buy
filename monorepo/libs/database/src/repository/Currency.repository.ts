@@ -71,13 +71,16 @@ export class CurrencyRepository {
       return existing;
     }
 
-    const currency = this.em.create(CurrencyEntity, {
+    const currency = new CurrencyEntity({
       code,
       name,
       type,
       rateToUsd,
-      symbol: symbol || null,
     });
+
+    if (symbol) {
+      currency.symbol = symbol;
+    }
 
     await this.em.persistAndFlush(currency);
 
