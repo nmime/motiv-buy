@@ -1,6 +1,24 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional, IsInt, Min, Max, MaxLength, Matches } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsInt, Min, Max, MaxLength, Matches, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
 import { Cryptocurrency } from '../enum/cryptocurrency.enum';
+
+/**
+ * Custom validator to ensure amount is within acceptable range
+ * Minimum: 0.01 (prevent zero/negative amounts)
+ * Maximum: 1,000,000.00 (prevent extremely large amounts that could be errors)
+ */
+@ValidatorConstraint({ name: 'amountRange', async: false })
+export class AmountRangeValidator implements ValidatorConstraintInterface {
+  validate(amount: string): boolean {
+    const num = parseFloat(amount);
+    if (isNaN(num)) return false;
+    return num >= 0.01 && num <= 1000000.0;
+  }
+
+  defaultMessage(): string {
+    return 'Amount must be between 0.01 and 1,000,000.00';
+  }
+}
 
 /**
  * DTO for creating payment invoices
@@ -8,14 +26,17 @@ import { Cryptocurrency } from '../enum/cryptocurrency.enum';
  */
 export class CreateInvoiceDto {
   @ApiProperty({
-    description: 'Amount to charge in cryptocurrency units (positive decimal string)',
+    description: 'Amount to charge in cryptocurrency units (0.01 - 1,000,000.00)',
     example: '100.50',
     pattern: '^\\d+(\\.\\d+)?$',
+    minimum: 0.01,
+    maximum: 1000000.0,
   })
   @IsString()
   @Matches(/^\d+(\.\d+)?$/, {
     message: 'Amount must be a positive number string',
   })
+  @Validate(AmountRangeValidator)
   amount!: string;
 
   @ApiProperty({
