@@ -5,6 +5,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { BotContext } from '@app/feature-bot-shared';
 import {
   Order,
@@ -24,6 +25,15 @@ export class OrderService {
 
   // Mock data storage (replace with real database in production)
   private orders: Map<string, Order> = new Map();
+
+  // Session cleanup interval (1 hour)
+  private readonly SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
+  private readonly SESSION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+
+  constructor() {
+    // Start session cleanup
+    this.startSessionCleanup();
+  }
 
   /**
    * Get all orders for a user
@@ -247,14 +257,27 @@ export class OrderService {
   }
 
   /**
-   * Get order session state from context
+   * Get order session state from context (checks TTL)
    */
   getOrderSessionState(ctx: BotContext): OrderSessionState | null {
-    return (ctx.session?.formData?.orderCreation as OrderSessionState) || null;
+    const state = (ctx.session?.formData?.orderCreation as OrderSessionState & { expiresAt?: number }) || null;
+
+    if (!state) {
+      return null;
+    }
+
+    // Check if session is expired
+    if (state.expiresAt && Date.now() > state.expiresAt) {
+      this.logger.warn('Session expired, clearing state');
+      this.clearOrderSessionState(ctx);
+      return null;
+    }
+
+    return state;
   }
 
   /**
-   * Save order session state to context
+   * Save order session state to context with TTL
    */
   saveOrderSessionState(ctx: BotContext, state: OrderSessionState): void {
     if (!ctx.session) {
@@ -263,7 +286,14 @@ export class OrderService {
     if (!ctx.session.formData) {
       ctx.session.formData = {};
     }
-    ctx.session.formData.orderCreation = state;
+
+    // Add TTL metadata
+    const stateWithTTL = {
+      ...state,
+      expiresAt: Date.now() + this.SESSION_TTL_MS,
+    };
+
+    ctx.session.formData.orderCreation = stateWithTTL;
   }
 
   /**
@@ -369,10 +399,28 @@ Created: ${order.createdAt.toLocaleDateString()}
   }
 
   /**
-   * Helper: Generate unique order ID
+   * Helper: Generate cryptographically secure unique order ID
    */
   private generateOrderId(): string {
-    return `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `order_${randomBytes(16).toString('hex')}`;
+  }
+
+  /**
+   * Start session cleanup interval
+   */
+  private startSessionCleanup(): void {
+    setInterval(() => {
+      this.cleanupExpiredSessions();
+    }, this.SESSION_CLEANUP_INTERVAL_MS);
+  }
+
+  /**
+   * Cleanup expired sessions
+   */
+  private cleanupExpiredSessions(): void {
+    // TODO: Implement session cleanup when Redis/database is integrated
+    // For now, this is a placeholder for the in-memory implementation
+    this.logger.debug('Session cleanup would run here with database integration');
   }
 
   /**

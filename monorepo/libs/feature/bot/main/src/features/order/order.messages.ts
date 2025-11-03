@@ -5,6 +5,7 @@
  */
 
 import { Order, OrderSessionState, ChannelInfo, OrderStatus } from './order.types';
+import { escapeHtml } from './utils/html-escape.util';
 
 /**
  * Main Menu Message (from specification)
@@ -58,13 +59,13 @@ export function getAddBotAdminMessage(channel: ChannelInfo, botUsername: string)
 ═══════════════════════════════════════
 
 Отлично! Канал найден ✅
-<b>Название:</b> ${channel.title}
+<b>Название:</b> ${escapeHtml(channel.title)}
 <b>Подписчиков:</b> ${channel.subscriberCount.toLocaleString()}
 
 Теперь добавьте этот бот в
 администраторы Вашего канала/чата:
 
-      <code>@${botUsername}</code>
+      <code>@${escapeHtml(botUsername)}</code>
 
 ⚠️ <b>Это требуется, чтобы мы могли
 получать точные данные о вступлениях
@@ -84,8 +85,8 @@ export function getModerationMessage(channel: ChannelInfo, botAdded: boolean): s
 
 Ваш заказ отправлен на модерацию! ✅
 
-<b>Канал:</b> ${channel.title}
-<b>Ссылка:</b> ${channel.username ? `t.me/${channel.username}` : 'Приватный канал'}
+<b>Канал:</b> ${escapeHtml(channel.title)}
+<b>Ссылка:</b> ${channel.username ? `t.me/${escapeHtml(channel.username)}` : 'Приватный канал'}
 <b>Статус:</b> 🟡 Ожидает проверки
 ${botStatus}
 
@@ -118,8 +119,8 @@ export function getConfigurationMessage(order: Order): string {
 
 <b>━━━━━━━━━ ОСНОВНЫЕ НАСТРОЙКИ ━━━━━━━━━</b>
 
-📝 <b>Название:</b> ${config.name}
-🔗 <b>Ссылка:</b> ${config.channelLink}
+📝 <b>Название:</b> ${escapeHtml(config.name)}
+🔗 <b>Ссылка:</b> ${escapeHtml(config.channelLink)}
 
 <b>━━━━━━━ ПАРАМЕТРЫ ПОДПИСЧИКОВ ━━━━━━━━</b>
 
@@ -161,13 +162,13 @@ export function getViewOrderMessage(order: Order, balance: number): string {
   const config = order.config;
 
   return `═══════════════════════════════════════
-           <b>Заказ #${order.id}</b>
+           <b>Заказ #${escapeHtml(order.id)}</b>
 ═══════════════════════════════════════
 
-<b>${config.name}</b>
-🔗 ${config.channelLink}
+<b>${escapeHtml(config.name)}</b>
+🔗 ${escapeHtml(config.channelLink)}
 
-Тематика: ${order.channel.category || '🎮 Игры'}
+Тематика: ${escapeHtml(order.channel.category || '🎮 Игры')}
 Статус: ${getStatusEmoji(order.status)} ${getStatusText(order.status)}
 
 <b>━━━━━━━━━ ПОЛЬЗОВАТЕЛИ ━━━━━━━━━━━━━━</b>
@@ -201,9 +202,9 @@ export function getViewOrderMessage(order: Order, balance: number): string {
           <b>ИНФОРМАЦИЯ О КАНАЛЕ</b>
 
   Telegram
-  ${order.channel.title}
-  ${order.channel.description || 'Games catalog'}
-  @${order.channel.username || 'channel'}
+  ${escapeHtml(order.channel.title)}
+  ${escapeHtml(order.channel.description || 'Games catalog')}
+  @${escapeHtml(order.channel.username || 'channel')}
 
 <b>━━━━━━━━━━━━ БАЛАНС ━━━━━━━━━━━━━━━━━</b>
 

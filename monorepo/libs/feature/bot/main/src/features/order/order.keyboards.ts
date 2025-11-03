@@ -8,6 +8,12 @@ import { InlineKeyboard } from 'grammy';
 import { Order, OrderStatus, OrderDisplayLocation, UserGender, AVAILABLE_TOPICS } from './order.types';
 
 /**
+ * Pagination configuration
+ */
+const ORDERS_PER_PAGE = 10;
+const MAX_INLINE_BUTTONS = 100;
+
+/**
  * Main Menu Keyboard (from specification)
  */
 export function createMainMenuKeyboard(): InlineKeyboard {
@@ -38,9 +44,9 @@ export function createMainMenuKeyboard(): InlineKeyboard {
 }
 
 /**
- * A1: Order List Keyboard
+ * A1: Order List Keyboard (with pagination)
  */
-export function createOrderListKeyboard(orders: Order[], showDeleted = false): InlineKeyboard {
+export function createOrderListKeyboard(orders: Order[], showDeleted = false, page = 1): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // New order button
@@ -49,17 +55,51 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false): I
   // Search button
   keyboard.text('🔍 Поиск', 'order:search').row();
 
-  // List existing orders
-  orders
-    .filter(o => !showDeleted ? o.status !== OrderStatus.Deleted : o.status === OrderStatus.Deleted)
-    .forEach(order => {
-      const statusEmoji = getStatusEmoji(order.status);
-      const statusText = getStatusText(order.status);
-      const label = `${statusEmoji} ${order.config.name || 'Без названия'}`;
-      const subtitle = `${order.stats.totalSubscribers} подписчиков | ${statusText}`;
+  // Filter orders
+  const filteredOrders = orders.filter(o =>
+    !showDeleted ? o.status !== OrderStatus.Deleted : o.status === OrderStatus.Deleted
+  );
 
-      keyboard.text(`${label}\n${subtitle}`, `order:view:${order.id}`).row();
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
+  const startIndex = (page - 1) * ORDERS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ORDERS_PER_PAGE, filteredOrders.length);
+  const pageOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // List orders for current page
+  pageOrders.forEach(order => {
+    const statusEmoji = getStatusEmoji(order.status);
+    const statusText = getStatusText(order.status);
+    const label = `${statusEmoji} ${order.config.name || 'Без названия'}`;
+    const subtitle = `${order.stats.totalSubscribers} подписчиков | ${statusText}`;
+
+    keyboard.text(`${label}\n${subtitle}`, `order:view:${order.id}`).row();
+  });
+
+  // Pagination buttons
+  if (totalPages > 1) {
+    const paginationRow: Array<{ text: string; callback_data: string }> = [];
+
+    if (page > 1) {
+      paginationRow.push({ text: '◀️ Пред', callback_data: `order:list:page:${page - 1}` });
+    }
+
+    paginationRow.push({ text: `${page}/${totalPages}`, callback_data: 'noop' });
+
+    if (page < totalPages) {
+      paginationRow.push({ text: 'След ▶️', callback_data: `order:list:page:${page + 1}` });
+    }
+
+    // Add pagination buttons to keyboard
+    paginationRow.forEach((btn, idx) => {
+      if (idx > 0) {
+        keyboard.text(btn.text, btn.callback_data);
+      } else {
+        keyboard.text(btn.text, btn.callback_data).row();
+      }
     });
+    keyboard.row();
+  }
 
   // Show deleted orders button
   if (!showDeleted && orders.some(o => o.status === OrderStatus.Deleted)) {
