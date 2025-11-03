@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis, RedisClient } from '@app/common-redis';
 import { Err, Ok, Result } from 'ts-results';
-import { getErrorMessage } from '@app/common-shared';
+import { getErrorMessage, AsyncResult } from '@app/common-shared';
 import { BadTokenException, RateLimitExceedException, InternalException } from '@app/common-exception';
 import { BotTokenValidationDto, BotTokenValidationResponseDto } from '../dto';
 import {
@@ -345,7 +345,7 @@ export class BotTokenValidationService {
    */
   private async checkRateLimit(
     clientIp: string,
-  ): Promise<Result<void, RateLimitExceedException | BotTokenRateLimitException>> {
+  ): AsyncResult<void, RateLimitExceedException | BotTokenRateLimitException> {
     try {
       const rateLimitKey = `${this.rateLimitPrefix}:${clientIp}`;
       const current = await this.redisClient.incr(rateLimitKey);

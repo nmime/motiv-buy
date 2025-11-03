@@ -106,6 +106,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "commander": "^14.0.0",
+    "crypto-bot-api": "^0.3.6",
     "dotenv": "^17.2.2",
     "fastify": "^5.6.0",
     "geoip-lite": "^1.4.10",

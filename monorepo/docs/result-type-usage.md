@@ -404,9 +404,9 @@ match(result, {
 ### Types
 
 - `Result<T, E>` - A result that is either Ok<T> or Err<E>
-- `AsyncResult<T, E>` - Promise<Result<T, E>>
+- `AsyncResult<T, E>` - AsyncResult<T, E>>
 - `DomainResult<T>` - Result<T, DomainError>
-- `AsyncDomainResult<T>` - Promise<Result<T, DomainError>>
+- `AsyncDomainResult<T>` - AsyncResult<T, DomainError>>
 
 ### Constructors
 

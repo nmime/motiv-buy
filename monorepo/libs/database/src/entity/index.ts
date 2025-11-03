@@ -7,6 +7,10 @@ export * from './UserRefLink.entity';
 export * from './UserSettings.entity';
 export * from './UserSourceVisit.entity';
 
+// Currency and payment entities
+export * from './Currency.entity';
+export * from './CurrencyRatesHistory.entity';
+
 // Traffic entities
 export * from './TrafficActions.entity';
 export * from './TrafficTarget.entity';

@@ -1,14 +1,20 @@
 import { Module } from '@nestjs/common';
+import { BotFactoryService, BotSubscriptionService } from './service';
 
 /**
  * Bot Shared Module
  *
- * Minimal shared module that exports only essential types, DTOs, enums,
- * and utilities for other modules to consume. Contains no business logic.
+ * Shared module that exports bot factory and subscription services,
+ * along with essential types, DTOs, enums, and utilities for other
+ * modules to consume.
+ *
+ * Provides:
+ * - BotFactoryService: Create and validate bot instances
+ * - BotSubscriptionService: Check user subscriptions to chats
  */
 @Module({
   imports: [],
-  providers: [],
-  exports: [],
+  providers: [BotFactoryService, BotSubscriptionService],
+  exports: [BotFactoryService, BotSubscriptionService],
 })
 export class BotSharedModule {}

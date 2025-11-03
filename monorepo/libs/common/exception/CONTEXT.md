@@ -141,7 +141,7 @@ export class RateLimitGuard implements CanActivate {
 ```typescript
 import { Result } from 'ts-results';
 
-async processPayment(paymentData: any): Promise<Result<Payment, InternalException>> {
+async processPayment(paymentData: any): AsyncResult<Payment, InternalException>> {
   try {
     const payment = await this.paymentService.process(paymentData);
     return Result.ok(payment);

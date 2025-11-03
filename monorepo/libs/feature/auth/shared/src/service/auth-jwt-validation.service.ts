@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Err, Ok, Result } from 'ts-results';
+import { AsyncResult } from '@app/common-shared';
 import { UserRepository, UserRole, UserStatus, UserEntity } from '@app/database';
 import { AuthJwtPayloadDto } from '../dto';
 import { UserData } from '../type';
@@ -15,7 +16,7 @@ export class AuthJwtValidationService {
 
   async validate(
     payload: AuthJwtPayloadDto,
-  ): Promise<Result<UserData, UserBlockedException | UserNotFoundException | BadTokenException>> {
+  ): AsyncResult<UserData, UserBlockedException | UserNotFoundException | BadTokenException> {
     if (!payload?.app || !payload?.userId) {
       return Err(new BadTokenException());
     }

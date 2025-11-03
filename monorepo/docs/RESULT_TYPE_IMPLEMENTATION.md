@@ -15,7 +15,7 @@ A comprehensive Result type system has been implemented in `/Users/nmi/IT/Projec
 - `Ok<T>` - Constructor for success results
 - `Err<E>` - Constructor for error results
 - `Result<T, E>` - Union type for Ok<T> | Err<E>
-- `AsyncResult<T, E>` - Promise<Result<T, E>> (re-exported from class-constructor.types)
+- `AsyncResult<T, E>` - AsyncResult<T, E>> (re-exported from class-constructor.types)
 
 ### 2. Helper Functions
 
@@ -71,7 +71,7 @@ Pre-built error types for common scenarios:
 **Domain Result Types**:
 
 - `DomainResult<T>` - Result<T, DomainError>
-- `AsyncDomainResult<T>` - Promise<Result<T, DomainError>>
+- `AsyncDomainResult<T>` - AsyncResult<T, DomainError>>
 
 ## How to Use
 

@@ -10,3 +10,5 @@ export * from './TrafficTarget.repository';
 export * from './TrafficUser.repository';
 export * from './TrafficOrder.repository';
 export * from './TrafficActions.repository';
+export * from './Currency.repository';
+export * from './CurrencyRatesHistory.repository';

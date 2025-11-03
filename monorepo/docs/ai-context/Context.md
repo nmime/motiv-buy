@@ -314,7 +314,7 @@ export class FeatureService {
     private readonly relatedRepository: RelatedRepository,
   ) {}
 
-  async method(id: string): Promise<ResultDto> {
+  async method(id: string): AsyncResultDto> {
     const entity = await this.entityRepository.findOne({ id: Number(id) });
     if (!entity) {
       throw new NotFoundException(`Entity with ID ${id} not found`);
@@ -326,7 +326,7 @@ export class FeatureService {
 // ❌ Avoid - Mock or Stub Implementation
 @Injectable()
 export class MockService {
-  async method(id: string): Promise<ResultDto> {
+  async method(id: string): AsyncResultDto> {
     return { mock: 'data' }; // Never do this
   }
 }

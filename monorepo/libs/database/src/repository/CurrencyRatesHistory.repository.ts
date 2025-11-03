@@ -1,0 +1,169 @@
+import { Injectable } from '@nestjs/common';
+import { EntityManager } from '@mikro-orm/core';
+import {
+  CurrencyRatesHistoryEntity,
+  RateProvider,
+} from '../entity/CurrencyRatesHistory.entity';
+import { CurrencyEntity, CurrencyCode } from '../entity/Currency.entity';
+
+/**
+ * Repository for currency rates history operations
+ */
+@Injectable()
+export class CurrencyRatesHistoryRepository {
+  constructor(private readonly em: EntityManager) {}
+
+  /**
+   * Create rate history entry
+   */
+  async createEntry(
+    currencyId: string,
+    provider: RateProvider,
+    rateToUsd: string,
+    reliabilityScore: number = 100,
+  ): Promise<CurrencyRatesHistoryEntity> {
+    const currency = await this.em.findOneOrFail(CurrencyEntity, { id: currencyId });
+
+    const entry = this.em.create(CurrencyRatesHistoryEntity, {
+      currencyId,
+      provider,
+      rateToUsd,
+      reliabilityScore,
+    });
+
+    await this.em.persistAndFlush(entry);
+
+    return entry;
+  }
+
+  /**
+   * Get latest rates for a currency from all providers
+   */
+  async getLatestRatesByProvider(currencyCode: CurrencyCode): Promise<CurrencyRatesHistoryEntity[]> {
+    const currency = await this.em.findOne(CurrencyEntity, { code: currencyCode });
+
+    if (!currency) {
+      return [];
+    }
+
+    // Get most recent entry from each provider (last hour)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+    const rates = await this.em.find(
+      CurrencyRatesHistoryEntity,
+      {
+        currency: currency.id,
+        createdAt: { $gte: oneHourAgo },
+      },
+      {
+        orderBy: { createdAt: 'DESC' },
+      },
+    );
+
+    // Get one rate per provider (most recent)
+    const ratesByProvider = new Map<RateProvider, CurrencyRatesHistoryEntity>();
+
+    for (const rate of rates) {
+      if (!ratesByProvider.has(rate.provider)) {
+        ratesByProvider.set(rate.provider, rate);
+      }
+    }
+
+    return Array.from(ratesByProvider.values());
+  }
+
+  /**
+   * Calculate weighted average rate from multiple providers
+   */
+  async getWeightedAverageRate(currencyCode: CurrencyCode): Promise<string | null> {
+    const rates = await this.getLatestRatesByProvider(currencyCode);
+
+    if (rates.length === 0) {
+      return null;
+    }
+
+    // Calculate weighted average using reliability scores
+    let totalWeightedRate = 0;
+    let totalWeight = 0;
+
+    for (const rate of rates) {
+      const weight = rate.reliabilityScore;
+      totalWeightedRate += parseFloat(rate.rateToUsd) * weight;
+      totalWeight += weight;
+    }
+
+    if (totalWeight === 0) {
+      return null;
+    }
+
+    const averageRate = totalWeightedRate / totalWeight;
+    return averageRate.toFixed(8);
+  }
+
+  /**
+   * Get rate history for a currency within time range
+   */
+  async getHistoryByTimeRange(
+    currencyCode: CurrencyCode,
+    from: Date,
+    to: Date,
+    provider?: RateProvider,
+  ): Promise<CurrencyRatesHistoryEntity[]> {
+    const currency = await this.em.findOne(CurrencyEntity, { code: currencyCode });
+
+    if (!currency) {
+      return [];
+    }
+
+    const filters: any = {
+      currency: currency.id,
+      createdAt: { $gte: from, $lte: to },
+    };
+
+    if (provider) {
+      filters.provider = provider;
+    }
+
+    return this.em.find(CurrencyRatesHistoryEntity, filters, {
+      orderBy: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Cleanup old rate history (older than specified days)
+   */
+  async cleanupOldRates(daysToKeep: number = 7): Promise<number> {
+    const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
+
+    const result = await this.em.nativeDelete(CurrencyRatesHistoryEntity, {
+      createdAt: { $lt: cutoffDate },
+    });
+
+    return result;
+  }
+
+  /**
+   * Get most recent rate from a specific provider
+   */
+  async getLatestByProvider(
+    currencyCode: CurrencyCode,
+    provider: RateProvider,
+  ): Promise<CurrencyRatesHistoryEntity | null> {
+    const currency = await this.em.findOne(CurrencyEntity, { code: currencyCode });
+
+    if (!currency) {
+      return null;
+    }
+
+    return this.em.findOne(
+      CurrencyRatesHistoryEntity,
+      {
+        currency: currency.id,
+        provider,
+      },
+      {
+        orderBy: { createdAt: 'DESC' },
+      },
+    );
+  }
+}

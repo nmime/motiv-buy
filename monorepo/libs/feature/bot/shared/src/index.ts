@@ -7,3 +7,4 @@ export * from './util/callback.util';
 export * from './util/keyboard.util';
 export * from './type/session.interface';
 export * from './type/bot-context.interface';
+export * from './service';

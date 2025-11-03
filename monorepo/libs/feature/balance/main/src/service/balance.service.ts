@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { IBalanceService } from '../interfaces/balance.service.interface';
 import {
   UserBalanceRepository,
@@ -8,21 +8,40 @@ import {
   TransactionStatus,
 } from '@app/database';
 import {
+  CreateInvoiceDto,
+  CreateTransferDto,
+  PaymentService,
+} from '@app/feature-payment-main';
+import { CurrencyRateService } from './currency-rate.service';
+import { CurrencyCode } from '@app/database';
+import { Result, Ok, Err } from '@app/common-shared';
+import {
   BalanceDto,
   TransactionDto,
   TransactionFilterDto,
-  DepositRequestDto,
-  WithdrawalRequestDto,
   TransactionType,
 } from '../dto';
+import { TopUpRequestDto } from '../dto/topup-request.dto';
+import { WithdrawRequestDto } from '../dto/withdraw-request.dto';
 
+/**
+ * Balance service with integrated payment processing
+ * Handles balance operations, topup via payment invoices, and withdrawals
+ */
 @Injectable()
 export class BalanceService implements IBalanceService {
+  private readonly logger = new Logger(BalanceService.name);
+
   constructor(
     private readonly userBalanceRepository: UserBalanceRepository,
     private readonly userBalanceHistoryRepository: UserBalanceHistoryRepository,
+    private readonly paymentService: PaymentService,
+    private readonly currencyRateService: CurrencyRateService,
   ) {}
 
+  /**
+   * Get user balance with all details
+   */
   async getBalance(userId: string): Promise<BalanceDto> {
     const balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyType.Rub);
 
@@ -84,13 +103,16 @@ export class BalanceService implements IBalanceService {
     };
   }
 
+  /**
+   * Get transaction history with filtering
+   */
   async getTransactionHistory(userId: string, filter: TransactionFilterDto): Promise<TransactionDto[]> {
     let transactions;
 
     if (filter.type) {
       const dbType = this.mapToDbTransactionType(filter.type);
       transactions = await this.userBalanceHistoryRepository.getUserTransactionHistory(
-        userId, // Assuming this method accepts userId directly
+        userId,
         CurrencyType.Rub,
         dbType,
         50,
@@ -114,69 +136,149 @@ export class BalanceService implements IBalanceService {
     }));
   }
 
-  async requestDeposit(userId: string, request: DepositRequestDto): Promise<{ paymentUrl: string }> {
-    const currentBalance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyType.Rub);
-    const balanceBefore = currentBalance ? currentBalance.balance : '0';
-    const balanceAfter = (parseFloat(balanceBefore) + request.amount).toString();
+  /**
+   * Request top-up via cryptocurrency payment
+   * Creates invoice and returns payment URL
+   */
+  async requestTopUp(
+    userId: string,
+    request: TopUpRequestDto,
+  ): Promise<Result<{ paymentUrl: string; invoiceId: string; rubAmount: string }, Error>> {
+    try {
+      this.logger.log(
+        `Creating top-up request for user ${userId}: ${request.amount} ${request.currency}`,
+      );
 
-    // Create pending deposit transaction
-    await this.userBalanceHistoryRepository.createTransaction({
-      userId,
-      currency: CurrencyType.Rub,
-      type: DbTransactionType.Deposit,
-      amount: request.amount.toString(),
-      balanceBefore,
-      balanceAfter,
-      status: TransactionStatus.Pending,
-      description: `Deposit request via ${request.paymentMethod}`,
-      referenceId: `deposit-${userId}-${Date.now()}`,
-    });
+      // Convert crypto amount to RUB
+      const rubAmountResult = await this.currencyRateService.convertToRub(
+        request.amount,
+        request.currency as unknown as CurrencyCode,
+      );
 
-    /**
-     * TODO: Payment Gateway Integration
-     *
-     * DEFERRED: Payment provider integration pending business requirements
-     *
-     * Requirements for implementation:
-     * 1. Select payment provider (Stripe, YooKassa, etc.)
-     * 2. Implement secure webhook handlers for payment status updates
-     * 3. Add transaction reconciliation logic
-     * 4. Implement refund and chargeback handling
-     * 5. Add PCI compliance measures
-     * 6. Set up environment-specific API keys configuration
-     *
-     * Current behavior: Returns mock payment URL for development
-     * Risk: Production deployment requires actual payment integration
-     */
-    const paymentUrl = `https://payment.gateway/deposit/${userId}-${Date.now()}`;
+      if (rubAmountResult.err) {
+        this.logger.error('Failed to convert currency', rubAmountResult.val);
+        return Err(rubAmountResult.val);
+      }
 
-    return { paymentUrl };
+      const rubAmount = rubAmountResult.val;
+
+      // Create invoice via payment service
+      const invoiceDto: CreateInvoiceDto = {
+        amount: request.amount,
+        currency: request.currency,
+        description: request.description || `Balance top-up ${request.amount} ${request.currency}`,
+        expiresIn: 3600, // 1 hour
+      };
+
+      const invoiceResult = await this.paymentService.createTopUp(userId, invoiceDto);
+
+      if (invoiceResult.err) {
+        this.logger.error('Failed to create invoice', invoiceResult.val);
+        return Err(invoiceResult.val);
+      }
+
+      const invoice = invoiceResult.val;
+
+      this.logger.log(
+        `Top-up invoice created: ${invoice.id}, payment URL: ${invoice.payUrl}, RUB equivalent: ${rubAmount}`,
+      );
+
+      return Ok({
+        paymentUrl: invoice.payUrl,
+        invoiceId: invoice.id,
+        rubAmount,
+      });
+    } catch (error) {
+      this.logger.error('Error creating top-up request', error);
+      return Err(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
-  async requestWithdrawal(userId: string, request: WithdrawalRequestDto): Promise<{ transactionId: string }> {
-    const currentBalance = await this.getBalance(userId);
+  /**
+   * Request withdrawal to cryptocurrency wallet
+   * Validates balance, converts to crypto, and initiates transfer
+   */
+  async requestWithdrawal(
+    userId: string,
+    request: WithdrawRequestDto,
+  ): Promise<Result<{ transferId: string; cryptoAmount: string }, Error>> {
+    try {
+      this.logger.log(
+        `Creating withdrawal request for user ${userId}: ${request.amount} RUB to ${request.currency}`,
+      );
 
-    if (currentBalance.amount < request.amount) {
-      throw new Error('Insufficient balance');
+      // Check balance
+      const balance = await this.getBalance(userId);
+
+      if (balance.availableAmount < request.amount) {
+        this.logger.warn(
+          `Insufficient balance for withdrawal. Available: ${balance.availableAmount}, Requested: ${request.amount}`,
+        );
+        return Err(
+          new Error(
+            `Insufficient balance. Available: ${balance.availableAmount} RUB, Requested: ${request.amount} RUB`,
+          ),
+        );
+      }
+
+      // Convert RUB to cryptocurrency
+      const cryptoAmountResult = await this.currencyRateService.convertFromRub(
+        request.amount.toString(),
+        request.currency as unknown as CurrencyCode,
+      );
+
+      if (cryptoAmountResult.err) {
+        this.logger.error('Failed to convert currency', cryptoAmountResult.val);
+        return Err(cryptoAmountResult.val);
+      }
+
+      const cryptoAmount = cryptoAmountResult.val;
+
+      // Create transfer via payment service
+      const transferDto: CreateTransferDto = {
+        userId: request.telegramUserId,
+        amount: cryptoAmount,
+        currency: request.currency,
+        comment: request.comment || `Withdrawal from balance: ${request.amount} RUB`,
+      };
+
+      const transferResult = await this.paymentService.createWithdrawal(userId, transferDto);
+
+      if (transferResult.err) {
+        this.logger.error('Failed to create withdrawal', transferResult.val);
+        return Err(transferResult.val);
+      }
+
+      const transfer = transferResult.val;
+
+      this.logger.log(
+        `Withdrawal created: ${transfer.id}, crypto amount: ${cryptoAmount} ${request.currency}`,
+      );
+
+      return Ok({
+        transferId: transfer.id,
+        cryptoAmount,
+      });
+    } catch (error) {
+      this.logger.error('Error creating withdrawal request', error);
+      return Err(error instanceof Error ? error : new Error(String(error)));
     }
+  }
 
-    const balanceBefore = currentBalance.amount.toString();
-    const balanceAfter = (currentBalance.amount - request.amount).toString();
+  /**
+   * Legacy method - deprecated, use requestTopUp
+   */
+  async requestDeposit(userId: string, request: any): Promise<{ paymentUrl: string }> {
+    this.logger.warn('requestDeposit is deprecated, use requestTopUp instead');
+    throw new Error('Use requestTopUp method instead');
+  }
 
-    // Create pending withdrawal transaction
-    const transaction = await this.userBalanceHistoryRepository.createTransaction({
-      userId,
-      currency: CurrencyType.Rub,
-      type: DbTransactionType.Withdrawal,
-      amount: request.amount.toString(),
-      balanceBefore,
-      balanceAfter,
-      status: TransactionStatus.Pending,
-      description: `Withdrawal request to ${request.destination}`,
-      referenceId: `withdrawal-${userId}-${Date.now()}`,
-    });
-
-    return { transactionId: transaction.id };
+  /**
+   * Legacy method - deprecated, use requestWithdrawal
+   */
+  async requestWithdrawal_old(userId: string, request: any): Promise<{ transactionId: string }> {
+    this.logger.warn('requestWithdrawal_old is deprecated');
+    throw new Error('Use requestWithdrawal method instead');
   }
 
   private mapFromDbTransactionType(dbType: DbTransactionType): TransactionType {

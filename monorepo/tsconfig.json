@@ -34,6 +34,8 @@
       "@app/feature-balance-shared": ["libs/feature/balance/shared/src"],
       "@app/feature-bot-main": ["libs/feature/bot/main/src"],
       "@app/feature-bot-shared": ["libs/feature/bot/shared/src"],
+      "@app/feature-payment-main": ["libs/feature/payment/main/src"],
+      "@app/feature-payment-shared": ["libs/feature/payment/shared/src"],
       "@app/feature-statistic-main": ["libs/feature/statistic/main/src"],
       "@app/feature-statistic-shared": ["libs/feature/statistic/shared/src"],
       "@app/feature-traffic-main": ["libs/feature/traffic/main/src"],

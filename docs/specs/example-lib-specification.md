@@ -184,7 +184,7 @@ export class AuthJwtValidationService {
 
   async validate(
     payload: AuthJwtPayloadDto
-  ): Promise<Result<UserData, AuthValidationError>> {
+  ): AsyncResult<UserData, AuthValidationError>> {
     try {
       // Check if user is blocked (with caching)
       const isBlocked = await this.authBlockedCacheService.isUserBlocked(payload.userId);

@@ -129,7 +129,7 @@ calculateDiscount(user: User): number {
 ### TypeScript/JavaScript
 ```typescript
 // Use modern syntax
-const processItems = async (items: Item[]): Promise<Result[]> => {
+const processItems = async (items: Item[]): AsyncResult[]> => {
   return items.map(({ id, name }) => ({
     id,
     processedName: name.toUpperCase(),

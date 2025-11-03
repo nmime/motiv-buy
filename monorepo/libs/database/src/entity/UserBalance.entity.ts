@@ -1,14 +1,27 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum, Ref } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Ref } from '@mikro-orm/core';
 import { EntityConstructorData, assignEntityData } from '../type';
 import { UserEntity } from './User.entity';
+import { CurrencyEntity } from './Currency.entity';
 
+/**
+ * @deprecated Use CurrencyEntity instead
+ * Kept for backwards compatibility during migration
+ */
 export enum CurrencyType {
   Rub = 'RUB',
+  USDT = 'USDT',
+  TON = 'TON',
+  BTC = 'BTC',
+  ETH = 'ETH',
+  LTC = 'LTC',
+  BNB = 'BNB',
+  TRX = 'TRX',
+  USDC = 'USDC',
 }
 
 @Entity({ tableName: 'user_balances' })
 @Index({ name: 'ix__user_balances__user_id', properties: ['user'] })
-@Index({ name: 'ix__user_balances__currency', properties: ['currency'] })
+@Index({ name: 'ix__user_balances__currency_id', properties: ['currency'] })
 @Unique({ name: 'uq__user_balances__user_currency', properties: ['user', 'currency'] })
 export class UserBalanceEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
@@ -17,9 +30,8 @@ export class UserBalanceEntity {
   @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })
   user!: Ref<UserEntity>;
 
-  @Property({ type: 'varchar', length: 10, fieldName: 'currency' })
-  @Enum(() => CurrencyType)
-  currency!: CurrencyType;
+  @ManyToOne('CurrencyEntity', { nullable: false, joinColumn: 'currency_id', referenceColumnName: 'id', ref: true })
+  currency!: Ref<CurrencyEntity>;
 
   @Property({ type: 'decimal', precision: 20, scale: 8, default: '0', fieldName: 'balance' })
   balance!: string;
@@ -38,13 +50,18 @@ export class UserBalanceEntity {
       UserBalanceEntity,
       'id' | 'createdAt' | 'updatedAt' | 'getTotalBalance' | 'getAvailableBalance' | 'getLockedBalance',
       never,
-      'user'
+      'user' | 'currency'
     >,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
       userId: {
         field: 'user',
         entityClass: UserEntity,
+        required: true,
+      },
+      currencyId: {
+        field: 'currency',
+        entityClass: CurrencyEntity,
         required: true,
       },
     });
