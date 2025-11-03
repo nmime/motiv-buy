@@ -7,7 +7,18 @@ export class Migration20251103000002_create_currency_rates_history_table extends
       CREATE TABLE "currency_rates_history" (
         "id" uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
         "currency_id" uuid NOT NULL,
-        "provider" varchar(20) NOT NULL CHECK ("provider" IN ('COINGECKO', 'BINANCE', 'CRYPTOCOMPARE', 'CENTRAL_BANK', 'MANUAL')),
+        "provider" varchar(30) NOT NULL CHECK ("provider" IN (
+          'COINGECKO',
+          'BINANCE',
+          'CRYPTOCOMPARE',
+          'COINCAP',
+          'KRAKEN',
+          'EXCHANGERATE_API',
+          'FRANKFURTER',
+          'FREECURRENCY_API',
+          'CENTRAL_BANK',
+          'MANUAL'
+        )),
         "rate_to_usd" decimal(20, 8) NOT NULL,
         "reliability_score" integer NOT NULL DEFAULT 100,
         "created_at" timestamptz NOT NULL DEFAULT now(),

@@ -70,7 +70,7 @@ export class CurrencyRateService implements OnModuleInit {
 
   // Stablecoin tolerance (3% deviation)
   private readonly STABLECOIN_TOLERANCE = 0.03;
-  private readonly STABLECOINS = [CurrencyCode.UsdT, CurrencyCode.UsdC];
+  private readonly STABLECOINS = [CurrencyCode.Usdt, CurrencyCode.Usdc];
 
   // Circuit breaker thresholds
   private readonly CIRCUIT_BREAKER_THRESHOLD = 5; // failures before opening
@@ -311,8 +311,8 @@ export class CurrencyRateService implements OnModuleInit {
     const cryptoMapping: Record<string, string> = {
       [CurrencyCode.Btc]: 'bitcoin',
       [CurrencyCode.Eth]: 'ethereum',
-      [CurrencyCode.UsdT]: 'tether',
-      [CurrencyCode.UsdC]: 'usd-coin',
+      [CurrencyCode.Usdt]: 'tether',
+      [CurrencyCode.Usdc]: 'usd-coin',
       [CurrencyCode.Bnb]: 'binancecoin',
       [CurrencyCode.Ton]: 'the-open-network',
       [CurrencyCode.Trx]: 'tron',
@@ -442,7 +442,7 @@ export class CurrencyRateService implements OnModuleInit {
         for (const symbol of symbols) {
           if (data[symbol]?.USD) {
             const rate = parseFloat(data[symbol].USD);
-            const currencyCode = symbol === 'USDT' ? CurrencyCode.UsdT : (symbol as CurrencyCode);
+            const currencyCode = symbol === 'USDT' ? CurrencyCode.Usdt : (symbol as CurrencyCode);
 
             if (!this.validateStablecoinRate(currencyCode, rate)) {
               continue;
@@ -478,8 +478,8 @@ export class CurrencyRateService implements OnModuleInit {
     const mapping: Record<string, string> = {
       bitcoin: CurrencyCode.Btc,
       ethereum: CurrencyCode.Eth,
-      tether: CurrencyCode.UsdT,
-      'usd-coin': CurrencyCode.UsdC,
+      tether: CurrencyCode.Usdt,
+      'usd-coin': CurrencyCode.Usdc,
       'binance-coin': CurrencyCode.Bnb,
       toncoin: CurrencyCode.Ton,
       tron: CurrencyCode.Trx,
@@ -796,8 +796,8 @@ export class CurrencyRateService implements OnModuleInit {
     const cryptoCurrencies = [
       CurrencyCode.Btc,
       CurrencyCode.Eth,
-      CurrencyCode.UsdT,
-      CurrencyCode.UsdC,
+      CurrencyCode.Usdt,
+      CurrencyCode.Usdc,
       CurrencyCode.Bnb,
       CurrencyCode.Ton,
       CurrencyCode.Trx,
@@ -893,9 +893,9 @@ export class CurrencyRateService implements OnModuleInit {
       // Crypto
       { code: CurrencyCode.Btc, name: 'Bitcoin', type: CurrencyType.Crypto, rate: '45000', symbol: '₿', decimals: 8 },
       { code: CurrencyCode.Eth, name: 'Ethereum', type: CurrencyType.Crypto, rate: '2500', symbol: 'Ξ', decimals: 8 },
-      { code: CurrencyCode.UsdT, name: 'Tether', type: CurrencyType.Crypto, rate: '1.0', symbol: '₮', decimals: 6 },
+      { code: CurrencyCode.Usdt, name: 'Tether', type: CurrencyType.Crypto, rate: '1.0', symbol: '₮', decimals: 6 },
       {
-        code: CurrencyCode.UsdC,
+        code: CurrencyCode.Usdc,
         name: 'USD Coin',
         type: CurrencyType.Crypto,
         rate: '1.0',

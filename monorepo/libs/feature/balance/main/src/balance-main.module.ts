@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { DatabaseModule } from '@app/database';
 import { BalanceService } from './service/balance.service';
+import { CurrencyRateService } from './service/currency-rate.service';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [ConfigModule, ScheduleModule.forRoot(), DatabaseModule],
   controllers: [],
-  providers: [BalanceService],
-  exports: [BalanceService],
+  providers: [BalanceService, CurrencyRateService],
+  exports: [BalanceService, CurrencyRateService],
 })
 export class BalanceMainModule {}
