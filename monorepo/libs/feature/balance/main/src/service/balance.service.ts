@@ -7,20 +7,11 @@ import {
   TransactionType as DbTransactionType,
   TransactionStatus,
 } from '@app/database';
-import {
-  CreateInvoiceDto,
-  CreateTransferDto,
-  PaymentService,
-} from '@app/feature-payment-main';
+import { CreateInvoiceDto, CreateTransferDto, PaymentService } from '@app/feature-payment-main';
 import { CurrencyRateService } from './currency-rate.service';
 import { CurrencyCode } from '@app/database';
 import { Result, Ok, Err } from '@app/common-shared';
-import {
-  BalanceDto,
-  TransactionDto,
-  TransactionFilterDto,
-  TransactionType,
-} from '../dto';
+import { BalanceDto, TransactionDto, TransactionFilterDto, TransactionType } from '../dto';
 import { TopUpRequestDto } from '../dto/topup-request.dto';
 import { WithdrawRequestDto } from '../dto/withdraw-request.dto';
 
@@ -145,9 +136,7 @@ export class BalanceService implements IBalanceService {
     request: TopUpRequestDto,
   ): Promise<Result<{ paymentUrl: string; invoiceId: string; rubAmount: string }, Error>> {
     try {
-      this.logger.log(
-        `Creating top-up request for user ${userId}: ${request.amount} ${request.currency}`,
-      );
+      this.logger.log(`Creating top-up request for user ${userId}: ${request.amount} ${request.currency}`);
 
       // Convert crypto amount to RUB
       const rubAmountResult = await this.currencyRateService.convertToRub(
@@ -157,6 +146,7 @@ export class BalanceService implements IBalanceService {
 
       if (rubAmountResult.err) {
         this.logger.error('Failed to convert currency', rubAmountResult.val);
+
         return Err(rubAmountResult.val);
       }
 
@@ -174,6 +164,7 @@ export class BalanceService implements IBalanceService {
 
       if (invoiceResult.err) {
         this.logger.error('Failed to create invoice', invoiceResult.val);
+
         return Err(invoiceResult.val);
       }
 
@@ -190,6 +181,7 @@ export class BalanceService implements IBalanceService {
       });
     } catch (error) {
       this.logger.error('Error creating top-up request', error);
+
       return Err(error instanceof Error ? error : new Error(String(error)));
     }
   }
@@ -203,9 +195,7 @@ export class BalanceService implements IBalanceService {
     request: WithdrawRequestDto,
   ): Promise<Result<{ transferId: string; cryptoAmount: string }, Error>> {
     try {
-      this.logger.log(
-        `Creating withdrawal request for user ${userId}: ${request.amount} RUB to ${request.currency}`,
-      );
+      this.logger.log(`Creating withdrawal request for user ${userId}: ${request.amount} RUB to ${request.currency}`);
 
       // Check balance
       const balance = await this.getBalance(userId);
@@ -214,6 +204,7 @@ export class BalanceService implements IBalanceService {
         this.logger.warn(
           `Insufficient balance for withdrawal. Available: ${balance.availableAmount}, Requested: ${request.amount}`,
         );
+
         return Err(
           new Error(
             `Insufficient balance. Available: ${balance.availableAmount} RUB, Requested: ${request.amount} RUB`,
@@ -229,6 +220,7 @@ export class BalanceService implements IBalanceService {
 
       if (cryptoAmountResult.err) {
         this.logger.error('Failed to convert currency', cryptoAmountResult.val);
+
         return Err(cryptoAmountResult.val);
       }
 
@@ -246,14 +238,13 @@ export class BalanceService implements IBalanceService {
 
       if (transferResult.err) {
         this.logger.error('Failed to create withdrawal', transferResult.val);
+
         return Err(transferResult.val);
       }
 
       const transfer = transferResult.val;
 
-      this.logger.log(
-        `Withdrawal created: ${transfer.id}, crypto amount: ${cryptoAmount} ${request.currency}`,
-      );
+      this.logger.log(`Withdrawal created: ${transfer.id}, crypto amount: ${cryptoAmount} ${request.currency}`);
 
       return Ok({
         transferId: transfer.id,
@@ -261,6 +252,7 @@ export class BalanceService implements IBalanceService {
       });
     } catch (error) {
       this.logger.error('Error creating withdrawal request', error);
+
       return Err(error instanceof Error ? error : new Error(String(error)));
     }
   }

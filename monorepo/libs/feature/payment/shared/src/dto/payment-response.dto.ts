@@ -22,7 +22,7 @@ export class InvoiceResponseDto {
   @ApiProperty({
     description: 'Cryptocurrency used for the invoice',
     enum: Cryptocurrency,
-    example: Cryptocurrency.USDT,
+    example: Cryptocurrency.Usdt,
   })
   currency!: Cryptocurrency;
 
@@ -90,7 +90,7 @@ export class TransferResponseDto {
   @ApiProperty({
     description: 'Cryptocurrency used for the transfer',
     enum: Cryptocurrency,
-    example: Cryptocurrency.USDT,
+    example: Cryptocurrency.Usdt,
   })
   currency!: Cryptocurrency;
 

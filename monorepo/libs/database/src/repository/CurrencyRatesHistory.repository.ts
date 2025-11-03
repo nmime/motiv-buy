@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import {
-  CurrencyRatesHistoryEntity,
-  RateProvider,
-} from '../entity/CurrencyRatesHistory.entity';
+import { CurrencyRatesHistoryEntity, RateProvider } from '../entity/CurrencyRatesHistory.entity';
 import { CurrencyEntity, CurrencyCode } from '../entity/Currency.entity';
 
 /**
@@ -20,10 +17,8 @@ export class CurrencyRatesHistoryRepository {
     currencyId: string,
     provider: RateProvider,
     rateToUsd: string,
-    reliabilityScore: number = 100,
+    reliabilityScore = 100,
   ): Promise<CurrencyRatesHistoryEntity> {
-    const currency = await this.em.findOneOrFail(CurrencyEntity, { id: currencyId });
-
     const entry = this.em.create(CurrencyRatesHistoryEntity, {
       currencyId,
       provider,
@@ -97,6 +92,7 @@ export class CurrencyRatesHistoryRepository {
     }
 
     const averageRate = totalWeightedRate / totalWeight;
+
     return averageRate.toFixed(8);
   }
 
@@ -115,7 +111,7 @@ export class CurrencyRatesHistoryRepository {
       return [];
     }
 
-    const filters: any = {
+    const filters: Record<string, unknown> = {
       currency: currency.id,
       createdAt: { $gte: from, $lte: to },
     };
@@ -132,7 +128,7 @@ export class CurrencyRatesHistoryRepository {
   /**
    * Cleanup old rate history (older than specified days)
    */
-  async cleanupOldRates(daysToKeep: number = 7): Promise<number> {
+  async cleanupOldRates(daysToKeep = 7): Promise<number> {
     const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
 
     const result = await this.em.nativeDelete(CurrencyRatesHistoryEntity, {

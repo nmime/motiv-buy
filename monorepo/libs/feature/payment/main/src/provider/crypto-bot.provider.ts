@@ -29,9 +29,7 @@ export class CryptoBotProvider implements IPaymentProvider {
     this.apiToken = this.paymentConfig.getCryptoBotApiToken();
     this.client = new ClientEmitter(this.apiToken);
 
-    this.logger.log(
-      `CryptoBotProvider initialized (testnet: ${this.paymentConfig.isTestnet()})`,
-    );
+    this.logger.log(`CryptoBotProvider initialized (testnet: ${this.paymentConfig.isTestnet()})`);
   }
 
   /**
@@ -45,9 +43,7 @@ export class CryptoBotProvider implements IPaymentProvider {
     expiresIn?: number;
   }): AsyncResult<PaymentInvoice, Error> {
     try {
-      this.logger.log(
-        `Creating invoice for user ${params.userId}: ${params.amount} ${params.currency}`,
-      );
+      this.logger.log(`Creating invoice for user ${params.userId}: ${params.amount} ${params.currency}`);
 
       const response = await this.client.createInvoice({
         asset: this.mapCryptocurrencyToAsset(params.currency),
@@ -58,6 +54,7 @@ export class CryptoBotProvider implements IPaymentProvider {
 
       if (!response.ok || !response.result) {
         this.logger.error('Failed to create invoice', response);
+
         return Err(new Error('Failed to create invoice'));
       }
 
@@ -67,16 +64,16 @@ export class CryptoBotProvider implements IPaymentProvider {
         amount: invoice.amount,
         currency: this.mapAssetToCryptocurrency(invoice.asset),
         payUrl: invoice.pay_url,
-        expiresAt: invoice.expiration_date
-          ? new Date(invoice.expiration_date)
-          : undefined,
+        expiresAt: invoice.expiration_date ? new Date(invoice.expiration_date) : undefined,
         description: invoice.description,
       };
 
       this.logger.log(`Invoice created: ${paymentInvoice.invoiceId}`);
+
       return Ok(paymentInvoice);
     } catch (error) {
       this.logger.error('Error creating invoice', error);
+
       return Err(toError(error));
     }
   }
@@ -94,6 +91,7 @@ export class CryptoBotProvider implements IPaymentProvider {
 
       if (!response.ok || !response.result || response.result.items.length === 0) {
         this.logger.warn(`Invoice not found: ${invoiceId}`);
+
         return Err(new Error(`Invoice not found: ${invoiceId}`));
       }
 
@@ -111,6 +109,7 @@ export class CryptoBotProvider implements IPaymentProvider {
       return Ok(transaction);
     } catch (error) {
       this.logger.error(`Error getting invoice ${invoiceId}`, error);
+
       return Err(toError(error));
     }
   }
@@ -127,34 +126,33 @@ export class CryptoBotProvider implements IPaymentProvider {
       this.logger.log('Getting invoices history', params);
 
       const response = await this.client.getInvoices({
-        status: params?.status
-          ? this.mapPaymentStatusToApiStatus(params.status)
-          : undefined,
+        status: params?.status ? this.mapPaymentStatusToApiStatus(params.status) : undefined,
         offset: params?.offset,
         count: params?.count ?? 100,
       });
 
       if (!response.ok || !response.result) {
         this.logger.error('Failed to get invoices', response);
+
         return Err(new Error('Failed to get invoices'));
       }
 
-      const transactions: PaymentTransaction[] = response.result.items.map(
-        (invoice: any) => ({
-          transactionId: invoice.invoice_id.toString(),
-          invoiceId: invoice.invoice_id.toString(),
-          amount: invoice.amount,
-          currency: this.mapAssetToCryptocurrency(invoice.asset),
-          status: this.mapStatusToPaymentStatus(invoice.status),
-          paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
-          fee: invoice.fee,
-        }),
-      );
+      const transactions: PaymentTransaction[] = response.result.items.map((invoice: any) => ({
+        transactionId: invoice.invoice_id.toString(),
+        invoiceId: invoice.invoice_id.toString(),
+        amount: invoice.amount,
+        currency: this.mapAssetToCryptocurrency(invoice.asset),
+        status: this.mapStatusToPaymentStatus(invoice.status),
+        paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
+        fee: invoice.fee,
+      }));
 
       this.logger.log(`Retrieved ${transactions.length} invoices`);
+
       return Ok(transactions);
     } catch (error) {
       this.logger.error('Error getting invoices', error);
+
       return Err(toError(error));
     }
   }
@@ -169,9 +167,7 @@ export class CryptoBotProvider implements IPaymentProvider {
     comment?: string;
   }): AsyncResult<PaymentTransfer, Error> {
     try {
-      this.logger.log(
-        `Creating transfer for user ${params.userId}: ${params.amount} ${params.currency}`,
-      );
+      this.logger.log(`Creating transfer for user ${params.userId}: ${params.amount} ${params.currency}`);
 
       const response = await this.client.transfer({
         user_id: parseInt(params.userId, 10),
@@ -182,6 +178,7 @@ export class CryptoBotProvider implements IPaymentProvider {
 
       if (!response.ok || !response.result) {
         this.logger.error('Failed to create transfer', response);
+
         return Err(new Error('Failed to create transfer'));
       }
 
@@ -191,16 +188,16 @@ export class CryptoBotProvider implements IPaymentProvider {
         amount: transfer.amount,
         currency: this.mapAssetToCryptocurrency(transfer.asset),
         status: this.mapTransferStatusToPaymentStatus(transfer.status),
-        completedAt: transfer.completed_at
-          ? new Date(transfer.completed_at)
-          : undefined,
+        completedAt: transfer.completed_at ? new Date(transfer.completed_at) : undefined,
         fee: transfer.fee,
       };
 
       this.logger.log(`Transfer created: ${paymentTransfer.transferId}`);
+
       return Ok(paymentTransfer);
     } catch (error) {
       this.logger.error('Error creating transfer', error);
+
       return Err(toError(error));
     }
   }
@@ -218,6 +215,7 @@ export class CryptoBotProvider implements IPaymentProvider {
 
       if (!response.ok || !response.result || response.result.items.length === 0) {
         this.logger.warn(`Transfer not found: ${transferId}`);
+
         return Err(new Error(`Transfer not found: ${transferId}`));
       }
 
@@ -227,15 +225,14 @@ export class CryptoBotProvider implements IPaymentProvider {
         amount: transfer.amount,
         currency: this.mapAssetToCryptocurrency(transfer.asset),
         status: this.mapTransferStatusToPaymentStatus(transfer.status),
-        completedAt: transfer.completed_at
-          ? new Date(transfer.completed_at)
-          : undefined,
+        completedAt: transfer.completed_at ? new Date(transfer.completed_at) : undefined,
         fee: transfer.fee,
       };
 
       return Ok(paymentTransfer);
     } catch (error) {
       this.logger.error(`Error getting transfer ${transferId}`, error);
+
       return Err(toError(error));
     }
   }
@@ -243,10 +240,7 @@ export class CryptoBotProvider implements IPaymentProvider {
   /**
    * Get transfers history
    */
-  async getTransfers(params?: {
-    offset?: number;
-    count?: number;
-  }): AsyncResult<PaymentTransfer[], Error> {
+  async getTransfers(params?: { offset?: number; count?: number }): AsyncResult<PaymentTransfer[], Error> {
     try {
       this.logger.log('Getting transfers history', params);
 
@@ -257,6 +251,7 @@ export class CryptoBotProvider implements IPaymentProvider {
 
       if (!response.ok || !response.result) {
         this.logger.error('Failed to get transfers', response);
+
         return Err(new Error('Failed to get transfers'));
       }
 
@@ -265,16 +260,16 @@ export class CryptoBotProvider implements IPaymentProvider {
         amount: transfer.amount,
         currency: this.mapAssetToCryptocurrency(transfer.asset),
         status: this.mapTransferStatusToPaymentStatus(transfer.status),
-        completedAt: transfer.completed_at
-          ? new Date(transfer.completed_at)
-          : undefined,
+        completedAt: transfer.completed_at ? new Date(transfer.completed_at) : undefined,
         fee: transfer.fee,
       }));
 
       this.logger.log(`Retrieved ${transfers.length} transfers`);
+
       return Ok(transfers);
     } catch (error) {
       this.logger.error('Error getting transfers', error);
+
       return Err(toError(error));
     }
   }
@@ -290,19 +285,24 @@ export class CryptoBotProvider implements IPaymentProvider {
 
       if (!response.ok || !response.result) {
         this.logger.error('Failed to get balances', response);
+
         return Err(new Error('Failed to get balances'));
       }
 
-      const balances: PaymentBalance[] = (Array.isArray(response.result) ? response.result : [response.result]).map((balance: any) => ({
-        currency: this.mapAssetToCryptocurrency(balance.currency_code),
-        available: balance.available,
-        onHold: balance.onhold || '0',
-      }));
+      const balances: PaymentBalance[] = (Array.isArray(response.result) ? response.result : [response.result]).map(
+        (balance: any) => ({
+          currency: this.mapAssetToCryptocurrency(balance.currency_code),
+          available: balance.available,
+          onHold: balance.onhold || '0',
+        }),
+      );
 
       this.logger.log(`Retrieved ${balances.length} balances`);
+
       return Ok(balances);
     } catch (error) {
       this.logger.error('Error getting balances', error);
+
       return Err(toError(error));
     }
   }
@@ -319,9 +319,7 @@ export class CryptoBotProvider implements IPaymentProvider {
       const secret = createHash('sha256').update(this.apiToken).digest();
 
       // Create HMAC signature
-      const expectedSignature = createHmac('sha256', secret)
-        .update(body)
-        .digest('hex');
+      const expectedSignature = createHmac('sha256', secret).update(body).digest('hex');
 
       // Compare signatures
       const isValid = signature === expectedSignature;
@@ -333,6 +331,7 @@ export class CryptoBotProvider implements IPaymentProvider {
       return isValid;
     } catch (error) {
       this.logger.error('Error verifying webhook signature', error);
+
       return false;
     }
   }
@@ -349,18 +348,18 @@ export class CryptoBotProvider implements IPaymentProvider {
    */
   private mapAssetToCryptocurrency(asset: string): Cryptocurrency {
     const mapping: Record<string, Cryptocurrency> = {
-      USDT: Cryptocurrency.USDT,
-      TON: Cryptocurrency.TON,
-      BTC: Cryptocurrency.BTC,
-      ETH: Cryptocurrency.ETH,
-      LTC: Cryptocurrency.LTC,
-      BNB: Cryptocurrency.BNB,
-      TRX: Cryptocurrency.TRX,
-      USDC: Cryptocurrency.USDC,
-      JET: Cryptocurrency.JET,
+      USDT: Cryptocurrency.Usdt,
+      TON: Cryptocurrency.Ton,
+      BTC: Cryptocurrency.Btc,
+      ETH: Cryptocurrency.Eth,
+      LTC: Cryptocurrency.Ltc,
+      BNB: Cryptocurrency.Bnb,
+      TRX: Cryptocurrency.Trx,
+      USDC: Cryptocurrency.Usdc,
+      JET: Cryptocurrency.Jet,
     };
 
-    return mapping[asset] || Cryptocurrency.USDT;
+    return mapping[asset] || Cryptocurrency.Usdt;
   }
 
   /**
@@ -379,9 +378,7 @@ export class CryptoBotProvider implements IPaymentProvider {
   /**
    * Map PaymentStatus enum to CryptoPay API status
    */
-  private mapPaymentStatusToApiStatus(
-    status: PaymentStatus,
-  ): 'active' | 'paid' | 'expired' | undefined {
+  private mapPaymentStatusToApiStatus(status: PaymentStatus): 'active' | 'paid' | 'expired' | undefined {
     const mapping: Record<PaymentStatus, 'active' | 'paid' | 'expired' | undefined> = {
       [PaymentStatus.Pending]: 'active',
       [PaymentStatus.Processing]: 'active',

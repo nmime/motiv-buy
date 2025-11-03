@@ -84,7 +84,6 @@ export class NatsQueueService {
 
       // Process messages
       for await (const msg of messages) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         let payload!: {
           data: T;
           createdAt: number;

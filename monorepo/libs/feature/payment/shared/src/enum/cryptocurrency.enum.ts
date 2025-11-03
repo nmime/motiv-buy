@@ -3,13 +3,13 @@
  * Based on CryptoPay API supported assets
  */
 export enum Cryptocurrency {
-  USDT = 'USDT',
-  TON = 'TON',
-  BTC = 'BTC',
-  ETH = 'ETH',
-  LTC = 'LTC',
-  BNB = 'BNB',
-  TRX = 'TRX',
-  USDC = 'USDC',
-  JET = 'JET', // Testnet only
+  Usdt = 'USDT',
+  Ton = 'TON',
+  Btc = 'BTC',
+  Eth = 'ETH',
+  Ltc = 'LTC',
+  Bnb = 'BNB',
+  Trx = 'TRX',
+  Usdc = 'USDC',
+  Jet = 'JET', // Testnet only
 }

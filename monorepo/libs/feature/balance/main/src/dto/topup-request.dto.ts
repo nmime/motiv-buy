@@ -21,7 +21,7 @@ export class TopUpRequestDto {
   @ApiProperty({
     description: 'Cryptocurrency to use for the top-up',
     enum: Cryptocurrency,
-    example: Cryptocurrency.USDT,
+    example: Cryptocurrency.Usdt,
   })
   @IsEnum(Cryptocurrency, {
     message: 'Currency must be a valid cryptocurrency',

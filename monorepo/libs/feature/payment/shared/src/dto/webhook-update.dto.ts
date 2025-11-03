@@ -40,13 +40,7 @@ export class WebhookUpdateDto {
   @ApiProperty({
     description: 'Type of update received',
     example: 'invoice_paid',
-    enum: [
-      'invoice_paid',
-      'invoice_expired',
-      'invoice_cancelled',
-      'transfer_completed',
-      'transfer_failed',
-    ],
+    enum: ['invoice_paid', 'invoice_expired', 'invoice_cancelled', 'transfer_completed', 'transfer_failed'],
   })
   @IsString()
   updateType!: string;

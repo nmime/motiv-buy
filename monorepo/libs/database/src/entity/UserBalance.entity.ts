@@ -9,14 +9,14 @@ import { CurrencyEntity } from './Currency.entity';
  */
 export enum CurrencyType {
   Rub = 'RUB',
-  USDT = 'USDT',
-  TON = 'TON',
-  BTC = 'BTC',
-  ETH = 'ETH',
-  LTC = 'LTC',
-  BNB = 'BNB',
-  TRX = 'TRX',
-  USDC = 'USDC',
+  Usdt = 'USDT',
+  Ton = 'TON',
+  Btc = 'BTC',
+  Eth = 'ETH',
+  Ltc = 'LTC',
+  Bnb = 'BNB',
+  Trx = 'TRX',
+  Usdc = 'USDC',
 }
 
 @Entity({ tableName: 'user_balances' })

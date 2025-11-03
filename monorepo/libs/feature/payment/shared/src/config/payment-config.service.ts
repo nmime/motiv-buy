@@ -32,10 +32,18 @@ export class PaymentConfigService {
     CRYPTO_BOT_WEBHOOK_VERIFY: Joi.boolean().default(true),
 
     // Payment Limits
-    PAYMENT_MIN_TOPUP: Joi.string().pattern(/^\d+(\.\d+)?$/).default('1.00'),
-    PAYMENT_MAX_TOPUP: Joi.string().pattern(/^\d+(\.\d+)?$/).default('100000.00'),
-    PAYMENT_MIN_WITHDRAWAL: Joi.string().pattern(/^\d+(\.\d+)?$/).default('1.00'),
-    PAYMENT_MAX_WITHDRAWAL: Joi.string().pattern(/^\d+(\.\d+)?$/).default('100000.00'),
+    PAYMENT_MIN_TOPUP: Joi.string()
+      .pattern(/^\d+(\.\d+)?$/)
+      .default('1.00'),
+    PAYMENT_MAX_TOPUP: Joi.string()
+      .pattern(/^\d+(\.\d+)?$/)
+      .default('100000.00'),
+    PAYMENT_MIN_WITHDRAWAL: Joi.string()
+      .pattern(/^\d+(\.\d+)?$/)
+      .default('1.00'),
+    PAYMENT_MAX_WITHDRAWAL: Joi.string()
+      .pattern(/^\d+(\.\d+)?$/)
+      .default('100000.00'),
     PAYMENT_INVOICE_EXPIRATION: Joi.number().min(60).max(2678400).default(86400),
     PAYMENT_MAX_TX_PER_DAY: Joi.number().min(1).max(1000).default(100),
 

@@ -220,21 +220,21 @@ export class BalanceController {
    */
   private mapCryptocurrencyToCode(crypto: Cryptocurrency): CurrencyCode {
     switch (crypto) {
-      case Cryptocurrency.USDT:
+      case Cryptocurrency.Usdt:
         return CurrencyCode.UsdT;
-      case Cryptocurrency.TON:
+      case Cryptocurrency.Ton:
         return CurrencyCode.Ton;
-      case Cryptocurrency.BTC:
+      case Cryptocurrency.Btc:
         return CurrencyCode.Btc;
-      case Cryptocurrency.ETH:
+      case Cryptocurrency.Eth:
         return CurrencyCode.Eth;
-      case Cryptocurrency.LTC:
+      case Cryptocurrency.Ltc:
         return CurrencyCode.Ltc;
-      case Cryptocurrency.BNB:
+      case Cryptocurrency.Bnb:
         return CurrencyCode.Bnb;
-      case Cryptocurrency.TRX:
+      case Cryptocurrency.Trx:
         return CurrencyCode.Trx;
-      case Cryptocurrency.USDC:
+      case Cryptocurrency.Usdc:
         return CurrencyCode.UsdC;
       default:
         throw new Error(`Unsupported cryptocurrency: ${crypto}`);

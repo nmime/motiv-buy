@@ -47,6 +47,7 @@ export class CurrencyRateService implements OnModuleInit {
       return Ok(convertedAmount.toFixed(decimals));
     } catch (error) {
       this.logger.error(`Error converting currency: ${error}`);
+
       return Err(error instanceof Error ? error : new Error(String(error)));
     }
   }

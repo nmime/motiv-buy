@@ -21,7 +21,7 @@ export class WithdrawRequestDto {
   @ApiProperty({
     description: 'Cryptocurrency to receive withdrawal in',
     enum: Cryptocurrency,
-    example: Cryptocurrency.USDT,
+    example: Cryptocurrency.Usdt,
   })
   @IsEnum(Cryptocurrency, {
     message: 'Currency must be a valid cryptocurrency',

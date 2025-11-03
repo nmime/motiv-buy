@@ -42,8 +42,7 @@ export class PaymentWebhookController {
   @Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 requests per minute
   @ApiOperation({
     summary: 'CryptoPay webhook endpoint',
-    description:
-      'Receives and processes webhook notifications from CryptoPay for invoice and transfer updates',
+    description: 'Receives and processes webhook notifications from CryptoPay for invoice and transfer updates',
   })
   @ApiHeader({
     name: 'crypto-pay-api-signature',
@@ -93,6 +92,7 @@ export class PaymentWebhookController {
           signatureLength: signature.length,
           bodyLength: bodyString.length,
         });
+
         throw new UnauthorizedException('Invalid signature');
       }
 
@@ -105,6 +105,7 @@ export class PaymentWebhookController {
           error: error instanceof Error ? error.message : 'Unknown error',
           rawBody: typeof rawBody,
         });
+
         // Return success to prevent provider retries for malformed data
         return { ok: true };
       }

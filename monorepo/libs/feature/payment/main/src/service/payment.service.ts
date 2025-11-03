@@ -71,6 +71,7 @@ export class PaymentService {
 
       if (invoiceResult.err) {
         this.logger.error('Failed to create invoice with provider', invoiceResult.val);
+
         return Err(toError(invoiceResult.val || 'Failed to create invoice with payment provider'));
       }
 
@@ -112,6 +113,7 @@ export class PaymentService {
       return Ok(response);
     } catch (error) {
       this.logger.error('Error creating top-up invoice', error);
+
       return Err(toError(error));
     }
   }
@@ -138,6 +140,7 @@ export class PaymentService {
         this.logger.warn(
           `Insufficient balance for withdrawal. Available: ${availableAmount}, Requested: ${requestedAmount}`,
         );
+
         return Err(new Error(`Insufficient balance. Available: ${availableAmount}, Requested: ${requestedAmount}`));
       }
 
@@ -151,6 +154,7 @@ export class PaymentService {
 
       if (transferResult.err) {
         this.logger.error('Failed to create transfer with provider', transferResult.val);
+
         return Err(toError(transferResult.val || 'Failed to create transfer with payment provider'));
       }
 
@@ -251,12 +255,14 @@ export class PaymentService {
 
       if (!transaction) {
         this.logger.warn(`Transaction not found: ${transactionId}`);
+
         return Err(new NotFoundException(`Transaction not found: ${transactionId}`));
       }
 
       return Ok(transaction);
     } catch (error) {
       this.logger.error(`Error fetching transaction ${transactionId}`, error);
+
       return Err(toError(error));
     }
   }
@@ -305,6 +311,7 @@ export class PaymentService {
       });
     } catch (error) {
       this.logger.error(`Error fetching transactions for user ${userId}`, error);
+
       return Err(toError(error));
     }
   }
@@ -324,12 +331,14 @@ export class PaymentService {
 
       if (!transaction) {
         this.logger.warn(`Transaction not found for invoice: ${invoiceId}`);
+
         return Err(new NotFoundException(`Invoice not found: ${invoiceId}`));
       }
 
       // Skip if already completed
       if (transaction.status === PaymentStatus.Completed) {
         this.logger.log(`Invoice already completed: ${invoiceId}`);
+
         return Ok(transaction);
       }
 
@@ -338,6 +347,7 @@ export class PaymentService {
 
       if (providerResult.err) {
         this.logger.error('Failed to get invoice from provider', providerResult.val);
+
         return Err(toError(providerResult.val || 'Failed to get invoice status'));
       }
 
@@ -362,6 +372,7 @@ export class PaymentService {
       return Ok(transaction);
     } catch (error) {
       this.logger.error(`Error checking invoice status ${invoiceId}`, error);
+
       return Err(toError(error));
     }
   }
@@ -377,6 +388,7 @@ export class PaymentService {
       // Only process invoice_paid events
       if (updateDto.updateType !== 'invoice_paid') {
         this.logger.log(`Ignoring webhook type: ${updateDto.updateType}`);
+
         return Err(new Error(`Unsupported webhook type: ${updateDto.updateType}`));
       }
 
@@ -389,12 +401,14 @@ export class PaymentService {
 
       if (!transaction) {
         this.logger.warn(`Transaction not found for webhook invoice: ${invoiceId}`);
+
         return Err(new NotFoundException(`Transaction not found for invoice: ${invoiceId}`));
       }
 
       // Skip if already processed
       if (transaction.status === PaymentStatus.Completed) {
         this.logger.log(`Webhook already processed for invoice: ${invoiceId}`);
+
         return Ok(transaction);
       }
 
@@ -417,6 +431,7 @@ export class PaymentService {
       return Ok(transaction);
     } catch (error) {
       this.logger.error('Error processing webhook', error);
+
       return Err(toError(error));
     }
   }
@@ -435,11 +450,13 @@ export class PaymentService {
 
       if (!transaction) {
         this.logger.warn(`Transaction not found: ${transactionId}`);
+
         return Err(new NotFoundException(`Transaction not found: ${transactionId}`));
       }
 
       if (!transaction.providerTransactionId) {
         this.logger.warn(`No provider transaction ID for: ${transactionId}`);
+
         return Err(new Error('Transaction has no provider transaction ID'));
       }
 
@@ -453,6 +470,7 @@ export class PaymentService {
 
       if (providerResult.err) {
         this.logger.error('Failed to get status from provider', providerResult.val);
+
         return Err(toError(providerResult.val || 'Failed to sync transaction status'));
       }
 
@@ -490,6 +508,7 @@ export class PaymentService {
       return Ok(transaction);
     } catch (error) {
       this.logger.error(`Error syncing transaction status ${transactionId}`, error);
+
       return Err(toError(error));
     }
   }
@@ -503,6 +522,7 @@ export class PaymentService {
       // Idempotency check
       if (transaction.metadata?.['balanceCredited']) {
         this.logger.warn(`Balance already credited for transaction: ${transaction.id}`);
+
         return;
       }
 

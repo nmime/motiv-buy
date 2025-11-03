@@ -32,7 +32,7 @@ export class CreateTransferDto {
   @ApiProperty({
     description: 'Cryptocurrency to use for the withdrawal',
     enum: Cryptocurrency,
-    example: Cryptocurrency.USDT,
+    example: Cryptocurrency.Usdt,
   })
   @IsEnum(Cryptocurrency, {
     message: 'Currency must be a valid cryptocurrency',

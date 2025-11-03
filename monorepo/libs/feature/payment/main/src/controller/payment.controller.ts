@@ -11,14 +11,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
 import { PaymentService, TransactionQueryOptions } from '../service/payment.service';
@@ -136,10 +129,7 @@ export class PaymentController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: 'Payment provider error',
   })
-  async createTopUp(
-    @CurrentUserId() userId: string,
-    @Body() dto: CreateInvoiceDto,
-  ): Promise<InvoiceResponseDto> {
+  async createTopUp(@CurrentUserId() userId: string, @Body() dto: CreateInvoiceDto): Promise<InvoiceResponseDto> {
     const result = await this.paymentService.createTopUp(userId, dto);
 
     if (result.err) {
@@ -288,6 +278,7 @@ export class PaymentController {
       if (!Object.values(PaymentType).includes(type)) {
         throw new BadRequestException(`Invalid transaction type: ${type}`);
       }
+
       queryOptions.type = type;
     }
 
@@ -295,6 +286,7 @@ export class PaymentController {
       if (!Object.values(PaymentStatus).includes(status)) {
         throw new BadRequestException(`Invalid transaction status: ${status}`);
       }
+
       queryOptions.status = status;
     }
 
@@ -303,6 +295,7 @@ export class PaymentController {
       if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
         throw new BadRequestException('Limit must be between 1 and 100');
       }
+
       queryOptions.limit = parsedLimit;
     }
 
@@ -311,6 +304,7 @@ export class PaymentController {
       if (isNaN(parsedOffset) || parsedOffset < 0) {
         throw new BadRequestException('Offset must be non-negative');
       }
+
       queryOptions.offset = parsedOffset;
     }
 
@@ -376,6 +370,7 @@ export class PaymentController {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(`Transaction not found: ${transactionId}`);
       }
+
       throw new BadRequestException(error.message || 'Failed to retrieve transaction');
     }
 
@@ -446,6 +441,7 @@ export class PaymentController {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(`Invoice not found: ${invoiceId}`);
       }
+
       throw new BadRequestException(error.message || 'Failed to check invoice status');
     }
 

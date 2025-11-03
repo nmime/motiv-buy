@@ -342,7 +342,7 @@ describe('Result Type System', () => {
         return null;
       }
 
-      async getUserByEmail(email: string): AsyncResult<User, DomainError>> {
+      async getUserByEmail(email: string): AsyncResult<User, DomainError> {
         const validation = this.validateEmail(email);
         if (validation.err) {
           return await Promise.resolve(validation);

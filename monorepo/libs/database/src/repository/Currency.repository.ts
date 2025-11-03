@@ -67,6 +67,7 @@ export class CurrencyRepository {
       existing.symbol = symbol || null;
       existing.rateUpdatedAt = new Date();
       await this.em.flush();
+
       return existing;
     }
 
@@ -79,6 +80,7 @@ export class CurrencyRepository {
     });
 
     await this.em.persistAndFlush(currency);
+
     return currency;
   }
 

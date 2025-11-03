@@ -1,4 +1,4 @@
-import { Result, AsyncResult } from '@app/common-shared';
+import { AsyncResult } from '@app/common-shared';
 import { Cryptocurrency, PaymentStatus } from '../enum';
 
 /**
@@ -95,10 +95,7 @@ export interface IPaymentProvider {
   /**
    * Get transfers history
    */
-  getTransfers(params?: {
-    offset?: number;
-    count?: number;
-  }): AsyncResult<PaymentTransfer[], Error>;
+  getTransfers(params?: { offset?: number; count?: number }): AsyncResult<PaymentTransfer[], Error>;
 
   /**
    * Get provider balances

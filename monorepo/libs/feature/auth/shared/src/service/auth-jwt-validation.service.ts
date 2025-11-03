@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Err, Ok, Result } from 'ts-results';
+import { Err, Ok } from 'ts-results';
 import { AsyncResult } from '@app/common-shared';
 import { UserRepository, UserRole, UserStatus, UserEntity } from '@app/database';
 import { AuthJwtPayloadDto } from '../dto';
