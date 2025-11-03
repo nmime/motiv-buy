@@ -84,6 +84,28 @@ This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Co
 - **Clean Architecture**: Separate concerns
 - **Documentation**: Keep updated
 
+## 🚨 CRITICAL PROJECT RULES
+
+### **Module Architecture:**
+1. **ALL shared functionality MUST be in `libs`** - used by both API app and bot app
+2. **`libs/feature/*/main`** - Domain business logic, ONLY imported by **apps** (apps/api, apps/bot)
+3. **`libs/feature/*/shared`** - Domain utilities/types/guards that OTHER domains can use
+4. **NEVER import `main` modules in libs** - causes circular dependencies!
+
+### **Type Safety:**
+1. **NO `any` TYPE** - Use proper types, interfaces, or `unknown`
+2. **NO `as` ASSERTIONS** - Use type guards unless critically needed
+3. **Strict TypeScript** - All strict flags enabled
+
+### **Complete Guidelines:**
+See `/docs/DEVELOPMENT-GUIDELINES.md` for comprehensive coding standards covering:
+- Code conventions & naming
+- Security practices
+- Module architecture rules
+- Database patterns
+- Testing standards
+- API documentation
+
 ## 🚀 Available Agents (54 Total)
 
 ### Core Development
@@ -350,3 +372,12 @@ NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 Never save working files, text/mds and tests to the root folder.
+
+## CRITICAL CODING RULES:
+- NO `any` type - use proper types or `unknown`
+- NO `as` assertions unless critically needed - use type guards
+- ALL functionality used by BOTH api AND bot MUST be in libs
+- libs/feature/*/main = domain business logic, ONLY apps import
+- libs/feature/*/shared = domain utilities OTHER domains use
+- NEVER import main modules in libs (circular dependency!)
+- See /docs/DEVELOPMENT-GUIDELINES.md for complete standards
