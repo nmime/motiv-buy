@@ -84,6 +84,27 @@ This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Co
 - **Clean Architecture**: Separate concerns
 - **Documentation**: Keep updated
 
+## 🚨 CRITICAL PROJECT RULES
+
+### **Module Architecture:**
+1. **`libs/feature/*/main`** modules can ONLY be imported by **apps** (apps/api, apps/bot)
+2. **`libs/feature/*/shared`** modules can be imported by **other libs** and **apps**
+3. **NEVER import `main` modules in libs** - causes circular dependencies!
+
+### **Type Safety:**
+1. **NO `any` TYPE** - Use proper types, interfaces, or `unknown`
+2. **NO `as` ASSERTIONS** - Use type guards unless critically needed
+3. **Strict TypeScript** - All strict flags enabled
+
+### **Complete Guidelines:**
+See `/docs/DEVELOPMENT-GUIDELINES.md` for comprehensive coding standards covering:
+- Code conventions & naming
+- Security practices
+- Module architecture rules
+- Database patterns
+- Testing standards
+- API documentation
+
 ## 🚀 Available Agents (54 Total)
 
 ### Core Development
@@ -350,3 +371,10 @@ NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 Never save working files, text/mds and tests to the root folder.
+
+## CRITICAL CODING RULES:
+- NO `any` type - use proper types or `unknown`
+- NO `as` assertions unless critically needed - use type guards
+- libs/feature/*/main ONLY imported by apps (never by other libs)
+- libs/feature/*/shared can be imported by anyone
+- See /docs/DEVELOPMENT-GUIDELINES.md for complete standards
