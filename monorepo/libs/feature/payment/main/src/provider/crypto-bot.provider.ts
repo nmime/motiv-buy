@@ -352,7 +352,6 @@ export class CryptoBotProvider implements IPaymentProvider {
       TON: Cryptocurrency.Ton,
       BTC: Cryptocurrency.Btc,
       ETH: Cryptocurrency.Eth,
-      LTC: Cryptocurrency.Ltc,
       BNB: Cryptocurrency.Bnb,
       TRX: Cryptocurrency.Trx,
       USDC: Cryptocurrency.Usdc,

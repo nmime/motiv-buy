@@ -4,7 +4,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
 import { PaymentTransactionEntity } from '../entity/payment-transaction.entity';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';
-import { UserBalanceRepository, CurrencyType } from '@app/database';
+import { UserBalanceRepository, CurrencyCode } from '@app/database';
 import {
   CreateInvoiceDto,
   CreateTransferDto,
@@ -106,7 +106,7 @@ export class PaymentService {
         status: transaction.status,
         payUrl: transaction.payUrl!,
         description: transaction.description || undefined,
-        createdAt: transaction.createdAt.toISOString(),
+        createdAt: transaction.createdAt?.toISOString() || new Date().toISOString(),
         expiresAt: transaction.expiresAt!.toISOString(),
       };
 
@@ -122,26 +122,25 @@ export class PaymentService {
    * Map cryptocurrency enum to CurrencyType for balance operations
    * This ensures we check/deduct the correct currency balance
    */
-  private mapCryptocurrencyToCurrencyType(crypto: string): CurrencyType {
+  private mapCryptocurrencyToCurrencyCode(crypto: string): CurrencyCode {
     // Direct mapping for supported currencies
-    const mapping: Record<string, CurrencyType> = {
-      USDT: CurrencyType.Usdt,
-      TON: CurrencyType.Ton,
-      BTC: CurrencyType.Btc,
-      ETH: CurrencyType.Eth,
-      LTC: CurrencyType.Ltc,
-      BNB: CurrencyType.Bnb,
-      TRX: CurrencyType.Trx,
-      USDC: CurrencyType.Usdc,
-      RUB: CurrencyType.Rub,
+    const mapping: Record<string, CurrencyCode> = {
+      USDT: CurrencyCode.Usdt,
+      TON: CurrencyCode.Ton,
+      BTC: CurrencyCode.Btc,
+      ETH: CurrencyCode.Eth,
+      BNB: CurrencyCode.Bnb,
+      TRX: CurrencyCode.Trx,
+      USDC: CurrencyCode.Usdc,
+      RUB: CurrencyCode.Rub,
     };
 
-    const currencyType = mapping[crypto.toUpperCase()];
-    if (!currencyType) {
+    const currencyCode = mapping[crypto.toUpperCase()];
+    if (!currencyCode) {
       throw new Error(`Unsupported cryptocurrency: ${crypto}`);
     }
 
-    return currencyType;
+    return currencyCode;
   }
 
   /**
@@ -163,7 +162,7 @@ export class PaymentService {
       this.logger.log(`Creating withdrawal for user ${userId}: ${dto.amount} ${dto.currency}`);
 
       // Map requested cryptocurrency to currency type for balance check
-      const currencyType = this.mapCryptocurrencyToCurrencyType(dto.currency);
+      const currencyCode = this.mapCryptocurrencyToCurrencyCode(dto.currency);
 
       // Use database transaction with pessimistic locking to prevent race conditions
       const result = await this.em.transactional(async (em) => {
@@ -185,6 +184,10 @@ export class PaymentService {
 
         // Store original balance for rollback (captured BEFORE any modifications)
         balanceBeforeTransaction = (balanceEntity as any).balance;
+
+        if (!balanceBeforeTransaction) {
+          throw new Error('Balance data is invalid');
+        }
 
         const availableAmount = parseFloat(balanceBeforeTransaction);
         const requestedAmount = parseFloat(dto.amount);
@@ -220,7 +223,7 @@ export class PaymentService {
         // Now deduct balance atomically within the locked transaction
         // FIXED: Deduct from REQUESTED currency balance, not always RUB
         const newBalance = (availableAmount - requestedAmount).toString();
-        await this.userBalanceRepository.createOrUpdateBalance(userId, currencyType, newBalance);
+        await this.userBalanceRepository.createOrUpdateBalance(userId, currencyCode, newBalance);
 
         // Save transaction to database
         const transaction = em.create(PaymentTransactionEntity, {
@@ -257,7 +260,7 @@ export class PaymentService {
         currency: result.currency,
         status: result.status,
         comment: dto.comment,
-        createdAt: result.createdAt.toISOString(),
+        createdAt: result.createdAt?.toISOString() || new Date().toISOString(),
         completedAt: transfer.completedAt?.toISOString(),
       };
 
@@ -270,8 +273,8 @@ export class PaymentService {
       if (transferCreated && balanceBeforeTransaction !== null) {
         try {
           // FIXED: Rollback in REQUESTED currency, not always RUB
-          const currencyType = this.mapCryptocurrencyToCurrencyType(dto.currency);
-          await this.userBalanceRepository.createOrUpdateBalance(userId, currencyType, balanceBeforeTransaction);
+          const currencyCode = this.mapCryptocurrencyToCurrencyCode(dto.currency);
+          await this.userBalanceRepository.createOrUpdateBalance(userId, currencyCode, balanceBeforeTransaction!);
 
           this.logger.warn(
             `Balance rollback performed for user ${userId} in ${dto.currency}: restored to ${balanceBeforeTransaction}`,
@@ -763,8 +766,8 @@ export class PaymentService {
     logContext: Record<string, unknown>,
   ): Promise<void> {
     try {
-      // Map transaction currency to CurrencyType for balance operations
-      const currencyType = this.mapCryptocurrencyToCurrencyType(transaction.currency);
+      // Map transaction currency to CurrencyCode for balance operations
+      const currencyCode = this.mapCryptocurrencyToCurrencyCode(transaction.currency);
 
       // Use database transaction with pessimistic locking to prevent race conditions
       await this.em.transactional(async (em) => {
@@ -793,7 +796,7 @@ export class PaymentService {
         );
 
         // Get current balance
-        const balance = await this.userBalanceRepository.findByUserAndCurrency(lockedTransaction.userId, currencyType);
+        const balance = await this.userBalanceRepository.findByUserAndCurrency(lockedTransaction.userId, currencyCode);
 
         if (!balance) {
           throw new Error(
@@ -806,7 +809,7 @@ export class PaymentService {
         const newBalance = (currentBalance + refundAmount).toString();
 
         // Update balance with proper currency
-        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, currencyType, newBalance);
+        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, currencyCode, newBalance);
 
         // Mark as refunded atomically within the locked transaction
         lockedTransaction.metadata = {
@@ -946,7 +949,7 @@ export class PaymentService {
         // Get current balance
         const balance = await this.userBalanceRepository.findByUserAndCurrency(
           lockedTransaction.userId,
-          CurrencyType.Rub,
+          CurrencyCode.Rub,
         );
 
         if (!balance) {
@@ -958,7 +961,7 @@ export class PaymentService {
         const newBalance = (currentBalance + creditAmount).toString();
 
         // Update balance with proper type safety
-        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, CurrencyType.Rub, newBalance);
+        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, CurrencyCode.Rub, newBalance);
 
         // Mark as credited atomically within the locked transaction
         lockedTransaction.metadata = {
