@@ -194,56 +194,83 @@ import { BaseException } from '@app/common-exception';
 #### **🚨 CRITICAL: Feature Module Import Rules**
 
 **ABSOLUTE RULES:**
-1. **`libs/feature/*/main`** modules can ONLY be imported by **apps**
-2. **`libs/feature/*/shared`** modules can be imported by **other libs** and **apps**
-3. **Never import `main` modules in libs** - this causes circular dependencies
+1. **ALL shared functionality MUST be created in `libs`** - because it will be used by both API app and bot app
+2. **`libs/feature/*/main`** - Domain-specific business logic and services used by THIS domain AND apps
+3. **`libs/feature/*/shared`** - Domain-related utilities/types/guards that OTHER domains can use
+4. **Never import `main` modules in libs** - this causes circular dependencies
 
 ```
 /libs/feature/auth/
-  ├── main/                  # ⚠️ ONLY for apps/api, apps/bot
-  │   ├── controller/
-  │   ├── service/
+  ├── main/                  # ⚠️ ONLY for apps (apps/api, apps/bot)
+  │   │                      # Contains: Business logic for THIS domain
+  │   ├── controller/        # HTTP endpoints (apps use these)
+  │   ├── service/           # Core auth business logic (used by this domain + apps)
   │   └── auth-main.module.ts
-  └── shared/                # ✅ Can be used by other libs
-      ├── dto/
-      ├── guard/
-      ├── decorator/
+  └── shared/                # ✅ Can be used by other libs AND apps
+      │                      # Contains: Domain utilities OTHER domains need
+      ├── dto/               # Data transfer objects (other domains may use)
+      ├── guard/             # JwtAuthGuard (other domains use for protection)
+      ├── decorator/         # @CurrentUserId() (other domains use)
+      ├── type/              # Auth-related types (other domains reference)
       └── auth-shared.module.ts
 ```
 
 #### **Import Examples:**
 
 ```typescript
-// ❌ FORBIDDEN: Lib importing main module
-// File: libs/feature/user/main/src/service/user.service.ts
-import { AuthService } from '@app/feature-auth-main';  // WRONG!
+// ❌ FORBIDDEN: Lib importing another lib's main module
+// File: libs/feature/payment/main/src/service/payment.service.ts
+import { AuthService } from '@app/feature-auth-main';  // WRONG! Circular dependency risk
 
-// ✅ CORRECT: Lib importing shared module
-// File: libs/feature/user/main/src/service/user.service.ts
-import { JwtAuthGuard } from '@app/feature-auth-shared';  // CORRECT!
+// ✅ CORRECT: Lib importing another lib's shared utilities
+// File: libs/feature/payment/main/src/controller/payment.controller.ts
+import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';  // CORRECT!
 
-// ✅ CORRECT: App importing main module
+// ✅ CORRECT: Using shared DTOs and types
+// File: libs/feature/user/main/src/service/user.service.ts
+import { UserStatus, UserDto } from '@app/feature-user-shared';  // CORRECT!
+import { AuthResponseDto } from '@app/feature-auth-shared';      // CORRECT!
+
+// ✅ CORRECT: Apps importing main modules
 // File: apps/api/src/api.module.ts
 import { AuthMainModule } from '@app/feature-auth-main';    // CORRECT!
 import { UserMainModule } from '@app/feature-user-main';    // CORRECT!
+import { PaymentMainModule } from '@app/feature-payment-main';  // CORRECT!
+
+// ✅ CORRECT: Apps can also import shared if needed
+// File: apps/bot/src/bot.module.ts
+import { UserMainModule } from '@app/feature-user-main';    // CORRECT!
+import { UserStatus } from '@app/feature-user-shared';      // CORRECT!
 ```
 
 #### **What Goes in `main` vs `shared`:**
 
-**`feature/*/main/` (App-level only):**
-- Controllers
-- Services with business logic
-- Feature module definition
-- App-specific providers
+**`feature/*/main/` (Domain business logic + Apps only):**
+- **Controllers** - HTTP endpoints that apps expose
+- **Services** - Core business logic for THIS domain
+- **Domain-specific logic** - Functions used by this feature and consumed by apps
+- **Feature module** - Main module definition that apps import
+- **Internal providers** - Services that support this domain's functionality
 
-**`feature/*/shared/` (Reusable):**
-- DTOs
-- Guards
-- Decorators
-- Interfaces/Types
-- Constants
-- Validators
-- Utilities
+**Examples:**
+- `AuthService.login()` - Core auth logic (used by AuthController and apps)
+- `UserService.createUser()` - User creation logic (used by UserController and apps)
+- `PaymentService.processPayment()` - Payment logic (used by PaymentController and apps)
+
+**`feature/*/shared/` (Cross-domain utilities):**
+- **DTOs** - Data structures OTHER domains need to reference
+- **Guards** - Protection mechanisms OTHER domains use (e.g., `JwtAuthGuard`)
+- **Decorators** - Utilities OTHER domains use (e.g., `@CurrentUserId()`)
+- **Interfaces/Types** - Type definitions OTHER domains reference
+- **Constants** - Enums and constants OTHER domains need (e.g., `UserStatus`)
+- **Validators** - Validation logic OTHER domains reuse
+- **Utilities** - Helper functions OTHER domains call
+
+**Examples:**
+- `JwtAuthGuard` - Used by payment, user, and other domains to protect routes
+- `@CurrentUserId()` - Used by payment, user domains to get authenticated user
+- `AuthResponseDto` - Referenced by other domains that return auth data
+- `UserStatus` enum - Referenced by other domains that work with users
 
 #### **Module Definition Pattern:**
 ```typescript
@@ -273,21 +300,50 @@ export class AuthSharedModule {}
 ```
 apps/
   ├── api/                    ✅ Imports: auth-main, user-main, payment-main
+  │   └── Uses both app and bot → ALL shared functionality in libs
   └── bot/                    ✅ Imports: auth-main, user-main
+      └── Uses both app and bot → ALL shared functionality in libs
 
 libs/feature/
   ├── auth/
-  │   ├── main/              ⚠️  Only imported by apps
-  │   └── shared/            ✅ Can be imported by libs & apps
+  │   ├── main/              ⚠️  Only imported by apps (api, bot)
+  │   │   ├── service/       # AuthService - business logic for auth domain
+  │   │   └── controller/    # AuthController - HTTP endpoints for api app
+  │   └── shared/            ✅ Imported by other libs & apps
+  │       ├── guard/         # JwtAuthGuard - used by payment, user controllers
+  │       ├── decorator/     # @CurrentUserId() - used by payment, user
+  │       └── dto/           # AuthResponseDto - referenced by others
   ├── user/
-  │   ├── main/              ⚠️  Only imported by apps
-  │   │   └── service.ts     ✅ Imports: auth-shared (not auth-main!)
-  │   └── shared/            ✅ Can be imported by libs & apps
+  │   ├── main/              ⚠️  Only imported by apps (api, bot)
+  │   │   ├── service.ts     # UserService - business logic for user domain
+  │   │   │   └── ✅ Imports: auth-shared (JwtAuthGuard, CurrentUserId)
+  │   │   └── controller.ts  # UserController - HTTP endpoints
+  │   │       └── ✅ Imports: auth-shared (JwtAuthGuard, CurrentUserId)
+  │   └── shared/            ✅ Imported by other libs & apps
+  │       ├── dto/           # UserDto - referenced by payment
+  │       ├── type/          # UserStatus enum - used by payment
+  │       └── decorator/     # User-related decorators
   └── payment/
-      ├── main/              ⚠️  Only imported by apps
-      │   └── service.ts     ✅ Imports: user-shared, auth-shared
-      └── shared/            ✅ Can be imported by libs & apps
+      ├── main/              ⚠️  Only imported by apps (api, bot)
+      │   ├── service.ts     # PaymentService - business logic for payment
+      │   │   └── ✅ Imports: user-shared, auth-shared (NOT main!)
+      │   └── controller.ts  # PaymentController - HTTP endpoints
+      │       └── ✅ Imports: user-shared, auth-shared, JwtAuthGuard
+      └── shared/            ✅ Imported by other libs & apps
+          ├── dto/           # PaymentDto - can be used by others
+          └── type/          # Payment-related types
 ```
+
+#### **Key Architectural Principle:**
+
+> **"Any functionality used by BOTH api app AND bot app MUST live in libs"**
+
+This ensures:
+- ✅ Code reuse between apps
+- ✅ No duplication of business logic
+- ✅ Single source of truth
+- ✅ Clean dependency boundaries
+- ✅ No circular dependencies
 
 ### **1.6 Dependency Injection**
 
@@ -1215,28 +1271,38 @@ Before committing code, ensure:
 ### **Dependency Flow:**
 ```
 apps/
-  ├── api/
+  ├── api/                   # REST API server
   │   └── Imports: *-main modules ✅
-  └── bot/
+  │   └── Reason: Consumes business logic from libs
+  └── bot/                   # Telegram bot
       └── Imports: *-main modules ✅
+      └── Reason: Consumes same business logic as API
+
+🔑 KEY RULE: Any functionality used by BOTH api AND bot → MUST be in libs!
 
 libs/
-  ├── common/
+  ├── common/                # Infrastructure (exceptions, logging, validation)
   │   └── Can be imported anywhere ✅
-  ├── database/
+  ├── database/              # ORM, entities, repositories
   │   └── Can be imported anywhere ✅
-  └── feature/
+  └── feature/               # Domain business logic
       ├── auth/
-      │   ├── main/          ⚠️  Only apps can import
-      │   └── shared/        ✅ Anyone can import
+      │   ├── main/          ⚠️  Only apps import (AuthService, AuthController)
+      │   │   └── Contains: Core auth business logic
+      │   └── shared/        ✅ Anyone imports (JwtAuthGuard, @CurrentUserId)
+      │       └── Contains: Auth utilities OTHER domains need
       ├── user/
-      │   ├── main/          ⚠️  Only apps can import
-      │   │   └── Imports: auth-shared ✅
-      │   └── shared/        ✅ Anyone can import
+      │   ├── main/          ⚠️  Only apps import (UserService, UserController)
+      │   │   └── Imports: auth-shared ✅ (uses JwtAuthGuard)
+      │   │   └── Contains: Core user business logic
+      │   └── shared/        ✅ Anyone imports (UserStatus, UserDto)
+      │       └── Contains: User types OTHER domains reference
       └── payment/
-          ├── main/          ⚠️  Only apps can import
+          ├── main/          ⚠️  Only apps import (PaymentService, PaymentController)
           │   └── Imports: user-shared, auth-shared ✅
-          └── shared/        ✅ Anyone can import
+          │   └── Contains: Core payment business logic
+          └── shared/        ✅ Anyone imports (PaymentDto, PaymentStatus)
+              └── Contains: Payment types OTHER domains reference
 ```
 
 ### **Type Safety Rules:**
