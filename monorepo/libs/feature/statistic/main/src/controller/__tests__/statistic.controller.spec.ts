@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StatisticController } from '../statistic.controller';
 import { StatisticService } from '../../service';
 import { StatisticMapper } from '../../mapper';
-import { StatisticType, ChartInterval } from '../../dto';
+import { ChartInterval, StatisticType } from '../../dto';
 
 describe('StatisticController', () => {
   let controller: StatisticController;

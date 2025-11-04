@@ -1,4 +1,4 @@
-import { EntityManager, EntityRepository, Reference, ref } from '@mikro-orm/core';
+import { EntityManager, EntityRepository, ref, Reference } from '@mikro-orm/core';
 import {
   TrafficOrderEntity,
   TrafficOrderStatus,
@@ -6,9 +6,9 @@ import {
   TrafficSourceEntity,
   TrafficTargetEntity,
   TrafficUserEntity,
+  UserEntity,
 } from '../entity';
-import { UserEntity } from '../entity';
-import { decimal, greaterThanOrEqualTo, lessThanOrEqualTo, sum, divide, multiply, toNumber } from '@app/common-shared/util';
+import { decimal, divide, greaterThanOrEqual, lessThanOrEqual, multiply, sum, toNumber } from '@app/common-shared';
 
 export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity> {
   constructor(em: EntityManager) {
@@ -65,7 +65,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
       const min = decimal(minBudget);
       const max = decimal(maxBudget);
 
-      return greaterThanOrEqualTo(budget, min) && lessThanOrEqualTo(budget, max);
+      return greaterThanOrEqual(budget, min) && lessThanOrEqual(budget, max);
     });
   }
 

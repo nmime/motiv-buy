@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Bot } from 'grammy';
 import {
-  IBotSubscriptionService,
-  SubscriptionCheckResult,
   BulkSubscriptionCheckResult,
+  ChatInformation,
   ChatMemberStatus,
   ChatType,
-  ChatInformation,
+  IBotSubscriptionService,
+  SubscriptionCheckResult,
 } from './bot-subscription.interface';
 
 /**

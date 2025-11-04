@@ -1,5 +1,5 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum, Ref } from '@mikro-orm/core';
-import { EntityConstructorData, assignEntityData } from '../type';
+import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Ref, Unique } from '@mikro-orm/core';
+import { assignEntityData, EntityConstructorData } from '../type';
 import { UserEntity } from './User.entity';
 
 export enum UserRefLinkType {
@@ -74,12 +74,6 @@ export class UserRefLinkEntity {
   @Property({ type: 'timestamptz', defaultRaw: 'now()', onUpdate: () => new Date(), fieldName: 'updated_at' })
   updatedAt: Date = new Date();
 
-  static level1ToLevel2RefPercent(level1RefPercent: string | number): string {
-    const num = typeof level1RefPercent === 'string' ? parseFloat(level1RefPercent) : level1RefPercent;
-
-    return (num / 10).toString();
-  }
-
   constructor(
     data: EntityConstructorData<
       UserRefLinkEntity,
@@ -95,5 +89,11 @@ export class UserRefLinkEntity {
         required: true,
       },
     });
+  }
+
+  static level1ToLevel2RefPercent(level1RefPercent: string | number): string {
+    const num = typeof level1RefPercent === 'string' ? parseFloat(level1RefPercent) : level1RefPercent;
+
+    return (num / 10).toString();
   }
 }

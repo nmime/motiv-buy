@@ -2,7 +2,8 @@
 
 ## Core Entities Overview
 
-The Motiv-Buy platform consists of several interconnected entities that manage traffic source coordination, order processing, user management, and financial tracking.
+The Motiv-Buy platform consists of several interconnected entities that manage traffic source coordination, order
+processing, user management, and financial tracking.
 
 ## Entity Relationships
 

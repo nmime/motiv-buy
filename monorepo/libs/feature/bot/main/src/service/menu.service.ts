@@ -1,7 +1,7 @@
 import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, MenuConfig, MenuType, MenuButton, MenuActionResult } from '@app/feature-bot-shared';
+import { BotContext, MenuActionResult, MenuButton, MenuConfig, MenuType } from '@app/feature-bot-shared';
 import { SessionService } from './session.service';
 
 /**

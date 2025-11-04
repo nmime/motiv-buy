@@ -1,5 +1,5 @@
-import { Entity, PrimaryKey, Property, Enum, Index } from '@mikro-orm/core';
-import { PaymentType, PaymentProvider, PaymentStatus, Cryptocurrency } from '../enum';
+import { Entity, Enum, Index, PrimaryKey, Property } from '@mikro-orm/core';
+import { Cryptocurrency, PaymentProvider, PaymentStatus, PaymentType } from '../enum';
 
 /**
  * Payment transaction entity

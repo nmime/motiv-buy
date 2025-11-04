@@ -1,10 +1,12 @@
 # Migration CLI Tool
 
-Database migration management tool for the Motiv-Buy project, built following CLAUDE.md domain-driven architecture principles.
+Database migration management tool for the Motiv-Buy project, built following CLAUDE.md domain-driven architecture
+principles.
 
 ## Overview
 
-This CLI application provides a comprehensive interface for managing database migrations using MikroORM. It follows the Controller → Service → Repository → Mapper pattern and implements security-first practices.
+This CLI application provides a comprehensive interface for managing database migrations using MikroORM. It follows the
+Controller → Service → Repository → Mapper pattern and implements security-first practices.
 
 ## Architecture
 

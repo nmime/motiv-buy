@@ -1,18 +1,18 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsString,
   IsEnum,
-  IsOptional,
   IsInt,
-  Min,
+  IsOptional,
+  IsString,
+  Matches,
   Max,
   MaxLength,
-  Matches,
+  Min,
   Validate,
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { CurrencyCode } from '@app/database';
+import { CurrencyCode, PaymentProvider } from '@app/database';
 
 /**
  * Custom validator to ensure amount is within acceptable range
@@ -93,4 +93,15 @@ export class CreateInvoiceDto {
     message: 'expiresIn cannot exceed 2678400 seconds (31 days)',
   })
   expiresIn?: number = 86400; // Default 24 hours
+
+  @ApiPropertyOptional({
+    description: 'Payment provider to use (optional, auto-selected based on currency if not specified)',
+    enum: PaymentProvider,
+    example: PaymentProvider.CryptoBot,
+  })
+  @IsOptional()
+  @IsEnum(PaymentProvider, {
+    message: 'Provider must be a valid payment provider',
+  })
+  provider?: PaymentProvider;
 }

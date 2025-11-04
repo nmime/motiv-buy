@@ -4,7 +4,8 @@ Shared utilities, types, and services for bot functionality in the Motiv-Buy pla
 
 ## Overview
 
-This library provides common bot-related functionality that can be reused across different bot implementations and applications:
+This library provides common bot-related functionality that can be reused across different bot implementations and
+applications:
 
 - **Types & Interfaces**: TypeScript definitions for bot contexts, menus, and sessions
 - **DTOs**: Data transfer objects with validation for API interactions

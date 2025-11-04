@@ -135,92 +135,6 @@ export class BotValidationUtil {
   }
 
   /**
-   * Validate empty message
-   */
-  private static validateEmptyMessage(message: string, allowEmpty: boolean): ValidationResult | null {
-    if (!message || message.trim().length === 0) {
-      if (allowEmpty) {
-        return { isValid: true, sanitized: message };
-      }
-
-      return { isValid: false, error: 'Message cannot be empty' };
-    }
-
-    return null;
-  }
-
-  /**
-   * Validate message length
-   */
-  private static validateMessageLength(message: string, minLength: number, maxLength: number): ValidationResult | null {
-    if (message.length < minLength) {
-      return {
-        isValid: false,
-        error: `Message must be at least ${minLength} characters long`,
-      };
-    }
-
-    if (message.length > maxLength) {
-      return {
-        isValid: false,
-        error: `Message cannot exceed ${maxLength} characters`,
-      };
-    }
-
-    return null;
-  }
-
-  /**
-   * Check for prohibited words
-   */
-  private static checkProhibitedWords(message: string, prohibitedWords: string[]): ValidationResult | null {
-    const lowerMessage = message.toLowerCase();
-    for (const word of prohibitedWords) {
-      if (lowerMessage.includes(word.toLowerCase())) {
-        return {
-          isValid: false,
-          error: 'Message contains prohibited content',
-        };
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Validate message content restrictions
-   */
-  private static validateMessageContent(
-    message: string,
-    allowUrls: boolean,
-    allowMentions: boolean,
-    allowHashtags: boolean,
-  ): ValidationResult | null {
-    if (!allowUrls && this.containsUrl(message)) {
-      return {
-        isValid: false,
-        error: 'URLs are not allowed in messages',
-      };
-    }
-
-    if (!allowMentions && this.containsMention(message)) {
-      return {
-        isValid: false,
-        error: 'Mentions are not allowed in messages',
-      };
-    }
-
-    if (!allowHashtags && this.containsHashtag(message)) {
-      return {
-        isValid: false,
-        error: 'Hashtags are not allowed in messages',
-      };
-    }
-
-    return null;
-  }
-
-  /**
    * Validate user input
    *
    * @param input - User input to validate
@@ -404,6 +318,92 @@ export class BotValidationUtil {
       .replace(/\0/g, '') // Remove null bytes
       .replace(/\r\n/g, '\n') // Normalize line endings
       .trim();
+  }
+
+  /**
+   * Validate empty message
+   */
+  private static validateEmptyMessage(message: string, allowEmpty: boolean): ValidationResult | null {
+    if (!message || message.trim().length === 0) {
+      if (allowEmpty) {
+        return { isValid: true, sanitized: message };
+      }
+
+      return { isValid: false, error: 'Message cannot be empty' };
+    }
+
+    return null;
+  }
+
+  /**
+   * Validate message length
+   */
+  private static validateMessageLength(message: string, minLength: number, maxLength: number): ValidationResult | null {
+    if (message.length < minLength) {
+      return {
+        isValid: false,
+        error: `Message must be at least ${minLength} characters long`,
+      };
+    }
+
+    if (message.length > maxLength) {
+      return {
+        isValid: false,
+        error: `Message cannot exceed ${maxLength} characters`,
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Check for prohibited words
+   */
+  private static checkProhibitedWords(message: string, prohibitedWords: string[]): ValidationResult | null {
+    const lowerMessage = message.toLowerCase();
+    for (const word of prohibitedWords) {
+      if (lowerMessage.includes(word.toLowerCase())) {
+        return {
+          isValid: false,
+          error: 'Message contains prohibited content',
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Validate message content restrictions
+   */
+  private static validateMessageContent(
+    message: string,
+    allowUrls: boolean,
+    allowMentions: boolean,
+    allowHashtags: boolean,
+  ): ValidationResult | null {
+    if (!allowUrls && this.containsUrl(message)) {
+      return {
+        isValid: false,
+        error: 'URLs are not allowed in messages',
+      };
+    }
+
+    if (!allowMentions && this.containsMention(message)) {
+      return {
+        isValid: false,
+        error: 'Mentions are not allowed in messages',
+      };
+    }
+
+    if (!allowHashtags && this.containsHashtag(message)) {
+      return {
+        isValid: false,
+        error: 'Hashtags are not allowed in messages',
+      };
+    }
+
+    return null;
   }
 
   /**

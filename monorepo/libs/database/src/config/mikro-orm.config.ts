@@ -1,33 +1,32 @@
 import { defineConfig } from '@mikro-orm/postgresql';
-import { type Options } from '@mikro-orm/core';
-import { ReflectMetadataProvider } from '@mikro-orm/core';
+import { type Options, ReflectMetadataProvider } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
 import 'reflect-metadata';
 import { DatabaseConfig } from './database.config';
 
 import {
-  UserEntity,
-  UserBalanceEntity,
-  UserBalanceHistoryEntity,
-  UserSettingsEntity,
-  UserLastAuthEntity,
-  UserRefLinkEntity,
-  UserSourceVisitEntity,
+  TrafficActionsEntity,
+  TrafficOrderEntity,
+  TrafficSourceCategoryEntity,
   TrafficSourceEntity,
   TrafficTargetEntity,
   TrafficUserEntity,
-  TrafficOrderEntity,
-  TrafficActionsEntity,
-  TrafficSourceCategoryEntity,
+  UserBalanceEntity,
+  UserBalanceHistoryEntity,
+  UserEntity,
+  UserLastAuthEntity,
+  UserRefLinkEntity,
+  UserSettingsEntity,
+  UserSourceVisitEntity,
 } from '../entity';
 import {
   TrafficActionsUsersEntity,
-  UserTrafficTargetEntity,
-  UserTrafficSourceEntity,
-  UserTrafficOrderEntity,
+  TrafficSourceCategoriesEntity,
   TrafficTargetSourceEntity,
   TrafficTargetUsersEntity,
-  TrafficSourceCategoriesEntity,
+  UserTrafficOrderEntity,
+  UserTrafficSourceEntity,
+  UserTrafficTargetEntity,
 } from '../entity/junction';
 
 export function createMikroOrmConfig(config: DatabaseConfig): Options {

@@ -3,6 +3,7 @@ import { MikroORM } from '@mikro-orm/core';
 import { Logger } from '@nestjs/common';
 import { getErrorMessage } from '@app/common-shared';
 import { MigrationController } from './migration.controller';
+
 export class MigrationCLI {
   private controller: MigrationController;
 

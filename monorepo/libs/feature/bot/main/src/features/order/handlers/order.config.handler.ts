@@ -11,16 +11,12 @@ import { Composer } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
 import { OrderService } from '../order.service';
 import {
-  createConfigurationKeyboard,
   createAudienceConfigKeyboard,
+  createConfigurationKeyboard,
   createGenderKeyboard,
-  createTopicsKeyboard,
   createLocationKeyboard,
+  createTopicsKeyboard,
 } from '../order.keyboards';
-import {
-  getConfigurationMessage,
-  SUCCESS_MESSAGES,
-} from '../order.messages';
 
 @Injectable()
 export class OrderConfigHandler {
@@ -38,26 +34,26 @@ export class OrderConfigHandler {
 
   private setupHandlers(): void {
     // Configuration
-    this.composer.callbackQuery(/^order:config:start:(.+)$/, ctx => this.handleOrderConfig(ctx));
-    this.composer.callbackQuery(/^order:config:done:(.+)$/, ctx => this.handleConfigDone(ctx));
+    this.composer.callbackQuery(/^order:config:start:(.+)$/, (ctx) => this.handleOrderConfig(ctx));
+    this.composer.callbackQuery(/^order:config:done:(.+)$/, (ctx) => this.handleConfigDone(ctx));
 
     // Audience configuration
-    this.composer.callbackQuery(/^order:edit:audience:(.+)$/, ctx => this.handleEditAudience(ctx));
-    this.composer.callbackQuery(/^order:audience:gender:(.+)$/, ctx => this.handleAudienceGender(ctx));
-    this.composer.callbackQuery(/^order:gender:(.+):(.+)$/, ctx => this.handleGenderSelection(ctx));
+    this.composer.callbackQuery(/^order:edit:audience:(.+)$/, (ctx) => this.handleEditAudience(ctx));
+    this.composer.callbackQuery(/^order:audience:gender:(.+)$/, (ctx) => this.handleAudienceGender(ctx));
+    this.composer.callbackQuery(/^order:gender:(.+):(.+)$/, (ctx) => this.handleGenderSelection(ctx));
 
     // Topics configuration
-    this.composer.callbackQuery(/^order:edit:topics:(.+)$/, ctx => this.handleEditTopics(ctx));
-    this.composer.callbackQuery(/^order:topic:(.+):(.+)$/, ctx => this.handleTopicToggle(ctx));
-    this.composer.callbackQuery(/^order:topics:save:(.+)$/, ctx => this.handleTopicsSave(ctx));
+    this.composer.callbackQuery(/^order:edit:topics:(.+)$/, (ctx) => this.handleEditTopics(ctx));
+    this.composer.callbackQuery(/^order:topic:(.+):(.+)$/, (ctx) => this.handleTopicToggle(ctx));
+    this.composer.callbackQuery(/^order:topics:save:(.+)$/, (ctx) => this.handleTopicsSave(ctx));
 
     // Locations configuration
-    this.composer.callbackQuery(/^order:edit:locations:(.+)$/, ctx => this.handleEditLocations(ctx));
-    this.composer.callbackQuery(/^order:location:(.+):(.+)$/, ctx => this.handleLocationSelection(ctx));
+    this.composer.callbackQuery(/^order:edit:locations:(.+)$/, (ctx) => this.handleEditLocations(ctx));
+    this.composer.callbackQuery(/^order:location:(.+):(.+)$/, (ctx) => this.handleLocationSelection(ctx));
 
     // Toggles
-    this.composer.callbackQuery(/^order:toggle:distribute:(.+)$/, ctx => this.handleToggleDistribute(ctx));
-    this.composer.callbackQuery(/^order:toggle:unsubscribes:(.+)$/, ctx => this.handleToggleUnsubscribes(ctx));
+    this.composer.callbackQuery(/^order:toggle:distribute:(.+)$/, (ctx) => this.handleToggleDistribute(ctx));
+    this.composer.callbackQuery(/^order:toggle:unsubscribes:(.+)$/, (ctx) => this.handleToggleUnsubscribes(ctx));
   }
 
   /**
@@ -69,19 +65,22 @@ export class OrderConfigHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка: заказ не найден');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.not_found'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order) {
-        await ctx.answerCallbackQuery('❌ Заказ не найден');
+        await ctx.answerCallbackQuery(ctx.t('bot.order.order_not_found'));
+
         return;
       }
 
       if (order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
@@ -93,10 +92,10 @@ export class OrderConfigHandler {
         parse_mode: 'HTML',
       });
 
-      await ctx.answerCallbackQuery('⚙️ Настройки заказа');
+      await ctx.answerCallbackQuery(ctx.t('bot.configuration.title'));
     } catch (error) {
       this.logger.error('Error handling order config', error);
-      await ctx.answerCallbackQuery('❌ Ошибка загрузки настроек');
+      await ctx.answerCallbackQuery(ctx.t('common.errors.load_failed'));
     }
   }
 
@@ -109,24 +108,26 @@ export class OrderConfigHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
       // Clear session state
       this.orderService.clearOrderSessionState(ctx);
 
-      await ctx.answerCallbackQuery(SUCCESS_MESSAGES.configSaved);
+      await ctx.answerCallbackQuery(ctx.t('bot.order.config_saved'));
     } catch (error) {
       this.logger.error('Error finishing config', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -139,19 +140,21 @@ export class OrderConfigHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
       const keyboard = createAudienceConfigKeyboard(orderId);
-      const message = '<b>Настройка аудитории</b>\n\nВыберите параметр для настройки:';
+      const message = `<b>${ctx.t('bot.configuration.targeting')}</b>\n\n${ctx.t('bot.configuration.targeting')}:`;
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -161,7 +164,7 @@ export class OrderConfigHandler {
       await ctx.answerCallbackQuery();
     } catch (error) {
       this.logger.error('Error editing audience', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -174,19 +177,21 @@ export class OrderConfigHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
       const keyboard = createGenderKeyboard(orderId);
-      const message = '<b>Выберите пол:</b>';
+      const message = `<b>${ctx.t('bot.configuration.gender')}:</b>`;
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -196,7 +201,7 @@ export class OrderConfigHandler {
       await ctx.answerCallbackQuery();
     } catch (error) {
       this.logger.error('Error showing gender selection', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -210,14 +215,16 @@ export class OrderConfigHandler {
       const orderId = match?.[2];
 
       if (!gender || !orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check and update
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
@@ -229,10 +236,10 @@ export class OrderConfigHandler {
       });
 
       await this.handleEditAudience(ctx);
-      await ctx.answerCallbackQuery('✅ Пол сохранен');
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
     } catch (error) {
       this.logger.error('Error saving gender', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -245,24 +252,27 @@ export class OrderConfigHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order) {
-        await ctx.answerCallbackQuery('❌ Заказ не найден');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.not_found'));
+
         return;
       }
 
       if (order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
       const keyboard = createTopicsKeyboard(orderId, order.config.excludedTopics);
-      const message = '<b>Исключенные тематики</b>\n\nВыберите тематики, из которых НЕ нужно привлекать подписчиков:';
+      const message = `<b>${ctx.t('bot.configuration.excluded_topics')}</b>\n\n${ctx.t('bot.configuration.excluded_topics')}:`;
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -272,7 +282,7 @@ export class OrderConfigHandler {
       await ctx.answerCallbackQuery();
     } catch (error) {
       this.logger.error('Error editing topics', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -286,14 +296,16 @@ export class OrderConfigHandler {
       const orderId = match?.[2];
 
       if (!topicId || !orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
@@ -315,7 +327,7 @@ export class OrderConfigHandler {
       await this.handleEditTopics(ctx);
     } catch (error) {
       this.logger.error('Error toggling topic', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -323,7 +335,7 @@ export class OrderConfigHandler {
    * Handle topics save
    */
   private async handleTopicsSave(ctx: BotContext): Promise<void> {
-    await ctx.answerCallbackQuery('✅ Тематики сохранены');
+    await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
   }
 
   /**
@@ -335,19 +347,21 @@ export class OrderConfigHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
       const keyboard = createLocationKeyboard(orderId);
-      const message = '<b>Места показов</b>\n\nВыберите где показывать рекламу:';
+      const message = `<b>${ctx.t('bot.configuration.display_locations')}</b>\n\n${ctx.t('bot.configuration.display_locations')}:`;
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -357,7 +371,7 @@ export class OrderConfigHandler {
       await ctx.answerCallbackQuery();
     } catch (error) {
       this.logger.error('Error editing locations', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -371,14 +385,16 @@ export class OrderConfigHandler {
       const orderId = match?.[2];
 
       if (!location || !orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check and update
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
@@ -387,10 +403,10 @@ export class OrderConfigHandler {
       });
 
       await this.handleOrderConfig(ctx);
-      await ctx.answerCallbackQuery('✅ Места показов сохранены');
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
     } catch (error) {
       this.logger.error('Error saving location', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -403,14 +419,16 @@ export class OrderConfigHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
@@ -419,10 +437,10 @@ export class OrderConfigHandler {
       });
 
       await this.handleOrderConfig(ctx);
-      await ctx.answerCallbackQuery('✅ Настройка обновлена');
+      await ctx.answerCallbackQuery(ctx.t('common.success.updated'));
     } catch (error) {
       this.logger.error('Error toggling distribute', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -435,14 +453,16 @@ export class OrderConfigHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
@@ -451,10 +471,10 @@ export class OrderConfigHandler {
       });
 
       await this.handleOrderConfig(ctx);
-      await ctx.answerCallbackQuery('✅ Настройка обновлена');
+      await ctx.answerCallbackQuery(ctx.t('common.success.updated'));
     } catch (error) {
       this.logger.error('Error toggling unsubscribes', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 }

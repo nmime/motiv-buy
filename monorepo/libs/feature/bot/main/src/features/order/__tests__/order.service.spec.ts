@@ -4,7 +4,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderService } from '../order.service';
-import { OrderStatus, OrderFlowStep, DEFAULT_ORDER_CONFIG } from '../order.types';
+import { DEFAULT_ORDER_CONFIG, OrderFlowStep, OrderStatus } from '../order.types';
 
 describe('OrderService', () => {
   let service: OrderService;

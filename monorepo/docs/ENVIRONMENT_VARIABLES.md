@@ -7,7 +7,7 @@ These variables contain sensitive information and MUST be changed before product
 ### Security & Authentication
 
 | Variable           | Current Value                                           | Production Action                             | Generate Command          |
-| ------------------ | ------------------------------------------------------- | --------------------------------------------- | ------------------------- |
+|--------------------|---------------------------------------------------------|-----------------------------------------------|---------------------------|
 | `BOT_TOKEN`        | `TODO_GET_FROM_BOTFATHER`                               | Get from [@BotFather](https://t.me/BotFather) | Create bot via Telegram   |
 | `JWT_SECRET`       | `TODO_GENERATE_SECURE_JWT_SECRET_MINIMUM_32_CHARACTERS` | Generate secure random string                 | `openssl rand -base64 32` |
 | `DB_PASSWORD`      | `password`                                              | Generate secure password                      | `openssl rand -base64 24` |
@@ -275,12 +275,12 @@ grep "TODO" .env
 ## 📊 Variable Usage by Service
 
 | Variable     | API | Bot | Database | Redis | Migration |
-| ------------ | --- | --- | -------- | ----- | --------- |
-| `BOT_TOKEN`  | ❌  | ✅  | ❌       | ❌    | ❌        |
-| `JWT_SECRET` | ✅  | ✅  | ❌       | ❌    | ❌        |
-| `DB_*`       | ✅  | ✅  | ✅       | ❌    | ✅        |
-| `REDIS_*`    | ✅  | ✅  | ❌       | ✅    | ❌        |
-| `PORT`       | ✅  | ❌  | ❌       | ❌    | ❌        |
+|--------------|-----|-----|----------|-------|-----------|
+| `BOT_TOKEN`  | ❌   | ✅   | ❌        | ❌     | ❌         |
+| `JWT_SECRET` | ✅   | ✅   | ❌        | ❌     | ❌         |
+| `DB_*`       | ✅   | ✅   | ✅        | ❌     | ✅         |
+| `REDIS_*`    | ✅   | ✅   | ❌        | ✅     | ❌         |
+| `PORT`       | ✅   | ❌   | ❌        | ❌     | ❌         |
 
 ---
 

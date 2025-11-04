@@ -1,5 +1,5 @@
-import { Entity, PrimaryKey, Property, Collection, OneToMany, ManyToOne, Index, Enum, Ref } from '@mikro-orm/core';
-import { EntityConstructorData, TrafficTargetConfig, assignEntityData } from '../type';
+import { Collection, Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Ref } from '@mikro-orm/core';
+import { assignEntityData, EntityConstructorData, TrafficTargetConfig } from '../type';
 import { UserEntity } from './User.entity';
 import type { TrafficOrderEntity } from './TrafficOrder.entity';
 

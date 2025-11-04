@@ -1,6 +1,6 @@
-import { Entity, Property, ManyToOne, Index, PrimaryKey, Enum, Ref } from '@mikro-orm/core';
+import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Ref } from '@mikro-orm/core';
 import { PlatformType } from '../const';
-import { EntityConstructorData, UserSourceVisitPlatformData, assignEntityData } from '../type';
+import { assignEntityData, EntityConstructorData, UserSourceVisitPlatformData } from '../type';
 import { UserEntity } from './User.entity';
 
 @Entity({ tableName: 'user_source_visits' })

@@ -1,4 +1,4 @@
-import { StatisticType, ChartInterval } from '../dto';
+import { ChartInterval, StatisticType } from '../dto';
 
 export interface ServiceStatisticData {
   type: StatisticType;

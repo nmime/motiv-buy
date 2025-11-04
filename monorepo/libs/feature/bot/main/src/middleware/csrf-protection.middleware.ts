@@ -141,13 +141,6 @@ export class CsrfProtectionMiddleware {
   }
 
   /**
-   * Create random token
-   */
-  private createToken(): string {
-    return randomBytes(32).toString('hex');
-  }
-
-  /**
    * Check if action requires CSRF protection
    */
   requiresCsrfProtection(action: string): boolean {
@@ -222,5 +215,12 @@ export class CsrfProtectionMiddleware {
       .join(':');
 
     return `${action}:${paramString}`;
+  }
+
+  /**
+   * Create random token
+   */
+  private createToken(): string {
+    return randomBytes(32).toString('hex');
   }
 }

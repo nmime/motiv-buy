@@ -1,5 +1,5 @@
-import { EntityRepository, EntityManager, ref } from '@mikro-orm/core';
-import { UserLastAuthEntity, UserEntity } from '../entity';
+import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
+import { UserEntity, UserLastAuthEntity } from '../entity';
 
 export class UserLastAuthRepository extends EntityRepository<UserLastAuthEntity> {
   /**

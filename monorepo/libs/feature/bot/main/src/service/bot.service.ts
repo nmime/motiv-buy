@@ -1,6 +1,6 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Bot, Context, session, SessionFlavor } from 'grammy';
-import { BotContext, BotCommand } from '@app/feature-bot-shared';
+import { BotCommand, BotContext } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
 import { unknownToError } from '@app/common-shared';
 import { OrderHandler } from '../features/order/order.handler';
@@ -469,12 +469,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   // Command handlers
   private async handleStartCommand(ctx: BotContext): Promise<void> {
     // Import main menu from order feature
-    const message = `═══════════════════════════════════════
-        <b>SubGram - Реклама в телеграм ботах</b>
-             12,403 monthly users
-═══════════════════════════════════════
-
-Выбери нужный пункт 👇`;
+    const message = `Выбери нужный пункт 👇`;
 
     await ctx.replyWithHTML(message, {
       reply_markup: {

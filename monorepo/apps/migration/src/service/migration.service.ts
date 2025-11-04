@@ -2,7 +2,8 @@ import { MikroORM } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
 import { Logger } from '@nestjs/common';
 import { handleError } from '@app/common-shared';
-import type { MigrationResult, MigrationStatus, FreshMigrationResult, SeederResult } from '../type';
+import type { FreshMigrationResult, MigrationResult, MigrationStatus, SeederResult } from '../type';
+
 export class MigrationService {
   private migrator: Migrator;
 

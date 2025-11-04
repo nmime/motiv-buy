@@ -11,6 +11,7 @@ import { EntityManager } from '@mikro-orm/core';
 import { UserEntity, UserStatus } from '@app/database';
 import { BotValidationUtil } from '../util/bot-validation.util';
 import { MenuActionHandler } from './menu-action.handler';
+import { MessageService } from '../service/message.service';
 
 @Injectable()
 export class ProfileActionHandler {
@@ -19,6 +20,7 @@ export class ProfileActionHandler {
   constructor(
     private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -43,7 +45,11 @@ export class ProfileActionHandler {
       const profileText = this.formatProfileView(user);
       const keyboard = this.menuHandler.createProfileMenuKeyboard();
 
-      await ctx.replyWithHTML(profileText, { reply_markup: keyboard });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: profileText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
 
       this.logger.log('Profile viewed', { userId: user.id, telegramId: user.telegramId });
     } catch (error) {

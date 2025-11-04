@@ -15,17 +15,11 @@ import { BotContext } from '@app/feature-bot-shared';
 import { OrderService } from '../order.service';
 import { OrderStatus } from '../order.types';
 import {
-  createOrderListKeyboard,
-  createViewOrderKeyboard,
   createDeleteConfirmKeyboard,
+  createOrderListKeyboard,
   createStatsKeyboard,
+  createViewOrderKeyboard,
 } from '../order.keyboards';
-import {
-  getOrderListMessage,
-  getViewOrderMessage,
-  getOrderStatsMessage,
-  SUCCESS_MESSAGES,
-} from '../order.messages';
 import { escapeHtml } from '../utils/html-escape.util';
 
 @Injectable()
@@ -44,20 +38,20 @@ export class OrderManagementHandler {
 
   private setupHandlers(): void {
     // Order list
-    this.composer.callbackQuery('order:list', ctx => this.handleOrderList(ctx));
-    this.composer.callbackQuery('order:deleted', ctx => this.handleDeletedOrders(ctx));
-    this.composer.callbackQuery(/^order:list:page:(\d+)$/, ctx => this.handleOrderListPagination(ctx));
+    this.composer.callbackQuery('order:list', (ctx) => this.handleOrderList(ctx));
+    this.composer.callbackQuery('order:deleted', (ctx) => this.handleDeletedOrders(ctx));
+    this.composer.callbackQuery(/^order:list:page:(\d+)$/, (ctx) => this.handleOrderListPagination(ctx));
 
     // View order
-    this.composer.callbackQuery(/^order:view:(.+)$/, ctx => this.handleViewOrder(ctx));
-    this.composer.callbackQuery(/^order:refresh:(.+)$/, ctx => this.handleRefreshStats(ctx));
-    this.composer.callbackQuery(/^order:stats:(.+)$/, ctx => this.handleOrderStats(ctx));
+    this.composer.callbackQuery(/^order:view:(.+)$/, (ctx) => this.handleViewOrder(ctx));
+    this.composer.callbackQuery(/^order:refresh:(.+)$/, (ctx) => this.handleRefreshStats(ctx));
+    this.composer.callbackQuery(/^order:stats:(.+)$/, (ctx) => this.handleOrderStats(ctx));
 
     // Order actions
-    this.composer.callbackQuery(/^order:toggle:(.+)$/, ctx => this.handleToggleOrder(ctx));
-    this.composer.callbackQuery(/^order:delete:(.+)$/, ctx => this.handleDeleteOrder(ctx));
-    this.composer.callbackQuery(/^order:delete:confirm:(.+)$/, ctx => this.handleDeleteConfirm(ctx));
-    this.composer.callbackQuery(/^order:duplicate:(.+)$/, ctx => this.handleDuplicateOrder(ctx));
+    this.composer.callbackQuery(/^order:toggle:(.+)$/, (ctx) => this.handleToggleOrder(ctx));
+    this.composer.callbackQuery(/^order:delete:(.+)$/, (ctx) => this.handleDeleteOrder(ctx));
+    this.composer.callbackQuery(/^order:delete:confirm:(.+)$/, (ctx) => this.handleDeleteConfirm(ctx));
+    this.composer.callbackQuery(/^order:duplicate:(.+)$/, (ctx) => this.handleDuplicateOrder(ctx));
   }
 
   /**
@@ -67,14 +61,15 @@ export class OrderManagementHandler {
     try {
       const userId = ctx.from?.id.toString();
       if (!userId) {
-        await ctx.answerCallbackQuery('❌ Ошибка аутентификации');
+        await ctx.answerCallbackQuery(ctx.t('auth.authentication_required'));
+
         return;
       }
 
       const orders = await this.orderService.getUserOrders(userId);
-      const activeOrders = orders.filter(o => o.status !== OrderStatus.Deleted);
+      const activeOrders = orders.filter((o) => o.status !== OrderStatus.Deleted);
 
-      const message = getOrderListMessage(activeOrders.length);
+      const message = `<b>${ctx.t('bot.order.list_title')}</b>\n\n${ctx.t('bot.order.total_count', { count: activeOrders.length })}`;
       const keyboard = createOrderListKeyboard(activeOrders, false, page);
 
       await ctx.editMessageText(message, {
@@ -85,7 +80,7 @@ export class OrderManagementHandler {
       await ctx.answerCallbackQuery();
     } catch (error) {
       this.logger.error('Error handling order list', error);
-      await ctx.answerCallbackQuery('❌ Ошибка загрузки заказов');
+      await ctx.answerCallbackQuery(ctx.t('common.errors.load_failed'));
     }
   }
 
@@ -105,14 +100,15 @@ export class OrderManagementHandler {
     try {
       const userId = ctx.from?.id.toString();
       if (!userId) {
-        await ctx.answerCallbackQuery('❌ Ошибка аутентификации');
+        await ctx.answerCallbackQuery(ctx.t('auth.authentication_required'));
+
         return;
       }
 
       const orders = await this.orderService.getUserOrders(userId);
-      const deletedOrders = orders.filter(o => o.status === OrderStatus.Deleted);
+      const deletedOrders = orders.filter((o) => o.status === OrderStatus.Deleted);
 
-      const message = `<b>Удаленные заказы</b>\n\nВсего: ${deletedOrders.length}`;
+      const message = `<b>${ctx.t('bot.buttons.show_deleted')}</b>\n\n${ctx.t('bot.order.total_count', { count: deletedOrders.length })}`;
       const keyboard = createOrderListKeyboard(deletedOrders, true);
 
       await ctx.editMessageText(message, {
@@ -123,7 +119,7 @@ export class OrderManagementHandler {
       await ctx.answerCallbackQuery();
     } catch (error) {
       this.logger.error('Error handling deleted orders', error);
-      await ctx.answerCallbackQuery('❌ Ошибка загрузки удаленных заказов');
+      await ctx.answerCallbackQuery(ctx.t('common.errors.delete_failed'));
     }
   }
 
@@ -136,83 +132,42 @@ export class OrderManagementHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order) {
-        await ctx.answerCallbackQuery('❌ Заказ не найден');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.not_found'));
+
         return;
       }
 
       if (order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      await this.showOrderView(ctx, orderId);
+      const message = getViewOrderMessage(order);
+      const keyboard = createViewOrderKeyboard(orderId);
+
+      await ctx.editMessageText(message, {
+        reply_markup: keyboard,
+        parse_mode: 'HTML',
+      });
+
       await ctx.answerCallbackQuery();
     } catch (error) {
-      this.logger.error('Error viewing order', error);
-      await ctx.answerCallbackQuery('❌ Ошибка просмотра заказа');
+      this.logger.error('Error handling view order', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
   /**
-   * Show order view (A6)
-   */
-  private async showOrderView(ctx: BotContext, orderId: string): Promise<void> {
-    const order = await this.orderService.getOrderById(orderId);
-    if (!order) {
-      await ctx.answerCallbackQuery('❌ Заказ не найден');
-      return;
-    }
-
-    // TODO: Get real user balance
-    const balance = 1234.50;
-
-    const message = getViewOrderMessage(order, balance);
-    const keyboard = createViewOrderKeyboard(order);
-
-    await ctx.editMessageText(message, {
-      reply_markup: keyboard,
-      parse_mode: 'HTML',
-    });
-  }
-
-  /**
-   * Handle refresh statistics
-   */
-  private async handleRefreshStats(ctx: BotContext): Promise<void> {
-    try {
-      const match = ctx.callbackQuery?.data?.match(/^order:refresh:(.+)$/);
-      const orderId = match?.[1];
-
-      if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
-        return;
-      }
-
-      // Authorization check
-      const order = await this.orderService.getOrderById(orderId);
-      if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
-        return;
-      }
-
-      await this.orderService.refreshOrderStats(orderId);
-      await this.showOrderView(ctx, orderId);
-      await ctx.answerCallbackQuery('✅ Статистика обновлена');
-    } catch (error) {
-      this.logger.error('Error refreshing stats', error);
-      await ctx.answerCallbackQuery('❌ Ошибка обновления статистики');
-    }
-  }
-
-  /**
-   * Handle order statistics view
+   * Handle order stats
    */
   private async handleOrderStats(ctx: BotContext): Promise<void> {
     try {
@@ -220,19 +175,16 @@ export class OrderManagementHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
-      if (!order) {
-        await ctx.answerCallbackQuery('❌ Заказ не найден');
-        return;
-      }
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
 
-      if (order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
         return;
       }
 
@@ -246,13 +198,26 @@ export class OrderManagementHandler {
 
       await ctx.answerCallbackQuery();
     } catch (error) {
-      this.logger.error('Error showing stats', error);
-      await ctx.answerCallbackQuery('❌ Ошибка загрузки статистики');
+      this.logger.error('Error handling order stats', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
   /**
-   * Handle toggle order (start/stop)
+   * Handle refresh stats
+   */
+  private async handleRefreshStats(ctx: BotContext): Promise<void> {
+    try {
+      await this.handleOrderStats(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.updated'));
+    } catch (error) {
+      this.logger.error('Error refreshing stats', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle toggle order
    */
   private async handleToggleOrder(ctx: BotContext): Promise<void> {
     try {
@@ -260,32 +225,28 @@ export class OrderManagementHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
-      if (!order) {
-        await ctx.answerCallbackQuery('❌ Заказ не найден');
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      if (order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
-        return;
-      }
-
+      // Toggle order status
       const newStatus = order.status === OrderStatus.Active ? OrderStatus.Paused : OrderStatus.Active;
       await this.orderService.updateOrderStatus(orderId, newStatus);
 
-      await this.showOrderView(ctx, orderId);
-
-      const message = newStatus === OrderStatus.Active ? SUCCESS_MESSAGES.orderStarted : SUCCESS_MESSAGES.orderStopped;
-      await ctx.answerCallbackQuery(message);
+      await this.handleViewOrder(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.updated'));
     } catch (error) {
       this.logger.error('Error toggling order', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -298,24 +259,21 @@ export class OrderManagementHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
-      if (!order) {
-        await ctx.answerCallbackQuery('❌ Заказ не найден');
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      if (order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
-        return;
-      }
-
-      const message = `⚠️ Удалить заказ?\n\nЗаказ: ${escapeHtml(order.config.name)}\nКанал: ${escapeHtml(order.channel.title)}\n\nЭто действие нельзя отменить.`;
       const keyboard = createDeleteConfirmKeyboard(orderId);
+      const message = `<b>${ctx.t('common.buttons.delete_order')}</b>\n\n${ctx.t('common.confirm')}?`;
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -324,13 +282,13 @@ export class OrderManagementHandler {
 
       await ctx.answerCallbackQuery();
     } catch (error) {
-      this.logger.error('Error showing delete confirmation', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      this.logger.error('Error deleting order', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
   /**
-   * Handle delete confirmation
+   * Handle delete confirm
    */
   private async handleDeleteConfirm(ctx: BotContext): Promise<void> {
     try {
@@ -338,23 +296,27 @@ export class OrderManagementHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
+      // Delete order
       await this.orderService.deleteOrder(orderId);
+
       await this.handleOrderList(ctx);
-      await ctx.answerCallbackQuery(SUCCESS_MESSAGES.orderDeleted);
+      await ctx.answerCallbackQuery(ctx.t('common.success.deleted'));
     } catch (error) {
-      this.logger.error('Error deleting order', error);
-      await ctx.answerCallbackQuery('❌ Ошибка удаления заказа');
+      this.logger.error('Error confirming delete', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -367,34 +329,27 @@ export class OrderManagementHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
-        return;
-      }
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
 
-      const userId = ctx.from?.id.toString();
-      if (!userId) {
-        await ctx.answerCallbackQuery('❌ Ошибка аутентификации');
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
-      if (!order || order.userId !== userId) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      const duplicated = await this.orderService.duplicateOrder(orderId, userId);
-      if (!duplicated) {
-        await ctx.answerCallbackQuery('❌ Не удалось скопировать заказ');
-        return;
-      }
+      // Create duplicate
+      const duplicated = await this.orderService.duplicateOrder(orderId);
 
-      await this.showOrderView(ctx, duplicated.id);
-      await ctx.answerCallbackQuery('✅ Заказ скопирован');
+      await this.handleOrderList(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.created'));
     } catch (error) {
       this.logger.error('Error duplicating order', error);
-      await ctx.answerCallbackQuery('❌ Ошибка копирования заказа');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 }

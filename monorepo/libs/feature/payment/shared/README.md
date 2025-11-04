@@ -4,7 +4,8 @@ Shared types, DTOs, and interfaces for the payment feature.
 
 ## Overview
 
-This package contains shared code that can be used by both the main payment implementation and other packages that need to interact with payment functionality.
+This package contains shared code that can be used by both the main payment implementation and other packages that need
+to interact with payment functionality.
 
 ## Contents
 

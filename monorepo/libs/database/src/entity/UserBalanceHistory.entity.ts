@@ -1,6 +1,6 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum, Ref } from '@mikro-orm/core';
+import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Ref } from '@mikro-orm/core';
 import { CurrencyCode } from './Currency.entity';
-import { EntityConstructorData, UserBalanceMetadata, assignEntityData } from '../type';
+import { assignEntityData, EntityConstructorData, UserBalanceMetadata } from '../type';
 import { UserEntity } from './User.entity';
 
 export enum TransactionType {

@@ -6,7 +6,7 @@
  * and response generation.
  */
 
-import { BotUser, BotMessage } from '../type';
+import { BotMessage, BotUser } from '../type';
 
 /**
  * Message Format Options
@@ -474,23 +474,6 @@ export class BotHelperUtil {
   }
 
   /**
-   * Apply custom template to user data
-   *
-   * @param user - Bot user
-   * @param template - Template string with placeholders
-   * @returns Formatted string
-   */
-  private static applyCustomTemplate(user: BotUser, template: string): string {
-    return template
-      .replace(/\{id\}/g, user.id.toString())
-      .replace(/\{first_name\}/g, user.first_name)
-      .replace(/\{last_name\}/g, user.last_name || '')
-      .replace(/\{username\}/g, user.username || '')
-      .replace(/\{language_code\}/g, user.language_code || '')
-      .replace(/\{is_premium\}/g, user.is_premium ? 'premium' : 'regular');
-  }
-
-  /**
    * Get message type
    *
    * @param message - Bot message
@@ -605,5 +588,22 @@ export class BotHelperUtil {
     const parts = message.text.split(' ');
 
     return parts.slice(1);
+  }
+
+  /**
+   * Apply custom template to user data
+   *
+   * @param user - Bot user
+   * @param template - Template string with placeholders
+   * @returns Formatted string
+   */
+  private static applyCustomTemplate(user: BotUser, template: string): string {
+    return template
+      .replace(/\{id\}/g, user.id.toString())
+      .replace(/\{first_name\}/g, user.first_name)
+      .replace(/\{last_name\}/g, user.last_name || '')
+      .replace(/\{username\}/g, user.username || '')
+      .replace(/\{language_code\}/g, user.language_code || '')
+      .replace(/\{is_premium\}/g, user.is_premium ? 'premium' : 'regular');
   }
 }

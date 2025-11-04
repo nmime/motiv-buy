@@ -1,15 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsString,
   IsEnum,
   IsOptional,
-  MaxLength,
+  IsString,
   Matches,
+  MaxLength,
   Validate,
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { CurrencyCode } from '@app/database';
+import { CurrencyCode, PaymentProvider } from '@app/database';
 
 /**
  * Custom validator to ensure withdrawal amount is within acceptable range
@@ -84,4 +84,15 @@ export class CreateTransferDto {
     message: 'Comment cannot exceed 1024 characters',
   })
   comment?: string;
+
+  @ApiPropertyOptional({
+    description: 'Payment provider to use (optional, auto-selected based on currency if not specified)',
+    enum: PaymentProvider,
+    example: PaymentProvider.CryptoBot,
+  })
+  @IsOptional()
+  @IsEnum(PaymentProvider, {
+    message: 'Provider must be a valid payment provider',
+  })
+  provider?: PaymentProvider;
 }

@@ -17,6 +17,7 @@ Complete guide for using internationalization in both Bot and API.
 ### Setup
 
 The i18n plugin is added to Grammy bot automatically. It provides:
+
 - `ctx.t()` - Translation function
 - `ctx.language` - Current user language
 
@@ -24,13 +25,14 @@ The i18n plugin is added to Grammy bot automatically. It provides:
 
 ```typescript
 // In BotService (libs/feature/bot/main/src/service/bot.service.ts)
-import { createGrammyI18nMiddleware } from '@app/common-intl';
+import {createGrammyI18nMiddleware} from '@app/common-intl';
 
 export class BotService {
   constructor(
     private readonly i18nService: I18nService,
     // ... other services
-  ) {}
+  ) {
+  }
 
   async start() {
     const bot = new Bot<BotContext>(token);
@@ -39,7 +41,7 @@ export class BotService {
     bot.use(createGrammyI18nMiddleware(this.i18nService));
 
     // Add session middleware
-    bot.use(session({ initial: () => ({}) }));
+    bot.use(session({initial: () => ({})}));
 
     // Your handlers...
     this.setupHandlers(bot);
@@ -60,7 +62,7 @@ bot.command('start', (ctx) => {
 
 // Translation with parameters
 bot.command('stats', (ctx) => {
-  const message = ctx.t('order.order_list.total_count', { count: 42 });
+  const message = ctx.t('order.order_list.total_count', {count: 42});
   ctx.reply(message); // "Всего заказов: 42" (if Russian)
 });
 
@@ -71,7 +73,8 @@ bot.command('language', (ctx) => {
 
 // In services (inject I18nService)
 export class OrderService {
-  constructor(private readonly i18n: I18nService) {}
+  constructor(private readonly i18n: I18nService) {
+  }
 
   getMessage(ctx: BotContext): string {
     // Use ctx.language to get user's language
@@ -85,6 +88,7 @@ export class OrderService {
 ### Language Detection
 
 Language is detected automatically in this order:
+
 1. **Session language** (if user previously set it)
 2. **Telegram user language_code** (from user profile)
 3. **Default language** (English)
@@ -410,14 +414,15 @@ export class OrderController {
 
 @Injectable()
 export class OrderMessagesService {
-  constructor(private readonly i18n: I18nService) {}
+  constructor(private readonly i18n: I18nService) {
+  }
 
   getErrorMessage(errorKey: string, language: string): string {
-    return this.i18n.t(`order.errors.${errorKey}`, { lang: language });
+    return this.i18n.t(`order.errors.${errorKey}`, {lang: language});
   }
 
   getSuccessMessage(successKey: string, language: string): string {
-    return this.i18n.t(`order.success.${successKey}`, { lang: language });
+    return this.i18n.t(`order.success.${successKey}`, {lang: language});
   }
 }
 
@@ -467,17 +472,18 @@ const exists = i18n.exists('order.test.key');
 
 ## 🚀 Quick Reference
 
-| Context | Translation | Language | Change Language |
-|---------|-------------|----------|-----------------|
-| **Bot** | `ctx.t(key, options)` | `ctx.language` | `changeUserLanguage(ctx, 'ru')` |
-| **API** | `i18n.t(key, options)` | `i18n.language` | Client-side header |
-| **Service** | `i18n.t(key, { lang, args })` | Pass from context | N/A |
+| Context     | Translation                   | Language          | Change Language                 |
+|-------------|-------------------------------|-------------------|---------------------------------|
+| **Bot**     | `ctx.t(key, options)`         | `ctx.language`    | `changeUserLanguage(ctx, 'ru')` |
+| **API**     | `i18n.t(key, options)`        | `i18n.language`   | Client-side header              |
+| **Service** | `i18n.t(key, { lang, args })` | Pass from context | N/A                             |
 
 ---
 
 ## ✅ Supported Languages
 
 Current supported languages (from `libs/common/shared/src/types/language.enum.ts`):
+
 - `en` - English
 - `ru` - Russian
 - `es` - Spanish
@@ -488,6 +494,7 @@ Current supported languages (from `libs/common/shared/src/types/language.enum.ts
 - `ko` - Korean
 
 To add a new language:
+
 1. Create `libs/common/intl/locales/{lang}/order.json`
 2. Add to `Language` enum
 3. Restart the application

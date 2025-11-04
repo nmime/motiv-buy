@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsEnum, IsOptional, IsArray, Min, Max } from 'class-validator';
+import { IsArray, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export enum TrafficType {
   PrivateMessages = 'private_messages',

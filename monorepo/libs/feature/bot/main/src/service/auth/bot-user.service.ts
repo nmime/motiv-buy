@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AuthUserService, LinkType } from '@app/feature-auth-shared';
-import { UserEntity, PlatformType } from '@app/database';
-import { TelegramAuthParams } from '@app/feature-auth-shared';
+import { AuthUserService, LinkType, TelegramAuthParams } from '@app/feature-auth-shared';
+import { PlatformType, UserEntity } from '@app/database';
 import { BotContext } from '@app/feature-bot-shared';
 
 /**
@@ -70,6 +69,22 @@ export class BotUserService {
       });
 
       throw err;
+    }
+  }
+
+  /**
+   * Update user activity timestamp
+   */
+  async updateUserActivity(user: UserEntity): Promise<void> {
+    try {
+      // This would typically update the user's last activity
+      // For now, we'll just log it since we don't want to hit the DB on every interaction
+      this.logger.debug(`User activity updated`, {
+        userId: user.id,
+        telegramId: user.telegramId,
+      });
+    } catch (err: unknown) {
+      this.logger.warn('Failed to update user activity', err, { userId: user.id });
     }
   }
 
@@ -204,21 +219,5 @@ export class BotUserService {
     const timeDiff = now.getTime() - createdAt.getTime();
 
     return timeDiff < 60000; // Less than 1 minute ago
-  }
-
-  /**
-   * Update user activity timestamp
-   */
-  async updateUserActivity(user: UserEntity): Promise<void> {
-    try {
-      // This would typically update the user's last activity
-      // For now, we'll just log it since we don't want to hit the DB on every interaction
-      this.logger.debug(`User activity updated`, {
-        userId: user.id,
-        telegramId: user.telegramId,
-      });
-    } catch (err: unknown) {
-      this.logger.warn('Failed to update user activity', err, { userId: user.id });
-    }
   }
 }

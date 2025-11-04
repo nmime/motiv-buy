@@ -8,9 +8,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import { UserEntity, TrafficOrderEntity, TrafficOrderStatus, UserBalanceHistoryEntity } from '@app/database';
+import { TrafficOrderEntity, TrafficOrderStatus, UserBalanceHistoryEntity, UserEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, sum, toNumber, toDisplayString } from '@app/common-shared/util';
+import { decimal, sum, toDisplayString, toNumber } from '@app/common-shared';
+import { MessageService } from '../service/message.service';
 
 interface UserStatistics {
   totalOrders: number;
@@ -29,6 +30,7 @@ export class StatisticsActionHandler {
   constructor(
     private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -54,7 +56,11 @@ export class StatisticsActionHandler {
       const statsText = this.formatStatisticsOverview(stats, user);
       const keyboard = this.menuHandler.createStatisticsMenuKeyboard();
 
-      await ctx.replyWithHTML(statsText, { reply_markup: keyboard });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: statsText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
 
       this.logger.log('Statistics overview viewed', { userId: user.id });
     } catch (error) {

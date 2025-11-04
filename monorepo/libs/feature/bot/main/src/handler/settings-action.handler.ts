@@ -8,9 +8,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import { UserEntity, UserSettingsEntity, SettingType, NotificationType } from '@app/database';
+import { SettingType, UserEntity, UserSettingsEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { BotValidationUtil } from '../util/bot-validation.util';
+import { MessageService } from '../service/message.service';
 
 interface UserPreferences {
   language: string;
@@ -36,6 +37,7 @@ export class SettingsActionHandler {
   constructor(
     private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -61,7 +63,11 @@ export class SettingsActionHandler {
       const settingsText = this.formatSettingsView(preferences);
       const keyboard = this.menuHandler.createSettingsMenuKeyboard();
 
-      await ctx.replyWithHTML(settingsText, { reply_markup: keyboard });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: settingsText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
 
       this.logger.log('Settings viewed', { userId: user.id });
     } catch (error) {

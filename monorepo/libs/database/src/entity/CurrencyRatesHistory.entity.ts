@@ -1,5 +1,5 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Ref, Enum } from '@mikro-orm/core';
-import { EntityConstructorData, assignEntityData } from '../type';
+import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Ref } from '@mikro-orm/core';
+import { assignEntityData, EntityConstructorData } from '../type';
 import { CurrencyEntity } from './Currency.entity';
 
 /**

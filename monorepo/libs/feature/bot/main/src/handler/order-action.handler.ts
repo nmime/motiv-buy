@@ -8,9 +8,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import { UserEntity, TrafficOrderEntity, TrafficOrderStatus, TrafficOrderType } from '@app/database';
+import { TrafficOrderEntity, TrafficOrderStatus, UserEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, toDisplayString } from '@app/common-shared/util';
+import { decimal, toDisplayString } from '@app/common-shared';
+import { MessageService } from '../service/message.service';
 
 @Injectable()
 export class OrderActionHandler {
@@ -19,6 +20,7 @@ export class OrderActionHandler {
   constructor(
     private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -74,7 +76,11 @@ export class OrderActionHandler {
 
       keyboard = keyboard.text('« Back', 'menu:orders');
 
-      await ctx.replyWithHTML(ordersText, { reply_markup: keyboard });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ordersText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
 
       this.logger.log('Active orders viewed', { userId: user.id, page });
     } catch (error) {
@@ -264,9 +270,7 @@ export class OrderActionHandler {
     let text = `<b>📦 ${title}</b> (Page ${page}/${totalPages})\n\n`;
 
     for (const order of orders) {
-      const progress = decimal(order.currentCount)
-        .div(order.targetCount)
-        .mul(100);
+      const progress = decimal(order.currentCount).div(order.targetCount).mul(100);
       const progressDisplay = toDisplayString(progress, 1);
       const statusEmoji = this.getStatusEmoji(order.status);
       const budgetDisplay = toDisplayString(order.totalBudget, 2);
@@ -287,9 +291,7 @@ export class OrderActionHandler {
    * Format order details
    */
   private async formatOrderDetails(order: TrafficOrderEntity): Promise<string> {
-    const progress = decimal(order.currentCount)
-      .div(order.targetCount)
-      .mul(100);
+    const progress = decimal(order.currentCount).div(order.targetCount).mul(100);
     const progressDisplay = toDisplayString(progress, 1);
     const statusEmoji = this.getStatusEmoji(order.status);
     const source = await order.trafficSource.load();

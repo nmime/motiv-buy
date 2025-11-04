@@ -3,17 +3,17 @@ import { SerializedError } from 'pino-std-serializers';
 
 import { pinoHttp, stdSerializers } from 'pino-http';
 
-import { Store, storage } from 'nestjs-pino/storage';
+import { storage, Store } from 'nestjs-pino/storage';
+import { Params } from 'nestjs-pino/params';
+import { IncomingMessage, ServerResponse } from 'http';
+import { ClsServiceManager } from 'nestjs-cls';
+import { FastifyReply, FastifyRequest } from 'fastify';
 
 // Interface for requests with logger properties (extended by pino middleware)
 interface LoggerRequest {
   log?: import('pino').Logger;
   allLogs?: import('pino').Logger[];
 }
-import { Params } from 'nestjs-pino/params';
-import { IncomingMessage, ServerResponse } from 'http';
-import { ClsServiceManager } from 'nestjs-cls';
-import { FastifyRequest, FastifyReply } from 'fastify';
 
 const protectedVariables = [
   'authorization',

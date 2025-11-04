@@ -9,7 +9,8 @@
 **Status**: COMPLETED
 **Date**: January 2025
 
-All mock implementations have been systematically removed from the entire codebase and replaced with real database integrations:
+All mock implementations have been systematically removed from the entire codebase and replaced with real database
+integrations:
 
 #### Mock Removal Summary:
 
@@ -161,16 +162,33 @@ class AuthService {
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     // ... other real services
-  ) {}
+  ) {
+  }
 
   // Real TMA validation with signature checking
-  async authTma(params: { hostname, url, ip }) => { ... }
+  async authTma(params: { hostname, url, ip })
 
-  // Real Telegram Widget auth with checkSignature
-  async authTelegramWidget(params: { dto, ip }) => { ... }
+=> {
+...
+}
 
-  // Real user lookup and creation
-  async auth(userData, platformType, ip) => { ... }
+// Real Telegram Widget auth with checkSignature
+async
+authTelegramWidget(params
+:
+{
+  dto, ip
+}
+) =>
+{ ...
+}
+
+// Real user lookup and creation
+async
+auth(userData, platformType, ip)
+=>
+{ ...
+}
 }
 ```
 
@@ -181,11 +199,12 @@ class BalanceService {
   constructor(
     private readonly userBalanceRepository: UserBalanceRepository,
     private readonly userBalanceHistoryRepository: UserBalanceHistoryRepository,
-  ) {}
+  ) {
+  }
 
   // Real balance queries
   async getBalance(userId: string) {
-    const balance = await this.userBalanceRepository.findOne({ userId: Number(userId) });
+    const balance = await this.userBalanceRepository.findOne({userId: Number(userId)});
     // ... real implementation
   }
 
@@ -193,7 +212,7 @@ class BalanceService {
   async getTransactionHistory(userId: string, filter: TransactionFilterDto) {
     const queryBuilder = this.userBalanceHistoryRepository
       .createQueryBuilder('history')
-      .where('history.userId = :userId', { userId: Number(userId) })
+      .where('history.userId = :userId', {userId: Number(userId)})
       .orderBy('history.createdAt', 'DESC');
     // ... real filtering and queries
   }
@@ -208,14 +227,15 @@ class StatisticService {
     private readonly trafficOrderRepository: TrafficOrderRepository,
     private readonly trafficBuyerRepository: TrafficBuyerRepository,
     private readonly userSourceVisitRepository: UserSourceVisitRepository,
-  ) {}
+  ) {
+  }
 
   // Real sales analytics
   async getSaleStatistics(userId: number, query: StatisticQueryDto) {
     const queryBuilder = this.trafficOrderRepository
       .createQueryBuilder('order')
-      .where('order.sellerId = :userId', { userId })
-      .andWhere('order.status = :status', { status: 'completed' });
+      .where('order.sellerId = :userId', {userId})
+      .andWhere('order.status = :status', {status: 'completed'});
     // ... real complex queries
   }
 }
@@ -298,9 +318,9 @@ GET /statistic/shared/:token        # Real shared statistics
 
 - **Constants**: Class-level constants should use camelCase (e.g., `jwtCachePrefix`, `validationCachePrefix`)
 - **Enums**:
-  - Enum names: PascalCase (e.g., `UserRole`, `OrderStatus`)
-  - Enum keys: PascalCase (e.g., `Pending`, `Completed`)
-  - Enum values: snake_case (e.g., `'pending'`, `'completed'`)
+    - Enum names: PascalCase (e.g., `UserRole`, `OrderStatus`)
+    - Enum keys: PascalCase (e.g., `Pending`, `Completed`)
+    - Enum values: snake_case (e.g., `'pending'`, `'completed'`)
 - **Type System**: userId is always a `number` type in our system, not `string`
 
 ### Service Implementation Pattern
@@ -312,23 +332,42 @@ export class FeatureService {
   constructor(
     private readonly entityRepository: EntityRepository,
     private readonly relatedRepository: RelatedRepository,
-  ) {}
-
-  async method(id: string): AsyncResultDto> {
-    const entity = await this.entityRepository.findOne({ id: Number(id) });
-    if (!entity) {
-      throw new NotFoundException(`Entity with ID ${id} not found`);
-    }
-    return this.mapToDto(entity);
+  ) {
   }
+
+  async method(id: string): AsyncResultDto
+
+> {
+  const
+  entity = await this.entityRepository.findOne({id: Number(id)});
+
+  if(
+
+!
+  entity
+) {
+  throw
+  new
+
+  NotFoundException(
+
+`Entity with ID $ {
+  id
+}
+
+ not found
+`);
+}
+return this.mapToDto(entity);
+}
 }
 
 // ❌ Avoid - Mock or Stub Implementation
 @Injectable()
 export class MockService {
-  async method(id: string): AsyncResultDto> {
-    return { mock: 'data' }; // Never do this
-  }
+async method(id: string): AsyncResultDto> {
+return {mock: 'data'}; // Never do this
+}
 }
 ```
 
@@ -430,4 +469,5 @@ export const CurrentUserId = createParamDecorator((data: unknown, ctx: Execution
 
 ---
 
-_This context document reflects the current state after complete mock removal and real database integration. All services now operate with production-ready database connections and follow the xRocket authentication pattern._
+_This context document reflects the current state after complete mock removal and real database integration. All
+services now operate with production-ready database connections and follow the xRocket authentication pattern._

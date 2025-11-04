@@ -1,11 +1,11 @@
-import { Controller, Get, Query, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { StatisticService } from '../service';
 import { StatisticMapper } from '../mapper';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { AsyncResult } from '@app/common-shared';
 import { Ok } from 'ts-results';
-import { StatisticResponseDto, LineChartResponseDto, LineChartQueryDto } from '../dto';
+import { LineChartQueryDto, LineChartResponseDto, StatisticResponseDto } from '../dto';
 
 @ApiTags('public-statistics')
 @Controller('public/statistics')

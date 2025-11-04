@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext, BotCommand, MenuType } from '@app/feature-bot-shared';
+import { BotCommand, BotContext, MenuType } from '@app/feature-bot-shared';
 import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceService } from '@app/feature-balance-main';

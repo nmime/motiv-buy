@@ -2,7 +2,10 @@
 
 ## Purpose and Responsibilities
 
-The `logger` library provides a comprehensive, secure logging system for the xRocket platform. It implements structured JSON logging with sensitive data redaction, correlation ID tracking, and environment-specific log formatting. The logger ensures security by automatically redacting protected variables and provides consistent logging across all microservices.
+The `logger` library provides a comprehensive, secure logging system for the xRocket platform. It implements structured
+JSON logging with sensitive data redaction, correlation ID tracking, and environment-specific log formatting. The logger
+ensures security by automatically redacting protected variables and provides consistent logging across all
+microservices.
 
 ## Key Components
 
@@ -163,8 +166,8 @@ this.logger.log('Financial operation completed', {
 
 - **LOG_LEVEL**: Log level (debug, info, warn, error) - defaults to 'debug'
 - **NODE_ENV**: Environment setting (affects log formatting)
-  - `production`: JSON format for machine processing
-  - `development/other`: Pretty printed format for human readability
+    - `production`: JSON format for machine processing
+    - `development/other`: Pretty printed format for human readability
 
 ### Logger Configuration
 

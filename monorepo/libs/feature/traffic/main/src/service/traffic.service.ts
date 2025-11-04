@@ -1,40 +1,39 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository, EntityManager } from '@mikro-orm/core';
-import { getErrorMessage, unknownToError } from '@app/common-shared';
-import { multiply, percentage, toDbString, toNumber } from '@app/common-shared/util';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
+import { getErrorMessage, multiply, percentage, toDbString, toNumber, unknownToError } from '@app/common-shared';
 import {
-  CreateBotDto,
-  BotValidationDto,
-  BotCreationResponseDto,
-  BotSettingsDto,
-  UpdateBotSettingsDto,
-  BotActionDto,
-  BotResponseDto,
-  CreateTrafficOrderDto,
-  TrafficOrderResponseDto,
-  UpdateTrafficOrderDto,
   AvailableTrafficDto,
-  BotStatus,
   BotAction,
-  TrafficType,
+  BotActionDto,
+  BotCreationResponseDto,
+  BotResponseDto,
+  BotSettingsDto,
+  BotStatus,
   BotTokenValidationDto,
   BotTokenValidationResponseDto,
+  BotTokenValidationService,
+  BotValidationDto,
+  CreateBotDto,
+  CreateTrafficOrderDto,
+  TrafficOrderResponseDto,
+  TrafficType,
+  UpdateBotSettingsDto,
+  UpdateTrafficOrderDto,
 } from '@app/feature-traffic-shared';
 import {
-  TrafficTargetEntity,
-  TrafficSourceEntity,
   TrafficOrderEntity,
-  TrafficTargetType,
-  TrafficSourceType,
-  TrafficOrderType,
-  TrafficOrderStatus,
-  UserEntity,
-  TrafficTargetRepository,
-  TrafficSourceRepository,
   TrafficOrderRepository,
+  TrafficOrderStatus,
+  TrafficOrderType,
+  TrafficSourceEntity,
+  TrafficSourceRepository,
+  TrafficSourceType,
+  TrafficTargetEntity,
+  TrafficTargetRepository,
+  TrafficTargetType,
+  UserEntity,
 } from '@app/database';
-import { BotTokenValidationService } from '@app/feature-traffic-shared';
 
 /**
  * Service for managing traffic bots and traffic purchase orders

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from './decorator';
 import { RedisClient } from './type';
-import { Result, Err } from 'ts-results';
+import { Err, Result } from 'ts-results';
 import { AsyncResult, unknownToError } from '@app/common-shared';
 import { InternalException, RateLimitExceedException } from '@app/common-exception';
 

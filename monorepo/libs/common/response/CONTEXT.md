@@ -2,7 +2,9 @@
 
 ## Purpose and Responsibilities
 
-The `response` library provides standardized response transformation and formatting for xRocket's API ecosystem. It ensures consistent response structures, handles error formatting, manages WebSocket responses, and provides decorators for automatic response transformation across all HTTP and WebSocket endpoints.
+The `response` library provides standardized response transformation and formatting for xRocket's API ecosystem. It
+ensures consistent response structures, handles error formatting, manages WebSocket responses, and provides decorators
+for automatic response transformation across all HTTP and WebSocket endpoints.
 
 ## Key Components
 

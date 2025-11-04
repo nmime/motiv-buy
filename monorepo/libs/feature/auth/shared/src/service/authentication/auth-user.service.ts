@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { UserRepository, UserEntity, UserSourceVisitEntity, UserLastAuthRepository } from '@app/database';
+import { UserEntity, UserLastAuthRepository, UserRepository, UserSourceVisitEntity } from '@app/database';
 import { AuthCreateUserService } from './auth-create-user.service';
 import { AuthUserVisitService } from './auth-user-visit.service';
-import { GetSourceParamsService, GetUserRefLinkService, SourceRegisterService, getGeoByIp } from '../../source';
+import { getGeoByIp, GetSourceParamsService, GetUserRefLinkService, SourceRegisterService } from '../../source';
 import { TelegramAuthParams, UserRefLink } from '../../type';
 
 interface FindOrCreateOptions {

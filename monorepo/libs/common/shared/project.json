@@ -3,11 +3,16 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/common/shared/src",
   "projectType": "library",
-  "tags": ["scope:common", "type:utility"],
+  "tags": [
+    "scope:common",
+    "type:utility"
+  ],
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/libs/common/shared",
         "tsConfig": "libs/common/shared/tsconfig.lib.json",
@@ -20,7 +25,9 @@
           },
           {
             "name": "typescript-transform-paths/nx-transformer",
-            "options": { "afterDeclarations": true }
+            "options": {
+              "afterDeclarations": true
+            }
           }
         ]
       }

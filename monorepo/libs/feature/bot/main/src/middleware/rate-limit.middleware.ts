@@ -130,44 +130,6 @@ export class RateLimitMiddleware {
   }
 
   /**
-   * Check if user is blocked
-   */
-  private isUserBlocked(userId: string): boolean {
-    const blockedUntil = this.blockedUsers.get(userId);
-
-    if (!blockedUntil) {
-      return false;
-    }
-
-    if (Date.now() > blockedUntil) {
-      // Block expired, remove it
-      this.blockedUsers.delete(userId);
-
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Block user temporarily
-   */
-  private blockUser(userId: string, durationMs: number = 5 * 60 * 1000): void {
-    const blockedUntil = Date.now() + durationMs;
-    this.blockedUsers.set(userId, blockedUntil);
-
-    // Clear rate limit entries for this user
-    const keysToDelete: string[] = [];
-    for (const key of this.rateLimits.keys()) {
-      if (key.startsWith(`${userId}:`)) {
-        keysToDelete.push(key);
-      }
-    }
-
-    keysToDelete.forEach((key) => this.rateLimits.delete(key));
-  }
-
-  /**
    * Clean up expired entries (call periodically)
    */
   cleanupExpiredEntries(): void {
@@ -241,5 +203,43 @@ export class RateLimitMiddleware {
     this.blockedUsers.delete(userId);
 
     this.logger.log('Rate limit reset for user', { userId });
+  }
+
+  /**
+   * Check if user is blocked
+   */
+  private isUserBlocked(userId: string): boolean {
+    const blockedUntil = this.blockedUsers.get(userId);
+
+    if (!blockedUntil) {
+      return false;
+    }
+
+    if (Date.now() > blockedUntil) {
+      // Block expired, remove it
+      this.blockedUsers.delete(userId);
+
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Block user temporarily
+   */
+  private blockUser(userId: string, durationMs: number = 5 * 60 * 1000): void {
+    const blockedUntil = Date.now() + durationMs;
+    this.blockedUsers.set(userId, blockedUntil);
+
+    // Clear rate limit entries for this user
+    const keysToDelete: string[] = [];
+    for (const key of this.rateLimits.keys()) {
+      if (key.startsWith(`${userId}:`)) {
+        keysToDelete.push(key);
+      }
+    }
+
+    keysToDelete.forEach((key) => this.rateLimits.delete(key));
   }
 }

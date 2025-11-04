@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
-import { BotUserService, BotSessionService } from '../service/auth';
+import { BotSessionService, BotUserService } from '../service/auth';
 
 /**
  * Bot Authentication Middleware
@@ -16,6 +16,18 @@ export class BotAuthMiddleware {
     private readonly botUserService: BotUserService,
     private readonly botSessionService: BotSessionService,
   ) {}
+
+  /**
+   * Create middleware function factory
+   */
+  static create(
+    botUserService: BotUserService,
+    botSessionService: BotSessionService,
+  ): (ctx: BotContext, next: () => Promise<void>) => Promise<void> {
+    const middleware = new BotAuthMiddleware(botUserService, botSessionService);
+
+    return middleware.middleware.bind(middleware);
+  }
 
   /**
    * Middleware function for Grammy bot
@@ -114,17 +126,5 @@ export class BotAuthMiddleware {
         this.logger.error('Failed to clear corrupted sessions', clearErr, { telegramId });
       }
     }
-  }
-
-  /**
-   * Create middleware function factory
-   */
-  static create(
-    botUserService: BotUserService,
-    botSessionService: BotSessionService,
-  ): (ctx: BotContext, next: () => Promise<void>) => Promise<void> {
-    const middleware = new BotAuthMiddleware(botUserService, botSessionService);
-
-    return middleware.middleware.bind(middleware);
   }
 }

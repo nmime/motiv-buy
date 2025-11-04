@@ -2,7 +2,9 @@
 
 ## Purpose and Responsibilities
 
-The `intl` library provides comprehensive internationalization (i18n) support for xRocket's multi-language platform. It offers translation management, language resolution, custom decorators for injection, and context-aware translation services supporting English, Russian, and Chinese languages across all microservices.
+The `intl` library provides comprehensive internationalization (i18n) support for xRocket's multi-language platform. It
+offers translation management, language resolution, custom decorators for injection, and context-aware translation
+services supporting English, Russian, and Chinese languages across all microservices.
 
 ## Key Components
 
@@ -99,11 +101,12 @@ export class UserController {
 ### Bot Integration
 
 ```typescript
-import { BotLangResolver } from '@app/common-intl';
+import {BotLangResolver} from '@app/common-intl';
 
 @Injectable()
 export class TelegramBotService {
-  constructor(private readonly i18n: I18nService) {}
+  constructor(private readonly i18n: I18nService) {
+  }
 
   async sendWelcomeMessage(ctx: TelegramContext) {
     const i18nContext = AppI18nContext.getI18nContext(ctx);
@@ -131,14 +134,16 @@ export class TelegramBotService {
 ### Service-Level Translation
 
 ```typescript
+
 @Injectable()
 export class EmailService {
-  constructor(private readonly i18n: I18nService) {}
+  constructor(private readonly i18n: I18nService) {
+  }
 
   async sendTransactionNotification(user: User, transaction: Transaction) {
     const subject = this.i18n.t('email.transaction.subject', {
       lang: user.language,
-      args: { amount: transaction.amount },
+      args: {amount: transaction.amount},
     });
 
     const body = this.i18n.t('email.transaction.body', {

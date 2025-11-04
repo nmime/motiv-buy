@@ -1,11 +1,11 @@
 import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
-import { BotContext, MenuConfig, MenuType, MenuButton, CallbackUtil, SessionInterface } from '@app/feature-bot-shared';
+import { BotContext, CallbackUtil, MenuButton, MenuConfig, MenuType, SessionInterface } from '@app/feature-bot-shared';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { AuthUserService } from '@app/feature-auth-shared';
-import { BalanceService, BalanceDto } from '@app/feature-balance-main';
+import { BalanceDto, BalanceService } from '@app/feature-balance-main';
 import { UserEntity } from '@app/database';
 
 /**
@@ -39,26 +39,6 @@ export class MainMenuComposer {
    */
   getComposer(): Composer<BotContext> {
     return this.composer;
-  }
-
-  /**
-   * Setup Grammy composer with callback handlers
-   */
-  private setupComposer(): void {
-    // Main menu navigation
-    this.composer.callbackQuery('menu:main', (ctx) => this.handleMainMenu(ctx));
-    this.composer.callbackQuery(/^menu:/, (ctx) => this.handleMenuNavigation(ctx));
-
-    // Quick actions
-    this.composer.callbackQuery(/^action:/, (ctx) => this.handleQuickAction(ctx));
-
-    // Menu refresh and utilities
-    this.composer.callbackQuery('refresh', (ctx) => this.handleRefresh(ctx));
-    this.composer.callbackQuery('breadcrumb', (ctx) => this.handleBreadcrumb(ctx));
-
-    // Menu state management
-    this.composer.callbackQuery('menu_state:save', (ctx) => this.saveMenuState(ctx));
-    this.composer.callbackQuery('menu_state:restore', (ctx) => this.restoreMenuState(ctx));
   }
 
   /**
@@ -336,6 +316,26 @@ export class MainMenuComposer {
     });
 
     return keyboard;
+  }
+
+  /**
+   * Setup Grammy composer with callback handlers
+   */
+  private setupComposer(): void {
+    // Main menu navigation
+    this.composer.callbackQuery('menu:main', (ctx) => this.handleMainMenu(ctx));
+    this.composer.callbackQuery(/^menu:/, (ctx) => this.handleMenuNavigation(ctx));
+
+    // Quick actions
+    this.composer.callbackQuery(/^action:/, (ctx) => this.handleQuickAction(ctx));
+
+    // Menu refresh and utilities
+    this.composer.callbackQuery('refresh', (ctx) => this.handleRefresh(ctx));
+    this.composer.callbackQuery('breadcrumb', (ctx) => this.handleBreadcrumb(ctx));
+
+    // Menu state management
+    this.composer.callbackQuery('menu_state:save', (ctx) => this.saveMenuState(ctx));
+    this.composer.callbackQuery('menu_state:restore', (ctx) => this.restoreMenuState(ctx));
   }
 
   // Menu composition handlers for Grammy

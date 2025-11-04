@@ -1,17 +1,17 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserService } from '../service';
 import { UserMapper } from '../mapper';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { AsyncResult } from '@app/common-shared';
-import { Ok, Err } from 'ts-results';
-import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
+import { Err, Ok } from 'ts-results';
+import { CurrentUserId, JwtAuthGuard } from '@app/feature-auth-shared';
 import {
-  UserResponseDto,
-  ReferralStatsDto,
-  ReferralLinkDto,
   NotificationSettingsDto,
+  ReferralLinkDto,
+  ReferralStatsDto,
   UpdateNotificationSettingsDto,
+  UserResponseDto,
 } from '../dto';
 
 @ApiTags('user')

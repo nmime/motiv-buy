@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UserEntity } from '@app/database';
-import { UserResponseDto, ReferralStatsDto, ReferralLinkDto, NotificationSettingsDto } from '../dto';
-import { UserReferralData, ReferralStatsData, ReferralLinkData, NotificationSettingsData } from '../type';
+import { NotificationSettingsDto, ReferralLinkDto, ReferralStatsDto, UserResponseDto } from '../dto';
+import { NotificationSettingsData, ReferralLinkData, ReferralStatsData, UserReferralData } from '../type';
 
 @Injectable()
 export class UserMapper {

@@ -12,18 +12,7 @@ import { Composer } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
 import { OrderService } from '../order.service';
 import { OrderFlowStep } from '../order.types';
-import {
-  createChannelLinkHelpKeyboard,
-  createAddBotAdminKeyboard,
-  createModerationKeyboard,
-} from '../order.keyboards';
-import {
-  getChannelLinkInputMessage,
-  getAddBotAdminMessage,
-  getModerationMessage,
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES,
-} from '../order.messages';
+import { createAddBotAdminKeyboard, createChannelLinkHelpKeyboard, createModerationKeyboard } from '../order.keyboards';
 
 @Injectable()
 export class OrderCreationHandler {
@@ -42,18 +31,18 @@ export class OrderCreationHandler {
 
   private setupHandlers(): void {
     // Order creation flow
-    this.composer.callbackQuery('order:create:start', ctx => this.handleStartOrderCreation(ctx));
-    this.composer.callbackQuery('order:create:back', ctx => this.handleBack(ctx));
+    this.composer.callbackQuery('order:create:start', (ctx) => this.handleStartOrderCreation(ctx));
+    this.composer.callbackQuery('order:create:back', (ctx) => this.handleBack(ctx));
 
     // Bot admin check
-    this.composer.callbackQuery('order:bot:check', ctx => this.handleBotAdminCheck(ctx));
-    this.composer.callbackQuery('order:bot:skip', ctx => this.handleBotAdminSkip(ctx));
+    this.composer.callbackQuery('order:bot:check', (ctx) => this.handleBotAdminCheck(ctx));
+    this.composer.callbackQuery('order:bot:skip', (ctx) => this.handleBotAdminSkip(ctx));
 
     // Configuration skip
-    this.composer.callbackQuery(/^order:config:skip:(.+)$/, ctx => this.handleConfigSkip(ctx));
+    this.composer.callbackQuery(/^order:config:skip:(.+)$/, (ctx) => this.handleConfigSkip(ctx));
 
     // Text message handler for channel link input
-    this.composer.on('message:text', ctx => this.handleTextMessage(ctx));
+    this.composer.on('message:text', (ctx) => this.handleTextMessage(ctx));
   }
 
   /**
@@ -72,10 +61,10 @@ export class OrderCreationHandler {
         parse_mode: 'HTML',
       });
 
-      await ctx.answerCallbackQuery('📝 Введите ссылку на канал');
+      await ctx.answerCallbackQuery(ctx.t('bot.order.channel_link_instruction'));
     } catch (error) {
       this.logger.error('Error starting order creation', error);
-      await ctx.answerCallbackQuery('❌ Ошибка создания заказа');
+      await ctx.answerCallbackQuery(ctx.t('common.errors.save_failed'));
     }
   }
 
@@ -86,10 +75,10 @@ export class OrderCreationHandler {
     try {
       // Clear session and go back to order list
       this.orderService.clearOrderSessionState(ctx);
-      await ctx.answerCallbackQuery('◀️ Возврат к списку');
+      await ctx.answerCallbackQuery(ctx.t('common.buttons.back'));
     } catch (error) {
       this.logger.error('Error handling back', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -110,7 +99,7 @@ export class OrderCreationHandler {
       }
     } catch (error) {
       this.logger.error('Error handling text message', error);
-      await ctx.reply('❌ Произошла ошибка. Попробуйте еще раз.');
+      await ctx.reply(ctx.t('common.error'));
     }
   }
 
@@ -121,14 +110,16 @@ export class OrderCreationHandler {
     // Validate link format
     const validation = await this.orderService.validateChannelLink(link);
     if (!validation.valid) {
-      await ctx.reply(ERROR_MESSAGES.invalidLink);
+      await ctx.reply(ctx.t('bot.order.invalid_link'));
+
       return;
     }
 
     // Get channel info
     const channel = await this.orderService.getChannelInfo(link);
     if (!channel) {
-      await ctx.reply(ERROR_MESSAGES.channelNotFound);
+      await ctx.reply(ctx.t('bot.order.channel_not_found'));
+
       return;
     }
 
@@ -159,7 +150,8 @@ export class OrderCreationHandler {
     try {
       const state = this.orderService.getOrderSessionState(ctx);
       if (!state || !state.channel) {
-        await ctx.answerCallbackQuery('❌ Ошибка: канал не найден');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.channel_not_found'));
+
         return;
       }
 
@@ -168,9 +160,10 @@ export class OrderCreationHandler {
 
       if (!isAdmin) {
         await ctx.answerCallbackQuery({
-          text: ERROR_MESSAGES.botNotAdmin,
+          text: ctx.t('bot.order.bot_not_admin'),
           show_alert: true,
         });
+
         return;
       }
 
@@ -182,10 +175,10 @@ export class OrderCreationHandler {
       // Create order and move to moderation (A4)
       await this.createOrderAndShowModeration(ctx);
 
-      await ctx.answerCallbackQuery(SUCCESS_MESSAGES.botAdded);
+      await ctx.answerCallbackQuery(ctx.t('bot.order.bot_added'));
     } catch (error) {
       this.logger.error('Error checking bot admin', error);
-      await ctx.answerCallbackQuery('❌ Ошибка проверки бота');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -196,7 +189,8 @@ export class OrderCreationHandler {
     try {
       const state = this.orderService.getOrderSessionState(ctx);
       if (!state) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
@@ -206,10 +200,10 @@ export class OrderCreationHandler {
       // Create order and move to moderation (A4)
       await this.createOrderAndShowModeration(ctx);
 
-      await ctx.answerCallbackQuery('⚠️ Без бота статистика отписок недоступна');
+      await ctx.answerCallbackQuery(ctx.t('common.buttons.next'));
     } catch (error) {
       this.logger.error('Error skipping bot admin', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -251,24 +245,26 @@ export class OrderCreationHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.access_denied'));
+
         return;
       }
 
       // Clear session state
       this.orderService.clearOrderSessionState(ctx);
 
-      await ctx.answerCallbackQuery('✅ Использованы настройки по умолчанию');
+      await ctx.answerCallbackQuery(ctx.t('common.success.created'));
     } catch (error) {
       this.logger.error('Error skipping config', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 }

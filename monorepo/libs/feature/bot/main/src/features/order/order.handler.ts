@@ -20,7 +20,6 @@ import { OrderManagementHandler } from './handlers/order.management.handler';
 import { OrderConfigHandler } from './handlers/order.config.handler';
 import { OrderEditHandler } from './handlers/order.edit.handler';
 import { createMainMenuKeyboard } from './order.keyboards';
-import { getMainMenuMessage } from './order.messages';
 
 @Injectable()
 export class OrderHandler {
@@ -57,7 +56,7 @@ export class OrderHandler {
    */
   private setupHandlers(): void {
     // Main menu handler
-    this.composer.callbackQuery('menu:main', ctx => this.handleMainMenu(ctx));
+    this.composer.callbackQuery('menu:main', (ctx) => this.handleMainMenu(ctx));
 
     // Register all sub-handlers
     this.composer.use(this.creationHandler.getComposer());
@@ -66,17 +65,17 @@ export class OrderHandler {
     this.composer.use(this.editHandler.getComposer());
 
     // Help handlers
-    this.composer.callbackQuery(/^order:help:/, ctx => this.handleHelp(ctx));
+    this.composer.callbackQuery(/^order:help:/, (ctx) => this.handleHelp(ctx));
 
     // Integration/Transfer placeholders
-    this.composer.callbackQuery('order:integration', ctx => this.handleIntegration(ctx));
-    this.composer.callbackQuery('order:transfer', ctx => this.handleTransfer(ctx));
+    this.composer.callbackQuery('order:integration', (ctx) => this.handleIntegration(ctx));
+    this.composer.callbackQuery('order:transfer', (ctx) => this.handleTransfer(ctx));
 
     // Download reports
-    this.composer.callbackQuery(/^order:download:/, ctx => this.handleDownload(ctx));
+    this.composer.callbackQuery(/^order:download:/, (ctx) => this.handleDownload(ctx));
 
     // No-op handler for pagination counters
-    this.composer.callbackQuery('noop', ctx => ctx.answerCallbackQuery());
+    this.composer.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery());
 
     this.logger.log('Order handler initialized with all sub-handlers');
   }
@@ -86,7 +85,7 @@ export class OrderHandler {
    */
   private async handleMainMenu(ctx: BotContext): Promise<void> {
     try {
-      const message = getMainMenuMessage();
+      const message = 'Выбери нужный пункт 👇';
       const keyboard = createMainMenuKeyboard();
 
       await ctx.editMessageText(message, {

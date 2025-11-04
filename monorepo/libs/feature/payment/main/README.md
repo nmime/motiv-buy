@@ -4,7 +4,8 @@ Main implementation of the payment feature including services, controllers, and 
 
 ## Overview
 
-This package contains the core payment functionality for the application, including payment processing, transaction management, and payment-related business logic.
+This package contains the core payment functionality for the application, including payment processing, transaction
+management, and payment-related business logic.
 
 ## Contents
 
@@ -73,6 +74,7 @@ nx build feature-payment-main --watch
 ## Dependencies
 
 This package depends on:
+
 - `@app/feature-payment-shared`: Shared types and interfaces
 - Other feature packages as needed for integration
 

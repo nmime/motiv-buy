@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, Collection, OneToMany, Index, Enum } from '@mikro-orm/core';
+import { Collection, Entity, Enum, Index, OneToMany, PrimaryKey, Property } from '@mikro-orm/core';
 import { EntityConstructorData } from '../type';
 import type { UserBalanceEntity } from './UserBalance.entity';
 import type { UserBalanceHistoryEntity } from './UserBalanceHistory.entity';

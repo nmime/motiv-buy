@@ -5,6 +5,7 @@ Comprehensive payment system with cryptocurrency top-up and withdrawal capabilit
 ## 🚀 Features
 
 ### Core Functionality
+
 - **Top-Up**: Create payment invoices for users to add funds via cryptocurrency
 - **Withdrawal**: Transfer funds from user balance to their Telegram wallet
 - **Payment History**: Track all payment transactions with filtering and pagination
@@ -12,11 +13,13 @@ Comprehensive payment system with cryptocurrency top-up and withdrawal capabilit
 - **Multi-Currency Support**: USDT, TON, BTC, ETH, LTC, BNB, TRX, USDC, JET (testnet)
 
 ### Provider Pattern
+
 - Abstracted payment provider interface (`IPaymentProvider`)
 - Easy to add new providers (Stripe, PayPal, etc.)
 - Currently implemented: CryptoBotProvider
 
 ### Security Features
+
 - JWT authentication on all endpoints
 - Webhook signature verification (HMAC-SHA256)
 - Transaction ownership validation
@@ -89,7 +92,7 @@ Add `PaymentMainModule` to your API app:
 
 ```typescript
 // apps/api/src/app.module.ts
-import { PaymentMainModule } from '@app/feature-payment-main';
+import {PaymentMainModule} from '@app/feature-payment-main';
 
 @Module({
   imports: [
@@ -97,12 +100,14 @@ import { PaymentMainModule } from '@app/feature-payment-main';
     PaymentMainModule,
   ],
 })
-export class AppModule {}
+export class AppModule {
+}
 ```
 
 ## 📡 API Endpoints
 
 ### Authentication
+
 All endpoints require JWT authentication via `Authorization: Bearer <token>` header.
 
 ### Top-Up (Create Invoice)
@@ -121,6 +126,7 @@ Authorization: Bearer <jwt_token>
 ```
 
 **Response:**
+
 ```json
 {
   "id": "uuid",
@@ -149,6 +155,7 @@ Authorization: Bearer <jwt_token>
 ```
 
 **Response:**
+
 ```json
 {
   "id": "uuid",
@@ -168,6 +175,7 @@ Authorization: Bearer <jwt_token>
 ```
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -236,26 +244,27 @@ crypto-pay-api-signature: <hmac_signature>
 
 ### Table: `payment_transactions`
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| user_id | varchar(255) | Telegram user ID |
-| type | enum | TOP_UP or WITHDRAW |
-| provider | enum | CRYPTO_BOT (extensible) |
-| provider_transaction_id | varchar(255) | Provider's transaction ID |
-| amount | decimal(20,8) | Transaction amount |
-| currency | enum | Cryptocurrency type |
-| status | enum | Payment status |
-| pay_url | text | Payment URL (for invoices) |
-| description | text | Transaction description |
-| fee | decimal(20,8) | Provider fee (if applicable) |
-| metadata | jsonb | Additional provider data |
-| paid_at | timestamp | Payment completion time |
-| expires_at | timestamp | Invoice expiration time |
-| created_at | timestamp | Creation timestamp |
-| updated_at | timestamp | Last update timestamp |
+| Column                  | Type          | Description                  |
+|-------------------------|---------------|------------------------------|
+| id                      | uuid          | Primary key                  |
+| user_id                 | varchar(255)  | Telegram user ID             |
+| type                    | enum          | TOP_UP or WITHDRAW           |
+| provider                | enum          | CRYPTO_BOT (extensible)      |
+| provider_transaction_id | varchar(255)  | Provider's transaction ID    |
+| amount                  | decimal(20,8) | Transaction amount           |
+| currency                | enum          | Cryptocurrency type          |
+| status                  | enum          | Payment status               |
+| pay_url                 | text          | Payment URL (for invoices)   |
+| description             | text          | Transaction description      |
+| fee                     | decimal(20,8) | Provider fee (if applicable) |
+| metadata                | jsonb         | Additional provider data     |
+| paid_at                 | timestamp     | Payment completion time      |
+| expires_at              | timestamp     | Invoice expiration time      |
+| created_at              | timestamp     | Creation timestamp           |
+| updated_at              | timestamp     | Last update timestamp        |
 
 **Indexes:**
+
 - `user_id` - User lookup
 - `status` - Status filtering
 - `provider_transaction_id` (unique) - Provider sync
@@ -324,14 +333,14 @@ curl -X GET http://localhost:3000/payment/transactions \
 
 ## 📊 Rate Limits
 
-| Endpoint | Rate Limit |
-|----------|-----------|
-| POST /topup | 10/minute |
-| POST /withdraw | 5/minute |
-| GET /transactions | 30/minute |
-| GET /transactions/:id | 60/minute |
-| GET /invoice/:id/status | 20/minute |
-| POST /webhook | 100/minute |
+| Endpoint                | Rate Limit |
+|-------------------------|------------|
+| POST /topup             | 10/minute  |
+| POST /withdraw          | 5/minute   |
+| GET /transactions       | 30/minute  |
+| GET /transactions/:id   | 60/minute  |
+| GET /invoice/:id/status | 20/minute  |
+| POST /webhook           | 100/minute |
 
 ## 🚨 Error Handling
 
@@ -350,6 +359,7 @@ if (result.err) {
 ```
 
 Common error codes:
+
 - `400` - Invalid input (validation error)
 - `401` - Unauthorized (missing/invalid JWT)
 - `403` - Forbidden (not your transaction)
@@ -377,6 +387,7 @@ Common error codes:
 ## 🤝 Support
 
 For issues or questions:
+
 1. Check this README
 2. Review CryptoPay API docs
 3. Check server logs

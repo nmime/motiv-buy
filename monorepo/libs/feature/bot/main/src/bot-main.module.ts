@@ -6,9 +6,8 @@ import { UserSharedModule } from '@app/feature-user-shared';
 import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
-import { BotService } from './service';
+import { BotService, MenuService, MessageService, SessionService } from './service';
 import { BotConfigService } from './config';
-import { MenuService, SessionService } from './service';
 import { OrderModule } from './features/order/order.module';
 
 /**
@@ -42,7 +41,7 @@ import { OrderModule } from './features/order/order.module';
     TrafficSharedModule,
     OrderModule,
   ],
-  providers: [BotConfigService, BotService, MenuService, SessionService],
-  exports: [BotConfigService, BotService, MenuService, SessionService],
+  providers: [BotConfigService, BotService, MenuService, SessionService, MessageService],
+  exports: [BotConfigService, BotService, MenuService, SessionService, MessageService],
 })
 export class BotMainModule {}

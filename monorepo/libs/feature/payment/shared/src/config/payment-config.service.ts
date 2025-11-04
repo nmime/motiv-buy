@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Joi from 'joi';
-import { PaymentConfig, CryptoBotConfig, PaymentWebhookConfig } from './payment-config.interface';
+import { PaymentConfig, PaymentWebhookConfig } from './payment-config.interface';
+import { CryptoBotConfig } from './crypto-bot-config.interface';
 
 /**
  * Payment Configuration Service
