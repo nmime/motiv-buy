@@ -9,7 +9,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { Cryptocurrency } from '../enum/cryptocurrency.enum';
+import { CurrencyCode } from '@app/database';
 
 /**
  * Custom validator to ensure withdrawal amount is within acceptable range
@@ -64,14 +64,14 @@ export class CreateTransferDto {
   amount!: string;
 
   @ApiProperty({
-    description: 'Cryptocurrency to use for the withdrawal',
-    enum: Cryptocurrency,
-    example: Cryptocurrency.Usdt,
+    description: 'Currency code to use for the withdrawal',
+    enum: CurrencyCode,
+    example: CurrencyCode.Usdt,
   })
-  @IsEnum(Cryptocurrency, {
-    message: 'Currency must be a valid cryptocurrency',
+  @IsEnum(CurrencyCode, {
+    message: 'Currency must be a valid currency code',
   })
-  currency!: Cryptocurrency;
+  currency!: CurrencyCode;
 
   @ApiPropertyOptional({
     description: 'Optional comment for the withdrawal',

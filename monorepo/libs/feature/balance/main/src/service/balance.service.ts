@@ -153,10 +153,10 @@ export class BalanceService implements IBalanceService {
 
       const rubAmount = rubAmountResult.val;
 
-      // Create invoice via payment service (map CurrencyCode to Cryptocurrency)
+      // Create invoice via payment service
       const invoiceDto: CreateInvoiceDto = {
         amount: request.amount,
-        currency: request.currency as string as any,
+        currency: request.currency,
         description: request.description || `Balance top-up ${request.amount} ${request.currency}`,
         expiresIn: 3600, // 1 hour
       };
@@ -228,11 +228,11 @@ export class BalanceService implements IBalanceService {
 
       const cryptoAmount = cryptoAmountResult.val;
 
-      // Create transfer via payment service (map CurrencyCode to Cryptocurrency)
+      // Create transfer via payment service
       const transferDto: CreateTransferDto = {
         userId: request.telegramUserId.toString(),
         amount: cryptoAmount,
-        currency: request.currency as string as any,
+        currency: request.currency,
         comment: request.comment || `Withdrawal from balance: ${request.amount} RUB`,
       };
 
