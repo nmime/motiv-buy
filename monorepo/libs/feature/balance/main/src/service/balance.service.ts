@@ -7,7 +7,8 @@ import {
   TransactionType as DbTransactionType,
   TransactionStatus,
 } from '@app/database';
-import { CreateInvoiceDto, CreateTransferDto, PaymentService } from '@app/feature-payment-main';
+import { PaymentService } from '@app/feature-payment-main';
+import { CreateInvoiceDto, CreateTransferDto } from '@app/feature-payment-shared';
 import { CurrencyRateService } from './currency-rate.service';
 import { Result, Ok, Err } from '@app/common-shared';
 import { decimal, sum, subtract, ensureNonNegative, toNumber } from '@app/common-shared/util';
@@ -145,9 +146,10 @@ export class BalanceService implements IBalanceService {
       this.logger.log(`Creating top-up request for user ${userId}: ${request.amount} ${request.currency}`);
 
       // Convert crypto amount to RUB
-      const rubAmountResult = await this.currencyRateService.convertToRub(
+      const rubAmountResult = await this.currencyRateService.convertAmount(
         request.amount,
-        request.currency as unknown as CurrencyCode,
+        request.currency,
+        CurrencyCode.Rub,
       );
 
       if (rubAmountResult.err) {
@@ -158,10 +160,10 @@ export class BalanceService implements IBalanceService {
 
       const rubAmount = rubAmountResult.val;
 
-      // Create invoice via payment service
+      // Create invoice via payment service (map CurrencyCode to Cryptocurrency)
       const invoiceDto: CreateInvoiceDto = {
         amount: request.amount,
-        currency: request.currency,
+        currency: request.currency as string as any,
         description: request.description || `Balance top-up ${request.amount} ${request.currency}`,
         expiresIn: 3600, // 1 hour
       };
@@ -219,9 +221,10 @@ export class BalanceService implements IBalanceService {
       }
 
       // Convert RUB to cryptocurrency
-      const cryptoAmountResult = await this.currencyRateService.convertFromRub(
+      const cryptoAmountResult = await this.currencyRateService.convertAmount(
         request.amount.toString(),
-        request.currency as unknown as CurrencyCode,
+        CurrencyCode.Rub,
+        request.currency,
       );
 
       if (cryptoAmountResult.err) {
@@ -232,11 +235,11 @@ export class BalanceService implements IBalanceService {
 
       const cryptoAmount = cryptoAmountResult.val;
 
-      // Create transfer via payment service
+      // Create transfer via payment service (map CurrencyCode to Cryptocurrency)
       const transferDto: CreateTransferDto = {
-        userId: request.telegramUserId,
+        userId: request.telegramUserId.toString(),
         amount: cryptoAmount,
-        currency: request.currency,
+        currency: request.currency as string as any,
         comment: request.comment || `Withdrawal from balance: ${request.amount} RUB`,
       };
 
@@ -263,6 +266,9 @@ export class BalanceService implements IBalanceService {
     }
   }
 
+  /**
+   * Map database transaction type to DTO transaction type
+   */
   private mapFromDbTransactionType(dbType: DbTransactionType): TransactionType {
     switch (dbType) {
       case DbTransactionType.Deposit:
@@ -276,6 +282,9 @@ export class BalanceService implements IBalanceService {
     }
   }
 
+  /**
+   * Map DTO transaction type to database transaction type
+   */
   private mapToDbTransactionType(type: TransactionType): DbTransactionType {
     switch (type) {
       case TransactionType.Deposit:

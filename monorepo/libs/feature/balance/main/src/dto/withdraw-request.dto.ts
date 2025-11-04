@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsEnum, IsOptional, MaxLength, Min, IsNumber } from 'class-validator';
-import { Cryptocurrency } from '@app/feature-payment-shared';
+import { CurrencyCode } from '@app/database';
 
 /**
  * Withdrawal request DTO
@@ -20,13 +20,13 @@ export class WithdrawRequestDto {
 
   @ApiProperty({
     description: 'Cryptocurrency to receive withdrawal in',
-    enum: Cryptocurrency,
-    example: Cryptocurrency.Usdt,
+    enum: CurrencyCode,
+    example: CurrencyCode.Usdt,
   })
-  @IsEnum(Cryptocurrency, {
-    message: 'Currency must be a valid cryptocurrency',
+  @IsEnum(CurrencyCode, {
+    message: 'Currency must be a valid currency code',
   })
-  currency!: Cryptocurrency;
+  currency!: CurrencyCode;
 
   @ApiProperty({
     description: 'Telegram user ID for withdrawal destination (CryptoBot)',

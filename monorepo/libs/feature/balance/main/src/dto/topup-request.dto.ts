@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsEnum, IsOptional, Matches, MaxLength } from 'class-validator';
-import { Cryptocurrency } from '@app/feature-payment-shared';
+import { CurrencyCode } from '@app/database';
 
 /**
  * Top-up request DTO
@@ -20,13 +20,13 @@ export class TopUpRequestDto {
 
   @ApiProperty({
     description: 'Cryptocurrency to use for the top-up',
-    enum: Cryptocurrency,
-    example: Cryptocurrency.Usdt,
+    enum: CurrencyCode,
+    example: CurrencyCode.Usdt,
   })
-  @IsEnum(Cryptocurrency, {
-    message: 'Currency must be a valid cryptocurrency',
+  @IsEnum(CurrencyCode, {
+    message: 'Currency must be a valid currency code',
   })
-  currency!: Cryptocurrency;
+  currency!: CurrencyCode;
 
   @ApiPropertyOptional({
     description: 'Optional description for the top-up',

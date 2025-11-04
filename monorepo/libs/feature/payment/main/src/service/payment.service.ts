@@ -167,12 +167,19 @@ export class PaymentService {
 
       // Use database transaction with pessimistic locking to prevent race conditions
       const result = await this.em.transactional(async (em) => {
+        // First find the currency entity by code
+        const currency = await em.findOne('CurrencyEntity', { code: currencyCode });
+
+        if (!currency || !('id' in currency)) {
+          throw new Error(`Currency ${dto.currency} (${currencyCode}) not found in system`);
+        }
+
         // CRITICAL: Lock balance row to prevent concurrent withdrawals
         // This ensures atomic balance check and deduction
         // FIXED: Now checks balance in REQUESTED currency, not always RUB
         const balanceEntity = await em.findOne(
           'UserBalanceEntity',
-          { userId, currencyType },
+          { user: userId, currency: currency.id as string },
           { lockMode: LockMode.PESSIMISTIC_WRITE },
         );
 
