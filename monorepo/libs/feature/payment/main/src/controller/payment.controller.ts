@@ -23,7 +23,7 @@ import {
   PaymentStatus,
   PaymentType,
 } from '@app/feature-payment-shared';
-import { PaymentTransactionEntity } from '../entity/payment-transaction.entity';
+import { PaymentTransactionEntity } from '@app/database';
 
 /**
  * DTO for transaction list query parameters

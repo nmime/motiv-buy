@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Cryptocurrency } from '../enum/cryptocurrency.enum';
-import { PaymentStatus } from '../enum/payment-status.enum';
+import { Cryptocurrency, PaymentStatus } from '@app/database';
 
 /**
  * Response DTO for invoice operations
