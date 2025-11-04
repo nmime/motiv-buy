@@ -287,6 +287,10 @@ export class OrderActionHandler {
     const source = await order.trafficSource.load();
     const target = await order.trafficTarget.load();
 
+    if (!source || !target) {
+      return 'Order details not found';
+    }
+
     return (
       `${statusEmoji} <b>Order Details</b>\n\n` +
       `<b>Order ID:</b> <code>${order.orderId}</code>\n` +

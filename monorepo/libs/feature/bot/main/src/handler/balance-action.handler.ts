@@ -229,15 +229,17 @@ export class BalanceActionHandler {
 
     for (const balance of balances) {
       const currency = await balance.currency.load();
+      if (!currency) continue;
+
       const availableBalance = parseFloat(balance.getAvailableBalance());
       const lockedBalance = parseFloat(balance.getLockedBalance());
       const totalBalance = parseFloat(balance.getTotalBalance());
 
       text +=
         `<b>${currency.code}:</b>\n` +
-        `  Available: ${availableBalance.toFixed(8)} ${currency.symbol}\n` +
-        `  Locked: ${lockedBalance.toFixed(8)} ${currency.symbol}\n` +
-        `  Total: ${totalBalance.toFixed(8)} ${currency.symbol}\n\n`;
+        `  Available: ${availableBalance.toFixed(8)} ${currency.symbol ?? currency.code}\n` +
+        `  Locked: ${lockedBalance.toFixed(8)} ${currency.symbol ?? currency.code}\n` +
+        `  Total: ${totalBalance.toFixed(8)} ${currency.symbol ?? currency.code}\n\n`;
     }
 
     text += '<i>Use the buttons below to manage your balance.</i>';
@@ -256,14 +258,15 @@ export class BalanceActionHandler {
     let text = `<b>📜 Transaction History</b> (Page ${page}/${totalPages})\n\n`;
 
     for (const tx of transactions) {
-      const currency = await tx.currency.load();
+      // tx.currency is a CurrencyCode enum, not a reference
+      const currencyCode = tx.currency;
       const amount = parseFloat(tx.amount);
       const amountText = amount >= 0 ? `+${amount}` : amount.toString();
       const emoji = amount >= 0 ? '📈' : '📉';
 
       text +=
         `${emoji} <b>${tx.type}</b>\n` +
-        `Amount: ${amountText} ${currency.code}\n` +
+        `Amount: ${amountText} ${currencyCode}\n` +
         `Date: ${tx.createdAt.toLocaleString()}\n` +
         `${tx.description ? `Note: ${tx.description}\n` : ''}` +
         `\n`;
@@ -281,10 +284,12 @@ export class BalanceActionHandler {
 
     for (const balance of balances) {
       const currency = await balance.currency.load();
+      if (!currency) continue;
+
       const availableBalance = parseFloat(balance.getAvailableBalance());
 
       if (availableBalance > 0) {
-        keyboard.text(`${currency.symbol} ${currency.code}`, `withdraw:currency:${currency.id}`).row();
+        keyboard.text(`${currency.symbol ?? currency.code} ${currency.code}`, `withdraw:currency:${currency.id}`).row();
       }
     }
 

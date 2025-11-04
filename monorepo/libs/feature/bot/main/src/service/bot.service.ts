@@ -358,7 +358,8 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Register Order feature handlers
-    this.bot.use(this.orderHandler.getComposer());
+    // Type assertion needed due to context compatibility
+    this.bot.use(this.orderHandler.getComposer() as any);
 
     this.logger.log('Feature handlers registered successfully');
   }
