@@ -1,4 +1,2 @@
-export * from './payment-provider.enum';
-export * from './payment-status.enum';
-export * from './payment-type.enum';
-export * from './cryptocurrency.enum';
+// Re-export from database lib (moved there for proper architecture)
+export { PaymentType, PaymentProvider, PaymentStatus, Cryptocurrency } from '@app/database';

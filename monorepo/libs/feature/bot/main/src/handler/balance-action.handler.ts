@@ -230,15 +230,17 @@ export class BalanceActionHandler {
 
     for (const balance of balances) {
       const currency = await balance.currency.load();
+      if (!currency) continue;
+
       const availableBalanceDisplay = toDisplayString(balance.getAvailableBalance(), 8);
       const lockedBalanceDisplay = toDisplayString(balance.getLockedBalance(), 8);
       const totalBalanceDisplay = toDisplayString(balance.getTotalBalance(), 8);
 
       text +=
         `<b>${currency.code}:</b>\n` +
-        `  Available: ${availableBalanceDisplay} ${currency.symbol}\n` +
-        `  Locked: ${lockedBalanceDisplay} ${currency.symbol}\n` +
-        `  Total: ${totalBalanceDisplay} ${currency.symbol}\n\n`;
+        `  Available: ${availableBalanceDisplay} ${currency.symbol ?? currency.code}\n` +
+        `  Locked: ${lockedBalanceDisplay} ${currency.symbol ?? currency.code}\n` +
+        `  Total: ${totalBalanceDisplay} ${currency.symbol ?? currency.code}\n\n`;
     }
 
     text += '<i>Use the buttons below to manage your balance.</i>';
@@ -257,7 +259,8 @@ export class BalanceActionHandler {
     let text = `<b>📜 Transaction History</b> (Page ${page}/${totalPages})\n\n`;
 
     for (const tx of transactions) {
-      const currency = await tx.currency.load();
+      // tx.currency is a CurrencyCode enum, not a reference
+      const currencyCode = tx.currency;
       const amount = decimal(tx.amount);
       const isPositive = amount.greaterThanOrEqualTo(0);
       const amountText = isPositive ? `+${toDisplayString(amount, 8)}` : toDisplayString(amount, 8);
@@ -265,7 +268,7 @@ export class BalanceActionHandler {
 
       text +=
         `${emoji} <b>${tx.type}</b>\n` +
-        `Amount: ${amountText} ${currency.code}\n` +
+        `Amount: ${amountText} ${currencyCode}\n` +
         `Date: ${tx.createdAt.toLocaleString()}\n` +
         `${tx.description ? `Note: ${tx.description}\n` : ''}` +
         `\n`;
@@ -283,10 +286,12 @@ export class BalanceActionHandler {
 
     for (const balance of balances) {
       const currency = await balance.currency.load();
+      if (!currency) continue;
+
       const availableBalance = decimal(balance.getAvailableBalance());
 
       if (availableBalance.greaterThan(0)) {
-        keyboard.text(`${currency.symbol} ${currency.code}`, `withdraw:currency:${currency.id}`).row();
+        keyboard.text(`${currency.symbol ?? currency.code} ${currency.code}`, `withdraw:currency:${currency.id}`).row();
       }
     }
 

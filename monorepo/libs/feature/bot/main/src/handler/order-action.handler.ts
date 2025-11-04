@@ -295,6 +295,10 @@ export class OrderActionHandler {
     const source = await order.trafficSource.load();
     const target = await order.trafficTarget.load();
 
+    if (!source || !target) {
+      return 'Order details not found';
+    }
+
     const totalBudgetDisplay = toDisplayString(order.totalBudget, 2);
     const spentAmountDisplay = toDisplayString(order.spentAmount, 2);
     const pricePerActionDisplay = toDisplayString(order.pricePerAction, 4);

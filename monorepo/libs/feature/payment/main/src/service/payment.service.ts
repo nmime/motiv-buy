@@ -3,18 +3,22 @@ import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
 import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared/util';
-import { PaymentTransactionEntity } from '../entity/payment-transaction.entity';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';
-import { UserBalanceRepository, CurrencyCode } from '@app/database';
+import {
+  UserBalanceRepository,
+  CurrencyCode,
+  PaymentTransactionEntity,
+  PaymentType,
+  PaymentProvider,
+  PaymentStatus,
+} from '@app/database';
 import {
   CreateInvoiceDto,
   CreateTransferDto,
   WebhookUpdateDto,
   InvoiceResponseDto,
   TransferResponseDto,
-  PaymentStatus,
-  PaymentType,
-  PaymentProvider,
+  Cryptocurrency,
 } from '@app/feature-payment-shared';
 
 /**
@@ -61,11 +65,14 @@ export class PaymentService {
     try {
       this.logger.log(`Creating top-up invoice for user ${userId}: ${dto.amount} ${dto.currency}`);
 
+      // Map CurrencyCode to Cryptocurrency for provider
+      const cryptocurrency = this.mapCurrencyCodeToCryptocurrency(dto.currency);
+
       // Create invoice via payment provider
       const invoiceResult = await this.provider.createInvoice({
         userId,
         amount: dto.amount,
-        currency: dto.currency,
+        currency: cryptocurrency,
         description: dto.description,
         expiresIn: dto.expiresIn,
       });
@@ -78,17 +85,17 @@ export class PaymentService {
 
       const invoice = invoiceResult.val;
 
-      // Save transaction to database
+      // Save transaction to database (store Cryptocurrency, not CurrencyCode)
       const transaction = this.transactionRepository.create({
         userId,
         type: PaymentType.TopUp,
         provider: PaymentProvider.CryptoBot,
         providerTransactionId: invoice.invoiceId,
         amount: dto.amount,
-        currency: dto.currency,
+        currency: cryptocurrency,
         status: PaymentStatus.Pending,
         payUrl: invoice.payUrl,
-        description: dto.description || `Top-up ${dto.amount} ${dto.currency}`,
+        description: dto.description || `Top-up ${dto.amount} ${cryptocurrency}`,
         expiresAt: invoice.expiresAt,
         metadata: {
           expiresIn: dto.expiresIn,
@@ -145,6 +152,29 @@ export class PaymentService {
   }
 
   /**
+   * Map CurrencyCode to Cryptocurrency for provider API calls
+   * This converts domain model currency to provider-specific cryptocurrency enum
+   */
+  private mapCurrencyCodeToCryptocurrency(code: CurrencyCode): Cryptocurrency {
+    const mapping: Partial<Record<CurrencyCode, Cryptocurrency>> = {
+      [CurrencyCode.Usdt]: Cryptocurrency.Usdt,
+      [CurrencyCode.Ton]: Cryptocurrency.Ton,
+      [CurrencyCode.Btc]: Cryptocurrency.Btc,
+      [CurrencyCode.Eth]: Cryptocurrency.Eth,
+      [CurrencyCode.Bnb]: Cryptocurrency.Bnb,
+      [CurrencyCode.Trx]: Cryptocurrency.Trx,
+      [CurrencyCode.Usdc]: Cryptocurrency.Usdc,
+    };
+
+    const crypto = mapping[code];
+    if (!crypto) {
+      throw new Error(`Currency code ${code} is not supported for cryptocurrency payments`);
+    }
+
+    return crypto;
+  }
+
+  /**
    * Create withdrawal transfer for user
    * Validates balance, deducts amount, and initiates transfer
    *
@@ -162,16 +192,16 @@ export class PaymentService {
     try {
       this.logger.log(`Creating withdrawal for user ${userId}: ${dto.amount} ${dto.currency}`);
 
-      // Map requested cryptocurrency to currency type for balance check
-      const currencyCode = this.mapCryptocurrencyToCurrencyCode(dto.currency);
+      // Map CurrencyCode to Cryptocurrency for provider
+      const cryptocurrency = this.mapCurrencyCodeToCryptocurrency(dto.currency);
 
       // Use database transaction with pessimistic locking to prevent race conditions
       const result = await this.em.transactional(async (em) => {
         // First find the currency entity by code
-        const currency = await em.findOne('CurrencyEntity', { code: currencyCode });
+        const currency = await em.findOne('CurrencyEntity', { code: dto.currency });
 
         if (!currency || !('id' in currency)) {
-          throw new Error(`Currency ${dto.currency} (${currencyCode}) not found in system`);
+          throw new Error(`Currency ${dto.currency} not found in system`);
         }
 
         // CRITICAL: Lock balance row to prevent concurrent withdrawals
@@ -216,7 +246,7 @@ export class PaymentService {
         const transferResult = await this.provider.createTransfer({
           userId: dto.userId,
           amount: dto.amount,
-          currency: dto.currency,
+          currency: cryptocurrency,
           comment: dto.comment,
         });
 
@@ -231,18 +261,18 @@ export class PaymentService {
         // Now deduct balance atomically within the locked transaction
         // FIXED: Deduct from REQUESTED currency balance, not always RUB
         const newBalance = toDbString(subtract(availableAmount, requestedAmount), 8);
-        await this.userBalanceRepository.createOrUpdateBalance(userId, currencyCode, newBalance);
+        await this.userBalanceRepository.createOrUpdateBalance(userId, dto.currency, newBalance);
 
-        // Save transaction to database
+        // Save transaction to database (store Cryptocurrency, not CurrencyCode)
         const transaction = em.create(PaymentTransactionEntity, {
           userId,
           type: PaymentType.Withdraw,
           provider: PaymentProvider.CryptoBot,
           providerTransactionId: transfer.transferId,
           amount: dto.amount,
-          currency: dto.currency,
+          currency: cryptocurrency,
           status: PaymentStatus.Processing,
-          description: dto.comment || `Withdrawal ${dto.amount} ${dto.currency}`,
+          description: dto.comment || `Withdrawal ${dto.amount} ${cryptocurrency}`,
           fee: transfer.fee || null,
           metadata: {
             telegramUserId: dto.userId,
@@ -281,8 +311,7 @@ export class PaymentService {
       if (transferCreated && balanceBeforeTransaction !== null) {
         try {
           // FIXED: Rollback in REQUESTED currency, not always RUB
-          const currencyCode = this.mapCryptocurrencyToCurrencyCode(dto.currency);
-          await this.userBalanceRepository.createOrUpdateBalance(userId, currencyCode, balanceBeforeTransaction!);
+          await this.userBalanceRepository.createOrUpdateBalance(userId, dto.currency, balanceBeforeTransaction!);
 
           this.logger.warn(
             `Balance rollback performed for user ${userId} in ${dto.currency}: restored to ${balanceBeforeTransaction}`,

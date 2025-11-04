@@ -1,5 +1,4 @@
 export * from './decorator';
-export * from './decorator/api-i18n.decorator';
 export * from './resolver';
 export * from './common-intl.module';
 export * from './i18n-context';

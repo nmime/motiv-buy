@@ -9,8 +9,8 @@ export * from './payment-shared.module';
 // Configuration
 export * from './config';
 
-// Enums
-export * from './enum';
+// Re-export payment enums from database lib (moved for proper architecture)
+export { PaymentType, PaymentProvider, PaymentStatus, Cryptocurrency } from '@app/database';
 
 // Interfaces
 export * from './interface';

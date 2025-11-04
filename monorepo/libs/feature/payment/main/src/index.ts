@@ -12,9 +12,6 @@ export * from './service';
 // Providers
 export * from './provider/crypto-bot.provider';
 
-// Entities
-export * from './entity';
-
 // Controllers
 export * from './controller/payment.controller';
 export * from './controller/payment-webhook.controller';
