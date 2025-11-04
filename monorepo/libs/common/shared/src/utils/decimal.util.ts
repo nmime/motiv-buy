@@ -321,8 +321,10 @@ export function toDbString(value: Decimal.Value, decimalPlaces: number = 8): Dec
  */
 export function toDisplayString(value: Decimal.Value, decimalPlaces: number = 2): string {
   const dec = new Decimal(value);
-  // Use toFixed for rounding, then convert to number and back to remove trailing zeros
-  return Number(dec.toFixed(decimalPlaces)).toString();
+  // Round to specified decimal places, then remove trailing zeros using Decimal native methods
+  const rounded = dec.toDecimalPlaces(decimalPlaces);
+  // Convert to string and remove trailing zeros after decimal point
+  return rounded.toString().replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
 }
 
 /**

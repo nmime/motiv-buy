@@ -954,22 +954,25 @@ export class PaymentService {
           `Crediting balance for user ${lockedTransaction.userId}: ${lockedTransaction.amount} ${lockedTransaction.currency}`,
         );
 
-        // Get current balance
+        // Map transaction currency to CurrencyCode for balance operations
+        const currencyCode = this.mapCryptocurrencyToCurrencyCode(lockedTransaction.currency);
+
+        // Get current balance in the correct currency
         const balance = await this.userBalanceRepository.findByUserAndCurrency(
           lockedTransaction.userId,
-          CurrencyCode.Rub,
+          currencyCode,
         );
 
         if (!balance) {
-          throw new Error(`Balance not found for user ${lockedTransaction.userId}`);
+          throw new Error(`Balance not found for user ${lockedTransaction.userId} in currency ${lockedTransaction.currency}`);
         }
 
         const creditAmount = decimal(lockedTransaction.amount);
         const currentBalance = decimal(balance.balance);
         const newBalance = toDbString(add(currentBalance, creditAmount), 8);
 
-        // Update balance with proper type safety
-        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, CurrencyCode.Rub, newBalance);
+        // Update balance with correct currency
+        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, currencyCode, newBalance);
 
         // Mark as credited atomically within the locked transaction
         lockedTransaction.metadata = {
@@ -978,6 +981,7 @@ export class PaymentService {
           balanceCreditedAt: new Date().toISOString(),
           balanceBefore: currentBalance.toString(),
           balanceAfter: newBalance,
+          currency: lockedTransaction.currency, // Track which currency was credited
         };
 
         // Flush happens automatically at end of transactional block
