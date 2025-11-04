@@ -6,12 +6,14 @@ import { DatabaseModule } from '@app/database';
 import { AuthMainModule } from '@app/feature-auth-main';
 import { UserMainModule } from '@app/feature-user-main';
 import { BalanceMainModule } from '@app/feature-balance-main';
+import { PaymentMainModule } from '@app/feature-payment-main';
 import { StatisticMainModule } from '@app/feature-statistic-main';
 import { TrafficMainModule } from '@app/feature-traffic-main';
 
 import { AuthController } from '@app/feature-auth-main';
 import { UserController } from '@app/feature-user-main';
 import { BalanceController } from '@app/feature-balance-main';
+import { PaymentController, PaymentWebhookController } from '@app/feature-payment-main';
 import { StatisticController, StatisticPublicController } from '@app/feature-statistic-main';
 import {
   TrafficController,
@@ -36,6 +38,7 @@ import {
     AuthMainModule,
     UserMainModule,
     BalanceMainModule,
+    PaymentMainModule,
     StatisticMainModule,
     TrafficMainModule,
   ],
@@ -45,6 +48,8 @@ import {
     AuthController,
     UserController,
     BalanceController,
+    PaymentController,
+    PaymentWebhookController,
     StatisticController,
     StatisticPublicController,
     TrafficController,
