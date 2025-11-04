@@ -83,6 +83,7 @@ This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Co
 - **Test-First**: Write tests before implementation
 - **Clean Architecture**: Separate concerns
 - **Documentation**: Keep updated
+- **Use Maps over Switch/If-Else**: Prefer Map/Object lookups for better performance and maintainability
 
 ## 🚨 CRITICAL PROJECT RULES
 
@@ -380,4 +381,83 @@ Never save working files, text/mds and tests to the root folder.
 - libs/feature/*/main = domain business logic, ONLY apps import
 - libs/feature/*/shared = domain utilities OTHER domains use
 - NEVER import main modules in libs (circular dependency!)
+- **USE MAPS INSTEAD OF SWITCH/IF-ELSE-IF** - For O(1) lookup performance and maintainability
 - See /docs/DEVELOPMENT-GUIDELINES.md for complete standards
+
+### **Using Maps Instead of Switch/If-Else:**
+
+**❌ AVOID - Switch/Case:**
+```typescript
+function getStatusMessage(status: string): string {
+  switch (status) {
+    case 'pending':
+      return 'Order is pending';
+    case 'processing':
+      return 'Order is being processed';
+    case 'completed':
+      return 'Order completed';
+    case 'cancelled':
+      return 'Order cancelled';
+    default:
+      return 'Unknown status';
+  }
+}
+```
+
+**❌ AVOID - If-Else-If Chain:**
+```typescript
+function getStatusMessage(status: string): string {
+  if (status === 'pending') {
+    return 'Order is pending';
+  } else if (status === 'processing') {
+    return 'Order is being processed';
+  } else if (status === 'completed') {
+    return 'Order completed';
+  } else if (status === 'cancelled') {
+    return 'Order cancelled';
+  } else {
+    return 'Unknown status';
+  }
+}
+```
+
+**✅ CORRECT - Map Lookup (Constant Object):**
+```typescript
+const STATUS_MESSAGES: Record<string, string> = {
+  pending: 'Order is pending',
+  processing: 'Order is being processed',
+  completed: 'Order completed',
+  cancelled: 'Order cancelled',
+} as const;
+
+function getStatusMessage(status: string): string {
+  return STATUS_MESSAGES[status] ?? 'Unknown status';
+}
+```
+
+**✅ CORRECT - Map with Functions:**
+```typescript
+type StatusHandler = (order: Order) => Promise<void>;
+
+const STATUS_HANDLERS: Record<string, StatusHandler> = {
+  pending: async (order) => await sendPendingEmail(order),
+  processing: async (order) => await notifyWarehouse(order),
+  completed: async (order) => await sendInvoice(order),
+  cancelled: async (order) => await refundPayment(order),
+};
+
+async function handleStatus(status: string, order: Order): Promise<void> {
+  const handler = STATUS_HANDLERS[status];
+  if (!handler) {
+    throw new Error(`Unknown status: ${status}`);
+  }
+  await handler(order);
+}
+```
+
+**Benefits:**
+- **Performance**: O(1) lookup vs O(n) comparisons
+- **Maintainability**: Add/remove cases without touching logic
+- **Readability**: Clear data structure separation
+- **Type Safety**: Better TypeScript inference
+- **Testability**: Easy to test individual mappings
