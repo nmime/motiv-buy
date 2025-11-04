@@ -1,5 +1,6 @@
 import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
 import { TrafficUserEntity, TrafficUserStatus, TrafficSourceEntity } from '../entity';
+import { decimal, add, toDbString, clamp, sum, divide, toNumber } from '@app/common-shared/util';
 
 export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
   constructor(em: EntityManager) {
@@ -103,7 +104,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
   async updateEarnings(telegramId: string, amount: number): Promise<void> {
     const user = await this.findByTelegramId(telegramId);
     if (user) {
-      user.totalEarnings = (parseFloat(user.totalEarnings) + amount).toString();
+      user.totalEarnings = toDbString(add(decimal(user.totalEarnings), decimal(amount)));
       await this.em.flush();
     }
   }
@@ -111,7 +112,7 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
   async updateCompletionRate(telegramId: string, rate: number): Promise<void> {
     const user = await this.findByTelegramId(telegramId);
     if (user) {
-      user.completionRate = Math.max(0, Math.min(100, rate)).toString(); // Ensure rate is between 0-100
+      user.completionRate = toDbString(clamp(decimal(rate), decimal(0), decimal(100))); // Ensure rate is between 0-100
       await this.em.flush();
     }
   }
@@ -169,13 +170,13 @@ export class TrafficUserRepository extends EntityRepository<TrafficUserEntity> {
       };
     }
 
-    const totalCompletionRate = users.reduce((sum, user) => sum + parseFloat(user.completionRate), 0);
-    const totalEarnings = users.reduce((sum, user) => sum + parseFloat(user.totalEarnings), 0);
+    const totalCompletionRate = sum(users.map((user) => decimal(user.completionRate)));
+    const totalEarningsDecimal = sum(users.map((user) => decimal(user.totalEarnings)));
     const totalOrdersCompleted = users.reduce((sum, user) => sum + user.totalOrdersParticipated, 0);
 
     return {
-      averageCompletionRate: totalCompletionRate / users.length,
-      totalEarnings,
+      averageCompletionRate: toNumber(divide(totalCompletionRate, decimal(users.length))),
+      totalEarnings: toNumber(totalEarningsDecimal),
       totalOrdersCompleted,
     };
   }

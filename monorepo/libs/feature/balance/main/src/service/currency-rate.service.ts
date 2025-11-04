@@ -9,6 +9,7 @@ import {
   RateProvider,
 } from '@app/database';
 import { Result, Ok, Err } from '@app/common-shared';
+import { decimal, abs, multiply, divide, toDbString, subtract, Decimal } from '@app/common-shared/util';
 
 /**
  * Circuit breaker state for provider health tracking
@@ -251,17 +252,18 @@ export class CurrencyRateService implements OnModuleInit {
   /**
    * Validate stablecoin rate
    */
-  private validateStablecoinRate(currencyCode: CurrencyCode, rate: number): boolean {
+  private validateStablecoinRate(currencyCode: CurrencyCode, rate: Decimal.Value): boolean {
     if (!this.stablecoins.includes(currencyCode)) {
       return true;
     }
 
-    const deviation = Math.abs(rate - 1.0);
-    const isValid = deviation <= this.stablecoinTolerance;
+    const rateDecimal = decimal(rate);
+    const deviation = abs(subtract(rateDecimal, 1.0));
+    const isValid = deviation.lessThanOrEqualTo(this.stablecoinTolerance);
 
     if (!isValid) {
       this.logger.warn(
-        `Stablecoin ${currencyCode} rate ${rate} deviates ${(deviation * 100).toFixed(2)}% from $1.00 peg`,
+        `Stablecoin ${currencyCode} rate ${rateDecimal.toString()} deviates ${toDbString(multiply(deviation, 100), 2)}% from $1.00 peg`,
       );
     }
 
@@ -273,13 +275,13 @@ export class CurrencyRateService implements OnModuleInit {
    */
   async convertAmount(amount: string, fromCode: CurrencyCode, toCode: CurrencyCode): Promise<Result<string, Error>> {
     try {
-      const amountNum = parseFloat(amount);
+      const amountDecimal = decimal(amount);
 
       if (fromCode === toCode) {
         return Ok(amount);
       }
 
-      const convertedAmount = await this.currencyRepository.convertAmount(fromCode, toCode, amountNum);
+      const convertedAmount = await this.currencyRepository.convertAmount(fromCode, toCode, amountDecimal.toNumber());
 
       if (convertedAmount === null) {
         return Err(new Error(`Unable to convert from ${fromCode} to ${toCode}`));
@@ -288,7 +290,7 @@ export class CurrencyRateService implements OnModuleInit {
       const toCurrency = await this.currencyRepository.findByCode(toCode);
       const decimals = toCurrency?.decimalPlaces || 2;
 
-      return Ok(convertedAmount.toFixed(decimals));
+      return Ok(toDbString(convertedAmount, decimals));
     } catch (error) {
       this.logger.error(`Error converting currency: ${error}`);
 
@@ -348,7 +350,7 @@ export class CurrencyRateService implements OnModuleInit {
       // Process all currencies in parallel
       const promises = Object.entries(cryptoMapping).map(async ([currencyCode, coinId]) => {
         if (data[coinId]?.usd) {
-          const rate = parseFloat(data[coinId].usd);
+          const rate = data[coinId].usd.toString();
 
           // Validate stablecoin rates
           if (!this.validateStablecoinRate(currencyCode as CurrencyCode, rate)) {
@@ -363,7 +365,7 @@ export class CurrencyRateService implements OnModuleInit {
             await this.currencyRatesHistoryRepository.createEntry(
               currency.id,
               provider,
-              rate.toString(),
+              toDbString(rate, 8),
               config?.reliability || 95,
             );
 
@@ -404,14 +406,14 @@ export class CurrencyRateService implements OnModuleInit {
 
         if (response.ok) {
           const data = await response.json();
-          const rate = parseFloat(data.price);
+          const rate = data.price.toString();
           const currency = await this.currencyRepository.findByCode(pair.code);
 
           if (currency) {
             await this.currencyRatesHistoryRepository.createEntry(
               currency.id,
               provider,
-              rate.toFixed(8),
+              toDbString(rate, 8),
               config?.reliability || 90,
             );
 
@@ -459,7 +461,7 @@ export class CurrencyRateService implements OnModuleInit {
       // Process all symbols in parallel
       const promises = symbols.map(async (symbol) => {
         if (data[symbol]?.USD) {
-          const rate = parseFloat(data[symbol].USD);
+          const rate = data[symbol].USD.toString();
           const currencyCode = symbol === 'USDT' ? CurrencyCode.Usdt : (symbol as CurrencyCode);
 
           if (!this.validateStablecoinRate(currencyCode, rate)) {
@@ -471,7 +473,7 @@ export class CurrencyRateService implements OnModuleInit {
             await this.currencyRatesHistoryRepository.createEntry(
               currency.id,
               provider,
-              rate.toString(),
+              toDbString(rate, 8),
               config?.reliability || 85,
             );
 
@@ -514,7 +516,7 @@ export class CurrencyRateService implements OnModuleInit {
 
         if (response.ok) {
           const data = await response.json();
-          const rate = parseFloat(data.data.priceUsd);
+          const rate = data.data.priceUsd.toString();
 
           if (!this.validateStablecoinRate(currencyCode as CurrencyCode, rate)) {
             return;
@@ -525,7 +527,7 @@ export class CurrencyRateService implements OnModuleInit {
             await this.currencyRatesHistoryRepository.createEntry(
               currency.id,
               provider,
-              rate.toString(),
+              toDbString(rate, 8),
               config?.reliability || 80,
             );
 
@@ -564,14 +566,14 @@ export class CurrencyRateService implements OnModuleInit {
         if (response.ok) {
           const data = await response.json();
           if (data.result?.[pair]) {
-            const rate = parseFloat(data.result[pair].c[0]); // Last trade price
+            const rate = data.result[pair].c[0].toString(); // Last trade price
 
             const currency = await this.currencyRepository.findByCode(code);
             if (currency) {
               await this.currencyRatesHistoryRepository.createEntry(
                 currency.id,
                 provider,
-                rate.toString(),
+                toDbString(rate, 8),
                 config?.reliability || 90,
               );
 
@@ -608,7 +610,7 @@ export class CurrencyRateService implements OnModuleInit {
 
       // EUR: 1 USD = X EUR, so rate to USD = 1/X
       if (data.rates.EUR) {
-        const eurToUsd = (1 / data.rates.EUR).toFixed(8);
+        const eurToUsd = toDbString(divide(1, data.rates.EUR), 8);
         const eurCurrency = await this.currencyRepository.findByCode(CurrencyCode.Eur);
 
         if (eurCurrency) {
@@ -625,7 +627,7 @@ export class CurrencyRateService implements OnModuleInit {
 
       // RUB: 1 USD = X RUB, so rate to USD = 1/X
       if (data.rates.RUB) {
-        const rubToUsd = (1 / data.rates.RUB).toFixed(8);
+        const rubToUsd = toDbString(divide(1, data.rates.RUB), 8);
         const rubCurrency = await this.currencyRepository.findByCode(CurrencyCode.Rub);
 
         if (rubCurrency) {
@@ -664,7 +666,7 @@ export class CurrencyRateService implements OnModuleInit {
       const config = this.providerConfigs.find((c) => c.name === provider);
 
       if (data.rates.EUR) {
-        const eurToUsd = (1 / data.rates.EUR).toFixed(8);
+        const eurToUsd = toDbString(divide(1, data.rates.EUR), 8);
         const eurCurrency = await this.currencyRepository.findByCode(CurrencyCode.Eur);
 
         if (eurCurrency) {
@@ -680,7 +682,7 @@ export class CurrencyRateService implements OnModuleInit {
       }
 
       if (data.rates.RUB) {
-        const rubToUsd = (1 / data.rates.RUB).toFixed(8);
+        const rubToUsd = toDbString(divide(1, data.rates.RUB), 8);
         const rubCurrency = await this.currencyRepository.findByCode(CurrencyCode.Rub);
 
         if (rubCurrency) {
@@ -727,7 +729,7 @@ export class CurrencyRateService implements OnModuleInit {
       const config = this.providerConfigs.find((c) => c.name === provider);
 
       if (data.data.EUR) {
-        const eurToUsd = (1 / data.data.EUR).toFixed(8);
+        const eurToUsd = toDbString(divide(1, data.data.EUR), 8);
         const eurCurrency = await this.currencyRepository.findByCode(CurrencyCode.Eur);
 
         if (eurCurrency) {
@@ -743,7 +745,7 @@ export class CurrencyRateService implements OnModuleInit {
       }
 
       if (data.data.RUB) {
-        const rubToUsd = (1 / data.data.RUB).toFixed(8);
+        const rubToUsd = toDbString(divide(1, data.data.RUB), 8);
         const rubCurrency = await this.currencyRepository.findByCode(CurrencyCode.Rub);
 
         if (rubCurrency) {

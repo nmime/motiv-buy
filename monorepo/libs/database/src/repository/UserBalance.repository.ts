@@ -2,6 +2,7 @@ import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
 import { UserBalanceEntity } from '../entity';
 import { UserEntity } from '../entity/User.entity';
 import { CurrencyCode, CurrencyEntity } from '../entity/Currency.entity';
+import { decimal, add, subtract, toDbString, greaterThanOrEqual } from '@app/common-shared/util';
 
 export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
   constructor(em: EntityManager) {
@@ -64,12 +65,12 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
       return false;
     }
 
-    const availableBalance = parseFloat(userBalance.balance);
-    const lockAmount = parseFloat(amount);
+    const availableBalance = decimal(userBalance.balance);
+    const lockAmount = decimal(amount);
 
-    if (availableBalance >= lockAmount) {
-      userBalance.balance = (availableBalance - lockAmount).toString();
-      userBalance.lockedBalance = (parseFloat(userBalance.lockedBalance) + lockAmount).toString();
+    if (greaterThanOrEqual(availableBalance, lockAmount)) {
+      userBalance.balance = toDbString(subtract(availableBalance, lockAmount), 8);
+      userBalance.lockedBalance = toDbString(add(userBalance.lockedBalance, lockAmount), 8);
       await this.em.flush();
 
       return true;
@@ -84,12 +85,12 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
       return false;
     }
 
-    const lockedAmount = parseFloat(userBalance.lockedBalance);
-    const unlockAmount = parseFloat(amount);
+    const lockedAmount = decimal(userBalance.lockedBalance);
+    const unlockAmount = decimal(amount);
 
-    if (lockedAmount >= unlockAmount) {
-      userBalance.lockedBalance = (lockedAmount - unlockAmount).toString();
-      userBalance.balance = (parseFloat(userBalance.balance) + unlockAmount).toString();
+    if (greaterThanOrEqual(lockedAmount, unlockAmount)) {
+      userBalance.lockedBalance = toDbString(subtract(lockedAmount, unlockAmount), 8);
+      userBalance.balance = toDbString(add(userBalance.balance, unlockAmount), 8);
       await this.em.flush();
 
       return true;

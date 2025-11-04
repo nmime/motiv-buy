@@ -1,383 +1,609 @@
-# Claude Code Configuration - SPARC Development Environment
-
-## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
-
-**ABSOLUTE RULES**:
-1. ALL operations MUST be concurrent/parallel in a single message
-2. **NEVER save working files, text/mds and tests to the root folder**
-3. ALWAYS organize files in appropriate subdirectories
-4. **USE CLAUDE CODE'S TASK TOOL** for spawning agents concurrently, not just MCP
-
-### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
-
-**MANDATORY PATTERNS:**
-- **TodoWrite**: ALWAYS batch ALL todos in ONE call (5-10+ todos minimum)
-- **Task tool (Claude Code)**: ALWAYS spawn ALL agents in ONE message with full instructions
-- **File operations**: ALWAYS batch ALL reads/writes/edits in ONE message
-- **Bash commands**: ALWAYS batch ALL terminal operations in ONE message
-- **Memory operations**: ALWAYS batch ALL memory store/retrieve in ONE message
-
-### 🎯 CRITICAL: Claude Code Task Tool for Agent Execution
-
-**Claude Code's Task tool is the PRIMARY way to spawn agents:**
-```javascript
-// ✅ CORRECT: Use Claude Code's Task tool for parallel agent execution
-[Single Message]:
-  Task("Research agent", "Analyze requirements and patterns...", "researcher")
-  Task("Coder agent", "Implement core features...", "coder")
-  Task("Tester agent", "Create comprehensive tests...", "tester")
-  Task("Reviewer agent", "Review code quality...", "reviewer")
-  Task("Architect agent", "Design system architecture...", "system-architect")
-```
-
-**MCP tools are ONLY for coordination setup:**
-- `mcp__claude-flow__swarm_init` - Initialize coordination topology
-- `mcp__claude-flow__agent_spawn` - Define agent types for coordination
-- `mcp__claude-flow__task_orchestrate` - Orchestrate high-level workflows
-
-### 📁 File Organization Rules
-
-**NEVER save to root folder. Use these directories:**
-- `/src` - Source code files
-- `/tests` - Test files
-- `/docs` - Documentation and markdown files
-- `/config` - Configuration files
-- `/scripts` - Utility scripts
-- `/examples` - Example code
-
-## Project Overview
-
-This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Completion) methodology with Claude-Flow orchestration for systematic Test-Driven Development.
-
-## SPARC Commands
-
-### Core Commands
-- `npx claude-flow sparc modes` - List available modes
-- `npx claude-flow sparc run <mode> "<task>"` - Execute specific mode
-- `npx claude-flow sparc tdd "<feature>"` - Run complete TDD workflow
-- `npx claude-flow sparc info <mode>` - Get mode details
-
-### Batchtools Commands
-- `npx claude-flow sparc batch <modes> "<task>"` - Parallel execution
-- `npx claude-flow sparc pipeline "<task>"` - Full pipeline processing
-- `npx claude-flow sparc concurrent <mode> "<tasks-file>"` - Multi-task processing
-
-### Build Commands
-- `npm run build` - Build project
-- `npm run test` - Run tests
-- `npm run lint` - Linting
-- `npm run typecheck` - Type checking
-
-## SPARC Workflow Phases
-
-1. **Specification** - Requirements analysis (`sparc run spec-pseudocode`)
-2. **Pseudocode** - Algorithm design (`sparc run spec-pseudocode`)
-3. **Architecture** - System design (`sparc run architect`)
-4. **Refinement** - TDD implementation (`sparc tdd`)
-5. **Completion** - Integration (`sparc run integration`)
-
-## Code Style & Best Practices
-
-- **Modular Design**: Files under 500 lines
-- **Environment Safety**: Never hardcode secrets
-- **Test-First**: Write tests before implementation
-- **Clean Architecture**: Separate concerns
-- **Documentation**: Keep updated
-
-## 🚨 CRITICAL PROJECT RULES
-
-### **Module Architecture:**
-1. **ALL shared functionality MUST be in `libs`** - used by both API app and bot app
-2. **`libs/feature/*/main`** - Domain business logic, ONLY imported by **apps** (apps/api, apps/bot)
-3. **`libs/feature/*/shared`** - Domain utilities/types/guards that OTHER domains can use
-4. **NEVER import `main` modules in libs** - causes circular dependencies!
-
-### **Type Safety:**
-1. **NO `any` TYPE** - Use proper types, interfaces, or `unknown`
-2. **NO `as` ASSERTIONS** - Use type guards unless critically needed
-3. **Strict TypeScript** - All strict flags enabled
-
-### **Complete Guidelines:**
-See `/docs/DEVELOPMENT-GUIDELINES.md` for comprehensive coding standards covering:
-- Code conventions & naming
-- Security practices
-- Module architecture rules
-- Database patterns
-- Testing standards
-- API documentation
-
-## 🚀 Available Agents (54 Total)
-
-### Core Development
-`coder`, `reviewer`, `tester`, `planner`, `researcher`
-
-### Swarm Coordination
-`hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`, `collective-intelligence-coordinator`, `swarm-memory-manager`
-
-### Consensus & Distributed
-`byzantine-coordinator`, `raft-manager`, `gossip-coordinator`, `consensus-builder`, `crdt-synchronizer`, `quorum-manager`, `security-manager`
-
-### Performance & Optimization
-`perf-analyzer`, `performance-benchmarker`, `task-orchestrator`, `memory-coordinator`, `smart-agent`
-
-### GitHub & Repository
-`github-modes`, `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`, `workflow-automation`, `project-board-sync`, `repo-architect`, `multi-repo-swarm`
-
-### SPARC Methodology
-`sparc-coord`, `sparc-coder`, `specification`, `pseudocode`, `architecture`, `refinement`
-
-### Specialized Development
-`backend-dev`, `mobile-dev`, `ml-developer`, `cicd-engineer`, `api-docs`, `system-architect`, `code-analyzer`, `base-template-generator`
-
-### Testing & Validation
-`tdd-london-swarm`, `production-validator`
-
-### Migration & Planning
-`migration-planner`, `swarm-init`
-
-## 🎯 Claude Code vs MCP Tools
-
-### Claude Code Handles ALL EXECUTION:
-- **Task tool**: Spawn and run agents concurrently for actual work
-- File operations (Read, Write, Edit, MultiEdit, Glob, Grep)
-- Code generation and programming
-- Bash commands and system operations
-- Implementation work
-- Project navigation and analysis
-- TodoWrite and task management
-- Git operations
-- Package management
-- Testing and debugging
-
-### MCP Tools ONLY COORDINATE:
-- Swarm initialization (topology setup)
-- Agent type definitions (coordination patterns)
-- Task orchestration (high-level planning)
-- Memory management
-- Neural features
-- Performance tracking
-- GitHub integration
-
-**KEY**: MCP coordinates the strategy, Claude Code's Task tool executes with real agents.
-
-## 🚀 Quick Setup
-
-```bash
-# Add MCP servers (Claude Flow required, others optional)
-claude mcp add claude-flow npx claude-flow@alpha mcp start
-claude mcp add ruv-swarm npx ruv-swarm mcp start  # Optional: Enhanced coordination
-claude mcp add flow-nexus npx flow-nexus@latest mcp start  # Optional: Cloud features
-```
-
-## MCP Tool Categories
-
-### Coordination
-`swarm_init`, `agent_spawn`, `task_orchestrate`
-
-### Monitoring
-`swarm_status`, `agent_list`, `agent_metrics`, `task_status`, `task_results`
-
-### Memory & Neural
-`memory_usage`, `neural_status`, `neural_train`, `neural_patterns`
-
-### GitHub Integration
-`github_swarm`, `repo_analyze`, `pr_enhance`, `issue_triage`, `code_review`
-
-### System
-`benchmark_run`, `features_detect`, `swarm_monitor`
-
-### Flow-Nexus MCP Tools (Optional Advanced Features)
-Flow-Nexus extends MCP capabilities with 70+ cloud-based orchestration tools:
-
-**Key MCP Tool Categories:**
-- **Swarm & Agents**: `swarm_init`, `swarm_scale`, `agent_spawn`, `task_orchestrate`
-- **Sandboxes**: `sandbox_create`, `sandbox_execute`, `sandbox_upload` (cloud execution)
-- **Templates**: `template_list`, `template_deploy` (pre-built project templates)
-- **Neural AI**: `neural_train`, `neural_patterns`, `seraphina_chat` (AI assistant)
-- **GitHub**: `github_repo_analyze`, `github_pr_manage` (repository management)
-- **Real-time**: `execution_stream_subscribe`, `realtime_subscribe` (live monitoring)
-- **Storage**: `storage_upload`, `storage_list` (cloud file management)
-
-**Authentication Required:**
-- Register: `mcp__flow-nexus__user_register` or `npx flow-nexus@latest register`
-- Login: `mcp__flow-nexus__user_login` or `npx flow-nexus@latest login`
-- Access 70+ specialized MCP tools for advanced orchestration
-
-## 🚀 Agent Execution Flow with Claude Code
-
-### The Correct Pattern:
-
-1. **Optional**: Use MCP tools to set up coordination topology
-2. **REQUIRED**: Use Claude Code's Task tool to spawn agents that do actual work
-3. **REQUIRED**: Each agent runs hooks for coordination
-4. **REQUIRED**: Batch all operations in single messages
-
-### Example Full-Stack Development:
-
-```javascript
-// Single message with all agent spawning via Claude Code's Task tool
-[Parallel Agent Execution]:
-  Task("Backend Developer", "Build REST API with Express. Use hooks for coordination.", "backend-dev")
-  Task("Frontend Developer", "Create React UI. Coordinate with backend via memory.", "coder")
-  Task("Database Architect", "Design PostgreSQL schema. Store schema in memory.", "code-analyzer")
-  Task("Test Engineer", "Write Jest tests. Check memory for API contracts.", "tester")
-  Task("DevOps Engineer", "Setup Docker and CI/CD. Document in memory.", "cicd-engineer")
-  Task("Security Auditor", "Review authentication. Report findings via hooks.", "reviewer")
-  
-  // All todos batched together
-  TodoWrite { todos: [...8-10 todos...] }
-  
-  // All file operations together
-  Write "backend/server.js"
-  Write "frontend/App.jsx"
-  Write "database/schema.sql"
-```
-
-## 📋 Agent Coordination Protocol
-
-### Every Agent Spawned via Task Tool MUST:
-
-**1️⃣ BEFORE Work:**
-```bash
-npx claude-flow@alpha hooks pre-task --description "[task]"
-npx claude-flow@alpha hooks session-restore --session-id "swarm-[id]"
-```
-
-**2️⃣ DURING Work:**
-```bash
-npx claude-flow@alpha hooks post-edit --file "[file]" --memory-key "swarm/[agent]/[step]"
-npx claude-flow@alpha hooks notify --message "[what was done]"
-```
-
-**3️⃣ AFTER Work:**
-```bash
-npx claude-flow@alpha hooks post-task --task-id "[task]"
-npx claude-flow@alpha hooks session-end --export-metrics true
-```
-
-## 🎯 Concurrent Execution Examples
-
-### ✅ CORRECT WORKFLOW: MCP Coordinates, Claude Code Executes
-
-```javascript
-// Step 1: MCP tools set up coordination (optional, for complex tasks)
-[Single Message - Coordination Setup]:
-  mcp__claude-flow__swarm_init { topology: "mesh", maxAgents: 6 }
-  mcp__claude-flow__agent_spawn { type: "researcher" }
-  mcp__claude-flow__agent_spawn { type: "coder" }
-  mcp__claude-flow__agent_spawn { type: "tester" }
-
-// Step 2: Claude Code Task tool spawns ACTUAL agents that do the work
-[Single Message - Parallel Agent Execution]:
-  // Claude Code's Task tool spawns real agents concurrently
-  Task("Research agent", "Analyze API requirements and best practices. Check memory for prior decisions.", "researcher")
-  Task("Coder agent", "Implement REST endpoints with authentication. Coordinate via hooks.", "coder")
-  Task("Database agent", "Design and implement database schema. Store decisions in memory.", "code-analyzer")
-  Task("Tester agent", "Create comprehensive test suite with 90% coverage.", "tester")
-  Task("Reviewer agent", "Review code quality and security. Document findings.", "reviewer")
-  
-  // Batch ALL todos in ONE call
-  TodoWrite { todos: [
-    {id: "1", content: "Research API patterns", status: "in_progress", priority: "high"},
-    {id: "2", content: "Design database schema", status: "in_progress", priority: "high"},
-    {id: "3", content: "Implement authentication", status: "pending", priority: "high"},
-    {id: "4", content: "Build REST endpoints", status: "pending", priority: "high"},
-    {id: "5", content: "Write unit tests", status: "pending", priority: "medium"},
-    {id: "6", content: "Integration tests", status: "pending", priority: "medium"},
-    {id: "7", content: "API documentation", status: "pending", priority: "low"},
-    {id: "8", content: "Performance optimization", status: "pending", priority: "low"}
-  ]}
-  
-  // Parallel file operations
-  Bash "mkdir -p app/{src,tests,docs,config}"
-  Write "app/package.json"
-  Write "app/src/server.js"
-  Write "app/tests/server.test.js"
-  Write "app/docs/API.md"
-```
-
-### ❌ WRONG (Multiple Messages):
-```javascript
-Message 1: mcp__claude-flow__swarm_init
-Message 2: Task("agent 1")
-Message 3: TodoWrite { todos: [single todo] }
-Message 4: Write "file.js"
-// This breaks parallel coordination!
-```
-
-## Performance Benefits
-
-- **84.8% SWE-Bench solve rate**
-- **32.3% token reduction**
-- **2.8-4.4x speed improvement**
-- **27+ neural models**
-
-## Hooks Integration
-
-### Pre-Operation
-- Auto-assign agents by file type
-- Validate commands for safety
-- Prepare resources automatically
-- Optimize topology by complexity
-- Cache searches
-
-### Post-Operation
-- Auto-format code
-- Train neural patterns
-- Update memory
-- Analyze performance
-- Track token usage
-
-### Session Management
-- Generate summaries
-- Persist state
-- Track metrics
-- Restore context
-- Export workflows
-
-## Advanced Features (v2.0.0)
-
-- 🚀 Automatic Topology Selection
-- ⚡ Parallel Execution (2.8-4.4x speed)
-- 🧠 Neural Training
-- 📊 Bottleneck Analysis
-- 🤖 Smart Auto-Spawning
-- 🛡️ Self-Healing Workflows
-- 💾 Cross-Session Memory
-- 🔗 GitHub Integration
-
-## Integration Tips
-
-1. Start with basic swarm init
-2. Scale agents gradually
-3. Use memory for context
-4. Monitor progress regularly
-5. Train patterns from success
-6. Enable hooks automation
-7. Use GitHub tools first
-
-## Support
-
-- Documentation: https://github.com/ruvnet/claude-flow
-- Issues: https://github.com/ruvnet/claude-flow/issues
-- Flow-Nexus Platform: https://flow-nexus.ruv.io (registration required for cloud features)
+# Development Guidelines & Code Standards
+
+## Table of Contents
+1. [Project Overview](#project-overview)
+2. [Critical Rules](#critical-rules)
+3. [Module Architecture](#module-architecture)
+4. [Type Safety & TypeScript](#type-safety--typescript)
+5. [Decimal Arithmetic](#decimal-arithmetic)
+6. [Code Style & Patterns](#code-style--patterns)
+7. [File Organization](#file-organization)
+8. [Build & Development](#build--development)
 
 ---
 
-Remember: **Claude Flow coordinates, Claude Code creates!**
+## Project Overview
 
-# important-instruction-reminders
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-Never save working files, text/mds and tests to the root folder.
+NestJS monorepo application with:
+- **API Application** (`apps/api`) - REST API backend
+- **Bot Application** (`apps/bot`) - Telegram bot interface
+- **Shared Libraries** (`libs/`) - Common functionality used by both apps
 
-## CRITICAL CODING RULES:
-- NO `any` type - use proper types or `unknown`
-- NO `as` assertions unless critically needed - use type guards
-- ALL functionality used by BOTH api AND bot MUST be in libs
-- libs/feature/*/main = domain business logic, ONLY apps import
-- libs/feature/*/shared = domain utilities OTHER domains use
-- NEVER import main modules in libs (circular dependency!)
-- See /docs/DEVELOPMENT-GUIDELINES.md for complete standards
+**Stack:**
+- TypeScript (strict mode)
+- NestJS framework
+- MikroORM with PostgreSQL
+- Telegram Bot API
+- Decimal.js for financial calculations
+
+---
+
+## Critical Rules
+
+### 🚨 MANDATORY - NO EXCEPTIONS
+
+1. **NO `any` TYPE**
+   - Use proper types, interfaces, or `unknown`
+   - Use type guards for runtime type checking
+   - Example: `if (isString(value))` instead of `value as string`
+
+2. **NO `as` TYPE ASSERTIONS**
+   - Use type guards instead
+   - Only use `as const` for literal types
+   - Only use assertions when critically needed with clear justification
+
+3. **NO FLOATING-POINT ARITHMETIC**
+   - Use Decimal.js for ALL monetary/financial calculations
+   - Never use native `+`, `-`, `*`, `/` for money
+   - See [Decimal Arithmetic](#decimal-arithmetic) section
+
+4. **USE MAPS INSTEAD OF SWITCH/IF-ELSE-IF**
+   - Use object/Map lookups for O(1) performance
+   - See [Code Patterns](#code-patterns) section
+
+5. **NEVER IMPORT `main` MODULES IN `libs`**
+   - Causes circular dependencies
+   - Only apps can import from `libs/*/main`
+   - See [Module Architecture](#module-architecture)
+
+---
+
+## Module Architecture
+
+### Directory Structure
+
+```
+monorepo/
+├── apps/
+│   ├── api/              # REST API application
+│   └── bot/              # Telegram bot application
+└── libs/
+    ├── common/           # Cross-domain utilities
+    │   ├── exception/
+    │   ├── logger/
+    │   ├── validation/
+    │   └── shared/       # Common utilities for ALL domains
+    ├── database/         # Database entities & repositories
+    └── feature/          # Domain-specific modules
+        ├── auth/
+        │   ├── main/     # Business logic (apps import)
+        │   └── shared/   # Types/DTOs (other libs import)
+        ├── payment/
+        ├── balance/
+        └── traffic/
+```
+
+### Module Import Rules
+
+#### ✅ CORRECT Imports
+
+```typescript
+// Apps can import from libs/*/main
+import { PaymentService } from '@app/feature-payment-main';
+import { UserRepository } from '@app/database';
+
+// Libs can import from libs/*/shared
+import { CreateInvoiceDto } from '@app/feature-payment-shared';
+import { CurrencyCode } from '@app/database';
+
+// Libs can import from libs/common
+import { Logger } from '@app/common-logger';
+import { ValidationPipe } from '@app/common-validation';
+```
+
+#### ❌ WRONG Imports
+
+```typescript
+// NEVER: libs importing from other libs/*/main
+// libs/feature/balance/main/service.ts
+import { PaymentService } from '@app/feature-payment-main'; // ❌ CIRCULAR DEPENDENCY!
+
+// NEVER: importing from apps
+// libs/feature/auth/main/service.ts
+import { AppController } from '@app/api'; // ❌ WRONG DIRECTION!
+```
+
+### Module Organization Rules
+
+1. **`libs/feature/*/main`**
+   - Business logic, services, controllers
+   - **ONLY** imported by apps (`apps/api`, `apps/bot`)
+   - Cannot be imported by other libs
+
+2. **`libs/feature/*/shared`**
+   - DTOs, types, interfaces, enums, constants
+   - Can be imported by other libs
+   - No business logic
+
+3. **`libs/common/*`**
+   - Cross-cutting concerns (logging, validation, exceptions)
+   - Can be imported by all libs and apps
+
+4. **`libs/database`**
+   - Entities, repositories, database utilities
+   - Can be imported by all libs and apps
+
+---
+
+## Type Safety & TypeScript
+
+### Strict TypeScript Configuration
+
+All strict flags MUST be enabled:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true
+  }
+}
+```
+
+### Type Guards Over Assertions
+
+**❌ WRONG - Type Assertion:**
+```typescript
+function processUser(data: unknown) {
+  const user = data as User; // ❌ Unsafe!
+  console.log(user.name);
+}
+```
+
+**✅ CORRECT - Type Guard:**
+```typescript
+function isUser(data: unknown): data is User {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'name' in data &&
+    'email' in data &&
+    typeof data.name === 'string' &&
+    typeof data.email === 'string'
+  );
+}
+
+function processUser(data: unknown) {
+  if (!isUser(data)) {
+    throw new Error('Invalid user data');
+  }
+  console.log(data.name); // ✅ Type-safe!
+}
+```
+
+### Using `unknown` Instead of `any`
+
+**❌ WRONG:**
+```typescript
+function handleError(error: any) { // ❌ any hides bugs
+  console.log(error.message);
+}
+```
+
+**✅ CORRECT:**
+```typescript
+function handleError(error: unknown) {
+  if (error instanceof Error) {
+    console.log(error.message); // ✅ Type-safe
+  } else {
+    console.log('Unknown error:', error);
+  }
+}
+```
+
+---
+
+## Decimal Arithmetic
+
+### Why Decimal.js?
+
+JavaScript's native numbers use floating-point arithmetic with precision issues:
+
+```javascript
+0.1 + 0.2 === 0.3  // false! (actually 0.30000000000000004)
+0.1 + 0.7 === 0.8  // false! (0.7999999999999999)
+```
+
+**Use Decimal.js for ALL financial calculations!**
+
+### Decimal Utility Functions
+
+Import from `@app/common-shared/util`:
+
+```typescript
+import {
+  decimal,        // Create Decimal instance
+  add,            // Addition
+  subtract,       // Subtraction
+  multiply,       // Multiplication
+  divide,         // Division
+  sum,            // Sum array of values
+  percentage,     // Calculate percentage
+  toDbString,     // Format for database (string)
+  toDisplayString,// Format for UI display
+  toNumber,       // Convert to number (use only for display)
+} from '@app/common-shared/util';
+```
+
+### Examples
+
+**❌ WRONG - Native Arithmetic:**
+```typescript
+// Payment calculation
+const total = parseFloat(price) + parseFloat(tax);
+const discount = total * 0.1;
+const final = total - discount;
+
+// Balance update
+userBalance.balance = (parseFloat(balance) + amount).toString();
+
+// Currency conversion
+const converted = amount * parseFloat(rate);
+```
+
+**✅ CORRECT - Decimal.js:**
+```typescript
+// Payment calculation
+const total = add(price, tax);
+const discount = multiply(total, '0.1');
+const final = subtract(total, discount);
+
+// Balance update
+userBalance.balance = toDbString(add(balance, amount), 8);
+
+// Currency conversion
+const converted = multiply(amount, rate);
+```
+
+### Migration Patterns
+
+| Native JavaScript | Decimal.js Utility |
+|-------------------|-------------------|
+| `parseFloat(x)` | `decimal(x)` |
+| `x + y` | `add(x, y)` |
+| `x - y` | `subtract(x, y)` |
+| `x * y` | `multiply(x, y)` |
+| `x / y` | `divide(x, y)` |
+| `Math.abs(x)` | `abs(x)` |
+| `array.reduce((s, v) => s + v, 0)` | `sum(array)` |
+| `(value / total) * 100` | `percentage(value, total)` |
+| `.toFixed(8)` (storage) | `toDbString(value, 8)` |
+| `.toFixed(2)` (display) | `toDisplayString(value, 2)` |
+
+### When to Use `toNumber()`
+
+Only convert Decimal to number for **final display** purposes:
+
+```typescript
+// ✅ CORRECT
+const balance = decimal(user.balance);
+const pending = decimal(user.pendingAmount);
+const available = subtract(balance, pending);
+
+// Return to API/UI (only here we convert to number)
+return {
+  balance: toNumber(balance),
+  available: toNumber(available),
+};
+
+// ❌ WRONG - Don't convert mid-calculation
+const balanceNum = toNumber(decimal(user.balance)); // ❌
+const result = balanceNum - pendingNum; // ❌ Lost precision!
+```
+
+---
+
+## Code Style & Patterns
+
+### Use Maps Instead of Switch/If-Else-If
+
+**❌ AVOID - Switch/Case:**
+```typescript
+function getStatusMessage(status: string): string {
+  switch (status) {
+    case 'pending':
+      return 'Order is pending';
+    case 'processing':
+      return 'Order is being processed';
+    case 'completed':
+      return 'Order completed';
+    case 'cancelled':
+      return 'Order cancelled';
+    default:
+      return 'Unknown status';
+  }
+}
+```
+
+**❌ AVOID - If-Else-If Chain:**
+```typescript
+function getStatusMessage(status: string): string {
+  if (status === 'pending') {
+    return 'Order is pending';
+  } else if (status === 'processing') {
+    return 'Order is being processed';
+  } else if (status === 'completed') {
+    return 'Order completed';
+  } else if (status === 'cancelled') {
+    return 'Order cancelled';
+  }
+  return 'Unknown status';
+}
+```
+
+**✅ CORRECT - Object/Map Lookup:**
+```typescript
+const STATUS_MESSAGES: Record<string, string> = {
+  pending: 'Order is pending',
+  processing: 'Order is being processed',
+  completed: 'Order completed',
+  cancelled: 'Order cancelled',
+} as const;
+
+function getStatusMessage(status: string): string {
+  return STATUS_MESSAGES[status] ?? 'Unknown status';
+}
+```
+
+**✅ CORRECT - Map with Functions:**
+```typescript
+type StatusHandler = (order: Order) => Promise<void>;
+
+const STATUS_HANDLERS: Record<OrderStatus, StatusHandler> = {
+  pending: async (order) => await sendPendingEmail(order),
+  processing: async (order) => await notifyWarehouse(order),
+  completed: async (order) => await sendInvoice(order),
+  cancelled: async (order) => await refundPayment(order),
+};
+
+async function handleStatus(status: OrderStatus, order: Order): Promise<void> {
+  const handler = STATUS_HANDLERS[status];
+  if (!handler) {
+    throw new Error(`Unknown status: ${status}`);
+  }
+  await handler(order);
+}
+```
+
+**Benefits:**
+- **Performance**: O(1) lookup vs O(n) comparisons
+- **Maintainability**: Add/remove cases without modifying function logic
+- **Readability**: Clear separation of data and behavior
+- **Type Safety**: Better TypeScript inference with Record types
+- **Testability**: Easy to test individual mappings
+
+### Additional Code Patterns
+
+#### Error Handling
+
+```typescript
+// ✅ Use Result type for operations that can fail
+import { Result, Ok, Err } from '@app/common-shared';
+
+async function createPayment(dto: CreatePaymentDto): Promise<Result<Payment, Error>> {
+  try {
+    const payment = await this.paymentRepository.create(dto);
+    return Ok(payment);
+  } catch (error) {
+    return Err(toError(error));
+  }
+}
+
+// Usage
+const result = await createPayment(dto);
+if (result.err) {
+  logger.error('Payment failed', result.val);
+  throw result.val;
+}
+const payment = result.val;
+```
+
+#### Async/Await Best Practices
+
+```typescript
+// ✅ CORRECT - Parallel independent operations
+const [user, balance, orders] = await Promise.all([
+  this.userRepository.findById(userId),
+  this.balanceRepository.findByUser(userId),
+  this.orderRepository.findByUser(userId),
+]);
+
+// ❌ WRONG - Sequential when could be parallel
+const user = await this.userRepository.findById(userId);
+const balance = await this.balanceRepository.findByUser(userId);
+const orders = await this.orderRepository.findByUser(userId);
+```
+
+#### Validation
+
+```typescript
+// ✅ Use class-validator decorators
+import { IsString, IsNumber, Min, Max } from 'class-validator';
+
+export class CreateOrderDto {
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
+
+  @IsString()
+  amount: string; // Decimal as string
+
+  @IsNumber()
+  @Min(1)
+  @Max(1000)
+  quantity: number;
+}
+```
+
+---
+
+## File Organization
+
+### Project Structure Rules
+
+1. **NEVER save files to root folder**
+   - No working files, markdown, or tests in root
+   - Use appropriate subdirectories
+
+2. **Directory Usage:**
+   - `/apps/*` - Application entry points
+   - `/libs/*` - Shared libraries
+   - `/docs/*` - Documentation
+   - `/scripts/*` - Utility scripts
+   - `/config/*` - Configuration files
+
+3. **File Naming Conventions:**
+   - Services: `*.service.ts`
+   - Controllers: `*.controller.ts`
+   - Repositories: `*.repository.ts`
+   - Entities: `*.entity.ts`
+   - DTOs: `*.dto.ts`
+   - Interfaces: `*.interface.ts`
+   - Types: `*.types.ts`
+   - Constants: `*.constants.ts`
+
+### File Size Limits
+
+- **Maximum 500 lines per file**
+- If file exceeds 500 lines, split into:
+  - Multiple smaller services
+  - Separate helper utilities
+  - Extract constants/types to separate files
+
+---
+
+## Build & Development
+
+### Commands
+
+```bash
+# Build
+npm run build
+
+# Type checking
+npm run typecheck
+
+# Linting
+npm run lint
+
+# Testing
+npm run test
+
+# Database migrations
+npm run migration:create
+npm run migration:up
+npm run migration:down
+```
+
+### Environment Variables
+
+**NEVER hardcode secrets or configuration!**
+
+```typescript
+// ✅ CORRECT
+import { ConfigService } from '@nestjs/config';
+
+constructor(private configService: ConfigService) {}
+
+const apiKey = this.configService.get<string>('CRYPTO_BOT_API_KEY');
+
+// ❌ WRONG
+const apiKey = 'hardcoded-key-123'; // ❌ NEVER DO THIS!
+```
+
+### Database Best Practices
+
+```typescript
+// ✅ Use decimal(20,8) for monetary values
+@Property({ type: 'decimal(20,8)' })
+balance: string;
+
+// ✅ Use indexes for frequently queried fields
+@Index()
+@Property()
+userId: string;
+
+// ✅ Use transactions for multi-step operations
+await this.em.transactional(async (em) => {
+  const user = await em.findOne(UserEntity, { id: userId });
+  user.balance = newBalance;
+  await em.flush();
+});
+```
+
+---
+
+## Best Practices Summary
+
+### DO ✅
+
+- Use TypeScript strict mode
+- Use Decimal.js for all financial calculations
+- Use type guards instead of assertions
+- Use Maps/objects instead of switch/if-else chains
+- Use Result type for fallible operations
+- Use proper module separation (main vs shared)
+- Use environment variables for configuration
+- Write tests before implementation (TDD)
+- Keep files under 500 lines
+- Use meaningful variable/function names
+- Document complex logic with comments
+- Use async/await instead of promises
+- Validate all user inputs
+- Handle all error cases
+- Use transactions for multi-step database operations
+
+### DON'T ❌
+
+- Don't use `any` type
+- Don't use `as` assertions (except `as const`)
+- Don't use native arithmetic for money (`+`, `-`, `*`, `/`)
+- Don't use switch/case or if-else-if chains
+- Don't import `main` modules in libs
+- Don't hardcode secrets or configuration
+- Don't save files to root folder
+- Don't create files over 500 lines
+- Don't use `parseFloat` for financial data
+- Don't convert Decimal to number mid-calculation
+- Don't skip error handling
+- Don't ignore TypeScript errors
+- Don't commit commented-out code
+- Don't use magic numbers (use constants)
+
+---
+
+## Additional Resources
+
+- **Complete Guidelines**: `/docs/DEVELOPMENT-GUIDELINES.md`
+- **API Documentation**: Generated via Swagger/OpenAPI
+- **Database Schema**: See MikroORM entities in `/libs/database`
+- **Testing Guide**: `/docs/TESTING.md` (if exists)
+
+---
+
+## Questions or Issues?
+
+1. Check `/docs/DEVELOPMENT-GUIDELINES.md` for detailed standards
+2. Review existing code for patterns and examples
+3. Ask team members for clarification
+4. Create an issue in the repository for discussion
+
+---
+
+**Remember**: Code quality and type safety are non-negotiable. These standards exist to prevent bugs, ensure maintainability, and protect financial data integrity.

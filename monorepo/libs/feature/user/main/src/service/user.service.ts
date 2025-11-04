@@ -7,7 +7,7 @@ import {
   TransactionStatus,
   TransactionType,
 } from '@app/database';
-import { AsyncResult, unknownToError } from '@app/common-shared';
+import { AsyncResult, unknownToError, sum, toNumber, multiply } from '@app/common-shared';
 import { Ok, Err } from 'ts-results';
 import { InternalException } from '@app/common-exception';
 import {
@@ -260,8 +260,6 @@ export class UserService {
       }
 
       // Calculate 10% of their total completed income transactions
-      let totalEarnings = 0;
-
       const userTransactionPromises = referredUserIds.map(async (referredUser) => {
         const transactions = await this.userBalanceHistoryRepository.find({
           user: referredUser.id,
@@ -269,17 +267,17 @@ export class UserService {
           type: { $in: [TransactionType.Deposit, TransactionType.TradeBuy, TransactionType.ReferralBonus] },
         });
 
-        return transactions.reduce((sum, tx) => {
-          return sum + parseFloat(tx.amount || '0');
-        }, 0) as number;
+        // Sum all transaction amounts for this user
+        const userTotal = sum(transactions.map((tx) => tx.amount || '0'));
+
+        // Apply 10% commission
+        return toNumber(multiply(userTotal, '0.1'));
       });
 
       const userEarningsArray = await Promise.all(userTransactionPromises);
-      totalEarnings = userEarningsArray.reduce((sum, userEarnings) => {
-        return sum + userEarnings * 0.1; // 10% commission
-      }, 0) as number;
+      const totalEarnings = sum(userEarningsArray.map((earnings) => earnings.toString()));
 
-      return Math.round(totalEarnings * 100) / 100; // Round to 2 decimal places
+      return toNumber(totalEarnings);
     } catch {
       return 0;
     }

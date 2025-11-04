@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager, ref } from '@mikro-orm/core';
 import { CurrencyRatesHistoryEntity, RateProvider } from '../entity/CurrencyRatesHistory.entity';
 import { CurrencyEntity, CurrencyCode } from '../entity/Currency.entity';
+import { weightedAverage, toDbString } from '@app/common-shared/util';
 
 /**
  * Repository for currency rates history operations
@@ -81,23 +82,16 @@ export class CurrencyRatesHistoryRepository {
       return null;
     }
 
-    // Calculate weighted average using reliability scores
-    let totalWeightedRate = 0;
-    let totalWeight = 0;
+    // Calculate weighted average using reliability scores with exact decimal arithmetic
+    const weightedValues = rates.map(rate => [rate.rateToUsd, rate.reliabilityScore] as [string, number]);
 
-    for (const rate of rates) {
-      const weight = rate.reliabilityScore;
-      totalWeightedRate += parseFloat(rate.rateToUsd) * weight;
-      totalWeight += weight;
-    }
-
-    if (totalWeight === 0) {
+    if (weightedValues.length === 0) {
       return null;
     }
 
-    const averageRate = totalWeightedRate / totalWeight;
+    const averageRate = weightedAverage(weightedValues);
 
-    return averageRate.toFixed(8);
+    return toDbString(averageRate, 8);
   }
 
   /**

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { CurrencyEntity, CurrencyCode, CurrencyType } from '../entity/Currency.entity';
+import { decimal, convertCurrency, toNumber } from '@app/common-shared/util';
 
 /**
  * Repository for currency operations
@@ -99,7 +100,7 @@ export class CurrencyRepository {
 
     return {
       currency,
-      rateToUsd: parseFloat(currency.rateToUsd),
+      rateToUsd: toNumber(decimal(currency.rateToUsd)),
     };
   }
 
@@ -113,10 +114,9 @@ export class CurrencyRepository {
       return null;
     }
 
-    // Convert from -> USD -> to
-    const amountInUsd = amount * parseFloat(fromCurrency.rateToUsd);
-    const amountInTarget = amountInUsd / parseFloat(toCurrency.rateToUsd);
+    // Convert from -> USD -> to using exact decimal arithmetic
+    const converted = convertCurrency(amount, fromCurrency.rateToUsd, toCurrency.rateToUsd);
 
-    return amountInTarget;
+    return toNumber(converted);
   }
 }
