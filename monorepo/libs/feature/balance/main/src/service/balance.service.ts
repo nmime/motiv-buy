@@ -293,26 +293,22 @@ export class BalanceService implements IBalanceService {
    * Map Cryptocurrency enum from payment-shared to CurrencyCode from database
    */
   private mapCryptocurrencyToCode(crypto: Cryptocurrency): CurrencyCode {
-    switch (crypto) {
-      case Cryptocurrency.Usdt:
-        return CurrencyCode.Usdt;
-      case Cryptocurrency.Ton:
-        return CurrencyCode.Ton;
-      case Cryptocurrency.Btc:
-        return CurrencyCode.Btc;
-      case Cryptocurrency.Eth:
-        return CurrencyCode.Eth;
-      case Cryptocurrency.Bnb:
-        return CurrencyCode.Bnb;
-      case Cryptocurrency.Trx:
-        return CurrencyCode.Trx;
-      case Cryptocurrency.Usdc:
-        return CurrencyCode.Usdc;
-      case Cryptocurrency.Jet:
-        // JET is testnet only and not in CurrencyCode enum
-        throw new Error(`JET cryptocurrency is testnet only and not supported for balance operations`);
-      default:
-        throw new Error(`Unsupported cryptocurrency: ${crypto}`);
+    const mapping: Partial<Record<Cryptocurrency, CurrencyCode>> = {
+      [Cryptocurrency.Usdt]: CurrencyCode.Usdt,
+      [Cryptocurrency.Ton]: CurrencyCode.Ton,
+      [Cryptocurrency.Btc]: CurrencyCode.Btc,
+      [Cryptocurrency.Eth]: CurrencyCode.Eth,
+      [Cryptocurrency.Bnb]: CurrencyCode.Bnb,
+      [Cryptocurrency.Trx]: CurrencyCode.Trx,
+      [Cryptocurrency.Usdc]: CurrencyCode.Usdc,
+    };
+
+    const currencyCode = mapping[crypto];
+
+    if (!currencyCode) {
+      throw new Error(`Unsupported cryptocurrency: ${crypto}`);
     }
+
+    return currencyCode;
   }
 }
