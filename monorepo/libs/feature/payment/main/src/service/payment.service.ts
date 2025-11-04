@@ -2,18 +2,21 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
-import { PaymentTransactionEntity } from '../entity/payment-transaction.entity';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';
-import { UserBalanceRepository, CurrencyCode } from '@app/database';
+import {
+  UserBalanceRepository,
+  CurrencyCode,
+  PaymentTransactionEntity,
+  PaymentType,
+  PaymentProvider,
+  PaymentStatus,
+} from '@app/database';
 import {
   CreateInvoiceDto,
   CreateTransferDto,
   WebhookUpdateDto,
   InvoiceResponseDto,
   TransferResponseDto,
-  PaymentStatus,
-  PaymentType,
-  PaymentProvider,
   Cryptocurrency,
 } from '@app/feature-payment-shared';
 

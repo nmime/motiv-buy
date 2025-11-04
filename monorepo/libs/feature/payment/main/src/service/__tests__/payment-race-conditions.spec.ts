@@ -2,10 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager, LockMode } from '@mikro-orm/core';
 import { PaymentService } from '../payment.service';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
-import { UserBalanceRepository, CurrencyType } from '@app/database';
-import { PaymentTransactionEntity } from '../../entity/payment-transaction.entity';
+import { UserBalanceRepository, CurrencyType, PaymentTransactionEntity, PaymentStatus, PaymentType } from '@app/database';
 import { Ok, Err } from '@app/common-shared';
-import { PaymentStatus, PaymentType, CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
+import { CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
 
 /**
  * Race Condition Test Suite for Payment Service

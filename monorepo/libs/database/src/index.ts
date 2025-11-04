@@ -6,6 +6,8 @@ export * from './const';
 
 export * from './entity';
 
+export * from './enum';
+
 export * from './repository';
 
 export * from './service';
