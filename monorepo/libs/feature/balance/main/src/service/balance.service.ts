@@ -8,7 +8,7 @@ import {
   TransactionStatus,
 } from '@app/database';
 import { PaymentService } from '@app/feature-payment-main';
-import { CreateInvoiceDto, CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
+import { CreateInvoiceDto, CreateTransferDto } from '@app/feature-payment-shared';
 import { CurrencyRateService } from './currency-rate.service';
 import { Result, Ok, Err } from '@app/common-shared';
 import { BalanceDto, TransactionDto, TransactionFilterDto, TransactionType } from '../dto';
@@ -138,11 +138,10 @@ export class BalanceService implements IBalanceService {
     try {
       this.logger.log(`Creating top-up request for user ${userId}: ${request.amount} ${request.currency}`);
 
-      // Convert crypto amount to RUB - map cryptocurrency to currency code
-      const currencyCode = this.mapCryptocurrencyToCode(request.currency);
+      // Convert crypto amount to RUB
       const rubAmountResult = await this.currencyRateService.convertAmount(
         request.amount,
-        currencyCode,
+        request.currency,
         CurrencyCode.Rub,
       );
 
@@ -154,10 +153,10 @@ export class BalanceService implements IBalanceService {
 
       const rubAmount = rubAmountResult.val;
 
-      // Create invoice via payment service
+      // Create invoice via payment service (map CurrencyCode to Cryptocurrency)
       const invoiceDto: CreateInvoiceDto = {
         amount: request.amount,
-        currency: request.currency,
+        currency: request.currency as string as any,
         description: request.description || `Balance top-up ${request.amount} ${request.currency}`,
         expiresIn: 3600, // 1 hour
       };
@@ -214,12 +213,11 @@ export class BalanceService implements IBalanceService {
         );
       }
 
-      // Convert RUB to cryptocurrency - map cryptocurrency to currency code
-      const currencyCode = this.mapCryptocurrencyToCode(request.currency);
+      // Convert RUB to cryptocurrency
       const cryptoAmountResult = await this.currencyRateService.convertAmount(
         request.amount.toString(),
         CurrencyCode.Rub,
-        currencyCode,
+        request.currency,
       );
 
       if (cryptoAmountResult.err) {
@@ -230,11 +228,11 @@ export class BalanceService implements IBalanceService {
 
       const cryptoAmount = cryptoAmountResult.val;
 
-      // Create transfer via payment service
+      // Create transfer via payment service (map CurrencyCode to Cryptocurrency)
       const transferDto: CreateTransferDto = {
         userId: request.telegramUserId.toString(),
         amount: cryptoAmount,
-        currency: request.currency,
+        currency: request.currency as string as any,
         comment: request.comment || `Withdrawal from balance: ${request.amount} RUB`,
       };
 
@@ -261,6 +259,9 @@ export class BalanceService implements IBalanceService {
     }
   }
 
+  /**
+   * Map database transaction type to DTO transaction type
+   */
   private mapFromDbTransactionType(dbType: DbTransactionType): TransactionType {
     switch (dbType) {
       case DbTransactionType.Deposit:
@@ -274,6 +275,9 @@ export class BalanceService implements IBalanceService {
     }
   }
 
+  /**
+   * Map DTO transaction type to database transaction type
+   */
   private mapToDbTransactionType(type: TransactionType): DbTransactionType {
     switch (type) {
       case TransactionType.Deposit:
@@ -287,28 +291,5 @@ export class BalanceService implements IBalanceService {
       default:
         return DbTransactionType.Deposit;
     }
-  }
-
-  /**
-   * Map Cryptocurrency enum from payment-shared to CurrencyCode from database
-   */
-  private mapCryptocurrencyToCode(crypto: Cryptocurrency): CurrencyCode {
-    const mapping: Partial<Record<Cryptocurrency, CurrencyCode>> = {
-      [Cryptocurrency.Usdt]: CurrencyCode.Usdt,
-      [Cryptocurrency.Ton]: CurrencyCode.Ton,
-      [Cryptocurrency.Btc]: CurrencyCode.Btc,
-      [Cryptocurrency.Eth]: CurrencyCode.Eth,
-      [Cryptocurrency.Bnb]: CurrencyCode.Bnb,
-      [Cryptocurrency.Trx]: CurrencyCode.Trx,
-      [Cryptocurrency.Usdc]: CurrencyCode.Usdc,
-    };
-
-    const currencyCode = mapping[crypto];
-
-    if (!currencyCode) {
-      throw new Error(`Unsupported cryptocurrency: ${crypto}`);
-    }
-
-    return currencyCode;
   }
 }

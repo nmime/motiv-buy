@@ -11,7 +11,6 @@ import { Ok } from 'ts-results';
 import { AsyncResult } from '@app/common-shared';
 import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
 import { CurrencyCode } from '@app/database';
-import { Cryptocurrency } from '@app/feature-payment-shared';
 
 @ApiTags('balance')
 @Controller('balance')
@@ -100,13 +99,10 @@ export class BalanceController {
     { paymentUrl: string; invoiceId: string; rubAmount: string },
     UnauthorizedException | ClientDataProblemValidationException | InternalException
   > {
-    // Map Cryptocurrency enum to CurrencyCode enum
-    const currencyCode = this.mapCryptocurrencyToCode(request.currency);
-
     // Convert crypto amount to RUB
     const rubAmountResult = await this.currencyRateService.convertAmount(
       request.amount,
-      currencyCode,
+      request.currency,
       CurrencyCode.Rub,
     );
 
@@ -116,10 +112,10 @@ export class BalanceController {
 
     const rubAmount = rubAmountResult.val;
 
-    // Create invoice via payment service
+    // Create invoice via payment service (map CurrencyCode to Cryptocurrency)
     const invoiceDto: CreateInvoiceDto = {
       amount: request.amount,
-      currency: request.currency,
+      currency: request.currency as string as any,
       description: request.description || `Balance top-up ${request.amount} ${request.currency}`,
       expiresIn: 3600, // 1 hour
     };
@@ -178,14 +174,11 @@ export class BalanceController {
       });
     }
 
-    // Map Cryptocurrency enum to CurrencyCode enum
-    const currencyCode = this.mapCryptocurrencyToCode(request.currency);
-
     // Convert RUB to cryptocurrency
     const cryptoAmountResult = await this.currencyRateService.convertAmount(
       request.amount.toString(),
       CurrencyCode.Rub,
-      currencyCode,
+      request.currency,
     );
 
     if (cryptoAmountResult.err) {
@@ -194,11 +187,11 @@ export class BalanceController {
 
     const cryptoAmount = cryptoAmountResult.val;
 
-    // Create transfer via payment service
+    // Create transfer via payment service (map CurrencyCode to Cryptocurrency)
     const transferDto: CreateTransferDto = {
       userId: request.telegramUserId.toString(),
       amount: cryptoAmount,
-      currency: request.currency,
+      currency: request.currency as string as any,
       comment: request.comment || `Withdrawal from balance: ${request.amount} RUB`,
     };
 
@@ -214,28 +207,5 @@ export class BalanceController {
       transferId: transfer.id,
       cryptoAmount,
     });
-  }
-
-  /**
-   * Map Cryptocurrency enum from payment-shared to CurrencyCode from database
-   */
-  private mapCryptocurrencyToCode(crypto: Cryptocurrency): CurrencyCode {
-    const mapping: Partial<Record<Cryptocurrency, CurrencyCode>> = {
-      [Cryptocurrency.Usdt]: CurrencyCode.Usdt,
-      [Cryptocurrency.Ton]: CurrencyCode.Ton,
-      [Cryptocurrency.Btc]: CurrencyCode.Btc,
-      [Cryptocurrency.Eth]: CurrencyCode.Eth,
-      [Cryptocurrency.Bnb]: CurrencyCode.Bnb,
-      [Cryptocurrency.Trx]: CurrencyCode.Trx,
-      [Cryptocurrency.Usdc]: CurrencyCode.Usdc,
-    };
-
-    const currencyCode = mapping[crypto];
-
-    if (!currencyCode) {
-      throw new Error(`Unsupported cryptocurrency: ${crypto}`);
-    }
-
-    return currencyCode;
   }
 }
