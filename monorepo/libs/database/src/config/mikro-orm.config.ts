@@ -18,6 +18,8 @@ import {
   UserRefLinkEntity,
   UserSettingsEntity,
   UserSourceVisitEntity,
+  CurrencyEntity,
+  CurrencyRatesHistoryEntity,
 } from '../entity';
 import {
   TrafficActionsUsersEntity,
@@ -39,6 +41,8 @@ export function createMikroOrmConfig(config: DatabaseConfig): Options {
       UserLastAuthEntity,
       UserRefLinkEntity,
       UserSourceVisitEntity,
+      CurrencyEntity,
+      CurrencyRatesHistoryEntity,
       TrafficSourceEntity,
       TrafficTargetEntity,
       TrafficUserEntity,

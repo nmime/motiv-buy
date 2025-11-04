@@ -10,8 +10,9 @@ import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { UserBalanceEntity, UserBalanceHistoryEntity, UserEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, toDisplayString } from '@app/common-shared';
+import { decimal, lessThan, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
+import { InlineKeyboard } from 'grammy';
 
 @Injectable()
 export class BalanceActionHandler {
@@ -27,6 +28,7 @@ export class BalanceActionHandler {
    * Handle balance view action
    */
   async handleBalanceView(ctx: BotContext): Promise<void> {
+    const em = this.em.fork();
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
@@ -34,7 +36,7 @@ export class BalanceActionHandler {
         return;
       }
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
+      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('auth.user_not_found'));
@@ -43,7 +45,7 @@ export class BalanceActionHandler {
       }
 
       const balances = await this.getUserBalances(user.id);
-      const balanceText = await this.formatBalanceView(balances);
+      const balanceText = await this.formatBalanceView(ctx, balances);
       const keyboard = this.menuHandler.createBalanceMenuKeyboard();
 
       await this.messageService.sendOrEditMessage(ctx, {
@@ -62,6 +64,7 @@ export class BalanceActionHandler {
    * Handle transaction history view
    */
   async handleTransactionHistory(ctx: BotContext, page = 1): Promise<void> {
+    const em = this.em.fork();
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
@@ -69,7 +72,7 @@ export class BalanceActionHandler {
         return;
       }
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
+      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('auth.user_not_found'));
@@ -98,8 +101,17 @@ export class BalanceActionHandler {
       }
 
       const totalPages = Math.ceil(total / limit);
-      const historyText = this.formatTransactionHistory(transactions, page, totalPages);
-      const keyboard = this.menuHandler.createTransactionHistoryKeyboard(page, totalPages);
+      const historyText = await this.formatTransactionHistory(ctx, transactions, page, totalPages);
+      
+      const keyboard = new InlineKeyboard();
+      if (page > 1) {
+        keyboard.text(ctx.t('common.previous'), `balance:history:${page - 1}`);
+      }
+      if (page < totalPages) {
+        keyboard.text(ctx.t('common.next'), `balance:history:${page + 1}`);
+      }
+      keyboard.row();
+      keyboard.text(ctx.t('common.back'), 'menu:balance');
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: historyText,
@@ -117,6 +129,7 @@ export class BalanceActionHandler {
    * Handle withdrawal initiation
    */
   async handleWithdrawalStart(ctx: BotContext): Promise<void> {
+    const em = this.em.fork();
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
@@ -124,7 +137,7 @@ export class BalanceActionHandler {
         return;
       }
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
+      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('auth.user_not_found'));
@@ -140,9 +153,9 @@ export class BalanceActionHandler {
       }
 
       const balances = await this.getUserBalances(user.id);
-      const availableBalance = balances.available || 0;
+      const availableBalance = balances.length > 0 ? balances[0].getAvailableBalance() : decimal(0);
 
-      if (availableBalance < 10) {
+      if (lessThan(availableBalance, decimal(10))) {
         await ctx.reply(ctx.t('balance.insufficient_funds'));
 
         return;
@@ -154,7 +167,7 @@ export class BalanceActionHandler {
         ctx.session.formData = { step: 'select_currency' };
       }
 
-      const currencyKeyboard = await this.createCurrencySelectionKeyboard(balances);
+      const currencyKeyboard = await this.createCurrencySelectionKeyboard(ctx, balances);
 
       await ctx.reply(ctx.t('balance.withdrawal_prompt'), {
         parse_mode: 'HTML',
@@ -221,7 +234,7 @@ export class BalanceActionHandler {
   /**
    * Format balance view
    */
-  private async formatBalanceView(balances: UserBalanceEntity[]): Promise<string> {
+  private async formatBalanceView(ctx: BotContext, balances: UserBalanceEntity[]): Promise<string> {
     if (balances.length === 0) {
       return ctx.t('balance.no_balances_found');
     }
@@ -254,6 +267,7 @@ export class BalanceActionHandler {
    * Format transaction history
    */
   private async formatTransactionHistory(
+    ctx: BotContext,
     transactions: UserBalanceHistoryEntity[],
     page: number,
     totalPages: number,
@@ -282,8 +296,7 @@ export class BalanceActionHandler {
   /**
    * Create currency selection keyboard
    */
-  private async createCurrencySelectionKeyboard(balances: UserBalanceEntity[]) {
-    const { InlineKeyboard } = require('grammy');
+  private async createCurrencySelectionKeyboard(ctx: BotContext, balances: UserBalanceEntity[]) {
     const keyboard = new InlineKeyboard();
 
     for (const balance of balances) {
@@ -299,7 +312,7 @@ export class BalanceActionHandler {
       }
     }
 
-    keyboard.text(ctx.t('menu.cancel'), 'menu:balance');
+    keyboard.text(ctx.t('common.cancel'), 'menu:balance');
 
     return keyboard;
   }

@@ -20,6 +20,8 @@ import {
   UserRefLinkEntity,
   UserSettingsEntity,
   UserSourceVisitEntity,
+  CurrencyEntity,
+  CurrencyRatesHistoryEntity,
 } from './entity';
 import { TrafficSourceCategoryEntity } from './entity/TrafficSourceCategory.entity';
 import { TrafficSourceCategoriesEntity } from './entity/junction/TrafficSourceCategories.entity';
@@ -40,6 +42,8 @@ const entityClasses = [
   UserRefLinkEntity,
   UserSettingsEntity,
   UserSourceVisitEntity,
+  CurrencyEntity,
+  CurrencyRatesHistoryEntity,
   TrafficSourceEntity,
   TrafficSourceCategoryEntity,
   TrafficTargetEntity,

@@ -47,7 +47,25 @@
       "campaign": "/campaign - Campaign",
       "withdraw": "/withdraw - Withdraw",
       "referral": "/referral - Referrals",
-      "admin": "/admin - Admin panel"
+      "admin": "/admin - Admin panel",
+      "welcome_back": "Welcome back, {{name}}! 👋",
+      "welcome_back_message": "Great to see you again! Your account is ready to use.",
+      "account_status": "✅ Account: Active",
+      "platform_status": "📱 Platform: Telegram Bot",
+      "user_id": "🆔 ID:",
+      "use_menu": "Use the menu below to access your dashboard:",
+      "welcome_new": "Welcome to MotivBuy! 🚀",
+      "welcome_new_intro": "Hello {{name}}, I'm your personal traffic campaign assistant!",
+      "help_features": "🎯 What I can help you with:",
+      "feature_track": "• Track your traffic campaign performance",
+      "feature_monitor": "• Monitor earnings and balance in real-time",
+      "feature_manage": "• Manage multiple traffic sources",
+      "feature_analytics": "• Generate detailed analytics reports",
+      "feature_withdraw": "• Handle withdrawals and payments",
+      "feature_optimize": "• Optimize your campaigns for better results",
+      "help_text": "Available commands:\n/start - Start bot\n/menu - Open menu\n/help - Show help\n/profile - View profile\n/balance - Check balance\n/settings - Settings\n/stats - Statistics",
+      "help_title": "❓ Help & Support",
+      "help_intro": "Select a topic to learn more:"
     },
     "order": {
       "main": "📋 Orders",
@@ -88,57 +106,58 @@
       "channel_not_found": "❌ Channel not found. Check that the channel exists and the link is correct",
       "no_access": "❌ No access to channel. Make sure the channel is public or the link is valid",
       "bot_not_admin": "❌ Bot not found in channel administrators. Please add it and try again",
-      "moderation_rejected": "❌ Order rejected by moderation. Reason: {{reason}}"
+      "moderation_rejected": "❌ Order rejected by moderation. Reason: {{reason}}",
+      "no_active_orders": "You have no active orders. Create one to get started!"
     },
     "configuration": {
       "title": "Order Settings",
-      "basic_settings": "━━━━━━━━━ BASIC SETTINGS ━━━━━━━━━",
+      "basic_settings": "Basic Settings",
       "name": "📝 Name:",
       "link": "🔗 Link:",
-      "subscriber_params": "━━━━━━━ SUBSCRIBER PARAMETERS ━━━━━━━━",
+      "subscriber_params": "Subscriber Parameters",
       "users_per_day": "📊 Users per day:",
       "total_users": "📈 Total users:",
       "distribute_daily": "🕐 Distribute throughout the day:",
       "account_unsubscribes": "📉 Account for unsubscribes:",
-      "targeting": "━━━━━━━━ AUDIENCE TARGETING ━━━━━━━━━",
+      "targeting": "Audience Targeting",
       "gender": "👥 Gender:",
       "region": "🌍 Region:",
       "activity": "⚡ Activity:",
       "active_only": "Active only",
       "any_activity": "Any",
       "any_region": "Any",
-      "finances": "━━━━━━━━━━━ FINANCES ━━━━━━━━━━━━━━━━━",
+      "finances": "Finances",
       "price_per_subscriber": "💸 Price per subscriber:",
       "excluded_topics": "🚫 Excluded topics:",
       "no_excluded": "None",
-      "launch_schedule": "━━━━━━━━━ LAUNCH AND SCHEDULE ━━━━━━━━",
+      "launch_schedule": "Launch and Schedule",
       "launch": "🕐 Launch:",
       "launch_now": "Now",
       "schedule": "📋 Schedule:",
       "schedule_on": "Configured",
       "schedule_off": "Off",
-      "display_locations": "━━━━━━━━━━ DISPLAY LOCATIONS ━━━━━━━━━━━━",
+      "display_locations": "Display Locations",
       "displays": "📍 Displays:",
       "estimated_cost": "💰 Estimated cost:"
     },
     "view_order": {
-      "users_section": "━━━━━━━━━ USERS ━━━━━━━━━━━━━━",
+      "users_section": "Users",
       "total": "👥 Total:",
       "today": "📊 Today:",
       "conversion_rate": "📈 CR (% remaining):",
       "cr_explanation": "💡 CR (Conversion Rate) - percentage\nof subscribers who stayed in the channel",
       "cr_note1": "• Lower CR means lower display\n  priority (norm - 50% and above)",
       "cr_note2": "• If CR is low, we recommend\n  increasing price per subscriber",
-      "finances_section": "━━━━━━━━━━━ FINANCES ━━━━━━━━━━━━━━━━━",
+      "finances_section": "Finances",
       "avg_price": "💰 Avg price per subscriber:",
       "spent": "💸 Spent:",
       "plan": "🎯 Plan:",
       "plan_subscribers": "subscribers",
       "estimated_total": "📊 Estimated total:",
       "auto_fixation": "ℹ️ Subscriber fixation happens\nautomatically on Mondays",
-      "channel_info": "CHANNEL INFORMATION",
+      "channel_info": "Channel Information",
       "telegram": "Telegram",
-      "balance_section": "━━━━━━━━━━━━ BALANCE ━━━━━━━━━━━━━━━━━",
+      "balance_section": "Balance",
       "account_balance": "⬇️ Account Balance ⬇️"
     },
     "stats": {
@@ -209,6 +228,91 @@
       "top_up_balance": "💳 Top Up Balance",
       "previous": "◀️ Prev",
       "next": "Next ▶️"
+    },
+    "menu": {
+      "main": "📋 Main Menu",
+      "choose_option": "Choose an option 👇",
+      "statistics": "📈 Statistics",
+      "balance": "💰 Balance",
+      "profile": "👤 Profile",
+      "settings": "⚙️ Settings",
+      "help": "❓ Help",
+      "campaign": "📋 Campaign",
+      "traffic": "🎯 Traffic",
+      "withdrawal": "💸 Withdraw",
+      "referral": "🤝 Referrals"
+    },
+    "features": {
+      "track": "• Track your traffic campaign performance",
+      "monitor": "• Monitor earnings and balance in real-time",
+      "manage": "• Manage multiple traffic sources",
+      "analytics": "• Generate detailed analytics reports",
+      "withdraw": "• Handle withdrawals and payments",
+      "optimize": "• Optimize your campaigns for better results"
+    },
+    "settings": {
+      "basic_settings": "━━━━━━━━━ BASIC SETTINGS ━━━━━━━━━",
+      "name": "📝 Name:",
+      "link": "🔗 Link:",
+      "subscriber_params": "━━━━━━━ SUBSCRIBER PARAMETERS ━━━━━━━━",
+      "users_per_day": "📊 Users per day:",
+      "total_users": "📈 Total users:",
+      "distribute_daily": "🕐 Distribute throughout the day:",
+      "account_unsubscribes": "📉 Account for unsubscribes:",
+      "targeting": "━━━━━━━━ AUDIENCE TARGETING ━━━━━━━━━",
+      "gender": "👥 Gender:",
+      "region": "🌍 Region:",
+      "activity": "⚡ Activity:",
+      "active_only": "Active only",
+      "any_activity": "Any",
+      "any_region": "Any",
+      "finances": "━━━━━━━━━━━ FINANCES ━━━━━━━━━━━━━━━━━",
+      "price_per_subscriber": "💸 Price per subscriber:",
+      "excluded_topics": "🚫 Excluded topics:",
+      "no_excluded": "None",
+      "launch_schedule": "━━━━━━━━━ LAUNCH AND SCHEDULE ━━━━━━━━",
+      "launch": "🕐 Launch:",
+      "launch_now": "Now",
+      "schedule": "📋 Schedule:",
+      "schedule_on": "Configured",
+      "schedule_off": "Off",
+      "display_locations": "━━━━━━━━━━ DISPLAY LOCATIONS ━━━━━━━━━━━━",
+      "displays": "📍 Displays:",
+      "estimated_cost": "💰 Estimated cost:"
+    },
+    "menu": {
+      "balance": {
+        "history_coming_soon": "📈 Transaction history coming soon!",
+        "analytics_coming_soon": "📊 Balance analytics coming soon!"
+      },
+      "profile": {
+        "edit_coming_soon": "📝 Profile editing coming soon!",
+        "stats_coming_soon": "📊 Profile stats coming soon!",
+        "security_coming_soon": "🔒 Security settings coming soon!"
+      },
+      "settings": {
+        "notifications_coming_soon": "🔔 Notification settings coming soon!",
+        "language_coming_soon": "🌍 Language settings coming soon!",
+        "theme_coming_soon": "🎨 Theme settings coming soon!",
+        "export_coming_soon": "📥 Data export coming soon!",
+        "reset_coming_soon": "🔄 Reset options coming soon!"
+      },
+      "stats": {
+        "overview_coming_soon": "📈 Statistics overview coming soon!",
+        "daily_coming_soon": "📅 Daily statistics coming soon!",
+        "weekly_coming_soon": "📅 Weekly statistics coming soon!",
+        "monthly_coming_soon": "📅 Monthly statistics coming soon!"
+      },
+      "traffic": {
+        "live_coming_soon": "📉 Live traffic stats coming soon!",
+        "sources_coming_soon": "🎯 Traffic sources coming soon!",
+        "analytics_coming_soon": "🔍 Traffic analytics coming soon!",
+        "optimize_coming_soon": "⚙️ Traffic optimization coming soon!"
+      },
+      "help": {
+        "faq_coming_soon": "📚 FAQ section coming soon!",
+        "tutorials_coming_soon": "📚 Tutorials coming soon!"
+      }
     }
   }
 }

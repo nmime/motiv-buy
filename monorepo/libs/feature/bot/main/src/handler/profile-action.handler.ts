@@ -27,17 +27,18 @@ export class ProfileActionHandler {
    * Handle profile view action
    */
   async handleProfileView(ctx: BotContext): Promise<void> {
+    const em = this.em.fork();
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
+      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -63,7 +64,7 @@ export class ProfileActionHandler {
   async handleProfileEditStart(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -76,7 +77,7 @@ export class ProfileActionHandler {
 
       const editKeyboard = this.createProfileEditKeyboard();
 
-      await ctx.reply('What would you like to edit?', {
+      await ctx.reply(ctx.t('user.profile.edit_prompt'), {
         reply_markup: editKeyboard,
       });
     } catch (error) {
@@ -90,7 +91,7 @@ export class ProfileActionHandler {
   async handleProfileFieldUpdate(ctx: BotContext, field: string, value: string): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -107,7 +108,7 @@ export class ProfileActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -142,7 +143,7 @@ export class ProfileActionHandler {
   async handleProfileDetails(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -150,7 +151,7 @@ export class ProfileActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -170,7 +171,7 @@ export class ProfileActionHandler {
   async handleVerification(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -178,13 +179,13 @@ export class ProfileActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
 
       if (user.isVerified) {
-        await ctx.reply('✅ Your account is already verified!');
+        await ctx.reply(ctx.t('user.profile.already_verified'));
 
         return;
       }

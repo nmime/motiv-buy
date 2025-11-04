@@ -53,7 +53,7 @@ export class OrderCreationHandler {
       // Initialize order creation state
       this.orderService.initOrderCreation(ctx);
 
-      const message = getChannelLinkInputMessage();
+      const message = `${ctx.t('bot.order.creation')}\n${ctx.t('bot.order.step', { current: 1, total: 3 })}\n\n${ctx.t('bot.order.channel_link_instruction')}\n\n${ctx.t('bot.order.examples_title')}\n${ctx.t('bot.order.example1')}\n${ctx.t('bot.order.example2')}`;
       const keyboard = createChannelLinkHelpKeyboard();
 
       await ctx.editMessageText(message, {
@@ -134,7 +134,7 @@ export class OrderCreationHandler {
     // Move to next step (A3: Add bot as admin)
     this.orderService.moveToNextStep(ctx, OrderFlowStep.AddBotAdmin);
 
-    const message = getAddBotAdminMessage(channel, this.BOT_USERNAME);
+    const message = `${ctx.t('bot.order.channel_found')}\n\n${ctx.t('bot.order.channel_name')} ${channel.title}\n${ctx.t('bot.order.channel_subscribers')} ${channel.subscriberCount || 0}\n\n${ctx.t('bot.order.bot_admin_instruction')}\n@${this.BOT_USERNAME}\n\n${ctx.t('bot.order.requirement')}`;
     const keyboard = createAddBotAdminKeyboard(channel.username);
 
     await ctx.reply(message, {
@@ -227,7 +227,8 @@ export class OrderCreationHandler {
     // Move to moderation step
     this.orderService.moveToNextStep(ctx, OrderFlowStep.Moderation);
 
-    const message = getModerationMessage(state.channel, state.channel.botIsAdmin);
+    const botIsAdmin = state.channel?.botIsAdmin || false;
+    const message = `${ctx.t('bot.order.moderation_submitted')}\n\n${ctx.t('bot.order.channel')} ${state.channel?.title}\n${ctx.t('bot.order.link')} ${state.config.channelLink}\n${ctx.t('bot.order.status_label')} ${ctx.t('bot.order.status_pending')}\n\n${botIsAdmin ? ctx.t('bot.order.bot_added') : ctx.t('bot.order.bot_not_added')}\n\n${ctx.t('bot.order.time_estimate')}`;
     const keyboard = createModerationKeyboard(order.id);
 
     await ctx.editMessageText(message, {

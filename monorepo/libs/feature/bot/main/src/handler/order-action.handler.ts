@@ -29,7 +29,7 @@ export class OrderActionHandler {
   async handleActiveOrders(ctx: BotContext, page = 1): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -37,7 +37,7 @@ export class OrderActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -60,7 +60,7 @@ export class OrderActionHandler {
       );
 
       if (orders.length === 0) {
-        await ctx.reply('You have no active orders. Create one to get started!');
+        await ctx.reply(ctx.t('bot.order.no_active_orders'));
 
         return;
       }
@@ -94,7 +94,7 @@ export class OrderActionHandler {
   async handleCompletedOrders(ctx: BotContext, page = 1): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -102,7 +102,7 @@ export class OrderActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -155,7 +155,7 @@ export class OrderActionHandler {
   async handleCreateOrderStart(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -163,7 +163,7 @@ export class OrderActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -198,7 +198,7 @@ export class OrderActionHandler {
   async handleOrderDetails(ctx: BotContext, orderId: string): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -234,7 +234,7 @@ export class OrderActionHandler {
   async handleOrderSearch(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }

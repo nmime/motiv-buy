@@ -24,7 +24,9 @@
       "delete_account": "🗑 Удалить аккаунт",
       "confirm_delete": "⚠️ Вы уверены? Это действие нельзя отменить.",
       "profile_updated": "✅ Профиль успешно обновлен",
-      "profile_update_failed": "❌ Не удалось обновить профиль"
+      "profile_update_failed": "❌ Не удалось обновить профиль",
+      "edit_prompt": "Что вы хотите изменить?",
+      "already_verified": "✅ Ваш аккаунт уже верифицирован!"
     },
     "settings": {
       "title": "⚙️ Настройки",

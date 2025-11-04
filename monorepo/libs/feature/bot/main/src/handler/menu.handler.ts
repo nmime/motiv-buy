@@ -66,7 +66,7 @@ export class MenuHandler {
       });
 
       if (!ctx.from?.id) {
-        await ctx.reply('🔒 Authentication required to access menus.');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -118,7 +118,7 @@ export class MenuHandler {
       });
 
       if (!ctx.from?.id) {
-        await ctx.reply('🔒 Authentication required.');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -213,7 +213,7 @@ export class MenuHandler {
    */
   async goBack(ctx: BotContext): Promise<void> {
     if (!ctx.from?.id) {
-      await ctx.reply('🔒 Authentication required.');
+      await ctx.reply(ctx.t('auth.authentication_required'));
 
       return;
     }
@@ -672,9 +672,9 @@ Customize your bot experience.
       case 'current':
         return { success: true, nextMenu: MenuType.Balance, message: '💰 Balance refreshed' };
       case 'history':
-        return { success: false, message: '📈 Transaction history coming soon!' };
+        return { success: false, message: ctx.t('menu.balance.history_coming_soon') };
       case 'analytics':
-        return { success: false, message: '📊 Balance analytics coming soon!' };
+        return { success: false, message: ctx.t('menu.balance.analytics_coming_soon') };
       default:
         return { success: false, message: `Balance action "${subAction}" not available.` };
     }
@@ -687,11 +687,11 @@ Customize your bot experience.
   private async handleProfileAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'edit':
-        return { success: false, message: '📝 Profile editing coming soon!' };
+        return { success: false, message: ctx.t('menu.profile.edit_coming_soon') };
       case 'stats':
-        return { success: false, message: '📊 Profile stats coming soon!' };
+        return { success: false, message: ctx.t('menu.profile.stats_coming_soon') };
       case 'security':
-        return { success: false, message: '🔒 Security settings coming soon!' };
+        return { success: false, message: ctx.t('menu.profile.security_coming_soon') };
       default:
         return { success: false, message: `Profile action "${subAction}" not available.` };
     }
@@ -703,20 +703,20 @@ Customize your bot experience.
   private async handleSettingsAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     const userId = ctx.from?.id?.toString();
     if (!userId) {
-      return { success: false, message: 'Authentication required.' };
+      return { success: false, message: ctx.t('auth.authentication_required') };
     }
 
     switch (subAction) {
       case 'notifications':
-        return { success: false, message: '🔔 Notification settings coming soon!' };
+        return { success: false, message: ctx.t('menu.settings.notifications_coming_soon') };
       case 'language':
-        return { success: false, message: '🌍 Language settings coming soon!' };
+        return { success: false, message: ctx.t('menu.settings.language_coming_soon') };
       case 'theme':
-        return { success: false, message: '🎨 Theme settings coming soon!' };
+        return { success: false, message: ctx.t('menu.settings.theme_coming_soon') };
       case 'export':
-        return { success: false, message: '📥 Data export coming soon!' };
+        return { success: false, message: ctx.t('menu.settings.export_coming_soon') };
       case 'reset':
-        return { success: false, message: '🔄 Reset options coming soon!' };
+        return { success: false, message: ctx.t('menu.settings.reset_coming_soon') };
       default:
         return { success: false, message: `Settings action "${subAction}" not available.` };
     }
@@ -729,13 +729,13 @@ Customize your bot experience.
   private async handleStatsAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'overview':
-        return { success: false, message: '📈 Statistics overview coming soon!' };
+        return { success: false, message: ctx.t('menu.stats.overview_coming_soon') };
       case 'daily':
-        return { success: false, message: '📅 Daily statistics coming soon!' };
+        return { success: false, message: ctx.t('menu.stats.daily_coming_soon') };
       case 'weekly':
-        return { success: false, message: '📅 Weekly statistics coming soon!' };
+        return { success: false, message: ctx.t('menu.stats.weekly_coming_soon') };
       case 'monthly':
-        return { success: false, message: '📅 Monthly statistics coming soon!' };
+        return { success: false, message: ctx.t('menu.stats.monthly_coming_soon') };
       default:
         return { success: false, message: `Stats action "${subAction}" not available.` };
     }
@@ -748,13 +748,13 @@ Customize your bot experience.
   private async handleTrafficAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'live':
-        return { success: false, message: '📉 Live traffic stats coming soon!' };
+        return { success: false, message: ctx.t('menu.traffic.live_coming_soon') };
       case 'sources':
-        return { success: false, message: '🎯 Traffic sources coming soon!' };
+        return { success: false, message: ctx.t('menu.traffic.sources_coming_soon') };
       case 'analytics':
-        return { success: false, message: '🔍 Traffic analytics coming soon!' };
+        return { success: false, message: ctx.t('menu.traffic.analytics_coming_soon') };
       case 'optimize':
-        return { success: false, message: '⚙️ Traffic optimization coming soon!' };
+        return { success: false, message: ctx.t('menu.traffic.optimize_coming_soon') };
       default:
         return { success: false, message: `Traffic action "${subAction}" not available.` };
     }
@@ -767,14 +767,14 @@ Customize your bot experience.
   private async handleHelpAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'faq':
-        return { success: false, message: '📚 FAQ section coming soon!' };
+        return { success: false, message: ctx.t('menu.help.faq_coming_soon') };
       case 'contact':
         return {
           success: true,
           message: '📞 Contact support at @motivbuy_support or support@motivbuy.com',
         };
       case 'tutorials':
-        return { success: false, message: '📚 Tutorials coming soon!' };
+        return { success: false, message: ctx.t('menu.help.tutorials_coming_soon') };
       default:
         return { success: false, message: `Help action "${subAction}" not available.` };
     }

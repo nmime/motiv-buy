@@ -181,8 +181,8 @@ export class CsrfProtectionMiddleware {
         action,
       });
 
-      await ctx.answerCallbackQuery('Security validation failed');
-      await ctx.reply('❌ Security validation failed. Please try again.');
+      await ctx.answerCallbackQuery(ctx.t('common.errors.validation_error'));
+      await ctx.reply(ctx.t('common.errors.validation_error'));
 
       return;
     }

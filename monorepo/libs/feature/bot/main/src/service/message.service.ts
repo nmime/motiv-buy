@@ -8,6 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { InlineKeyboard } from 'grammy';
+import { I18nService } from 'nestjs-i18n';
 
 interface MessageOptions {
   text: string;
@@ -20,6 +21,8 @@ interface MessageOptions {
 export class MessageService {
   private readonly logger = new Logger(MessageService.name);
 
+  constructor(private readonly i18n: I18nService) {}
+
   /**
    * Send or edit a message based on context
    */
@@ -28,7 +31,7 @@ export class MessageService {
     const chatId = ctx.chat?.id;
 
     if (!chatId) {
-      throw new Error('Chat ID not found in context');
+      throw new Error(this.i18n.t('common.errors.chat_id_not_found'));
     }
 
     try {
@@ -82,7 +85,7 @@ export class MessageService {
     const chatId = ctx.chat?.id;
 
     if (!chatId) {
-      throw new Error('Chat ID not found in context');
+      throw new Error(this.i18n.t('common.errors.chat_id_not_found'));
     }
 
     this.logger.debug('Sending new message', { chatId });
@@ -102,7 +105,7 @@ export class MessageService {
     const chatId = ctx.chat?.id;
 
     if (!chatId) {
-      throw new Error('Chat ID not found in context');
+      throw new Error(this.i18n.t('common.errors.chat_id_not_found'));
     }
 
     if (!messageId) {

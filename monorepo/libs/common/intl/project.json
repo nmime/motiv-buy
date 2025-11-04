@@ -14,7 +14,13 @@
         "outputPath": "dist/libs/common/intl",
         "main": "libs/common/intl/src/index.ts",
         "tsConfig": "libs/common/intl/tsconfig.lib.json",
-        "assets": [],
+        "assets": [
+          {
+            "input": "libs/common/intl/locales",
+            "output": "locales",
+            "glob": "**/*"
+          }
+        ],
         "transformers": [
           {
             "name": "typescript-transform-paths/nx-transformer",

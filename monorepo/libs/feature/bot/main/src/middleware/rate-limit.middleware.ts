@@ -106,11 +106,12 @@ export class RateLimitMiddleware {
         });
 
         await ctx.reply(
-          `🚫 You have been temporarily blocked due to excessive requests.\n` +
-            `Please try again in ${Math.ceil((config.blockDurationMs || 0) / 1000 / 60)} minutes.`,
+          ctx.t('common.errors.user_blocked', { 
+            minutes: Math.ceil((config.blockDurationMs || 0) / 1000 / 60) 
+          }),
         );
       } else {
-        await ctx.reply(`⚠️ Rate limit exceeded. Please wait ${remainingSeconds} second(s) before trying again.`);
+        await ctx.reply(ctx.t('common.errors.rate_limit_wait', { seconds: remainingSeconds }));
       }
 
       this.logger.warn('Rate limit exceeded', {

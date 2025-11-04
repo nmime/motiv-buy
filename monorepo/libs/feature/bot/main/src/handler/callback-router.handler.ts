@@ -46,7 +46,7 @@ export class CallbackRouterHandler {
       const isAllowed = await this.rateLimitMiddleware.checkRateLimit(ctx, 'callback');
 
       if (!isAllowed) {
-        await ctx.answerCallbackQuery('Rate limit exceeded');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.rate_limit'));
 
         return;
       }
@@ -108,8 +108,8 @@ export class CallbackRouterHandler {
           break;
 
         default:
-          await ctx.answerCallbackQuery('Unknown action');
-          await ctx.reply('Unknown action. Please try again or use /menu.');
+          await ctx.answerCallbackQuery(ctx.t('common.errors.unknown_action'));
+          await ctx.reply(ctx.t('common.errors.unknown_action_help'));
       }
 
       // Answer callback query to remove loading state
@@ -121,7 +121,7 @@ export class CallbackRouterHandler {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('Error occurred');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
       await this.menuHandler.handleMenuError(ctx, error as Error);
     }
   }

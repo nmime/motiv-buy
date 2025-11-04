@@ -84,7 +84,7 @@ export class OrderConfigHandler {
         return;
       }
 
-      const message = getConfigurationMessage(order);
+      const message = `${ctx.t('bot.configuration.title')}\n\n${ctx.t('bot.configuration.basic_settings')}\n${ctx.t('bot.configuration.name')} ${order.config.name || ''}\n${ctx.t('bot.configuration.link')} ${order.config.channelLink || ''}`;
       const keyboard = createConfigurationKeyboard(orderId);
 
       await ctx.editMessageText(message, {

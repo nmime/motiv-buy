@@ -3,6 +3,7 @@ import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { add, AsyncResult, decimal, Err, lessThan, Ok, subtract, toDbString, toError } from '@app/common-shared';
 import { PaymentProviderRegistry } from '../provider/provider-registry.service';
+import { I18nService } from 'nestjs-i18n';
 import {
   CurrencyCode,
   PaymentProvider,
@@ -54,6 +55,7 @@ export class PaymentService {
     private readonly providerRegistry: PaymentProviderRegistry,
     private readonly userBalanceRepository: UserBalanceRepository,
     private readonly em: EntityManager,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -184,7 +186,7 @@ export class PaymentService {
         balanceBeforeTransaction = (balanceEntity as any).balance;
 
         if (!balanceBeforeTransaction) {
-          throw new Error('Balance data is invalid');
+          throw new Error(this.i18n.t('common.errors.balance_invalid'));
         }
 
         const availableAmount = decimal(balanceBeforeTransaction);
@@ -492,7 +494,7 @@ export class PaymentService {
       if (!transaction.providerTransactionId) {
         this.logger.warn(`No provider transaction ID for: ${transactionId}`);
 
-        return Err(new Error('Transaction has no provider transaction ID'));
+        return Err(new Error(this.i18n.t('common.errors.no_provider_transaction_id')));
       }
 
       // Get latest status based on transaction type

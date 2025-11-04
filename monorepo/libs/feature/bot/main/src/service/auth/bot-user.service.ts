@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AuthUserService, LinkType, TelegramAuthParams } from '@app/feature-auth-shared';
 import { PlatformType, UserEntity } from '@app/database';
 import { BotContext } from '@app/feature-bot-shared';
+import { I18nService } from 'nestjs-i18n';
 
 /**
  * Bot User Service
@@ -14,7 +15,10 @@ import { BotContext } from '@app/feature-bot-shared';
 export class BotUserService {
   private readonly logger = new Logger(BotUserService.name);
 
-  constructor(private readonly authUserService: AuthUserService) {}
+  constructor(
+    private readonly authUserService: AuthUserService,
+    private readonly i18n: I18nService,
+  ) {}
 
   /**
    * Find or create user from Telegram bot context
@@ -23,7 +27,7 @@ export class BotUserService {
     try {
       const telegramUser = ctx.from;
       if (!telegramUser) {
-        throw new Error('No user information available in context');
+        throw new Error(this.i18n.t('common.errors.no_user_info'));
       }
 
       // Create TelegramAuthParams from bot context

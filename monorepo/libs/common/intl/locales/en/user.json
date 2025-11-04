@@ -24,7 +24,9 @@
       "delete_account": "🗑 Delete Account",
       "confirm_delete": "⚠️ Are you sure? This action cannot be undone.",
       "profile_updated": "✅ Profile updated successfully",
-      "profile_update_failed": "❌ Failed to update profile"
+      "profile_update_failed": "❌ Failed to update profile",
+      "edit_prompt": "What would you like to edit?",
+      "already_verified": "✅ Your account is already verified!"
     },
     "settings": {
       "title": "⚙️ Settings",

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PaymentSharedModule } from '@app/feature-payment-shared';
 import { DatabaseModule, PaymentTransactionEntity } from '@app/database';
+import { AppCommonIntlModule } from '@app/common-intl';
 import { CryptoBotProvider } from './provider/crypto-bot.provider';
 import { HeleketProvider } from './provider/heleket.provider';
 import { YooKassaProvider } from './provider/yookassa.provider';
@@ -30,6 +31,7 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
     MikroOrmModule.forFeature([PaymentTransactionEntity]),
     PaymentSharedModule, // Includes PaymentConfigModule
     DatabaseModule, // For repository access
+    AppCommonIntlModule,
   ],
   controllers: [PaymentController, PaymentWebhookController],
   providers: [

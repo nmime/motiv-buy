@@ -46,7 +46,7 @@ export class SettingsActionHandler {
   async handleSettingsView(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -54,7 +54,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -81,7 +81,7 @@ export class SettingsActionHandler {
   async handleLanguageSettings(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -89,7 +89,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -111,7 +111,7 @@ export class SettingsActionHandler {
   async handleLanguageChange(ctx: BotContext, languageCode: string): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -125,7 +125,7 @@ export class SettingsActionHandler {
       });
 
       if (!validation.isValid || !this.SUPPORTED_LANGUAGES.includes(validation.sanitized as string)) {
-        await ctx.reply('❌ Invalid language code.');
+        await ctx.reply(ctx.t('common.errors.invalid_input'));
 
         return;
       }
@@ -133,7 +133,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -158,7 +158,7 @@ export class SettingsActionHandler {
   async handleNotificationSettings(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -166,7 +166,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -187,7 +187,7 @@ export class SettingsActionHandler {
   async handleNotificationToggle(ctx: BotContext, notificationType: string): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -195,14 +195,14 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
 
       await this.toggleNotification(user.id, notificationType);
 
-      await ctx.answerCallbackQuery('✅ Notification setting updated!');
+      await ctx.answerCallbackQuery(ctx.t('common.success.updated'));
 
       // Refresh notification settings view
       await this.handleNotificationSettings(ctx);
@@ -222,7 +222,7 @@ export class SettingsActionHandler {
   async handlePreferencesSettings(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -250,7 +250,7 @@ export class SettingsActionHandler {
   async handlePrivacySettings(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -258,7 +258,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }

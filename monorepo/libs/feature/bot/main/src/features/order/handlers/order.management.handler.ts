@@ -151,8 +151,8 @@ export class OrderManagementHandler {
         return;
       }
 
-      const message = getViewOrderMessage(order);
-      const keyboard = createViewOrderKeyboard(orderId);
+      const message = `${ctx.t('bot.order.order_number', { id: order.id })}\n\n${ctx.t('bot.view_order.users_section')}\n${ctx.t('bot.view_order.total')} ${order.stats.totalSubscribers || 0}\n${ctx.t('bot.view_order.today')} ${order.stats.subscribersToday || 0}`;
+      const keyboard = createViewOrderKeyboard(order);
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -188,7 +188,7 @@ export class OrderManagementHandler {
         return;
       }
 
-      const message = getOrderStatsMessage(order);
+      const message = `${ctx.t('bot.stats.title', { id: order.id })}\n\n${ctx.t('bot.stats.detailed')}\n${ctx.t('bot.stats.today', { count: order.stats.subscribersToday || 0 })}`;
       const keyboard = createStatsKeyboard(orderId);
 
       await ctx.editMessageText(message, {
@@ -343,7 +343,7 @@ export class OrderManagementHandler {
       }
 
       // Create duplicate
-      const duplicated = await this.orderService.duplicateOrder(orderId);
+      const duplicated = await this.orderService.duplicateOrder(orderId, ctx.from.id.toString());
 
       await this.handleOrderList(ctx);
       await ctx.answerCallbackQuery(ctx.t('common.success.created'));
