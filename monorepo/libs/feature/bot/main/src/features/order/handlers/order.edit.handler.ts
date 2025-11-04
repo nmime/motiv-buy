@@ -29,13 +29,13 @@ export class OrderEditHandler {
 
   private setupHandlers(): void {
     // Edit operations (placeholders - need text input handling)
-    this.composer.callbackQuery(/^order:edit:name:(.+)$/, ctx => this.handleEditName(ctx));
-    this.composer.callbackQuery(/^order:edit:link:(.+)$/, ctx => this.handleEditLink(ctx));
-    this.composer.callbackQuery(/^order:edit:daily:(.+)$/, ctx => this.handleEditDaily(ctx));
-    this.composer.callbackQuery(/^order:edit:total:(.+)$/, ctx => this.handleEditTotal(ctx));
-    this.composer.callbackQuery(/^order:edit:price:(.+)$/, ctx => this.handleEditPrice(ctx));
-    this.composer.callbackQuery(/^order:edit:start_time:(.+)$/, ctx => this.handleEditStartTime(ctx));
-    this.composer.callbackQuery(/^order:edit:schedule:(.+)$/, ctx => this.handleEditSchedule(ctx));
+    this.composer.callbackQuery(/^order:edit:name:(.+)$/, (ctx) => this.handleEditName(ctx));
+    this.composer.callbackQuery(/^order:edit:link:(.+)$/, (ctx) => this.handleEditLink(ctx));
+    this.composer.callbackQuery(/^order:edit:daily:(.+)$/, (ctx) => this.handleEditDaily(ctx));
+    this.composer.callbackQuery(/^order:edit:total:(.+)$/, (ctx) => this.handleEditTotal(ctx));
+    this.composer.callbackQuery(/^order:edit:price:(.+)$/, (ctx) => this.handleEditPrice(ctx));
+    this.composer.callbackQuery(/^order:edit:start_time:(.+)$/, (ctx) => this.handleEditStartTime(ctx));
+    this.composer.callbackQuery(/^order:edit:schedule:(.+)$/, (ctx) => this.handleEditSchedule(ctx));
   }
 
   /**
@@ -48,21 +48,23 @@ export class OrderEditHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      await ctx.answerCallbackQuery('📝 Функция в разработке: введите новое название');
+      await ctx.answerCallbackQuery(ctx.t('bot.configuration.name'));
     } catch (error) {
       this.logger.error('Error handling edit name', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -76,21 +78,23 @@ export class OrderEditHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      await ctx.answerCallbackQuery('🔗 Функция в разработке');
+      await ctx.answerCallbackQuery(ctx.t('bot.configuration.link'));
     } catch (error) {
       this.logger.error('Error handling edit link', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -104,21 +108,23 @@ export class OrderEditHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      await ctx.answerCallbackQuery('📊 Функция в разработке');
+      await ctx.answerCallbackQuery(ctx.t('bot.configuration.users_per_day'));
     } catch (error) {
       this.logger.error('Error handling edit daily', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -132,21 +138,23 @@ export class OrderEditHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      await ctx.answerCallbackQuery('📈 Функция в разработке');
+      await ctx.answerCallbackQuery(ctx.t('bot.configuration.total_users'));
     } catch (error) {
       this.logger.error('Error handling edit total', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -160,21 +168,23 @@ export class OrderEditHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      await ctx.answerCallbackQuery('💸 Функция в разработке');
+      await ctx.answerCallbackQuery(ctx.t('bot.configuration.price_per_subscriber'));
     } catch (error) {
       this.logger.error('Error handling edit price', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -188,21 +198,23 @@ export class OrderEditHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      await ctx.answerCallbackQuery('🕐 Функция в разработке');
+      await ctx.answerCallbackQuery(ctx.t('bot.configuration.launch'));
     } catch (error) {
       this.logger.error('Error handling edit start time', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 
@@ -216,21 +228,23 @@ export class OrderEditHandler {
       const orderId = match?.[1];
 
       if (!orderId) {
-        await ctx.answerCallbackQuery('❌ Ошибка');
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
         return;
       }
 
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery('❌ Доступ запрещен');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
         return;
       }
 
-      await ctx.answerCallbackQuery('📋 Функция в разработке');
+      await ctx.answerCallbackQuery(ctx.t('bot.configuration.schedule'));
     } catch (error) {
       this.logger.error('Error handling edit schedule', error);
-      await ctx.answerCallbackQuery('❌ Ошибка');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }
 }

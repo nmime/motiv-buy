@@ -1,3 +1,7 @@
+import type { CryptoBotConfig } from './crypto-bot-config.interface';
+import type { HeleketConfig } from './heleket-config.interface';
+import type { YooKassaConfig } from './yookassa-config.interface';
+
 /**
  * Payment Configuration Interface
  *
@@ -10,6 +14,15 @@ export interface PaymentConfig {
   /** CryptoPay (CryptoBot) configuration */
   cryptoBot: CryptoBotConfig;
 
+  /** Heleket configuration (optional) */
+  heleket?: HeleketConfig;
+
+  /** YooKassa configuration (optional) */
+  yookassa?: YooKassaConfig;
+
+  /** Default payment provider (optional, defaults to CryptoBot) */
+  defaultProvider?: string;
+
   /** Webhook configuration */
   webhook?: PaymentWebhookConfig;
 
@@ -18,28 +31,6 @@ export interface PaymentConfig {
 
   /** Performance and limits */
   limits?: PaymentLimitsConfig;
-}
-
-/**
- * CryptoBot Configuration
- *
- * Configuration for CryptoPay API integration.
- */
-export interface CryptoBotConfig {
-  /** CryptoPay API token (required) */
-  apiToken: string;
-
-  /** API base URL (optional, defaults to production) */
-  apiUrl?: string;
-
-  /** Use testnet (defaults to false) */
-  testnet?: boolean;
-
-  /** Request timeout in milliseconds */
-  timeout?: number;
-
-  /** Max retries for API requests */
-  maxRetries?: number;
 }
 
 /**

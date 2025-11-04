@@ -4,7 +4,7 @@ import { URL } from 'url';
 import { v4 as uuidV4 } from 'uuid';
 import { checkSignature, validateWebAppData } from '@grammyjs/validator';
 import { AsyncResult } from '@app/common-shared';
-import { Ok, Err } from 'ts-results';
+import { Err, Ok } from 'ts-results';
 import {
   AuthConfigService,
   AuthJwtCacheService,
@@ -19,8 +19,7 @@ import {
   UserBlockedException,
   UserNotFoundException,
 } from '@app/common-exception';
-import { UserRepository, UserLastAuthRepository, UserStatus, UserRole, UserEntity } from '@app/database';
-import { PlatformType } from '@app/database';
+import { PlatformType, UserEntity, UserLastAuthRepository, UserRepository, UserRole, UserStatus } from '@app/database';
 import { TelegramWidgetAuthDto } from '../dto';
 import { AuthUserData } from '../type';
 

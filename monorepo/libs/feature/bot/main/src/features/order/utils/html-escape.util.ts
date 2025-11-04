@@ -29,7 +29,7 @@ export function escapeHtmlInObject<T>(obj: T): T {
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => escapeHtmlInObject(item)) as unknown as T;
+    return obj.map((item) => escapeHtmlInObject(item)) as unknown as T;
   }
 
   if (obj && typeof obj === 'object') {
@@ -37,6 +37,7 @@ export function escapeHtmlInObject<T>(obj: T): T {
     for (const [key, value] of Object.entries(obj)) {
       escaped[key] = escapeHtmlInObject(value);
     }
+
     return escaped as T;
   }
 

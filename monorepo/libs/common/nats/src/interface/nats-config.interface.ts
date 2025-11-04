@@ -1,4 +1,4 @@
-import type { RetentionPolicy, StorageType, DiscardPolicy, AckPolicy, DeliverPolicy, ReplayPolicy } from 'nats';
+import type { AckPolicy, DeliverPolicy, DiscardPolicy, ReplayPolicy, RetentionPolicy, StorageType } from 'nats';
 
 /**
  * NATS Configuration Interface

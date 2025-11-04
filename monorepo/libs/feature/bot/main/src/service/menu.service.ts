@@ -1,7 +1,7 @@
 import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, MenuConfig, MenuType, MenuButton, MenuActionResult } from '@app/feature-bot-shared';
+import { BotContext, MenuActionResult, MenuButton, MenuConfig, MenuType } from '@app/feature-bot-shared';
 import { SessionService } from './session.service';
 
 /**
@@ -16,8 +16,23 @@ import { SessionService } from './session.service';
 export class MenuService {
   private readonly logger = new Logger(MenuService.name);
   private readonly maxHistoryLength = 10;
+  private readonly menuGenerators: Map<MenuType, (ctx: BotContext) => MenuConfig>;
 
-  constructor(private readonly sessionService: SessionService) {}
+  constructor(private readonly sessionService: SessionService) {
+    this.menuGenerators = new Map([
+      [MenuType.Main, (ctx) => this.generateMainMenu(ctx)],
+      [MenuType.Profile, (ctx) => this.generateProfileMenu(ctx)],
+      [MenuType.Settings, (ctx) => this.generateSettingsMenu(ctx)],
+      [MenuType.Balance, (ctx) => this.generateBalanceMenu(ctx)],
+      [MenuType.Traffic, (ctx) => this.generateTrafficMenu(ctx)],
+      [MenuType.Statistics, (ctx) => this.generateStatisticsMenu(ctx)],
+      [MenuType.Help, (ctx) => this.generateHelpMenu(ctx)],
+      [MenuType.Campaign, (ctx) => this.generateCampaignMenu(ctx)],
+      [MenuType.Withdrawal, (ctx) => this.generateWithdrawalMenu(ctx)],
+      [MenuType.Referral, (ctx) => this.generateReferralMenu(ctx)],
+      [MenuType.Admin, (ctx) => this.generateAdminMenu(ctx)],
+    ]);
+  }
 
   /**
    * Generate menu configuration for specific menu type
@@ -32,32 +47,8 @@ export class MenuService {
       menuType,
     });
 
-    switch (menuType) {
-      case MenuType.Main:
-        return this.generateMainMenu(ctx);
-      case MenuType.Profile:
-        return this.generateProfileMenu(ctx);
-      case MenuType.Settings:
-        return this.generateSettingsMenu(ctx);
-      case MenuType.Balance:
-        return this.generateBalanceMenu(ctx);
-      case MenuType.Traffic:
-        return this.generateTrafficMenu(ctx);
-      case MenuType.Statistics:
-        return this.generateStatisticsMenu(ctx);
-      case MenuType.Help:
-        return this.generateHelpMenu(ctx);
-      case MenuType.Campaign:
-        return this.generateCampaignMenu(ctx);
-      case MenuType.Withdrawal:
-        return this.generateWithdrawalMenu(ctx);
-      case MenuType.Referral:
-        return this.generateReferralMenu(ctx);
-      case MenuType.Admin:
-        return this.generateAdminMenu(ctx);
-      default:
-        return this.generateDefaultMenu(ctx, menuType);
-    }
+    const generator = this.menuGenerators.get(menuType);
+    return generator ? generator(ctx) : this.generateDefaultMenu(ctx, menuType);
   }
 
   /**

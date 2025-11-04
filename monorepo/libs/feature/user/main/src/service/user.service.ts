@@ -1,21 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import {
-  UserRepository,
-  UserBalanceHistoryRepository,
-  UserSettingsRepository,
-  UserEntity,
   TransactionStatus,
   TransactionType,
+  UserBalanceHistoryRepository,
+  UserEntity,
+  UserRepository,
+  UserSettingsRepository,
 } from '@app/database';
-import { AsyncResult, unknownToError, sum, toNumber, multiply } from '@app/common-shared';
-import { Ok, Err } from 'ts-results';
+import { AsyncResult, multiply, sum, toNumber, unknownToError } from '@app/common-shared';
+import { Err, Ok } from 'ts-results';
 import { InternalException } from '@app/common-exception';
 import {
-  UserReferralData,
-  ReferralStatsData,
-  ReferralLinkData,
   NotificationSettingsData,
+  ReferralLinkData,
+  ReferralStatsData,
   UpdateNotificationSettingsData,
+  UserReferralData,
 } from '../type';
 
 /**

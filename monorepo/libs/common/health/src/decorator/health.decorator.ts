@@ -1,4 +1,4 @@
-import { ApiOkResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { ApiExcludeEndpoint, ApiOkResponse } from '@nestjs/swagger';
 import { applyDecorators, UseGuards } from '@nestjs/common';
 import { HealthCheck } from '@nestjs/terminus';
 import { HealthResponseDtoSchema } from '../dto';

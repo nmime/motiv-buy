@@ -3,11 +3,16 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/database/src",
   "projectType": "library",
-  "tags": ["scope:shared", "type:data"],
+  "tags": [
+    "scope:shared",
+    "type:data"
+  ],
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/libs/database",
@@ -21,7 +26,9 @@
           },
           {
             "name": "typescript-transform-paths/nx-transformer",
-            "options": { "afterDeclarations": true }
+            "options": {
+              "afterDeclarations": true
+            }
           }
         ]
       },

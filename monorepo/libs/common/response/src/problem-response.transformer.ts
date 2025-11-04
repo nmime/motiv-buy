@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { catchError, map, Observable, of } from 'rxjs';
 import { Result } from 'ts-results';
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import {
   BaseException,
   ExceptionClass,

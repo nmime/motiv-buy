@@ -8,7 +8,7 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { FastifyRequest } from 'fastify';
-import { Language, defaultLanguage } from '@app/common-shared';
+import { defaultLanguage, Language } from '@app/common-shared';
 
 /**
  * I18n Context for API routes
@@ -19,7 +19,7 @@ import { Language, defaultLanguage } from '@app/common-shared';
 export class ApiI18nContext {
   constructor(
     private readonly i18nService: I18nService,
-    public readonly language: string,
+    readonly language: string,
   ) {}
 
   /**
@@ -66,6 +66,7 @@ export class ApiI18nContext {
   exists(key: string): boolean {
     try {
       const result = this.i18nService.t(key, { lang: this.language });
+
       return typeof result === 'string' && result !== key;
     } catch {
       return false;
@@ -112,17 +113,15 @@ export class ApiI18nContext {
  * }
  * ```
  */
-export const I18n = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): ApiI18nContext => {
-    const request = ctx.switchToHttp().getRequest<FastifyRequest>();
-    const i18nService = getI18nServiceFromRequest(request);
+export const I18n = createParamDecorator((data: unknown, ctx: ExecutionContext): ApiI18nContext => {
+  const request = ctx.switchToHttp().getRequest<FastifyRequest>();
+  const i18nService = getI18nServiceFromRequest(request);
 
-    // Detect language from Accept-Language header
-    const language = detectLanguageFromRequest(request);
+  // Detect language from Accept-Language header
+  const language = detectLanguageFromRequest(request);
 
-    return new ApiI18nContext(i18nService, language);
-  },
-);
+  return new ApiI18nContext(i18nService, language);
+});
 
 /**
  * Extract I18nService from request
@@ -136,12 +135,10 @@ export const I18n = createParamDecorator(
 function getI18nServiceFromRequest(request: any): I18nService {
   // I18nService is available through nestjs-i18n resolver
   // It's injected into the request by AcceptLanguageResolver
-  const i18nService = request.i18nService;
+  const { i18nService } = request;
 
   if (!i18nService) {
-    throw new Error(
-      'I18nService not found in request. Ensure AppCommonIntlModule is imported.',
-    );
+    throw new Error('I18nService not found in request. Ensure AppCommonIntlModule is imported.');
   }
 
   return i18nService;
@@ -171,6 +168,7 @@ function detectLanguageFromRequest(request: FastifyRequest): string {
     .map((lang) => {
       const [code, quality] = lang.trim().split(';');
       const q = quality ? parseFloat(quality.replace('q=', '')) : 1.0;
+
       return { code: code.trim(), quality: q };
     })
     .sort((a, b) => b.quality - a.quality);
@@ -216,6 +214,7 @@ function normalizeLanguageCode(langCode: string): string {
  */
 function isLanguageSupported(langCode: string): boolean {
   const supportedLanguages = Object.values(Language) as string[];
+
   return supportedLanguages.includes(langCode);
 }
 
@@ -233,9 +232,8 @@ function isLanguageSupported(langCode: string): boolean {
  * }
  * ```
  */
-export const Lang = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): string => {
-    const request = ctx.switchToHttp().getRequest<FastifyRequest>();
-    return detectLanguageFromRequest(request);
-  },
-);
+export const Lang = createParamDecorator((data: unknown, ctx: ExecutionContext): string => {
+  const request = ctx.switchToHttp().getRequest<FastifyRequest>();
+
+  return detectLanguageFromRequest(request);
+});

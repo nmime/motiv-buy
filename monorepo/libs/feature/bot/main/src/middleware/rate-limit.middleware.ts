@@ -106,11 +106,12 @@ export class RateLimitMiddleware {
         });
 
         await ctx.reply(
-          `🚫 You have been temporarily blocked due to excessive requests.\n` +
-            `Please try again in ${Math.ceil((config.blockDurationMs || 0) / 1000 / 60)} minutes.`,
+          ctx.t('common.errors.user_blocked', { 
+            minutes: Math.ceil((config.blockDurationMs || 0) / 1000 / 60) 
+          }),
         );
       } else {
-        await ctx.reply(`⚠️ Rate limit exceeded. Please wait ${remainingSeconds} second(s) before trying again.`);
+        await ctx.reply(ctx.t('common.errors.rate_limit_wait', { seconds: remainingSeconds }));
       }
 
       this.logger.warn('Rate limit exceeded', {
@@ -127,44 +128,6 @@ export class RateLimitMiddleware {
     entry.count++;
 
     return true;
-  }
-
-  /**
-   * Check if user is blocked
-   */
-  private isUserBlocked(userId: string): boolean {
-    const blockedUntil = this.blockedUsers.get(userId);
-
-    if (!blockedUntil) {
-      return false;
-    }
-
-    if (Date.now() > blockedUntil) {
-      // Block expired, remove it
-      this.blockedUsers.delete(userId);
-
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Block user temporarily
-   */
-  private blockUser(userId: string, durationMs: number = 5 * 60 * 1000): void {
-    const blockedUntil = Date.now() + durationMs;
-    this.blockedUsers.set(userId, blockedUntil);
-
-    // Clear rate limit entries for this user
-    const keysToDelete: string[] = [];
-    for (const key of this.rateLimits.keys()) {
-      if (key.startsWith(`${userId}:`)) {
-        keysToDelete.push(key);
-      }
-    }
-
-    keysToDelete.forEach((key) => this.rateLimits.delete(key));
   }
 
   /**
@@ -241,5 +204,43 @@ export class RateLimitMiddleware {
     this.blockedUsers.delete(userId);
 
     this.logger.log('Rate limit reset for user', { userId });
+  }
+
+  /**
+   * Check if user is blocked
+   */
+  private isUserBlocked(userId: string): boolean {
+    const blockedUntil = this.blockedUsers.get(userId);
+
+    if (!blockedUntil) {
+      return false;
+    }
+
+    if (Date.now() > blockedUntil) {
+      // Block expired, remove it
+      this.blockedUsers.delete(userId);
+
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Block user temporarily
+   */
+  private blockUser(userId: string, durationMs: number = 5 * 60 * 1000): void {
+    const blockedUntil = Date.now() + durationMs;
+    this.blockedUsers.set(userId, blockedUntil);
+
+    // Clear rate limit entries for this user
+    const keysToDelete: string[] = [];
+    for (const key of this.rateLimits.keys()) {
+      if (key.startsWith(`${userId}:`)) {
+        keysToDelete.push(key);
+      }
+    }
+
+    keysToDelete.forEach((key) => this.rateLimits.delete(key));
   }
 }

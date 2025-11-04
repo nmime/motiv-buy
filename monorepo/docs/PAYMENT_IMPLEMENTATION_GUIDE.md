@@ -7,41 +7,47 @@ Complete implementation of cryptocurrency payment system with CryptoPay (CryptoB
 ### ✅ Completed Components
 
 #### 1. **Package Structure** (`libs/feature/payment/`)
+
 - **Shared Package** (`@app/feature-payment-shared`)
-  - Type-safe enums, interfaces, and DTOs
-  - Global module for application-wide access
+    - Type-safe enums, interfaces, and DTOs
+    - Global module for application-wide access
 
 - **Main Package** (`@app/feature-payment-main`)
-  - Core business logic and API endpoints
-  - Database entities and migrations
-  - Payment provider implementations
+    - Core business logic and API endpoints
+    - Database entities and migrations
+    - Payment provider implementations
 
 #### 2. **Core Features Implemented**
 
 **Payment Provider System**
+
 - Abstracted `IPaymentProvider` interface
 - CryptoBotProvider implementation with full API integration
 - Easy to extend with additional providers (Stripe, PayPal, etc.)
 
 **Top-Up System**
+
 - Create payment invoices with cryptocurrency
 - Multi-currency support (USDT, TON, BTC, ETH, LTC, BNB, TRX, USDC, JET)
 - Payment URL generation for Telegram/Browser
 - Automatic expiration handling
 
 **Withdrawal System**
+
 - Balance verification before withdrawal
 - Immediate balance deduction (pessimistic locking)
 - Transfer to user's Telegram wallet
 - Automatic rollback on failure
 
 **Webhook Integration**
+
 - Real-time payment notifications
 - HMAC-SHA256 signature verification
 - Automatic balance crediting on payment
 - Idempotency-safe processing
 
 **Transaction Management**
+
 - Complete transaction history tracking
 - Filtering by type, status, date
 - Pagination support
@@ -50,6 +56,7 @@ Complete implementation of cryptocurrency payment system with CryptoPay (CryptoB
 #### 3. **Database Schema**
 
 **Table: `payment_transactions`**
+
 - UUID primary key with v7 support
 - Comprehensive transaction tracking
 - JSONB metadata storage
@@ -60,14 +67,14 @@ Complete implementation of cryptocurrency payment system with CryptoPay (CryptoB
 
 #### 4. **API Endpoints**
 
-| Method | Endpoint | Description | Rate Limit |
-|--------|----------|-------------|------------|
-| POST | `/payment/topup` | Create top-up invoice | 10/min |
-| POST | `/payment/withdraw` | Request withdrawal | 5/min |
-| GET | `/payment/transactions` | Get transaction history | 30/min |
-| GET | `/payment/transactions/:id` | Get specific transaction | 60/min |
-| GET | `/payment/invoice/:id/status` | Check invoice status | 20/min |
-| POST | `/payment/webhook/crypto-bot` | Webhook handler | 100/min |
+| Method | Endpoint                      | Description              | Rate Limit |
+|--------|-------------------------------|--------------------------|------------|
+| POST   | `/payment/topup`              | Create top-up invoice    | 10/min     |
+| POST   | `/payment/withdraw`           | Request withdrawal       | 5/min      |
+| GET    | `/payment/transactions`       | Get transaction history  | 30/min     |
+| GET    | `/payment/transactions/:id`   | Get specific transaction | 60/min     |
+| GET    | `/payment/invoice/:id/status` | Check invoice status     | 20/min     |
+| POST   | `/payment/webhook/crypto-bot` | Webhook handler          | 100/min    |
 
 #### 5. **Security Features**
 
@@ -118,12 +125,12 @@ psql -d your_database -c "\d payment_transactions"
 Update `apps/api/src/app.module.ts`:
 
 ```typescript
-import { PaymentMainModule } from '@app/feature-payment-main';
+import {PaymentMainModule} from '@app/feature-payment-main';
 
 @Module({
   imports: [
     // ... existing imports
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({isGlobal: true}),
     DatabaseModule,
     AuthMainModule,
     BalanceMainModule,
@@ -131,7 +138,8 @@ import { PaymentMainModule } from '@app/feature-payment-main';
     // ... other modules
   ],
 })
-export class AppModule {}
+export class AppModule {
+}
 ```
 
 ### Step 4: Setup Webhook (Production)
@@ -240,37 +248,37 @@ CryptoPay processes → Transfer complete → Status: COMPLETED
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `CRYPTO_BOT_API_TOKEN` | Yes | - | CryptoPay API token |
-| `CRYPTO_BOT_WEBHOOK_URL` | No | - | Webhook URL (production) |
-| `DATABASE_URL` | Yes | - | PostgreSQL connection |
-| `JWT_SECRET` | Yes | - | JWT signing secret |
+| Variable                 | Required | Default | Description              |
+|--------------------------|----------|---------|--------------------------|
+| `CRYPTO_BOT_API_TOKEN`   | Yes      | -       | CryptoPay API token      |
+| `CRYPTO_BOT_WEBHOOK_URL` | No       | -       | Webhook URL (production) |
+| `DATABASE_URL`           | Yes      | -       | PostgreSQL connection    |
+| `JWT_SECRET`             | Yes      | -       | JWT signing secret       |
 
 ### Supported Currencies
 
-| Currency | Mainnet | Testnet | Description |
-|----------|---------|---------|-------------|
-| USDT | ✅ | ✅ | Tether |
-| TON | ✅ | ✅ | Toncoin |
-| BTC | ✅ | ✅ | Bitcoin |
-| ETH | ✅ | ✅ | Ethereum |
-| LTC | ✅ | ✅ | Litecoin |
-| BNB | ✅ | ✅ | Binance Coin |
-| TRX | ✅ | ✅ | TRON |
-| USDC | ✅ | ✅ | USD Coin |
-| JET | ❌ | ✅ | Testnet only |
+| Currency | Mainnet | Testnet | Description  |
+|----------|---------|---------|--------------|
+| USDT     | ✅       | ✅       | Tether       |
+| TON      | ✅       | ✅       | Toncoin      |
+| BTC      | ✅       | ✅       | Bitcoin      |
+| ETH      | ✅       | ✅       | Ethereum     |
+| LTC      | ✅       | ✅       | Litecoin     |
+| BNB      | ✅       | ✅       | Binance Coin |
+| TRX      | ✅       | ✅       | TRON         |
+| USDC     | ✅       | ✅       | USD Coin     |
+| JET      | ❌       | ✅       | Testnet only |
 
 ### Payment Statuses
 
-| Status | Description | Can transition to |
-|--------|-------------|-------------------|
-| PENDING | Invoice created, awaiting payment | COMPLETED, EXPIRED |
-| PROCESSING | Withdrawal in progress | COMPLETED, FAILED |
-| COMPLETED | Transaction successful | - |
-| FAILED | Transaction failed | - |
-| CANCELLED | User cancelled | - |
-| EXPIRED | Invoice expired | - |
+| Status     | Description                       | Can transition to  |
+|------------|-----------------------------------|--------------------|
+| PENDING    | Invoice created, awaiting payment | COMPLETED, EXPIRED |
+| PROCESSING | Withdrawal in progress            | COMPLETED, FAILED  |
+| COMPLETED  | Transaction successful            | -                  |
+| FAILED     | Transaction failed                | -                  |
+| CANCELLED  | User cancelled                    | -                  |
+| EXPIRED    | Invoice expired                   | -                  |
 
 ## 🧪 Testing Guide
 
@@ -332,24 +340,28 @@ curl -X POST localhost:3000/payment/webhook/crypto-bot \
 ### Common Issues
 
 **1. Webhook not receiving events**
+
 - Verify HTTPS is enabled
 - Check firewall rules
 - Validate webhook URL in CryptoPay settings
 - Check signature verification logs
 
 **2. Balance not credited after payment**
+
 - Check webhook logs
 - Verify signature verification passes
 - Check database for transaction status
 - Manual sync: GET `/payment/invoice/:id/status`
 
 **3. Withdrawal fails**
+
 - Verify sufficient balance
 - Check CryptoPay API balance
 - Review transaction logs
 - Check fee calculations
 
 **4. Build errors**
+
 - Run `pnpm nx reset`
 - Check tsconfig path mappings
 - Verify all dependencies installed

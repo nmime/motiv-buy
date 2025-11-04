@@ -62,6 +62,7 @@ match(result, {
 - **Types**: `Result`, `AsyncResult`, `DomainResult`, `AsyncDomainResult`
 - **Constructors**: `Ok`, `Err`
 - **Helpers**: `isOk`, `isErr`, `unwrapOr`, `map`, `andThen`, `all`, `tryCatch`
-- **Errors**: `ValidationError`, `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ConflictError`, `InternalError`
+- **Errors**: `ValidationError`, `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ConflictError`,
+  `InternalError`
 
 See full documentation in `result-type-usage.md`

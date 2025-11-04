@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Bot } from 'grammy';
 import {
-  BotInstanceOptions,
   BotInstanceInfo,
-  BotValidationResult,
+  BotInstanceOptions,
   BotSessionContext,
+  BotValidationResult,
   IBotFactory,
 } from './bot-factory.interface';
 

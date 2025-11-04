@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { GetSourceParamsService, SourceParameters } from './get-source-params.service';
-import { UserSourceVisitEntity, PlatformType } from '@app/database';
+import { PlatformType, UserSourceVisitEntity } from '@app/database';
 import { TelegramAuthParams } from '../../type';
 
 export interface VisitDataParams {

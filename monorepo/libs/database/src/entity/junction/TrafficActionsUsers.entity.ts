@@ -1,7 +1,7 @@
-import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique, Ref } from '@mikro-orm/core';
+import { Entity, Index, ManyToOne, PrimaryKey, Property, Ref, Unique } from '@mikro-orm/core';
 import { TrafficActionsEntity } from '../TrafficActions.entity';
 import { TrafficUserEntity } from '../TrafficUser.entity';
-import { EntityConstructorData, assignEntityData } from '../../type';
+import { assignEntityData, EntityConstructorData } from '../../type';
 
 @Entity({ tableName: 'traffic_actions_users' })
 @Index({ name: 'ix__traffic_actions_users__action_id', properties: ['trafficAction'] })

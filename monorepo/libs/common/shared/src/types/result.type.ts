@@ -4,7 +4,7 @@
 
 import { toError } from '../utils/error.utils';
 import type { Result as TsResult } from 'ts-results';
-import { Ok as TsOk, Err as TsErr } from 'ts-results';
+import { Err as TsErr, Ok as TsOk } from 'ts-results';
 
 export { Ok, Err, Some, None } from 'ts-results';
 export type { Result } from 'ts-results';

@@ -1,4 +1,4 @@
-import { TrafficOrderEntity, TrafficOrderStatus, TrafficOrderType, TrafficOrderRequirements } from '@app/database';
+import { TrafficOrderEntity, TrafficOrderRequirements, TrafficOrderStatus, TrafficOrderType } from '@app/database';
 
 /**
  * Repository interface for traffic order operations

@@ -5,12 +5,14 @@ Complete balance management system with cryptocurrency support, multi-source exc
 ## Features
 
 ### Balance Management
+
 - User balance tracking in RUB (Russian Rubles)
 - Available and pending balance calculation
 - Total earned tracking
 - Transaction history with filtering
 
 ### Currency System
+
 - **Currency Entity**: Stores all supported currencies (fiat + crypto)
 - **Multi-Source Rates**: CoinGecko, Binance, Central Bank APIs
 - **Weighted Averaging**: Reliability scores for accurate rates
@@ -18,6 +20,7 @@ Complete balance management system with cryptocurrency support, multi-source exc
 - **Historical Tracking**: Currency rates history for auditing
 
 ### Top-Up (Deposits)
+
 1. User selects cryptocurrency and amount
 2. System creates payment invoice via CryptoBot
 3. User pays via Telegram bot
@@ -25,6 +28,7 @@ Complete balance management system with cryptocurrency support, multi-source exc
 5. Currency conversion uses real-time rates
 
 ### Withdrawals
+
 1. User requests withdrawal in RUB
 2. System converts to selected cryptocurrency
 3. Transfer initiated via CryptoBot
@@ -62,6 +66,7 @@ Complete balance management system with cryptocurrency support, multi-source exc
 ## Database Schema
 
 ### currencies
+
 - `id`: UUID (PK)
 - `code`: VARCHAR(10) - USD, RUB, BTC, ETH, etc.
 - `type`: ENUM (FIAT, CRYPTO)
@@ -70,6 +75,7 @@ Complete balance management system with cryptocurrency support, multi-source exc
 - `is_active`, timestamps
 
 ### currency_rates_history
+
 - `id`: UUID (PK)
 - `currency_id`: UUID (FK -> currencies)
 - `provider`: ENUM (COINGECKO, BINANCE, CENTRAL_BANK)
@@ -78,6 +84,7 @@ Complete balance management system with cryptocurrency support, multi-source exc
 - `created_at`: TIMESTAMPTZ
 
 ### user_balances
+
 - `id`: UUID (PK)
 - `user_id`: UUID (FK -> users)
 - `currency_id`: UUID (FK -> currencies)
@@ -88,9 +95,11 @@ Complete balance management system with cryptocurrency support, multi-source exc
 ## API Endpoints
 
 ### GET /balance
+
 Get current user balance with details.
 
 **Response:**
+
 ```json
 {
   "userId": "uuid",
@@ -104,15 +113,19 @@ Get current user balance with details.
 ```
 
 ### GET /balance/transactions
+
 Get transaction history with optional filtering.
 
 **Query params:**
+
 - `type`: "deposit" | "withdrawal" | "traffic_sale_income"
 
 ### POST /balance/topup
+
 Create cryptocurrency invoice for balance top-up.
 
 **Request:**
+
 ```json
 {
   "amount": "100",
@@ -122,6 +135,7 @@ Create cryptocurrency invoice for balance top-up.
 ```
 
 **Response:**
+
 ```json
 {
   "paymentUrl": "https://t.me/CryptoBot?start=invoice_...",
@@ -131,9 +145,11 @@ Create cryptocurrency invoice for balance top-up.
 ```
 
 ### POST /balance/withdraw
+
 Request withdrawal to cryptocurrency wallet.
 
 **Request:**
+
 ```json
 {
   "amount": 1000,
@@ -144,6 +160,7 @@ Request withdrawal to cryptocurrency wallet.
 ```
 
 **Response:**
+
 ```json
 {
   "transferId": "uuid",
@@ -156,15 +173,16 @@ Request withdrawal to cryptocurrency wallet.
 Rates are fetched automatically every 10 minutes from:
 
 1. **CoinGecko** (95% reliability)
-   - BTC, ETH, USDT, USDC, BNB, TON, TRX, LTC
+    - BTC, ETH, USDT, USDC, BNB, TON, TRX, LTC
 
 2. **Binance** (90% reliability)
-   - BTC, ETH, BNB, LTC
+    - BTC, ETH, BNB, LTC
 
 3. **Exchange Rate API** (100% reliability)
-   - RUB, EUR fiat rates
+    - RUB, EUR fiat rates
 
 **Weighted Average:**
+
 - Each provider has a reliability score
 - Final rate = Σ(rate × score) / Σ(scores)
 - Only uses rates from last hour
@@ -172,6 +190,7 @@ Rates are fetched automatically every 10 minutes from:
 ## Usage Examples
 
 ### Initialize Currency Service
+
 ```typescript
 import { CurrencyRateService } from '@app/feature-balance-main';
 
@@ -182,6 +201,7 @@ import { CurrencyRateService } from '@app/feature-balance-main';
 ```
 
 ### Convert Currencies
+
 ```typescript
 const result = await currencyRateService.convertAmount(
   '100',      // amount
@@ -195,6 +215,7 @@ if (result.ok) {
 ```
 
 ### Get Current Rate
+
 ```typescript
 const rateResult = await currencyRateService.getCurrentRate(
   CurrencyCode.BTC
@@ -208,10 +229,13 @@ if (rateResult.ok) {
 ## Configuration
 
 ### Environment Variables
+
 Required in payment-main module:
+
 - `CRYPTO_BOT_API_TOKEN`: CryptoBot API token
 
 ### Cron Jobs
+
 - **Rate Updates**: Every 10 minutes
 - **History Cleanup**: Daily at 3 AM (keeps 7 days)
 
@@ -231,6 +255,7 @@ curl http://localhost:3000/admin/rates/update
 ## Migration
 
 Run migrations in order:
+
 1. `Migration20251103000001_create_currencies_table`
 2. `Migration20251103000002_create_currency_rates_history_table`
 3. `Migration20251103000003_update_user_balances_currency_link`

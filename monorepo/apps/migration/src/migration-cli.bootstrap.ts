@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { MikroORM } from '@mikro-orm/core';
-import { getDatabaseConfig, createMikroOrmConfig } from '@app/database';
+import { createMikroOrmConfig, getDatabaseConfig } from '@app/database';
 import { MigrationCLI } from './cli';
 import { logger } from './util';
 

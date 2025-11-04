@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-nested-functions */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BotFactoryService } from '../bot-factory.service';
-import { BotInstanceOptions, BotValidationResult, BotSessionContext } from '../bot-factory.interface';
+import { BotInstanceOptions, BotSessionContext, BotValidationResult } from '../bot-factory.interface';
 import { Bot } from 'grammy';
 
 // Mock Grammy Bot

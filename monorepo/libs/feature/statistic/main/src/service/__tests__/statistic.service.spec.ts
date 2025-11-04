@@ -2,13 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StatisticService } from '../statistic.service';
 import { StatisticRepository } from '../../repository';
 import {
+  TrafficActionsRepository,
   TrafficOrderRepository,
   TrafficSourceRepository,
-  TrafficActionsRepository,
   UserRepository,
 } from '@app/database';
 import { EntityManager } from '@mikro-orm/core';
-import { StatisticType, ChartInterval } from '../../dto';
+import { ChartInterval, StatisticType } from '../../dto';
 
 describe('StatisticService', () => {
   let service: StatisticService;

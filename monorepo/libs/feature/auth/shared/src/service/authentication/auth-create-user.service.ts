@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { UserRepository, UserEntity } from '@app/database';
-import { Language, defaultLanguage } from '@app/common-shared';
+import { UserEntity, UserRepository } from '@app/database';
+import { defaultLanguage, Language } from '@app/common-shared';
 import { TelegramAuthParams, UserRefLink } from '../../type';
 
 @Injectable()

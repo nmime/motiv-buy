@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import {
-  StatisticResponseDto,
+  ChartDataPointDto,
   LineChartResponseDto,
   ShareTokenResponseDto,
-  ChartDataPointDto,
+  StatisticResponseDto,
   StatisticType,
 } from '../dto';
-import { ServiceStatisticResponse, ServiceLineChartData, ServiceStatisticData } from '../type';
+import { ServiceLineChartData, ServiceStatisticData, ServiceStatisticResponse } from '../type';
 
 @Injectable()
 export class StatisticMapper {
@@ -38,6 +38,19 @@ export class StatisticMapper {
       period: serviceData.period,
       interval: serviceData.interval,
       generatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Map share token generation to response DTO
+   */
+  toShareTokenResponse(shareToken: string): ShareTokenResponseDto {
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    return {
+      shareToken,
+      shareLink: `https://motivbuy.com/share/stats/${shareToken}`,
+      expiresAt,
     };
   }
 
@@ -100,18 +113,5 @@ export class StatisticMapper {
           generatedAt: data.generatedAt,
         };
     }
-  }
-
-  /**
-   * Map share token generation to response DTO
-   */
-  toShareTokenResponse(shareToken: string): ShareTokenResponseDto {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-    return {
-      shareToken,
-      shareLink: `https://motivbuy.com/share/stats/${shareToken}`,
-      expiresAt,
-    };
   }
 }

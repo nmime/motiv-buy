@@ -1,5 +1,5 @@
-import { Entity, Property, OneToOne, Index, PrimaryKey, Unique, Ref } from '@mikro-orm/core';
-import { EntityConstructorData, assignEntityData } from '../type';
+import { Entity, Index, OneToOne, PrimaryKey, Property, Ref, Unique } from '@mikro-orm/core';
+import { assignEntityData, EntityConstructorData } from '../type';
 import { UserEntity } from './User.entity';
 
 @Entity({ tableName: 'user_last_auth' })

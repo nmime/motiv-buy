@@ -7,15 +7,15 @@ export interface BaseI18nContext {
 }
 
 export class AppI18nContext extends I18nContext {
-  tr(key: string, options?: TranslateOptions): string {
-    return this.translate<string>(key, options) as string;
-  }
-
   static getI18nContext<TContext extends BaseI18nContext>(ctx: TContext): AppI18nContext {
     const { lang } = ctx;
     const service = ctx.i18n;
 
     return new AppI18nContext(lang, service);
+  }
+
+  tr(key: string, options?: TranslateOptions): string {
+    return this.translate<string>(key, options) as string;
   }
 }
 

@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis, RedisClient } from '@app/common-redis';
 import { Err, Ok, Result } from 'ts-results';
-import { getErrorMessage, AsyncResult } from '@app/common-shared';
-import { BadTokenException, RateLimitExceedException, InternalException } from '@app/common-exception';
+import { AsyncResult, getErrorMessage } from '@app/common-shared';
+import { BadTokenException, InternalException, RateLimitExceedException } from '@app/common-exception';
 import { BotTokenValidationDto, BotTokenValidationResponseDto } from '../dto';
 import {
   BotTokenExpiredException,
   BotTokenInvalidException,
-  BotTokenServiceUnavailableException,
   BotTokenRateLimitException,
+  BotTokenServiceUnavailableException,
 } from '../exception';
 
 /**
@@ -78,6 +78,102 @@ export class BotTokenValidationService {
       return this.handleValidationResult(dto, validationResult);
     } catch (err: unknown) {
       return this.handleValidationError(err, dto, clientIp);
+    }
+  }
+
+  /**
+   * Validate token without caching (for testing or direct validation)
+   * Complexity reduced by extracting validation logic
+   *
+   * @param dto - Token validation data
+   * @returns Direct validation result
+   */
+  async validateTokenDirect(dto: BotTokenValidationDto): Promise<BotTokenValidationResponseDto> {
+    const formatValidation = this.validateTokenFormat(dto.token);
+    if (!formatValidation) {
+      return {
+        isValid: false,
+        error: 'Invalid token format',
+      };
+    }
+
+    return this.performTokenValidation(dto);
+  }
+
+  /**
+   * Check if operation requires token validation
+   *
+   * @param operationContext - Operation context
+   * @returns True if token validation is required
+   */
+  isTokenValidationRequired(operationContext?: string): boolean {
+    // Define operations that require token validation
+    const requiresValidation = ['traffic_sell', 'bot_management', 'traffic_analytics'];
+
+    if (!operationContext) {
+      return false;
+    }
+
+    return requiresValidation.includes(operationContext);
+  }
+
+  /**
+   * Get bot permissions for traffic operations
+   *
+   * @param botId - Bot ID
+   * @returns List of permissions
+   */
+  async getBotPermissions(botId: string): Promise<string[]> {
+    try {
+      // This would integrate with bot-shared feature to get actual permissions
+      // For now, return default permissions based on bot status
+      const cacheKey = `${this.cachePrefix}:permissions:${botId}`;
+      const cached = await this.redisClient.get(cacheKey);
+
+      if (cached) {
+        return JSON.parse(cached) as string[];
+      }
+
+      // Default permissions for traffic operations
+      const permissions = ['traffic_sell', 'traffic_stats', 'bot_management'];
+
+      // Cache permissions for 10 minutes
+      await this.redisClient.set(cacheKey, JSON.stringify(permissions), 'EX', 600);
+
+      return permissions;
+    } catch (err: unknown) {
+      this.logger.warn('Failed to get bot permissions', {
+        botId,
+        error: getErrorMessage(err),
+      });
+
+      return []; // Return empty permissions on error
+    }
+  }
+
+  /**
+   * Invalidate cached token validation
+   *
+   * @param token - Token to invalidate
+   */
+  async invalidateToken(token: string): Promise<void> {
+    try {
+      const cacheKey = `${this.cachePrefix}:${this.hashToken(token)}`;
+      await this.redisClient.del(cacheKey);
+
+      const botId = this.extractBotId(token);
+      if (botId) {
+        const permissionsCacheKey = `${this.cachePrefix}:permissions:${botId}`;
+        await this.redisClient.del(permissionsCacheKey);
+      }
+
+      this.logger.debug('Token validation cache invalidated', {
+        botId: this.extractBotId(token),
+      });
+    } catch (err: unknown) {
+      this.logger.warn('Failed to invalidate token cache', {
+        error: getErrorMessage(err),
+      });
     }
   }
 
@@ -242,102 +338,6 @@ export class BotTokenValidationService {
     }
 
     return Err(new InternalException({ detail: 'Token validation failed' }));
-  }
-
-  /**
-   * Validate token without caching (for testing or direct validation)
-   * Complexity reduced by extracting validation logic
-   *
-   * @param dto - Token validation data
-   * @returns Direct validation result
-   */
-  async validateTokenDirect(dto: BotTokenValidationDto): Promise<BotTokenValidationResponseDto> {
-    const formatValidation = this.validateTokenFormat(dto.token);
-    if (!formatValidation) {
-      return {
-        isValid: false,
-        error: 'Invalid token format',
-      };
-    }
-
-    return this.performTokenValidation(dto);
-  }
-
-  /**
-   * Check if operation requires token validation
-   *
-   * @param operationContext - Operation context
-   * @returns True if token validation is required
-   */
-  isTokenValidationRequired(operationContext?: string): boolean {
-    // Define operations that require token validation
-    const requiresValidation = ['traffic_sell', 'bot_management', 'traffic_analytics'];
-
-    if (!operationContext) {
-      return false;
-    }
-
-    return requiresValidation.includes(operationContext);
-  }
-
-  /**
-   * Get bot permissions for traffic operations
-   *
-   * @param botId - Bot ID
-   * @returns List of permissions
-   */
-  async getBotPermissions(botId: string): Promise<string[]> {
-    try {
-      // This would integrate with bot-shared feature to get actual permissions
-      // For now, return default permissions based on bot status
-      const cacheKey = `${this.cachePrefix}:permissions:${botId}`;
-      const cached = await this.redisClient.get(cacheKey);
-
-      if (cached) {
-        return JSON.parse(cached) as string[];
-      }
-
-      // Default permissions for traffic operations
-      const permissions = ['traffic_sell', 'traffic_stats', 'bot_management'];
-
-      // Cache permissions for 10 minutes
-      await this.redisClient.set(cacheKey, JSON.stringify(permissions), 'EX', 600);
-
-      return permissions;
-    } catch (err: unknown) {
-      this.logger.warn('Failed to get bot permissions', {
-        botId,
-        error: getErrorMessage(err),
-      });
-
-      return []; // Return empty permissions on error
-    }
-  }
-
-  /**
-   * Invalidate cached token validation
-   *
-   * @param token - Token to invalidate
-   */
-  async invalidateToken(token: string): Promise<void> {
-    try {
-      const cacheKey = `${this.cachePrefix}:${this.hashToken(token)}`;
-      await this.redisClient.del(cacheKey);
-
-      const botId = this.extractBotId(token);
-      if (botId) {
-        const permissionsCacheKey = `${this.cachePrefix}:permissions:${botId}`;
-        await this.redisClient.del(permissionsCacheKey);
-      }
-
-      this.logger.debug('Token validation cache invalidated', {
-        botId: this.extractBotId(token),
-      });
-    } catch (err: unknown) {
-      this.logger.warn('Failed to invalidate token cache', {
-        error: getErrorMessage(err),
-      });
-    }
   }
 
   /**

@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/libs/feature/payment/main",
         "main": "libs/feature/payment/main/src/index.ts",
@@ -20,26 +22,38 @@
           },
           {
             "name": "typescript-transform-paths/nx-transformer",
-            "options": { "afterDeclarations": true }
+            "options": {
+              "afterDeclarations": true
+            }
           }
         ]
       }
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"],
+      "outputs": [
+        "{options.outputFile}"
+      ],
       "options": {
-        "lintFilePatterns": ["libs/feature/payment/main/**/*.ts"]
+        "lintFilePatterns": [
+          "libs/feature/payment/main/**/*.ts"
+        ]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "outputs": [
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
       "options": {
         "jestConfig": "libs/feature/payment/main/jest.config.ts",
         "passWithNoTests": true
       }
     }
   },
-  "tags": ["scope:payment", "type:feature", "layer:main"]
+  "tags": [
+    "scope:payment",
+    "type:feature",
+    "layer:main"
+  ]
 }

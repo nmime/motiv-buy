@@ -1,15 +1,26 @@
 import { Module } from '@nestjs/common';
 import { BotSharedModule } from '@app/feature-bot-shared';
 import { RedisModule } from '@app/common-redis';
+import { DatabaseModule } from '@app/database';
 import { AuthSharedModule } from '@app/feature-auth-shared';
 import { UserSharedModule } from '@app/feature-user-shared';
 import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
-import { BotService } from './service';
+import { AppCommonIntlModule } from '@app/common-intl';
+import { BotService, MenuService, MessageService, SessionService } from './service';
 import { BotConfigService } from './config';
-import { MenuService, SessionService } from './service';
 import { OrderModule } from './features/order/order.module';
+import {
+  CallbackRouterHandler,
+  MenuActionHandler,
+  ProfileActionHandler,
+  BalanceActionHandler,
+  StatisticsActionHandler,
+  OrderActionHandler,
+  SettingsActionHandler,
+} from './handler';
+import { RateLimitMiddleware } from './middleware';
 
 /**
  * Bot Main Module
@@ -34,15 +45,31 @@ import { OrderModule } from './features/order/order.module';
 @Module({
   imports: [
     RedisModule,
+    DatabaseModule,
     BotSharedModule,
     AuthSharedModule,
     UserSharedModule,
     BalanceSharedModule,
     StatisticSharedModule,
     TrafficSharedModule,
+    AppCommonIntlModule,
     OrderModule,
   ],
-  providers: [BotConfigService, BotService, MenuService, SessionService],
-  exports: [BotConfigService, BotService, MenuService, SessionService],
+  providers: [
+    BotConfigService,
+    BotService,
+    MenuService,
+    SessionService,
+    MessageService,
+    CallbackRouterHandler,
+    MenuActionHandler,
+    ProfileActionHandler,
+    BalanceActionHandler,
+    StatisticsActionHandler,
+    OrderActionHandler,
+    SettingsActionHandler,
+    RateLimitMiddleware,
+  ],
+  exports: [BotConfigService, BotService, MenuService, SessionService, MessageService],
 })
 export class BotMainModule {}

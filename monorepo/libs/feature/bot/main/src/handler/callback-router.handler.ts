@@ -14,6 +14,7 @@ import { StatisticsActionHandler } from './statistics-action.handler';
 import { OrderActionHandler } from './order-action.handler';
 import { SettingsActionHandler } from './settings-action.handler';
 import { RateLimitMiddleware } from '../middleware/rate-limit.middleware';
+import { MessageService } from '../service/message.service';
 
 @Injectable()
 export class CallbackRouterHandler {
@@ -27,6 +28,7 @@ export class CallbackRouterHandler {
     private readonly orderHandler: OrderActionHandler,
     private readonly settingsHandler: SettingsActionHandler,
     private readonly rateLimitMiddleware: RateLimitMiddleware,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -44,7 +46,7 @@ export class CallbackRouterHandler {
       const isAllowed = await this.rateLimitMiddleware.checkRateLimit(ctx, 'callback');
 
       if (!isAllowed) {
-        await ctx.answerCallbackQuery('Rate limit exceeded');
+        await ctx.answerCallbackQuery(ctx.t('common.errors.rate_limit'));
 
         return;
       }
@@ -106,8 +108,8 @@ export class CallbackRouterHandler {
           break;
 
         default:
-          await ctx.answerCallbackQuery('Unknown action');
-          await ctx.reply('Unknown action. Please try again or use /menu.');
+          await ctx.answerCallbackQuery(ctx.t('common.errors.unknown_action'));
+          await ctx.reply(ctx.t('common.errors.unknown_action_help'));
       }
 
       // Answer callback query to remove loading state
@@ -119,7 +121,7 @@ export class CallbackRouterHandler {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('Error occurred');
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
       await this.menuHandler.handleMenuError(ctx, error as Error);
     }
   }
@@ -306,86 +308,98 @@ export class CallbackRouterHandler {
 
   private async handleMainMenu(ctx: BotContext): Promise<void> {
     const keyboard = this.menuHandler.createMainMenuKeyboard();
-    await ctx.reply('📋 <b>Main Menu</b>\n\nSelect an option:', {
-      parse_mode: 'HTML',
-      reply_markup: keyboard,
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: '📋 <b>Main Menu</b>\n\nSelect an option:',
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
   private async handleOrdersMenu(ctx: BotContext): Promise<void> {
     const keyboard = this.menuHandler.createOrdersMenuKeyboard();
-    await ctx.reply('📦 <b>Orders Menu</b>\n\nManage your traffic orders:', {
-      parse_mode: 'HTML',
-      reply_markup: keyboard,
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: '📦 <b>Orders Menu</b>\n\nManage your traffic orders:',
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
   private async handleReferralsMenu(ctx: BotContext): Promise<void> {
     const keyboard = this.menuHandler.createReferralsMenuKeyboard();
-    await ctx.reply('🎁 <b>Referrals Menu</b>\n\nView and manage your referrals:', {
-      parse_mode: 'HTML',
-      reply_markup: keyboard,
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: '🎁 <b>Referrals Menu</b>\n\nView and manage your referrals:',
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
   private async handlePaymentsMenu(ctx: BotContext): Promise<void> {
     const keyboard = this.menuHandler.createPaymentsMenuKeyboard();
-    await ctx.reply('💳 <b>Payments Menu</b>\n\nManage your payments:', {
-      parse_mode: 'HTML',
-      reply_markup: keyboard,
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: '💳 <b>Payments Menu</b>\n\nManage your payments:',
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
   private async handleSupportMenu(ctx: BotContext): Promise<void> {
-    await ctx.reply(
-      '📞 <b>Support</b>\n\n' +
+    await this.messageService.sendOrEditMessage(ctx, {
+      text:
+        '📞 <b>Support</b>\n\n' +
         'Need help? Here are your options:\n\n' +
         '• Email: support@motivbuy.com\n' +
         '• Telegram: @motivbuy_support\n' +
         '• FAQ: /faq\n\n' +
         '<i>We typically respond within 24 hours.</i>',
-      { parse_mode: 'HTML' },
-    );
+      parseMode: 'HTML',
+    });
   }
 
   private async handleHelpMenu(ctx: BotContext): Promise<void> {
-    const helpText = `
-🤖 <b>MotivBuy Bot Help</b>
+    const helpText =
+      '🤖 <b>MotivBuy Bot Help</b>\n\n' +
+      '<b>Available Commands:</b>\n' +
+      '/start - Start or restart the bot\n' +
+      '/menu - Open main menu\n' +
+      '/profile - View your profile\n' +
+      '/balance - Check your balance\n' +
+      '/settings - Manage settings\n' +
+      '/help - Show this help message\n\n' +
+      '<b>Features:</b>\n' +
+      '• 📊 Track campaign performance\n' +
+      '• 💰 Monitor earnings and balance\n' +
+      '• 🎯 Manage traffic sources\n' +
+      '• ⚙️ Customize preferences\n' +
+      '• 📈 View detailed statistics\n\n' +
+      'For support, contact @support or use /support.';
 
-<b>Available Commands:</b>
-/start - Start or restart the bot
-/menu - Open main menu
-/profile - View your profile
-/balance - Check your balance
-/settings - Manage settings
-/help - Show this help message
-
-<b>Features:</b>
-• 📊 Track campaign performance
-• 💰 Monitor earnings and balance
-• 🎯 Manage traffic sources
-• ⚙️ Customize preferences
-• 📈 View detailed statistics
-
-For support, contact @support or use /support.
-`;
-
-    await ctx.replyWithHTML(helpText);
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: helpText,
+      parseMode: 'HTML',
+    });
   }
 
   private async handleReferralAction(ctx: BotContext, action: string): Promise<void> {
-    await ctx.reply('🎁 Referral features coming soon!');
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: '🎁 Referral features coming soon!',
+    });
   }
 
   private async handlePaymentAction(ctx: BotContext, action: string): Promise<void> {
-    await ctx.reply('💳 Payment features coming soon!');
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: '💳 Payment features coming soon!',
+    });
   }
 
   private async handleDepositAction(ctx: BotContext, action: string): Promise<void> {
-    await ctx.reply('💰 Deposit features coming soon!');
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: '💰 Deposit features coming soon!',
+    });
   }
 
   private async handleWithdrawalAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
-    await ctx.reply('💸 Withdrawal features coming soon!');
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: '💸 Withdrawal features coming soon!',
+    });
   }
 }

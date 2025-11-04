@@ -1,16 +1,15 @@
 import {
-  Controller,
-  Post,
+  BadRequestException,
   Body,
+  Controller,
   Headers,
-  Logger,
-  UnauthorizedException,
   HttpCode,
   HttpStatus,
-  UseGuards,
-  BadRequestException,
+  Logger,
+  Post,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';

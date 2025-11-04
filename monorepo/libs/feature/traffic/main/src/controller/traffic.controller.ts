@@ -1,9 +1,9 @@
-import { Controller, Get, Post, Body, Param, UseGuards, HttpCode, HttpStatus, Ip } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpCode, HttpStatus, Ip, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiHeader, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId, JwtAuthGuard } from '@app/feature-auth-shared';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
-import { BotTokenValidationDto, BotTokenValidationResponseDto, BotResponseDto } from '@app/feature-traffic-shared';
+import { BotResponseDto, BotTokenValidationDto, BotTokenValidationResponseDto } from '@app/feature-traffic-shared';
 import { TrafficService } from '../service';
 
 /**

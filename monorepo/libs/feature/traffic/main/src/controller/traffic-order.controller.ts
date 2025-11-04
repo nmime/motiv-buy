@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { CurrentUserId, JwtAuthGuard } from '@app/feature-auth-shared';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
 import { AsyncResult } from '@app/common-shared';
@@ -8,8 +8,8 @@ import { Ok } from 'ts-results';
 import {
   CreateTrafficOrderDto,
   TrafficOrderDto,
-  UpdateTrafficOrderDto,
   TrafficOrderResponseDto,
+  UpdateTrafficOrderDto,
 } from '@app/feature-traffic-shared';
 import { TrafficService } from '../service/traffic.service';
 

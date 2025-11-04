@@ -1,10 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, Logger, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { FastifyRequest } from 'fastify';
 import { getErrorMessage } from '@app/common-shared';
 import { BotTokenValidationService } from '../service';
 import { BotTokenValidationDto } from '../dto';
-import { optionalBotTokenKey, requiredBotTokenKey, botTokenOperationKey } from '../decorator';
+import { botTokenOperationKey, optionalBotTokenKey, requiredBotTokenKey } from '../decorator';
 
 /**
  * Bot Token Validation Guard

@@ -1,5 +1,5 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum, Ref } from '@mikro-orm/core';
-import { EntityConstructorData, assignEntityData } from '../type';
+import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Ref, Unique } from '@mikro-orm/core';
+import { assignEntityData, EntityConstructorData } from '../type';
 import { UserEntity } from './User.entity';
 
 export enum SettingType {

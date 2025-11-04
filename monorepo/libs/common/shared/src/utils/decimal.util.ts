@@ -37,8 +37,10 @@ export function isDecimalString(value: unknown): value is DecimalString {
   if (typeof value !== 'string') {
     return false;
   }
+
   try {
     new Decimal(value);
+
     return true;
   } catch {
     return false;
@@ -52,8 +54,10 @@ export function isDecimalValue(value: unknown): value is Decimal.Value {
   if (value === null || value === undefined) {
     return false;
   }
+
   try {
     new Decimal(value as Decimal.Value);
+
     return true;
   } catch {
     return false;
@@ -75,6 +79,7 @@ export function decimalOrNull(value: unknown): Decimal | null {
   if (!isDecimalValue(value)) {
     return null;
   }
+
   try {
     return new Decimal(value);
   } catch {
@@ -112,6 +117,7 @@ export function divide(a: Decimal.Value, b: Decimal.Value): Decimal {
   if (divisor.isZero()) {
     throw new Error('Division by zero');
   }
+
   return new Decimal(a).dividedBy(divisor);
 }
 
@@ -123,6 +129,7 @@ export function percentage(value: Decimal.Value, total: Decimal.Value): Decimal 
   if (totalDecimal.isZero()) {
     return new Decimal(0);
   }
+
   return new Decimal(value).dividedBy(totalDecimal).times(100);
 }
 
@@ -147,6 +154,7 @@ export function max(...values: Decimal.Value[]): Decimal {
   if (values.length === 0) {
     throw new Error('max() requires at least one value');
   }
+
   return Decimal.max(...values);
 }
 
@@ -157,6 +165,7 @@ export function min(...values: Decimal.Value[]): Decimal {
   if (values.length === 0) {
     throw new Error('min() requires at least one value');
   }
+
   return Decimal.min(...values);
 }
 
@@ -164,10 +173,7 @@ export function min(...values: Decimal.Value[]): Decimal {
  * Sum an array of decimal values
  */
 export function sum(values: Decimal.Value[]): Decimal {
-  return values.reduce(
-    (total, value) => total.plus(value),
-    new Decimal(0)
-  );
+  return values.reduce((total: Decimal, value: Decimal.Value) => total.plus(value), new Decimal(0));
 }
 
 /**
@@ -177,6 +183,7 @@ export function average(values: Decimal.Value[]): Decimal {
   if (values.length === 0) {
     throw new Error('average() requires at least one value');
   }
+
   return sum(values).dividedBy(values.length);
 }
 
@@ -278,23 +285,16 @@ export function isNegative(value: Decimal.Value): boolean {
 /**
  * Check if value is within range [min, max] (inclusive)
  */
-export function isInRange(
-  value: Decimal.Value,
-  minValue: Decimal.Value,
-  maxValue: Decimal.Value
-): boolean {
+export function isInRange(value: Decimal.Value, minValue: Decimal.Value, maxValue: Decimal.Value): boolean {
   const dec = new Decimal(value);
+
   return dec.greaterThanOrEqualTo(minValue) && dec.lessThanOrEqualTo(maxValue);
 }
 
 /**
  * Clamp value to range [min, max]
  */
-export function clamp(
-  value: Decimal.Value,
-  minValue: Decimal.Value,
-  maxValue: Decimal.Value
-): Decimal {
+export function clamp(value: Decimal.Value, minValue: Decimal.Value, maxValue: Decimal.Value): Decimal {
   const dec = new Decimal(value);
   const min = new Decimal(minValue);
   const max = new Decimal(maxValue);
@@ -302,9 +302,11 @@ export function clamp(
   if (dec.lessThan(min)) {
     return min;
   }
+
   if (dec.greaterThan(max)) {
     return max;
   }
+
   return dec;
 }
 
@@ -312,19 +314,23 @@ export function clamp(
  * Format decimal for database storage (string with specified decimal places)
  * This matches PostgreSQL decimal(precision, scale) format
  */
-export function toDbString(value: Decimal.Value, decimalPlaces: number = 8): DecimalString {
+export function toDbString(value: Decimal.Value, decimalPlaces = 8): DecimalString {
   return new Decimal(value).toFixed(decimalPlaces);
 }
 
 /**
  * Format decimal for display (string with specified decimal places, no trailing zeros)
  */
-export function toDisplayString(value: Decimal.Value, decimalPlaces: number = 2): string {
+export function toDisplayString(value: Decimal.Value, decimalPlaces = 2): string {
   const dec = new Decimal(value);
   // Round to specified decimal places, then remove trailing zeros using Decimal native methods
   const rounded = dec.toDecimalPlaces(decimalPlaces);
+
   // Convert to string and remove trailing zeros after decimal point
-  return rounded.toString().replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  return rounded
+    .toString()
+    .replace(/(\.\d*?)0+$/, '$1')
+    .replace(/\.$/, '');
 }
 
 /**
@@ -354,17 +360,14 @@ export function fromFloat(value: string | number): Decimal {
  * Helper for currency conversion
  * Converts amount from one currency to another using rates
  */
-export function convertCurrency(
-  amount: Decimal.Value,
-  fromRate: Decimal.Value,
-  toRate: Decimal.Value
-): Decimal {
+export function convertCurrency(amount: Decimal.Value, fromRate: Decimal.Value, toRate: Decimal.Value): Decimal {
   const toRateDecimal = new Decimal(toRate);
   if (toRateDecimal.isZero()) {
     throw new Error('Target currency rate cannot be zero');
   }
 
   const amountInUsd = new Decimal(amount).times(fromRate);
+
   return amountInUsd.dividedBy(toRateDecimal);
 }
 
@@ -387,6 +390,7 @@ export function calculateFee(amount: Decimal.Value, feePercentage: Decimal.Value
  */
 export function deductFee(amount: Decimal.Value, feePercentage: Decimal.Value): Decimal {
   const fee = calculateFee(amount, feePercentage);
+
   return subtract(amount, fee);
 }
 

@@ -1,6 +1,7 @@
 import { MikroORM } from '@mikro-orm/core';
 import { Logger } from '@nestjs/common';
-import { MigrationService, ConfirmationService } from '../service';
+import { ConfirmationService, MigrationService } from '../service';
+
 export class MigrationController {
   private migrationService: MigrationService;
   private confirmationService: ConfirmationService;

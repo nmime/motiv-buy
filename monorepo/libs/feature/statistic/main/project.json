@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/libs/feature/statistic/main",
         "main": "libs/feature/statistic/main/src/index.ts",
@@ -19,26 +21,38 @@
           },
           {
             "name": "typescript-transform-paths/nx-transformer",
-            "options": { "afterDeclarations": true }
+            "options": {
+              "afterDeclarations": true
+            }
           }
         ]
       }
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"],
+      "outputs": [
+        "{options.outputFile}"
+      ],
       "options": {
-        "lintFilePatterns": ["libs/feature/statistic/main/**/*.ts"]
+        "lintFilePatterns": [
+          "libs/feature/statistic/main/**/*.ts"
+        ]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "outputs": [
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
       "options": {
         "jestConfig": "libs/feature/statistic/main/jest.config.ts",
         "passWithNoTests": true
       }
     }
   },
-  "tags": ["scope:statistic", "type:feature", "layer:main"]
+  "tags": [
+    "scope:statistic",
+    "type:feature",
+    "layer:main"
+  ]
 }

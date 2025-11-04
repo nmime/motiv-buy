@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsPositive, IsDateString } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsPositive } from 'class-validator';
 
 export enum TransactionType {
   Deposit = 'deposit',

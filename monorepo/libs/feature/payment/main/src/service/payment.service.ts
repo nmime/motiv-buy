@@ -1,24 +1,24 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
-import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared/util';
-import { CryptoBotProvider } from '../provider/crypto-bot.provider';
+import { add, AsyncResult, decimal, Err, lessThan, Ok, subtract, toDbString, toError } from '@app/common-shared';
+import { PaymentProviderRegistry } from '../provider/provider-registry.service';
+import { I18nService } from 'nestjs-i18n';
 import {
-  UserBalanceRepository,
   CurrencyCode,
-  PaymentTransactionEntity,
-  PaymentType,
   PaymentProvider,
   PaymentStatus,
+  PaymentTransactionEntity,
+  PaymentType,
+  UserBalanceRepository,
 } from '@app/database';
 import {
   CreateInvoiceDto,
   CreateTransferDto,
-  WebhookUpdateDto,
+  Cryptocurrency,
   InvoiceResponseDto,
   TransferResponseDto,
-  Cryptocurrency,
+  WebhookUpdateDto,
 } from '@app/feature-payment-shared';
 
 /**
@@ -52,9 +52,10 @@ export class PaymentService {
   constructor(
     @InjectRepository(PaymentTransactionEntity)
     private readonly transactionRepository: EntityRepository<PaymentTransactionEntity>,
-    private readonly provider: CryptoBotProvider,
+    private readonly providerRegistry: PaymentProviderRegistry,
     private readonly userBalanceRepository: UserBalanceRepository,
     private readonly em: EntityManager,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -68,8 +69,12 @@ export class PaymentService {
       // Map CurrencyCode to Cryptocurrency for provider
       const cryptocurrency = this.mapCurrencyCodeToCryptocurrency(dto.currency);
 
-      // Create invoice via payment provider
-      const invoiceResult = await this.provider.createInvoice({
+      // Select payment provider based on currency or user preference
+      const providerType = this.selectProviderForTopUp(dto.provider, cryptocurrency);
+      const provider = this.providerRegistry.getProvider(providerType);
+
+      // Create invoice via selected payment provider
+      const invoiceResult = await provider.createInvoice({
         userId,
         amount: dto.amount,
         currency: cryptocurrency,
@@ -89,7 +94,7 @@ export class PaymentService {
       const transaction = this.transactionRepository.create({
         userId,
         type: PaymentType.TopUp,
-        provider: PaymentProvider.CryptoBot,
+        provider: providerType,
         providerTransactionId: invoice.invoiceId,
         amount: dto.amount,
         currency: cryptocurrency,
@@ -99,6 +104,7 @@ export class PaymentService {
         expiresAt: invoice.expiresAt,
         metadata: {
           expiresIn: dto.expiresIn,
+          providerName: this.providerRegistry.getProviderName(providerType),
         },
       });
 
@@ -127,54 +133,6 @@ export class PaymentService {
   }
 
   /**
-   * Map cryptocurrency enum to CurrencyType for balance operations
-   * This ensures we check/deduct the correct currency balance
-   */
-  private mapCryptocurrencyToCurrencyCode(crypto: string): CurrencyCode {
-    // Direct mapping for supported currencies
-    const mapping: Record<string, CurrencyCode> = {
-      USDT: CurrencyCode.Usdt,
-      TON: CurrencyCode.Ton,
-      BTC: CurrencyCode.Btc,
-      ETH: CurrencyCode.Eth,
-      BNB: CurrencyCode.Bnb,
-      TRX: CurrencyCode.Trx,
-      USDC: CurrencyCode.Usdc,
-      RUB: CurrencyCode.Rub,
-    };
-
-    const currencyCode = mapping[crypto.toUpperCase()];
-    if (!currencyCode) {
-      throw new Error(`Unsupported cryptocurrency: ${crypto}`);
-    }
-
-    return currencyCode;
-  }
-
-  /**
-   * Map CurrencyCode to Cryptocurrency for provider API calls
-   * This converts domain model currency to provider-specific cryptocurrency enum
-   */
-  private mapCurrencyCodeToCryptocurrency(code: CurrencyCode): Cryptocurrency {
-    const mapping: Partial<Record<CurrencyCode, Cryptocurrency>> = {
-      [CurrencyCode.Usdt]: Cryptocurrency.Usdt,
-      [CurrencyCode.Ton]: Cryptocurrency.Ton,
-      [CurrencyCode.Btc]: Cryptocurrency.Btc,
-      [CurrencyCode.Eth]: Cryptocurrency.Eth,
-      [CurrencyCode.Bnb]: Cryptocurrency.Bnb,
-      [CurrencyCode.Trx]: Cryptocurrency.Trx,
-      [CurrencyCode.Usdc]: Cryptocurrency.Usdc,
-    };
-
-    const crypto = mapping[code];
-    if (!crypto) {
-      throw new Error(`Currency code ${code} is not supported for cryptocurrency payments`);
-    }
-
-    return crypto;
-  }
-
-  /**
    * Create withdrawal transfer for user
    * Validates balance, deducts amount, and initiates transfer
    *
@@ -194,6 +152,10 @@ export class PaymentService {
 
       // Map CurrencyCode to Cryptocurrency for provider
       const cryptocurrency = this.mapCurrencyCodeToCryptocurrency(dto.currency);
+
+      // Select payment provider based on currency or user preference
+      const providerType = this.selectProviderForWithdrawal(dto.provider, cryptocurrency);
+      const provider = this.providerRegistry.getProvider(providerType);
 
       // Use database transaction with pessimistic locking to prevent race conditions
       const result = await this.em.transactional(async (em) => {
@@ -224,7 +186,7 @@ export class PaymentService {
         balanceBeforeTransaction = (balanceEntity as any).balance;
 
         if (!balanceBeforeTransaction) {
-          throw new Error('Balance data is invalid');
+          throw new Error(this.i18n.t('common.errors.balance_invalid'));
         }
 
         const availableAmount = decimal(balanceBeforeTransaction);
@@ -243,7 +205,7 @@ export class PaymentService {
 
         // Create transfer via payment provider BEFORE deducting balance
         // This ensures we don't deduct if provider rejects the transfer
-        const transferResult = await this.provider.createTransfer({
+        const transferResult = await provider.createTransfer({
           userId: dto.userId,
           amount: dto.amount,
           currency: cryptocurrency,
@@ -267,7 +229,7 @@ export class PaymentService {
         const transaction = em.create(PaymentTransactionEntity, {
           userId,
           type: PaymentType.Withdraw,
-          provider: PaymentProvider.CryptoBot,
+          provider: providerType,
           providerTransactionId: transfer.transferId,
           amount: dto.amount,
           currency: cryptocurrency,
@@ -434,7 +396,7 @@ export class PaymentService {
       }
 
       // Get status from provider
-      const providerResult = await this.provider.getInvoice(invoiceId);
+      const providerResult = await this.providerRegistry.getProvider(transaction.provider).getInvoice(invoiceId);
 
       if (providerResult.err) {
         this.logger.error('Failed to get invoice from provider', providerResult.val);
@@ -509,6 +471,133 @@ export class PaymentService {
 
       return Err(toError(error));
     }
+  }
+
+  /**
+   * Sync transaction status from payment provider
+   * Manually synchronize status when needed
+   */
+  async syncTransactionStatus(transactionId: string): AsyncResult<PaymentTransactionEntity, Error> {
+    try {
+      this.logger.log(`Syncing transaction status: ${transactionId}`);
+
+      const transaction = await this.transactionRepository.findOne({
+        id: transactionId,
+      });
+
+      if (!transaction) {
+        this.logger.warn(`Transaction not found: ${transactionId}`);
+
+        return Err(new NotFoundException(`Transaction not found: ${transactionId}`));
+      }
+
+      if (!transaction.providerTransactionId) {
+        this.logger.warn(`No provider transaction ID for: ${transactionId}`);
+
+        return Err(new Error(this.i18n.t('common.errors.no_provider_transaction_id')));
+      }
+
+      // Get latest status based on transaction type
+      let providerResult;
+      const provider = this.providerRegistry.getProvider(transaction.provider);
+
+      if (transaction.type === PaymentType.TopUp) {
+        providerResult = await provider.getInvoice(transaction.providerTransactionId);
+      } else {
+        providerResult = await provider.getTransfer(transaction.providerTransactionId);
+      }
+
+      if (providerResult.err) {
+        this.logger.error('Failed to get status from provider', providerResult.val);
+
+        return Err(toError(providerResult.val || 'Failed to sync transaction status'));
+      }
+
+      const providerTransaction = providerResult.val;
+
+      // Update if status changed
+      if (transaction.status !== providerTransaction.status) {
+        const oldStatus = transaction.status;
+        transaction.status = providerTransaction.status;
+
+        if ('paidAt' in providerTransaction && providerTransaction.paidAt) {
+          transaction.paidAt = providerTransaction.paidAt;
+        }
+
+        if ('completedAt' in providerTransaction && providerTransaction.completedAt) {
+          transaction.paidAt = providerTransaction.completedAt;
+        }
+
+        transaction.fee = providerTransaction.fee || null;
+
+        await this.em.flush();
+
+        this.logger.log(`Transaction status synced: ${transactionId} (${oldStatus} -> ${transaction.status})`);
+
+        // Handle balance updates for completed top-ups
+        if (
+          transaction.type === PaymentType.TopUp &&
+          transaction.status === PaymentStatus.Completed &&
+          !transaction.metadata?.['balanceCredited']
+        ) {
+          await this.creditUserBalance(transaction);
+        }
+      }
+
+      return Ok(transaction);
+    } catch (error) {
+      this.logger.error(`Error syncing transaction status ${transactionId}`, error);
+
+      return Err(toError(error));
+    }
+  }
+
+  /**
+   * Map cryptocurrency enum to CurrencyType for balance operations
+   * This ensures we check/deduct the correct currency balance
+   */
+  private mapCryptocurrencyToCurrencyCode(crypto: string): CurrencyCode {
+    // Direct mapping for supported currencies
+    const mapping: Record<string, CurrencyCode> = {
+      USDT: CurrencyCode.Usdt,
+      TON: CurrencyCode.Ton,
+      BTC: CurrencyCode.Btc,
+      ETH: CurrencyCode.Eth,
+      BNB: CurrencyCode.Bnb,
+      TRX: CurrencyCode.Trx,
+      USDC: CurrencyCode.Usdc,
+      RUB: CurrencyCode.Rub,
+    };
+
+    const currencyCode = mapping[crypto.toUpperCase()];
+    if (!currencyCode) {
+      throw new Error(`Unsupported cryptocurrency: ${crypto}`);
+    }
+
+    return currencyCode;
+  }
+
+  /**
+   * Map CurrencyCode to Cryptocurrency for provider API calls
+   * This converts domain model currency to provider-specific cryptocurrency enum
+   */
+  private mapCurrencyCodeToCryptocurrency(code: CurrencyCode): Cryptocurrency {
+    const mapping: Partial<Record<CurrencyCode, Cryptocurrency>> = {
+      [CurrencyCode.Usdt]: Cryptocurrency.Usdt,
+      [CurrencyCode.Ton]: Cryptocurrency.Ton,
+      [CurrencyCode.Btc]: Cryptocurrency.Btc,
+      [CurrencyCode.Eth]: Cryptocurrency.Eth,
+      [CurrencyCode.Bnb]: Cryptocurrency.Bnb,
+      [CurrencyCode.Trx]: Cryptocurrency.Trx,
+      [CurrencyCode.Usdc]: Cryptocurrency.Usdc,
+    };
+
+    const crypto = mapping[code];
+    if (!crypto) {
+      throw new Error(`Currency code ${code} is not supported for cryptocurrency payments`);
+    }
+
+    return crypto;
   }
 
   /**
@@ -873,83 +962,6 @@ export class PaymentService {
   }
 
   /**
-   * Sync transaction status from payment provider
-   * Manually synchronize status when needed
-   */
-  async syncTransactionStatus(transactionId: string): AsyncResult<PaymentTransactionEntity, Error> {
-    try {
-      this.logger.log(`Syncing transaction status: ${transactionId}`);
-
-      const transaction = await this.transactionRepository.findOne({
-        id: transactionId,
-      });
-
-      if (!transaction) {
-        this.logger.warn(`Transaction not found: ${transactionId}`);
-
-        return Err(new NotFoundException(`Transaction not found: ${transactionId}`));
-      }
-
-      if (!transaction.providerTransactionId) {
-        this.logger.warn(`No provider transaction ID for: ${transactionId}`);
-
-        return Err(new Error('Transaction has no provider transaction ID'));
-      }
-
-      // Get latest status based on transaction type
-      let providerResult;
-      if (transaction.type === PaymentType.TopUp) {
-        providerResult = await this.provider.getInvoice(transaction.providerTransactionId);
-      } else {
-        providerResult = await this.provider.getTransfer(transaction.providerTransactionId);
-      }
-
-      if (providerResult.err) {
-        this.logger.error('Failed to get status from provider', providerResult.val);
-
-        return Err(toError(providerResult.val || 'Failed to sync transaction status'));
-      }
-
-      const providerTransaction = providerResult.val;
-
-      // Update if status changed
-      if (transaction.status !== providerTransaction.status) {
-        const oldStatus = transaction.status;
-        transaction.status = providerTransaction.status;
-
-        if ('paidAt' in providerTransaction && providerTransaction.paidAt) {
-          transaction.paidAt = providerTransaction.paidAt;
-        }
-
-        if ('completedAt' in providerTransaction && providerTransaction.completedAt) {
-          transaction.paidAt = providerTransaction.completedAt;
-        }
-
-        transaction.fee = providerTransaction.fee || null;
-
-        await this.em.flush();
-
-        this.logger.log(`Transaction status synced: ${transactionId} (${oldStatus} -> ${transaction.status})`);
-
-        // Handle balance updates for completed top-ups
-        if (
-          transaction.type === PaymentType.TopUp &&
-          transaction.status === PaymentStatus.Completed &&
-          !transaction.metadata?.['balanceCredited']
-        ) {
-          await this.creditUserBalance(transaction);
-        }
-      }
-
-      return Ok(transaction);
-    } catch (error) {
-      this.logger.error(`Error syncing transaction status ${transactionId}`, error);
-
-      return Err(toError(error));
-    }
-  }
-
-  /**
    * Credit user balance after successful payment
    * Internal helper method with idempotency check and pessimistic locking to prevent race conditions
    *
@@ -987,13 +999,12 @@ export class PaymentService {
         const currencyCode = this.mapCryptocurrencyToCurrencyCode(lockedTransaction.currency);
 
         // Get current balance in the correct currency
-        const balance = await this.userBalanceRepository.findByUserAndCurrency(
-          lockedTransaction.userId,
-          currencyCode,
-        );
+        const balance = await this.userBalanceRepository.findByUserAndCurrency(lockedTransaction.userId, currencyCode);
 
         if (!balance) {
-          throw new Error(`Balance not found for user ${lockedTransaction.userId} in currency ${lockedTransaction.currency}`);
+          throw new Error(
+            `Balance not found for user ${lockedTransaction.userId} in currency ${lockedTransaction.currency}`,
+          );
         }
 
         const creditAmount = decimal(lockedTransaction.amount);
@@ -1021,5 +1032,130 @@ export class PaymentService {
       this.logger.error(`Failed to credit balance for transaction: ${transaction.id}`, error);
       throw error;
     }
+  }
+
+  /**
+   * Select payment provider for top-up based on currency and preferences
+   *
+   * @param preferredProvider User's preferred provider (optional)
+   * @param cryptocurrency Currency to be used
+   * @returns Selected payment provider
+   */
+  private selectProviderForTopUp(
+    preferredProvider: PaymentProvider | undefined,
+    cryptocurrency: Cryptocurrency,
+  ): PaymentProvider {
+    // If user specified a preference, use it
+    if (preferredProvider) {
+      this.logger.debug(`Using user-preferred provider: ${preferredProvider} for ${cryptocurrency}`);
+
+      return preferredProvider;
+    }
+
+    // Select provider based on currency support
+    // CryptoBot: Best for cryptocurrencies
+    if (this.isCryptoCurrency(cryptocurrency)) {
+      // For crypto currencies, prefer CryptoBot
+      this.logger.debug(`Selected CryptoBot for crypto currency: ${cryptocurrency}`);
+
+      return PaymentProvider.CryptoBot;
+    }
+
+    // For fiat currencies, prefer YooKassa (RUB) or Heleket (other currencies)
+    if (cryptocurrency === Cryptocurrency.Rub) {
+      this.logger.debug(`Selected YooKassa for RUB currency`);
+
+      return PaymentProvider.YooKassa;
+    }
+
+    // Default to CryptoBot for unknown/other currencies
+    this.logger.debug(`Defaulting to CryptoBot for currency: ${cryptocurrency}`);
+
+    return PaymentProvider.CryptoBot;
+  }
+
+  /**
+   * Select payment provider for withdrawal based on currency and preferences
+   *
+   * @param preferredProvider User's preferred provider (optional)
+   * @param cryptocurrency Currency to be used
+   * @returns Selected payment provider
+   */
+  private selectProviderForWithdrawal(
+    preferredProvider: PaymentProvider | undefined,
+    cryptocurrency: Cryptocurrency,
+  ): PaymentProvider {
+    // If user specified a preference, validate it
+    if (preferredProvider) {
+      // Check if provider supports withdrawals for this currency
+      if (!this.providerSupportsWithdrawal(preferredProvider, cryptocurrency)) {
+        this.logger.warn(
+          `Provider ${preferredProvider} doesn't support withdrawals for ${cryptocurrency}, using default`,
+        );
+      } else {
+        this.logger.debug(`Using user-preferred provider: ${preferredProvider} for ${cryptocurrency}`);
+
+        return preferredProvider;
+      }
+    }
+
+    // Select provider based on currency support
+    // CryptoBot: Supports crypto withdrawals
+    if (this.isCryptoCurrency(cryptocurrency)) {
+      this.logger.debug(`Selected CryptoBot for crypto withdrawal: ${cryptocurrency}`);
+
+      return PaymentProvider.CryptoBot;
+    }
+
+    // For fiat currencies, check if YooKassa supports withdrawals (usually not)
+    if (cryptocurrency === Cryptocurrency.Rub) {
+      // YooKassa doesn't typically support withdrawals
+      this.logger.warn(`YooKassa doesn't support withdrawals, using CryptoBot instead`);
+
+      return PaymentProvider.CryptoBot;
+    }
+
+    // Default to CryptoBot
+    this.logger.debug(`Defaulting to CryptoBot for withdrawal: ${cryptocurrency}`);
+
+    return PaymentProvider.CryptoBot;
+  }
+
+  /**
+   * Check if a cryptocurrency is a crypto currency (not fiat)
+   *
+   * @param currency Currency to check
+   * @returns True if it's a crypto currency
+   */
+  private isCryptoCurrency(currency: Cryptocurrency): boolean {
+    const fiatCurrencies = [Cryptocurrency.Rub];
+
+    return !fiatCurrencies.includes(currency);
+  }
+
+  /**
+   * Check if provider supports withdrawals for a specific currency
+   *
+   * @param provider Payment provider
+   * @param currency Currency
+   * @returns True if supported
+   */
+  private providerSupportsWithdrawal(provider: PaymentProvider, currency: Cryptocurrency): boolean {
+    // CryptoBot supports crypto withdrawals
+    if (provider === PaymentProvider.CryptoBot && this.isCryptoCurrency(currency)) {
+      return true;
+    }
+
+    // YooKassa doesn't support withdrawals
+    if (provider === PaymentProvider.YooKassa) {
+      return false;
+    }
+
+    // Heleket - depends on implementation, assume false for now
+    if (provider === PaymentProvider.Heleket) {
+      return false; // Change to true when implemented
+    }
+
+    return false;
   }
 }

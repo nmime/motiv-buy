@@ -6,18 +6,16 @@
  */
 
 import {
-  Ok,
-  Err,
-  Result,
-  AsyncResult,
-  DomainResult,
-  AsyncDomainResult,
-  ValidationError,
-  NotFoundError,
-  UnauthorizedError,
-  match,
   andThen,
+  AsyncDomainResult,
+  Err,
   map,
+  match,
+  NotFoundError,
+  Ok,
+  Result,
+  UnauthorizedError,
+  ValidationError,
 } from '@app/common-shared';
 
 // ============================================================================
@@ -29,6 +27,7 @@ function parseNumber(input: string): Result<number, string> {
   if (isNaN(num)) {
     return Err(`Invalid number: ${input}`);
   }
+
   return Ok(num);
 }
 
@@ -48,12 +47,18 @@ if (result2.err) {
 // ============================================================================
 
 function divide(a: number, b: number): Result<number, string> {
-  if (b === 0) return Err('Division by zero');
+  if (b === 0) {
+    return Err('Division by zero');
+  }
+
   return Ok(a / b);
 }
 
 function sqrt(n: number): Result<number, string> {
-  if (n < 0) return Err('Cannot take square root of negative number');
+  if (n < 0) {
+    return Err('Cannot take square root of negative number');
+  }
+
   return Ok(Math.sqrt(n));
 }
 

@@ -1,17 +1,17 @@
 import {
-  CreateBotDto,
-  BotValidationDto,
-  BotCreationResponseDto,
-  BotSettingsDto,
-  UpdateBotSettingsDto,
-  BotActionDto,
-  BotResponseDto,
-  CreateTrafficOrderDto,
-  TrafficOrderResponseDto,
-  UpdateTrafficOrderDto,
   AvailableTrafficDto,
+  BotActionDto,
+  BotCreationResponseDto,
+  BotResponseDto,
+  BotSettingsDto,
   BotTokenValidationDto,
   BotTokenValidationResponseDto,
+  BotValidationDto,
+  CreateBotDto,
+  CreateTrafficOrderDto,
+  TrafficOrderResponseDto,
+  UpdateBotSettingsDto,
+  UpdateTrafficOrderDto,
 } from '../dto';
 
 export interface ITrafficService {

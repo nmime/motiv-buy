@@ -8,9 +8,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import { UserEntity, UserSettingsEntity, SettingType, NotificationType } from '@app/database';
+import { SettingType, UserEntity, UserSettingsEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { BotValidationUtil } from '../util/bot-validation.util';
+import { MessageService } from '../service/message.service';
 
 interface UserPreferences {
   language: string;
@@ -36,6 +37,7 @@ export class SettingsActionHandler {
   constructor(
     private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -44,7 +46,7 @@ export class SettingsActionHandler {
   async handleSettingsView(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -52,7 +54,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -61,7 +63,11 @@ export class SettingsActionHandler {
       const settingsText = this.formatSettingsView(preferences);
       const keyboard = this.menuHandler.createSettingsMenuKeyboard();
 
-      await ctx.replyWithHTML(settingsText, { reply_markup: keyboard });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: settingsText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
 
       this.logger.log('Settings viewed', { userId: user.id });
     } catch (error) {
@@ -75,7 +81,7 @@ export class SettingsActionHandler {
   async handleLanguageSettings(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -83,7 +89,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -105,7 +111,7 @@ export class SettingsActionHandler {
   async handleLanguageChange(ctx: BotContext, languageCode: string): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -119,7 +125,7 @@ export class SettingsActionHandler {
       });
 
       if (!validation.isValid || !this.SUPPORTED_LANGUAGES.includes(validation.sanitized as string)) {
-        await ctx.reply('❌ Invalid language code.');
+        await ctx.reply(ctx.t('common.errors.invalid_input'));
 
         return;
       }
@@ -127,7 +133,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -152,7 +158,7 @@ export class SettingsActionHandler {
   async handleNotificationSettings(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -160,7 +166,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -181,7 +187,7 @@ export class SettingsActionHandler {
   async handleNotificationToggle(ctx: BotContext, notificationType: string): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -189,14 +195,14 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
 
       await this.toggleNotification(user.id, notificationType);
 
-      await ctx.answerCallbackQuery('✅ Notification setting updated!');
+      await ctx.answerCallbackQuery(ctx.t('common.success.updated'));
 
       // Refresh notification settings view
       await this.handleNotificationSettings(ctx);
@@ -216,7 +222,7 @@ export class SettingsActionHandler {
   async handlePreferencesSettings(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -244,7 +250,7 @@ export class SettingsActionHandler {
   async handlePrivacySettings(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -252,7 +258,7 @@ export class SettingsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }

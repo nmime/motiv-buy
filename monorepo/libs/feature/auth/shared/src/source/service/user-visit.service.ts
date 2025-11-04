@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { UserSourceVisitEntity, UserSourceVisitRepository } from '@app/database';
-import { SourceParameters, GetSourceParamsService } from './get-source-params.service';
+import { GetSourceParamsService, SourceParameters } from './get-source-params.service';
 import { GetUserRefLinkService } from './get-user-ref-link.service';
 import { SourceRegisterService, VisitDataParams } from './source-register.service';
 import { getGeoByIp } from '../util';
