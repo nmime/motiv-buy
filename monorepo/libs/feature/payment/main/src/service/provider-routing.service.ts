@@ -147,7 +147,7 @@ export class ProviderRoutingService {
 
         // Rule matches, get the provider
         if (rule.provider) {
-          const provider = rule.provider.provider;
+          const provider = rule.provider.unwrap().provider;
 
           // Validate provider supports this operation
           const isValid = await this.validateProvider(provider, context.currency, context.operation);
@@ -167,7 +167,7 @@ export class ProviderRoutingService {
           const fallbackRule = await this.routingRuleRepo.findFallbackRule(rule.id);
 
           if (fallbackRule && fallbackRule.provider) {
-            const provider = fallbackRule.provider.provider;
+            const provider = fallbackRule.provider.unwrap().provider;
             const isValid = await this.validateProvider(provider, context.currency, context.operation);
 
             if (isValid) {
@@ -201,7 +201,7 @@ export class ProviderRoutingService {
       }
 
       // Get the first (highest priority) provider
-      const provider = supports[0].provider.provider;
+      const provider = supports[0].provider.unwrap().provider;
 
       this.logger.log(`Provider ${provider} selected by currency support (priority: ${supports[0].routingPriority})`);
 
@@ -222,7 +222,7 @@ export class ProviderRoutingService {
       const defaultRule = await this.routingRuleRepo.findDefaultRule();
 
       if (defaultRule && defaultRule.provider) {
-        const provider = defaultRule.provider.provider;
+        const provider = defaultRule.provider.unwrap().provider;
 
         this.logger.log(`Using default provider from rule: ${provider}`);
 
@@ -314,7 +314,7 @@ export class ProviderRoutingService {
         ? await this.currencySupportRepo.findDepositProviders(currency)
         : await this.currencySupportRepo.findWithdrawalProviders(currency);
 
-      return supports.map((s) => s.provider.provider);
+      return supports.map((s) => s.provider.unwrap().provider);
     } catch (error) {
       this.logger.error('Error getting available providers', error);
 
@@ -329,7 +329,7 @@ export class ProviderRoutingService {
     try {
       const support = await this.currencySupportRepo.findBestProvider(currency, 'lowest_fee');
 
-      return support?.provider.provider || null;
+      return support?.provider.unwrap().provider || null;
     } catch (error) {
       this.logger.error('Error getting cheapest provider', error);
 
@@ -344,7 +344,7 @@ export class ProviderRoutingService {
     try {
       const support = await this.currencySupportRepo.findBestProvider(currency, 'fastest');
 
-      return support?.provider.provider || null;
+      return support?.provider.unwrap().provider || null;
     } catch (error) {
       this.logger.error('Error getting fastest provider', error);
 
@@ -359,7 +359,7 @@ export class ProviderRoutingService {
     try {
       const support = await this.currencySupportRepo.findBestProvider(currency, 'most_reliable');
 
-      return support?.provider.provider || null;
+      return support?.provider.unwrap().provider || null;
     } catch (error) {
       this.logger.error('Error getting most reliable provider', error);
 

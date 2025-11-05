@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
-import { decimal, toDbString } from '@app/common-shared/util';
+import { decimal, toDbString } from '@app/common-shared';
 import {
   Cryptocurrency,
   IPaymentProvider,

@@ -8,4 +8,5 @@ export {
   PaymentWebhookConfig,
   PaymentFeatureFlags,
   PaymentLimitsConfig,
+  PaymentUpdateStrategy,
 } from './payment-config.interface';
