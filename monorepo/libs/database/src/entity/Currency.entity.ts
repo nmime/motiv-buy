@@ -27,6 +27,14 @@ export enum CurrencyCode {
   Bnb = 'BNB',
   Trx = 'TRX',
   Usdc = 'USDC',
+
+  // Additional cryptocurrencies
+  Ltc = 'LTC',
+  Doge = 'DOGE',
+  Dai = 'DAI',
+  Dash = 'DASH',
+  Bch = 'BCH',
+  Sol = 'SOL',
 }
 
 /**

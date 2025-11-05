@@ -332,6 +332,12 @@ export class CurrencyRateService implements OnModuleInit {
       [CurrencyCode.Bnb]: 'binancecoin',
       [CurrencyCode.Ton]: 'the-open-network',
       [CurrencyCode.Trx]: 'tron',
+      [CurrencyCode.Ltc]: 'litecoin',
+      [CurrencyCode.Doge]: 'dogecoin',
+      [CurrencyCode.Dai]: 'dai',
+      [CurrencyCode.Dash]: 'dash',
+      [CurrencyCode.Bch]: 'bitcoin-cash',
+      [CurrencyCode.Sol]: 'solana',
     };
 
     await this.retryWithBackoff(async () => {
@@ -444,7 +450,7 @@ export class CurrencyRateService implements OnModuleInit {
       return;
     }
 
-    const symbols = ['BTC', 'ETH', 'USDT', 'USDC', 'BNB', 'TON', 'TRX'];
+    const symbols = ['BTC', 'ETH', 'USDT', 'USDC', 'BNB', 'TON', 'TRX', 'LTC', 'DOGE', 'DAI', 'DASH', 'BCH', 'SOL'];
 
     await this.retryWithBackoff(async () => {
       const fsyms = symbols.join(',');
@@ -505,6 +511,12 @@ export class CurrencyRateService implements OnModuleInit {
       'binance-coin': CurrencyCode.Bnb,
       'toncoin': CurrencyCode.Ton,
       'tron': CurrencyCode.Trx,
+      'litecoin': CurrencyCode.Ltc,
+      'dogecoin': CurrencyCode.Doge,
+      'multi-collateral-dai': CurrencyCode.Dai,
+      'dash': CurrencyCode.Dash,
+      'bitcoin-cash': CurrencyCode.Bch,
+      'solana': CurrencyCode.Sol,
     };
 
     await this.retryWithBackoff(async () => {
@@ -821,6 +833,12 @@ export class CurrencyRateService implements OnModuleInit {
       CurrencyCode.Bnb,
       CurrencyCode.Ton,
       CurrencyCode.Trx,
+      CurrencyCode.Ltc,
+      CurrencyCode.Doge,
+      CurrencyCode.Dai,
+      CurrencyCode.Dash,
+      CurrencyCode.Bch,
+      CurrencyCode.Sol,
     ];
 
     const fiatCurrencies = [CurrencyCode.Eur, CurrencyCode.Rub];
@@ -934,6 +952,12 @@ export class CurrencyRateService implements OnModuleInit {
       },
       { code: CurrencyCode.Ton, name: 'Toncoin', type: CurrencyType.Crypto, rate: '2.5', symbol: 'TON', decimals: 8 },
       { code: CurrencyCode.Trx, name: 'Tron', type: CurrencyType.Crypto, rate: '0.10', symbol: 'TRX', decimals: 6 },
+      { code: CurrencyCode.Ltc, name: 'Litecoin', type: CurrencyType.Crypto, rate: '70', symbol: 'LTC', decimals: 8 },
+      { code: CurrencyCode.Doge, name: 'Dogecoin', type: CurrencyType.Crypto, rate: '0.08', symbol: 'DOGE', decimals: 8 },
+      { code: CurrencyCode.Dai, name: 'DAI', type: CurrencyType.Crypto, rate: '1.0', symbol: 'DAI', decimals: 6 },
+      { code: CurrencyCode.Dash, name: 'Dash', type: CurrencyType.Crypto, rate: '30', symbol: 'DASH', decimals: 8 },
+      { code: CurrencyCode.Bch, name: 'Bitcoin Cash', type: CurrencyType.Crypto, rate: '350', symbol: 'BCH', decimals: 8 },
+      { code: CurrencyCode.Sol, name: 'Solana', type: CurrencyType.Crypto, rate: '100', symbol: 'SOL', decimals: 9 },
     ];
 
     // Process currencies in parallel

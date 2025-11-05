@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
 import { decimal, toDbString } from '@app/common-shared/util';
+import { CurrencyCode } from '@app/database';
+import { CurrencyRateService } from '@app/feature-balance-main';
 import {
   Cryptocurrency,
   IPaymentProvider,
@@ -109,7 +111,10 @@ export class YooKassaProvider implements IPaymentProvider {
   private readonly maxRetries: number;
   private readonly testMode: boolean;
 
-  constructor(private readonly paymentConfig: PaymentConfigService) {
+  constructor(
+    private readonly paymentConfig: PaymentConfigService,
+    private readonly currencyRateService: CurrencyRateService,
+  ) {
     const config = this.paymentConfig.getYooKassaConfig();
     this.shopId = config.shopId;
     this.secretKey = config.secretKey;
@@ -212,8 +217,8 @@ export class YooKassaProvider implements IPaymentProvider {
     try {
       this.logger.log(`Creating YooKassa payment for user ${params.userId}: ${params.amount} ${params.currency}`);
 
-      // Convert cryptocurrency to RUB fiat amount
-      const rubAmount = this.convertCryptoToRub(params.amount, params.currency);
+      // Convert cryptocurrency to RUB fiat amount using real-time rates
+      const rubAmount = await this.convertCryptoToRub(params.amount, params.currency);
 
       const requestParams: Record<string, unknown> = {
         amount: {
@@ -342,8 +347,8 @@ export class YooKassaProvider implements IPaymentProvider {
     try {
       this.logger.log(`Creating YooKassa payout for user ${params.userId}: ${params.amount} ${params.currency}`);
 
-      // Convert cryptocurrency to RUB fiat amount
-      const rubAmount = this.convertCryptoToRub(params.amount, params.currency);
+      // Convert cryptocurrency to RUB fiat amount using real-time rates
+      const rubAmount = await this.convertCryptoToRub(params.amount, params.currency);
 
       const requestParams: Record<string, unknown> = {
         amount: {
@@ -471,31 +476,56 @@ export class YooKassaProvider implements IPaymentProvider {
   }
 
   /**
-   * Convert cryptocurrency amount to RUB
-   * In production, this should use real-time exchange rates
+   * Convert cryptocurrency amount to RUB using real-time exchange rates
+   * Uses CurrencyRateService to fetch current rates from multiple providers
    */
-  private convertCryptoToRub(amount: string, currency: Cryptocurrency): string {
-    // Placeholder exchange rates (RUB per unit)
-    const EXCHANGE_RATES: Record<string, string> = {
-      USDT: '95.5',
-      TON: '200.0',
-      BTC: '6500000.0',
-      ETH: '350000.0',
-      BNB: '45000.0',
-      TRX: '15.0',
-      USDC: '95.5',
+  private async convertCryptoToRub(amount: string, currency: Cryptocurrency): Promise<string> {
+    try {
+      // Map Cryptocurrency enum to CurrencyCode enum
+      const currencyCode = this.mapCryptocurrencyToCurrencyCode(currency);
+
+      // Use CurrencyRateService to get real-time conversion
+      const result = await this.currencyRateService.convertAmount(amount, currencyCode, CurrencyCode.Rub);
+
+      if (result.err) {
+        this.logger.error(`Failed to get exchange rate for ${currency} to RUB`, result.val);
+        throw new Error(`Failed to get exchange rate: ${result.val.message}`);
+      }
+
+      return result.val;
+    } catch (error) {
+      this.logger.error(`Error converting ${currency} to RUB`, toError(error));
+      throw error;
+    }
+  }
+
+  /**
+   * Map Cryptocurrency enum to CurrencyCode enum
+   */
+  private mapCryptocurrencyToCurrencyCode(cryptocurrency: Cryptocurrency): CurrencyCode {
+    const CURRENCY_MAP: Record<Cryptocurrency, CurrencyCode> = {
+      [Cryptocurrency.Usdt]: CurrencyCode.Usdt,
+      [Cryptocurrency.Ton]: CurrencyCode.Ton,
+      [Cryptocurrency.Btc]: CurrencyCode.Btc,
+      [Cryptocurrency.Eth]: CurrencyCode.Eth,
+      [Cryptocurrency.Bnb]: CurrencyCode.Bnb,
+      [Cryptocurrency.Trx]: CurrencyCode.Trx,
+      [Cryptocurrency.Usdc]: CurrencyCode.Usdc,
+      [Cryptocurrency.Ltc]: CurrencyCode.Ltc,
+      [Cryptocurrency.Doge]: CurrencyCode.Doge,
+      [Cryptocurrency.Dai]: CurrencyCode.Dai,
+      [Cryptocurrency.Dash]: CurrencyCode.Dash,
+      [Cryptocurrency.Bch]: CurrencyCode.Bch,
+      [Cryptocurrency.Sol]: CurrencyCode.Sol,
+      [Cryptocurrency.Jet]: CurrencyCode.Usdt, // JET maps to USDT as fallback
     };
 
-    const rate = EXCHANGE_RATES[currency];
-    if (!rate) {
-      throw new Error(`Unsupported currency for conversion: ${currency}`);
+    const currencyCode = CURRENCY_MAP[cryptocurrency];
+    if (!currencyCode) {
+      throw new Error(`Unsupported cryptocurrency for conversion: ${cryptocurrency}`);
     }
 
-    const cryptoAmount = decimal(amount);
-    const rubRate = decimal(rate);
-    const rubAmount = cryptoAmount.times(rubRate);
-
-    return toDbString(rubAmount, 2); // RUB uses 2 decimal places
+    return currencyCode;
   }
 
   /**

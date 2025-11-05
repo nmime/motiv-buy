@@ -39,6 +39,36 @@ export enum Cryptocurrency {
   Usdc = 'USDC',
 
   /**
+   * Litecoin (Mainnet)
+   */
+  Ltc = 'LTC',
+
+  /**
+   * Dogecoin (Mainnet)
+   */
+  Doge = 'DOGE',
+
+  /**
+   * DAI Stablecoin (Mainnet)
+   */
+  Dai = 'DAI',
+
+  /**
+   * Dash (Mainnet)
+   */
+  Dash = 'DASH',
+
+  /**
+   * Bitcoin Cash (Mainnet)
+   */
+  Bch = 'BCH',
+
+  /**
+   * Solana (Mainnet)
+   */
+  Sol = 'SOL',
+
+  /**
    * Jetton (Testnet only - @CryptoBot test environment)
    * Not available in production
    */

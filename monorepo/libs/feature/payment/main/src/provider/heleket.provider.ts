@@ -71,15 +71,21 @@ interface HelekeBalance {
 
 /**
  * Heleket payment provider implementation
- * Integrates with Heleket payment gateway for Russian market
+ * Integrates with Heleket cryptocurrency payment gateway
  *
- * Supports:
- * - Bank cards (Visa, Mastercard, MIR)
- * - SBP (Fast Payment System)
- * - Electronic wallets (YooMoney, QIWI)
- * - Cryptocurrency via fiat gateway
+ * Heleket is a CRYPTO-NATIVE gateway that accepts cryptocurrencies directly
+ * on multiple blockchain networks without fiat conversion.
  *
- * API Documentation: https://docs.heleket.com/
+ * Supported Cryptocurrencies:
+ * - BTC, ETH, USDT, USDC (major cryptocurrencies)
+ * - BNB, TRX, TON (alt coins)
+ * - LTC, DOGE, DAI, DASH, BCH, SOL (additional coins)
+ *
+ * Multi-chain support:
+ * - USDT: Tron (TRC-20), Ethereum (ERC-20), TON
+ * - USDC: Ethereum (ERC-20), BSC (BEP-20)
+ *
+ * API Documentation: https://doc.heleket.com/
  */
 @Injectable()
 export class HelekeProvider implements IPaymentProvider {
@@ -191,14 +197,14 @@ export class HelekeProvider implements IPaymentProvider {
     try {
       this.logger.log(`Creating Heleket payment for user ${params.userId}: ${params.amount} ${params.currency}`);
 
-      // Convert cryptocurrency to RUB fiat amount
-      // In production, this should use real exchange rate service
-      const rubAmount = this.convertCryptoToRub(params.amount, params.currency);
+      // Heleket is a crypto-native gateway - accept cryptocurrencies directly
+      const network = this.selectNetwork(params.currency);
 
       const requestParams: Record<string, unknown> = {
         merchantId: this.merchantId,
-        amount: rubAmount,
-        currency: 'RUB',
+        amount: params.amount,
+        currency: params.currency,
+        network,
         orderId: `USER_${params.userId}_${Date.now()}`,
         description: params.description || `Top-up ${params.amount} ${params.currency}`,
         expiresIn: params.expiresIn || 3600, // 1 hour default
@@ -215,14 +221,14 @@ export class HelekeProvider implements IPaymentProvider {
       const order = response.data;
       const paymentInvoice: PaymentInvoice = {
         invoiceId: order.orderId,
-        amount: params.amount, // Keep original crypto amount
+        amount: params.amount,
         currency: params.currency,
         payUrl: order.paymentUrl,
         expiresAt: order.expiredAt ? new Date(order.expiredAt) : undefined,
         description: order.description,
       };
 
-      this.logger.log(`Heleket payment created: ${paymentInvoice.invoiceId}`);
+      this.logger.log(`Heleket payment created: ${paymentInvoice.invoiceId} on ${network} network`);
 
       return Ok(paymentInvoice);
     } catch (error) {
@@ -323,13 +329,14 @@ export class HelekeProvider implements IPaymentProvider {
     try {
       this.logger.log(`Creating Heleket payout for user ${params.userId}: ${params.amount} ${params.currency}`);
 
-      // Convert cryptocurrency to RUB fiat amount
-      const rubAmount = this.convertCryptoToRub(params.amount, params.currency);
+      // Heleket is crypto-native - send cryptocurrencies directly
+      const network = this.selectNetwork(params.currency);
 
       const requestParams: Record<string, unknown> = {
         merchantId: this.merchantId,
-        amount: rubAmount,
-        currency: 'RUB',
+        amount: params.amount,
+        currency: params.currency,
+        network,
         payoutId: `PAYOUT_${params.userId}_${Date.now()}`,
         comment: params.comment,
       };
@@ -345,13 +352,13 @@ export class HelekeProvider implements IPaymentProvider {
       const payout = response.data;
       const transfer: PaymentTransfer = {
         transferId: payout.payoutId,
-        amount: params.amount, // Keep original crypto amount
+        amount: params.amount,
         currency: params.currency,
         status: this.mapHelekePayoutStatus(payout.status),
         completedAt: payout.completedAt ? new Date(payout.completedAt) : undefined,
       };
 
-      this.logger.log(`Heleket payout created: ${transfer.transferId}`);
+      this.logger.log(`Heleket payout created: ${transfer.transferId} on ${network} network`);
 
       return Ok(transfer);
     } catch (error) {
@@ -476,31 +483,29 @@ export class HelekeProvider implements IPaymentProvider {
   }
 
   /**
-   * Convert cryptocurrency amount to RUB
-   * In production, this should use real-time exchange rates
+   * Select blockchain network for cryptocurrency
+   * Heleket supports multiple networks for multi-chain assets like USDT and USDC
    */
-  private convertCryptoToRub(amount: string, currency: Cryptocurrency): string {
-    // Placeholder exchange rates (RUB per unit)
-    const EXCHANGE_RATES: Record<string, string> = {
-      USDT: '95.5',
-      TON: '200.0',
-      BTC: '6500000.0',
-      ETH: '350000.0',
-      BNB: '45000.0',
-      TRX: '15.0',
-      USDC: '95.5',
+  private selectNetwork(currency: Cryptocurrency): string {
+    // Network mapping for cryptocurrencies
+    // Prefer networks with lower fees and faster confirmation
+    const NETWORK_MAP: Record<string, string> = {
+      USDT: 'tron', // TRC-20 (lowest fees)
+      USDC: 'ethereum', // ERC-20
+      BTC: 'bitcoin',
+      ETH: 'ethereum',
+      BNB: 'bsc', // BSC (BEP-20)
+      TRX: 'tron',
+      TON: 'ton',
+      LTC: 'litecoin',
+      DOGE: 'dogecoin',
+      DAI: 'ethereum',
+      DASH: 'dash',
+      BCH: 'bitcoin-cash',
+      SOL: 'solana',
     };
 
-    const rate = EXCHANGE_RATES[currency];
-    if (!rate) {
-      throw new Error(`Unsupported currency for conversion: ${currency}`);
-    }
-
-    const cryptoAmount = decimal(amount);
-    const rubRate = decimal(rate);
-    const rubAmount = cryptoAmount.times(rubRate);
-
-    return toDbString(rubAmount, 2); // RUB uses 2 decimal places
+    return NETWORK_MAP[currency] || currency.toLowerCase();
   }
 
   /**
@@ -549,15 +554,26 @@ export class HelekeProvider implements IPaymentProvider {
   }
 
   /**
-   * Map fiat currency code to Cryptocurrency enum
+   * Map currency string to Cryptocurrency enum
+   * Heleket is crypto-native and returns actual cryptocurrency codes
    */
   private mapCurrencyToCryptocurrency(currency: string): Cryptocurrency {
-    // For Heleket, we primarily deal with RUB
-    // Map to USDT as default stable representation
-    if (currency === 'RUB') {
-      return Cryptocurrency.Usdt;
-    }
+    const CURRENCY_MAP: Record<string, Cryptocurrency> = {
+      USDT: Cryptocurrency.Usdt,
+      BTC: Cryptocurrency.Btc,
+      ETH: Cryptocurrency.Eth,
+      USDC: Cryptocurrency.Usdc,
+      BNB: Cryptocurrency.Bnb,
+      TRX: Cryptocurrency.Trx,
+      TON: Cryptocurrency.Ton,
+      LTC: Cryptocurrency.Ltc,
+      DOGE: Cryptocurrency.Doge,
+      DAI: Cryptocurrency.Dai,
+      DASH: Cryptocurrency.Dash,
+      BCH: Cryptocurrency.Bch,
+      SOL: Cryptocurrency.Sol,
+    };
 
-    return Cryptocurrency.Usdt;
+    return CURRENCY_MAP[currency.toUpperCase()] || Cryptocurrency.Usdt;
   }
 }
