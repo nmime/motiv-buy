@@ -33,7 +33,7 @@ export function escapeHtmlInObject<T>(obj: T): T {
   }
 
   if (obj && typeof obj === 'object') {
-    const escaped: any = {};
+    const escaped: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       escaped[key] = escapeHtmlInObject(value);
     }

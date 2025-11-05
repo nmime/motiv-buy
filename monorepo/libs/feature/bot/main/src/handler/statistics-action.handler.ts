@@ -23,6 +23,28 @@ interface UserStatistics {
   referralEarnings: number;
 }
 
+interface DetailedStatistics {
+  ordersByStatus: Record<string, number>;
+  ordersByType: Record<string, number>;
+  totalSpent: string | number;
+  totalOrders: number;
+}
+
+interface TrafficStatistics {
+  totalActions: number;
+  totalTargetActions: number;
+  completionRate: string | number;
+  totalOrders: number;
+}
+
+interface EarningsStatistics {
+  earningsByType: Record<string, number>;
+  earningsLast7Days: string | number;
+  earningsLast30Days?: string | number;
+  totalEarnings?: string | number;
+  totalTransactions?: number;
+}
+
 @Injectable()
 export class StatisticsActionHandler {
   private readonly logger = new Logger(StatisticsActionHandler.name);
@@ -327,7 +349,7 @@ export class StatisticsActionHandler {
   /**
    * Format detailed statistics
    */
-  private formatDetailedStatistics(stats: any): string {
+  private formatDetailedStatistics(stats: DetailedStatistics): string {
     let text = '<b>📊 Detailed Statistics</b>\n\n';
 
     text += '<b>Orders by Status:</b>\n';
@@ -349,7 +371,7 @@ export class StatisticsActionHandler {
   /**
    * Format traffic statistics
    */
-  private formatTrafficStatistics(stats: any): string {
+  private formatTrafficStatistics(stats: TrafficStatistics): string {
     return (
       '<b>🎯 Traffic Statistics</b>\n\n' +
       `<b>Total Actions Completed:</b> ${stats.totalActions}\n` +
@@ -363,7 +385,7 @@ export class StatisticsActionHandler {
   /**
    * Format earnings statistics
    */
-  private formatEarningsStatistics(stats: any): string {
+  private formatEarningsStatistics(stats: EarningsStatistics): string {
     let text = '<b>💎 Earnings Statistics</b>\n\n';
 
     text += '<b>Earnings by Type:</b>\n';
@@ -372,7 +394,15 @@ export class StatisticsActionHandler {
     }
 
     text += `\n<b>Last 7 Days:</b> $${toDisplayString(stats.earningsLast7Days, 2)}\n`;
-    text += `<b>Total Transactions:</b> ${stats.totalTransactions}`;
+    if (stats.earningsLast30Days !== undefined) {
+      text += `<b>Last 30 Days:</b> $${toDisplayString(stats.earningsLast30Days, 2)}\n`;
+    }
+    if (stats.totalEarnings !== undefined) {
+      text += `<b>Total Earnings:</b> $${toDisplayString(stats.totalEarnings, 2)}\n`;
+    }
+    if (stats.totalTransactions !== undefined) {
+      text += `<b>Total Transactions:</b> ${stats.totalTransactions}`;
+    }
 
     return text;
   }

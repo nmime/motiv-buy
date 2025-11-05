@@ -1,5 +1,6 @@
 import { Context, InlineKeyboard, SessionFlavor } from 'grammy';
 import { I18nContextFlavor } from '@app/common-intl';
+import { UserEntity } from '@app/database';
 
 /**
  * Bot Context Interface
@@ -12,11 +13,20 @@ import { I18nContextFlavor } from '@app/common-intl';
  * @extends Context
  */
 export interface BotContext extends Context, SessionFlavor<BotSessionData>, I18nContextFlavor {
+  /** Authenticated user entity from database (available after auth middleware) */
+  user?: UserEntity;
+
   /** Additional bot state information */
   state?: BotStateData;
 
-  /** Authentication status */
+  /** Authentication status (set by auth middleware) */
   isAuthenticated?: boolean;
+
+  /** Session ID for the current user */
+  sessionId?: string;
+
+  /** Whether this is a new user (first time using bot) */
+  isNewUser?: boolean;
 
   /** User ID for quick access */
   userId?: string;
@@ -35,6 +45,35 @@ export interface BotContext extends Context, SessionFlavor<BotSessionData>, I18n
 
   /** Reply with Markdown formatted text */
   replyWithMarkdown(text: string, extra?: BotReplyExtra): Promise<BotMessage>;
+}
+
+/**
+ * Authenticated Bot Context
+ *
+ * Type-safe context for handlers that require authentication.
+ * Use this type in protected handlers to guarantee user exists.
+ * The protectHandler() middleware ensures this contract is met.
+ *
+ * @interface AuthenticatedBotContext
+ * @extends BotContext
+ *
+ * @example
+ * ```typescript
+ * async function handleProfile(ctx: AuthenticatedBotContext) {
+ *   // ctx.user is guaranteed to exist - no need for checks or assertions
+ *   const profile = formatProfile(ctx.user);
+ * }
+ * ```
+ */
+export interface AuthenticatedBotContext extends BotContext {
+  /** Authenticated user entity - GUARANTEED to exist */
+  user: UserEntity;
+
+  /** Authentication status - GUARANTEED to be true */
+  isAuthenticated: true;
+
+  /** Session ID - GUARANTEED to exist */
+  sessionId: string;
 }
 
 /**

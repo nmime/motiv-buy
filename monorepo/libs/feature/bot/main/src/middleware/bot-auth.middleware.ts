@@ -30,6 +30,23 @@ export class BotAuthMiddleware {
   }
 
   /**
+   * Create requireAuth middleware that blocks unauthenticated users
+   * Use this before handlers that require authentication
+   */
+  static createRequireAuth(
+    errorMessage = '🔐 Authentication required. Please use /start to register.',
+  ): (ctx: BotContext, next: () => Promise<void>) => Promise<void> {
+    return async (ctx: BotContext, next: () => Promise<void>) => {
+      if (!ctx.user || !ctx.isAuthenticated) {
+        await ctx.reply(errorMessage);
+        return;
+      }
+
+      await next();
+    };
+  }
+
+  /**
    * Middleware function for Grammy bot
    */
   async middleware(ctx: BotContext, next: () => Promise<void>): Promise<void> {
@@ -74,6 +91,7 @@ export class BotAuthMiddleware {
             user: sessionUser,
             sessionId: existingSessionId,
             isNewUser: false,
+            isAuthenticated: true,
           });
 
           // Update session activity
@@ -106,6 +124,7 @@ export class BotAuthMiddleware {
         user,
         sessionId,
         isNewUser,
+        isAuthenticated: true,
       });
 
       this.logger.debug('User authenticated and session created', {

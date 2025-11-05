@@ -6,7 +6,8 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { BotContext } from '@app/feature-bot-shared';
+import { BotContext, BotSubscriptionService } from '@app/feature-bot-shared';
+import { BotConfigService } from '../../config';
 import {
   ChannelInfo,
   DEFAULT_ORDER_CONFIG,
@@ -22,14 +23,18 @@ import {
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
 
-  // Mock data storage (replace with real database in production)
+  // TODO: Replace with database persistence for finalized orders
+  // Incomplete drafts are stored in Redis sessions via getOrderSessionState/saveOrderSessionState
   private orders: Map<string, Order> = new Map();
 
   // Session cleanup interval (1 hour)
   private readonly SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
   private readonly SESSION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
-  constructor() {
+  constructor(
+    private readonly botSubscriptionService: BotSubscriptionService,
+    private readonly botConfigService: BotConfigService,
+  ) {
     // Start session cleanup
     this.startSessionCleanup();
   }
@@ -205,33 +210,73 @@ export class OrderService {
     }
 
     const username = match[1];
+    const chatId = `@${username}`;
 
-    // TODO: Implement real API call to get channel info
-    // Mock data for now
-    const mockChannel: ChannelInfo = {
-      id: `channel_${Date.now()}`,
-      title: 'Fun Games',
-      username,
-      subscriberCount: 1234,
-      description: 'Games catalog',
-      category: '🎮 Игры',
-      botIsAdmin: false,
-    };
+    try {
+      const botToken = this.botConfigService.getBotToken();
+      if (!botToken) {
+        this.logger.error('Bot token not configured');
+        return null;
+      }
 
-    this.logger.log(`Channel info retrieved: ${username}`);
+      // Get chat information from Telegram API
+      const chatInfo = await this.botSubscriptionService.getChatInfo(botToken, chatId);
 
-    return mockChannel;
+      // Get member count
+      const memberCount = await this.botSubscriptionService.getChatMemberCount(botToken, chatId);
+
+      // Get bot's own user ID to check admin status
+      const botId = await this.getBotUserId(botToken);
+      const botIsAdmin = botId ? await this.botSubscriptionService.isUserAdmin(botToken, chatId, botId) : false;
+
+      const channelInfo: ChannelInfo = {
+        id: chatInfo.id.toString(),
+        title: chatInfo.title ?? username,
+        username: chatInfo.username ?? username,
+        subscriberCount: memberCount,
+        description: undefined, // Telegram API doesn't provide description via getChat
+        category: undefined, // Category must be manually set
+        botIsAdmin,
+      };
+
+      this.logger.log(`Channel info retrieved: ${username} (${memberCount} members, bot admin: ${botIsAdmin})`);
+
+      return channelInfo;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to get channel info for ${username}: ${errorMessage}`);
+      return null;
+    }
   }
 
   /**
    * Check if bot is admin in channel
    */
   async checkBotIsAdmin(channelId: string): Promise<boolean> {
-    // TODO: Implement real check using Telegram API
-    // For now, return false to simulate manual check
-    this.logger.log(`Checking bot admin status for channel: ${channelId}`);
+    try {
+      const botToken = this.botConfigService.getBotToken();
+      if (!botToken) {
+        this.logger.error('Bot token not configured');
+        return false;
+      }
 
-    return false;
+      // Get bot's own user ID
+      const botId = await this.getBotUserId(botToken);
+      if (!botId) {
+        return false;
+      }
+
+      // Check if bot is admin using Telegram API
+      const isAdmin = await this.botSubscriptionService.isUserAdmin(botToken, channelId, botId);
+
+      this.logger.log(`Bot admin status for channel ${channelId}: ${isAdmin}`);
+
+      return isAdmin;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to check bot admin status for channel ${channelId}: ${errorMessage}`);
+      return false;
+    }
   }
 
   /**
@@ -394,6 +439,22 @@ Created: ${order.createdAt.toLocaleDateString()}
     `.trim();
 
     return report;
+  }
+
+  /**
+   * Helper: Get bot's own user ID from Telegram API
+   */
+  private async getBotUserId(botToken: string): Promise<number | null> {
+    try {
+      const { Bot } = await import('grammy');
+      const bot = new Bot(botToken);
+      const botInfo = await bot.api.getMe();
+      return botInfo.id;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to get bot user ID: ${errorMessage}`);
+      return null;
+    }
   }
 
   /**

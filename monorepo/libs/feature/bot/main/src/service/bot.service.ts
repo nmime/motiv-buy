@@ -7,6 +7,9 @@ import { OrderHandler } from '../features/order/order.handler';
 import { I18nService } from 'nestjs-i18n';
 import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl';
 import { CallbackRouterHandler } from '../handler/callback-router.handler';
+import { BotAuthMiddleware } from '../middleware';
+import { BotUserService, BotSessionService } from './auth';
+import { protectHandler } from '../util';
 
 /**
  * Extended Grammy Context with session and i18n support
@@ -43,6 +46,8 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     private readonly orderHandler: OrderHandler,
     private readonly i18n: I18nService,
     private readonly callbackRouter: CallbackRouterHandler,
+    private readonly botUserService: BotUserService,
+    private readonly botSessionService: BotSessionService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -80,19 +85,10 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       // Install i18n middleware for translations
       this.bot.use(createGrammyI18nMiddleware(this.i18n));
 
-      // Install basic context setup middleware
-      this.bot.use(async (ctx, next) => {
-        // Set up basic user context - extend context dynamically
-        if (ctx.from) {
-          // Safe dynamic property assignment
-          Object.assign(ctx, {
-            userId: ctx.from.id.toString(),
-            isAuthenticated: true,
-          });
-        }
-
-        await next();
-      });
+      // Install authentication middleware
+      // This middleware loads user from database and adds to context
+      // Type assertion needed due to context type compatibility
+      this.bot.use(BotAuthMiddleware.create(this.botUserService, this.botSessionService) as any);
 
       // Install error handling middleware
       this.bot.catch(async (err) => {
@@ -181,6 +177,19 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Command handler map for O(1) lookup performance
+   * Using Partial to allow incomplete mapping of all commands
+   */
+  private readonly commandHandlers: Partial<Record<BotCommand, (ctx: BotContext) => Promise<void>>> = {
+    [BotCommand.Start]: (ctx) => this.handleStartCommand(ctx),
+    [BotCommand.Help]: (ctx) => this.handleHelpCommand(ctx),
+    [BotCommand.Profile]: (ctx) => this.handleProfileCommand(ctx),
+    [BotCommand.Settings]: (ctx) => this.handleSettingsCommand(ctx),
+    [BotCommand.Balance]: (ctx) => this.handleBalanceCommand(ctx),
+    [BotCommand.Menu]: (ctx) => this.handleMenuCommand(ctx),
+  };
+
+  /**
    * Process incoming bot command
    *
    * @param ctx - Bot context containing message and user information
@@ -201,27 +210,13 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      switch (command) {
-        case BotCommand.Start:
-          await this.handleStartCommand(ctx);
-          break;
-        case BotCommand.Help:
-          await this.handleHelpCommand(ctx);
-          break;
-        case BotCommand.Profile:
-          await this.handleProfileCommand(ctx);
-          break;
-        case BotCommand.Settings:
-          await this.handleSettingsCommand(ctx);
-          break;
-        case BotCommand.Balance:
-          await this.handleBalanceCommand(ctx);
-          break;
-        case BotCommand.Menu:
-          await this.handleMenuCommand(ctx);
-          break;
-        default:
-          await this.handleUnknownCommand(ctx);
+      // Get handler from map
+      const handler = this.commandHandlers[command];
+
+      if (handler) {
+        await handler(ctx);
+      } else {
+        await this.handleUnknownCommand(ctx);
       }
     } catch (err: unknown) {
       this.logger.error('Error processing command', {
@@ -292,21 +287,34 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Help);
     });
 
-    this.bot.command('profile', async (ctx) => {
-      await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Profile);
-    });
+    // Protected commands - require authentication
+    this.bot.command(
+      'profile',
+      protectHandler(async (ctx) => {
+        await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Profile);
+      }),
+    );
 
-    this.bot.command('settings', async (ctx) => {
-      await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Settings);
-    });
+    this.bot.command(
+      'settings',
+      protectHandler(async (ctx) => {
+        await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Settings);
+      }),
+    );
 
-    this.bot.command('balance', async (ctx) => {
-      await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Balance);
-    });
+    this.bot.command(
+      'balance',
+      protectHandler(async (ctx) => {
+        await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Balance);
+      }),
+    );
 
-    this.bot.command('menu', async (ctx) => {
-      await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Menu);
-    });
+    this.bot.command(
+      'menu',
+      protectHandler(async (ctx) => {
+        await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Menu);
+      }),
+    );
   }
 
   /**
@@ -317,9 +325,13 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    this.bot.on('callback_query:data', async (ctx) => {
-      await this.callbackRouter.routeCallback(this.mapContextToBotContext(ctx));
-    });
+    // Protected callback handlers - require authentication
+    this.bot.on(
+      'callback_query:data',
+      protectHandler(async (ctx) => {
+        await this.callbackRouter.routeCallback(this.mapContextToBotContext(ctx));
+      }),
+    );
   }
 
   /**
