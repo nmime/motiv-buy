@@ -23,8 +23,6 @@
     "lint": "nx run-many -t lint",
     "lint:fix": "nx run-many -t lint --fix",
     "lint:affected": "nx affected -t lint",
-    "typecheck": "nx run-many -t typecheck",
-    "typecheck:affected": "nx affected -t typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "nx reset",

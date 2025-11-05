@@ -490,25 +490,74 @@ export class CreateOrderDto {
 
 ## Build & Development
 
-### Commands
+### Package Manager
+
+**This project uses `pnpm` as the package manager.**
 
 ```bash
-# Build
-npm run build
+# Install dependencies
+pnpm install
 
-# Type checking
-npm run typecheck
+# Install dependencies in monorepo directory
+cd monorepo && pnpm install
+```
 
-# Linting
-npm run lint
+### Essential Commands
 
-# Testing
-npm run test
+**After making changes, always run these commands:**
 
-# Database migrations
-npm run migration:create
-npm run migration:up
-npm run migration:down
+```bash
+# 1. Build the project
+pnpm run build
+
+# 2. Run tests
+pnpm run test
+
+# 3. Lint your code
+pnpm run lint
+
+# Optional: Fix lint issues automatically
+pnpm run lint:fix
+```
+
+### Development Commands
+
+```bash
+# Start all services in development mode
+pnpm run dev
+
+# Start specific app
+pnpm run dev:api       # Start API server
+pnpm run dev:bot       # Start Telegram bot
+pnpm run dev:migration # Start migration CLI
+
+# Format code with Prettier
+pnpm run format
+
+# Check code formatting
+pnpm run format:check
+```
+
+### Database Migration Commands
+
+```bash
+# Run pending migrations (development)
+pnpm run migration:run
+
+# Check migration status
+pnpm run migration:status
+
+# Rollback last migration
+pnpm run migration:revert
+
+# Create new migration
+pnpm run migration:create <name>
+
+# Fresh database (⚠️ DROPS ALL TABLES!)
+pnpm run migration:fresh
+
+# Run migrations in production
+pnpm run migration:prod
 ```
 
 ### Environment Variables
