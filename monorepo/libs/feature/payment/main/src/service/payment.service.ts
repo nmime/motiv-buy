@@ -3,9 +3,10 @@ import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
 import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared/util';
-import { CryptoBotProvider } from '../provider/crypto-bot.provider';
+import { PaymentProviderFactory } from './payment-provider.factory';
 import {
   UserBalanceRepository,
+  UserBalanceEntity,
   CurrencyCode,
   PaymentTransactionEntity,
   PaymentType,
@@ -19,6 +20,7 @@ import {
   InvoiceResponseDto,
   TransferResponseDto,
   Cryptocurrency,
+  PaymentTransfer,
 } from '@app/feature-payment-shared';
 
 /**
@@ -52,7 +54,7 @@ export class PaymentService {
   constructor(
     @InjectRepository(PaymentTransactionEntity)
     private readonly transactionRepository: EntityRepository<PaymentTransactionEntity>,
-    private readonly provider: CryptoBotProvider,
+    private readonly providerFactory: PaymentProviderFactory,
     private readonly userBalanceRepository: UserBalanceRepository,
     private readonly em: EntityManager,
   ) {}
@@ -60,16 +62,29 @@ export class PaymentService {
   /**
    * Create top-up invoice for user
    * Generates payment link and stores pending transaction
+   *
+   * @param userId - User ID requesting top-up
+   * @param dto - Invoice creation parameters
+   * @param providerType - Payment provider to use (defaults to CryptoBot)
    */
-  async createTopUp(userId: string, dto: CreateInvoiceDto): AsyncResult<InvoiceResponseDto, Error> {
+  async createTopUp(
+    userId: string,
+    dto: CreateInvoiceDto,
+    providerType: PaymentProvider = PaymentProvider.CryptoBot,
+  ): AsyncResult<InvoiceResponseDto, Error> {
     try {
-      this.logger.log(`Creating top-up invoice for user ${userId}: ${dto.amount} ${dto.currency}`);
+      this.logger.log(
+        `Creating top-up invoice for user ${userId}: ${dto.amount} ${dto.currency} via ${providerType}`,
+      );
+
+      // Get the appropriate payment provider
+      const provider = this.providerFactory.getProvider(providerType);
 
       // Map CurrencyCode to Cryptocurrency for provider
       const cryptocurrency = this.mapCurrencyCodeToCryptocurrency(dto.currency);
 
       // Create invoice via payment provider
-      const invoiceResult = await this.provider.createInvoice({
+      const invoiceResult = await provider.createInvoice({
         userId,
         amount: dto.amount,
         currency: cryptocurrency,
@@ -78,18 +93,18 @@ export class PaymentService {
       });
 
       if (invoiceResult.err) {
-        this.logger.error('Failed to create invoice with provider', invoiceResult.val);
+        this.logger.error(`Failed to create invoice with provider ${providerType}`, invoiceResult.val);
 
         return Err(toError(invoiceResult.val || 'Failed to create invoice with payment provider'));
       }
 
       const invoice = invoiceResult.val;
 
-      // Save transaction to database (store Cryptocurrency, not CurrencyCode)
+      // Save transaction to database
       const transaction = this.transactionRepository.create({
         userId,
         type: PaymentType.TopUp,
-        provider: PaymentProvider.CryptoBot,
+        provider: providerType,
         providerTransactionId: invoice.invoiceId,
         amount: dto.amount,
         currency: cryptocurrency,
@@ -99,12 +114,13 @@ export class PaymentService {
         expiresAt: invoice.expiresAt,
         metadata: {
           expiresIn: dto.expiresIn,
+          provider: providerType,
         },
       });
 
       await this.em.persistAndFlush(transaction);
 
-      this.logger.log(`Top-up invoice created: ${transaction.id} (provider: ${invoice.invoiceId})`);
+      this.logger.log(`Top-up invoice created: ${transaction.id} (provider: ${providerType}, invoiceId: ${invoice.invoiceId})`);
 
       // Return response DTO
       const response: InvoiceResponseDto = {
@@ -182,15 +198,26 @@ export class PaymentService {
    * concurrent withdrawal requests could both pass balance check and cause negative balance
    *
    * FIXED: Now checks balance in requested currency (was always checking RUB)
+   *
+   * @param userId - User ID requesting withdrawal
+   * @param dto - Transfer creation parameters
+   * @param providerType - Payment provider to use (defaults to CryptoBot)
    */
-  async createWithdrawal(userId: string, dto: CreateTransferDto): AsyncResult<TransferResponseDto, Error> {
+  async createWithdrawal(
+    userId: string,
+    dto: CreateTransferDto,
+    providerType: PaymentProvider = PaymentProvider.CryptoBot,
+  ): AsyncResult<TransferResponseDto, Error> {
     // Store balance before transaction for potential rollback
     let balanceBeforeTransaction: string | null = null;
     let transferCreated = false;
-    let transfer: any = null;
+    let transfer: PaymentTransfer | null = null;
 
     try {
-      this.logger.log(`Creating withdrawal for user ${userId}: ${dto.amount} ${dto.currency}`);
+      this.logger.log(`Creating withdrawal for user ${userId}: ${dto.amount} ${dto.currency} via ${providerType}`);
+
+      // Get the appropriate payment provider
+      const provider = this.providerFactory.getProvider(providerType);
 
       // Map CurrencyCode to Cryptocurrency for provider
       const cryptocurrency = this.mapCurrencyCodeToCryptocurrency(dto.currency);
@@ -208,7 +235,7 @@ export class PaymentService {
         // This ensures atomic balance check and deduction
         // FIXED: Now checks balance in REQUESTED currency, not always RUB
         const balanceEntity = await em.findOne(
-          'UserBalanceEntity',
+          UserBalanceEntity,
           { user: userId, currency: currency.id as string },
           { lockMode: LockMode.PESSIMISTIC_WRITE },
         );
@@ -221,7 +248,7 @@ export class PaymentService {
         }
 
         // Store original balance for rollback (captured BEFORE any modifications)
-        balanceBeforeTransaction = (balanceEntity as any).balance;
+        balanceBeforeTransaction = balanceEntity.balance;
 
         if (!balanceBeforeTransaction) {
           throw new Error('Balance data is invalid');
@@ -243,7 +270,7 @@ export class PaymentService {
 
         // Create transfer via payment provider BEFORE deducting balance
         // This ensures we don't deduct if provider rejects the transfer
-        const transferResult = await this.provider.createTransfer({
+        const transferResult = await provider.createTransfer({
           userId: dto.userId,
           amount: dto.amount,
           currency: cryptocurrency,
@@ -251,7 +278,7 @@ export class PaymentService {
         });
 
         if (transferResult.err) {
-          this.logger.error('Failed to create transfer with provider', transferResult.val);
+          this.logger.error(`Failed to create transfer with provider ${providerType}`, transferResult.val);
           throw toError(transferResult.val || 'Failed to create transfer with payment provider');
         }
 
@@ -263,11 +290,11 @@ export class PaymentService {
         const newBalance = toDbString(subtract(availableAmount, requestedAmount), 8);
         await this.userBalanceRepository.createOrUpdateBalance(userId, dto.currency, newBalance);
 
-        // Save transaction to database (store Cryptocurrency, not CurrencyCode)
+        // Save transaction to database
         const transaction = em.create(PaymentTransactionEntity, {
           userId,
           type: PaymentType.Withdraw,
-          provider: PaymentProvider.CryptoBot,
+          provider: providerType,
           providerTransactionId: transfer.transferId,
           amount: dto.amount,
           currency: cryptocurrency,
@@ -279,12 +306,13 @@ export class PaymentService {
             balanceBefore: balanceBeforeTransaction,
             balanceAfter: newBalance,
             balanceLockedAt: new Date().toISOString(),
+            provider: providerType,
           },
         });
 
         await em.persist(transaction).flush();
 
-        this.logger.log(`Withdrawal created: ${transaction.id} (provider: ${transfer.transferId})`);
+        this.logger.log(`Withdrawal created: ${transaction.id} (provider: ${providerType}, transferId: ${transfer.transferId})`);
 
         // Return transaction to outer scope
         return transaction;

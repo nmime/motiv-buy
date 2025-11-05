@@ -4,3 +4,4 @@
  */
 
 export * from './payment.service';
+export * from './payment-provider.factory';

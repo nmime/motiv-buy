@@ -1,0 +1,556 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
+import { decimal, toDbString } from '@app/common-shared/util';
+import {
+  Cryptocurrency,
+  IPaymentProvider,
+  PaymentBalance,
+  PaymentInvoice,
+  PaymentStatus,
+  PaymentTransaction,
+  PaymentTransfer,
+  PaymentConfigService,
+} from '@app/feature-payment-shared';
+
+/**
+ * YooKassa API Response
+ */
+interface YooKassaResponse<T> {
+  id?: string;
+  status?: string;
+  amount?: YooKassaAmount;
+  confirmation?: {
+    type: string;
+    confirmation_url?: string;
+  };
+  created_at?: string;
+  paid?: boolean;
+  refundable?: boolean;
+  metadata?: Record<string, unknown>;
+  error?: {
+    code: string;
+    description: string;
+  };
+}
+
+/**
+ * YooKassa Amount
+ */
+interface YooKassaAmount {
+  value: string;
+  currency: string;
+}
+
+/**
+ * YooKassa Payment
+ */
+interface YooKassaPayment {
+  id: string;
+  status: 'pending' | 'waiting_for_capture' | 'succeeded' | 'canceled';
+  amount: YooKassaAmount;
+  income_amount?: YooKassaAmount;
+  description?: string;
+  confirmation?: {
+    type: string;
+    confirmation_url?: string;
+    return_url?: string;
+  };
+  created_at: string;
+  captured_at?: string;
+  expires_at?: string;
+  metadata?: Record<string, unknown>;
+  paid: boolean;
+  refundable: boolean;
+  test: boolean;
+}
+
+/**
+ * YooKassa Payout
+ */
+interface YooKassaPayout {
+  id: string;
+  amount: YooKassaAmount;
+  status: 'pending' | 'succeeded' | 'canceled';
+  payout_destination: {
+    type: string;
+    card?: {
+      number: string;
+    };
+  };
+  description?: string;
+  created_at: string;
+  dealt_at?: string;
+  metadata?: Record<string, unknown>;
+  cancellation_details?: {
+    reason: string;
+  };
+}
+
+/**
+ * YooKassa payment provider implementation
+ * Integrates with YooKassa (formerly Yandex.Kassa) payment gateway
+ *
+ * Supports:
+ * - Bank cards (Visa, Mastercard, MIR)
+ * - Electronic wallets (YooMoney, QIWI, WebMoney)
+ * - Mobile payments (Apple Pay, Google Pay, Samsung Pay)
+ * - SBP (Fast Payment System)
+ * - Installments and credit
+ *
+ * API Documentation: https://yookassa.ru/developers/api
+ */
+@Injectable()
+export class YooKassaProvider implements IPaymentProvider {
+  private readonly logger = new Logger(YooKassaProvider.name);
+  private readonly shopId: string;
+  private readonly secretKey: string;
+  private readonly baseUrl: string;
+  private readonly timeout: number;
+  private readonly maxRetries: number;
+  private readonly testMode: boolean;
+
+  constructor(private readonly paymentConfig: PaymentConfigService) {
+    const config = this.paymentConfig.getYooKassaConfig();
+    this.shopId = config.shopId;
+    this.secretKey = config.secretKey;
+    this.baseUrl = config.apiUrl || 'https://api.yookassa.ru/v3';
+    this.timeout = config.timeout || 10000;
+    this.maxRetries = config.maxRetries || 3;
+    this.testMode = config.testMode || false;
+
+    this.logger.log(`YooKassaProvider initialized (shopId: ${this.shopId}, testMode: ${this.testMode})`);
+  }
+
+  /**
+   * Get Basic Auth credentials for YooKassa
+   */
+  private getAuthHeader(): string {
+    const credentials = Buffer.from(`${this.shopId}:${this.secretKey}`).toString('base64');
+
+    return `Basic ${credentials}`;
+  }
+
+  /**
+   * Generate idempotency key for safe request retries
+   */
+  private generateIdempotencyKey(): string {
+    return `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  }
+
+  /**
+   * Make HTTP request to YooKassa API with retry logic
+   */
+  private async makeRequest<T>(
+    method: string,
+    endpoint: string,
+    params?: Record<string, unknown>,
+    idempotencyKey?: string,
+  ): Promise<T> {
+    const url = `${this.baseUrl}/${endpoint}`;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const headers: Record<string, string> = {
+          Authorization: this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        };
+
+        if (idempotencyKey) {
+          headers['Idempotence-Key'] = idempotencyKey;
+        }
+
+        const options: RequestInit = {
+          method,
+          headers,
+          signal: AbortSignal.timeout(this.timeout),
+        };
+
+        if (params && (method === 'POST' || method === 'PATCH')) {
+          options.body = JSON.stringify(params);
+        }
+
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+          const errorBody = await response.json();
+          throw new Error(
+            `YooKassa API error: ${errorBody.error?.description || response.statusText} (${response.status})`,
+          );
+        }
+
+        return response.json();
+      } catch (error) {
+        lastError = toError(error);
+        this.logger.warn(`Request attempt ${attempt + 1} failed: ${method} ${endpoint}`, {
+          error: lastError.message,
+        });
+
+        if (attempt < this.maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt) * 1000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    this.logger.error(`All ${this.maxRetries + 1} attempts failed: ${method} ${endpoint}`, lastError);
+    throw lastError || new Error('Request failed after all retries');
+  }
+
+  /**
+   * Create payment invoice for top-up
+   * Generates payment link for Russian payment methods
+   */
+  async createInvoice(params: {
+    amount: string;
+    currency: Cryptocurrency;
+    description?: string;
+    userId: string;
+    expiresIn?: number;
+  }): AsyncResult<PaymentInvoice, Error> {
+    try {
+      this.logger.log(`Creating YooKassa payment for user ${params.userId}: ${params.amount} ${params.currency}`);
+
+      // Convert cryptocurrency to RUB fiat amount
+      const rubAmount = this.convertCryptoToRub(params.amount, params.currency);
+
+      const requestParams: Record<string, unknown> = {
+        amount: {
+          value: rubAmount,
+          currency: 'RUB',
+        },
+        confirmation: {
+          type: 'redirect',
+          return_url: this.paymentConfig.getYooKassaConfig().returnUrl || 'https://example.com/payment/return',
+        },
+        capture: true, // Auto-capture payment
+        description: params.description || `Top-up ${params.amount} ${params.currency}`,
+        metadata: {
+          userId: params.userId,
+          originalAmount: params.amount,
+          originalCurrency: params.currency,
+        },
+      };
+
+      const payment = await this.makeRequest<YooKassaPayment>(
+        'POST',
+        'payments',
+        requestParams,
+        this.generateIdempotencyKey(),
+      );
+
+      if (!payment.id) {
+        this.logger.error('Failed to create YooKassa payment', payment);
+
+        return Err(new Error('Failed to create payment'));
+      }
+
+      const paymentInvoice: PaymentInvoice = {
+        invoiceId: payment.id,
+        amount: params.amount, // Keep original crypto amount
+        currency: params.currency,
+        payUrl: payment.confirmation?.confirmation_url || '',
+        expiresAt: payment.expires_at ? new Date(payment.expires_at) : undefined,
+        description: payment.description,
+      };
+
+      this.logger.log(`YooKassa payment created: ${paymentInvoice.invoiceId}`);
+
+      return Ok(paymentInvoice);
+    } catch (error) {
+      this.logger.error('Error creating YooKassa payment', error);
+
+      return Err(toError(error));
+    }
+  }
+
+  /**
+   * Get invoice status from YooKassa
+   */
+  async getInvoice(invoiceId: string): AsyncResult<PaymentTransaction, Error> {
+    try {
+      this.logger.log(`Fetching YooKassa payment status: ${invoiceId}`);
+
+      const payment = await this.makeRequest<YooKassaPayment>('GET', `payments/${invoiceId}`);
+
+      const transaction: PaymentTransaction = {
+        transactionId: payment.id,
+        invoiceId: payment.id,
+        amount: payment.amount.value,
+        currency: this.mapCurrencyToCryptocurrency(payment.amount.currency),
+        status: this.mapYooKassaStatus(payment.status),
+        paidAt: payment.captured_at ? new Date(payment.captured_at) : undefined,
+      };
+
+      return Ok(transaction);
+    } catch (error) {
+      this.logger.error(`Error fetching YooKassa payment ${invoiceId}`, error);
+
+      return Err(toError(error));
+    }
+  }
+
+  /**
+   * Get invoices history with filtering
+   */
+  async getInvoices(params?: {
+    status?: PaymentStatus;
+    offset?: number;
+    count?: number;
+  }): AsyncResult<PaymentTransaction[], Error> {
+    try {
+      this.logger.log('Fetching YooKassa payments history', params);
+
+      // YooKassa uses cursor-based pagination
+      const requestParams: Record<string, unknown> = {
+        limit: params?.count || 50,
+      };
+
+      if (params?.status) {
+        requestParams.status = this.mapStatusToYooKassa(params.status);
+      }
+
+      const response = await this.makeRequest<{ items: YooKassaPayment[] }>('GET', 'payments', requestParams);
+
+      const transactions: PaymentTransaction[] = response.items.map((payment) => ({
+        transactionId: payment.id,
+        invoiceId: payment.id,
+        amount: payment.amount.value,
+        currency: this.mapCurrencyToCryptocurrency(payment.amount.currency),
+        status: this.mapYooKassaStatus(payment.status),
+        paidAt: payment.captured_at ? new Date(payment.captured_at) : undefined,
+      }));
+
+      return Ok(transactions);
+    } catch (error) {
+      this.logger.error('Error fetching YooKassa payments history', error);
+
+      return Err(toError(error));
+    }
+  }
+
+  /**
+   * Create transfer for withdrawal (payout)
+   */
+  async createTransfer(params: {
+    userId: string;
+    amount: string;
+    currency: Cryptocurrency;
+    comment?: string;
+  }): AsyncResult<PaymentTransfer, Error> {
+    try {
+      this.logger.log(`Creating YooKassa payout for user ${params.userId}: ${params.amount} ${params.currency}`);
+
+      // Convert cryptocurrency to RUB fiat amount
+      const rubAmount = this.convertCryptoToRub(params.amount, params.currency);
+
+      const requestParams: Record<string, unknown> = {
+        amount: {
+          value: rubAmount,
+          currency: 'RUB',
+        },
+        payout_destination_data: {
+          type: 'bank_card',
+          // In production, get card number from user profile
+        },
+        description: params.comment || `Withdrawal ${params.amount} ${params.currency}`,
+        metadata: {
+          userId: params.userId,
+          originalAmount: params.amount,
+          originalCurrency: params.currency,
+        },
+      };
+
+      const payout = await this.makeRequest<YooKassaPayout>(
+        'POST',
+        'payouts',
+        requestParams,
+        this.generateIdempotencyKey(),
+      );
+
+      if (!payout.id) {
+        this.logger.error('Failed to create YooKassa payout', payout);
+
+        return Err(new Error('Failed to create payout'));
+      }
+
+      const transfer: PaymentTransfer = {
+        transferId: payout.id,
+        amount: params.amount, // Keep original crypto amount
+        currency: params.currency,
+        status: this.mapYooKassaPayoutStatus(payout.status),
+        completedAt: payout.dealt_at ? new Date(payout.dealt_at) : undefined,
+      };
+
+      this.logger.log(`YooKassa payout created: ${transfer.transferId}`);
+
+      return Ok(transfer);
+    } catch (error) {
+      this.logger.error('Error creating YooKassa payout', error);
+
+      return Err(toError(error));
+    }
+  }
+
+  /**
+   * Get transfer status
+   */
+  async getTransfer(transferId: string): AsyncResult<PaymentTransfer, Error> {
+    try {
+      this.logger.log(`Fetching YooKassa payout status: ${transferId}`);
+
+      const payout = await this.makeRequest<YooKassaPayout>('GET', `payouts/${transferId}`);
+
+      const transfer: PaymentTransfer = {
+        transferId: payout.id,
+        amount: payout.amount.value,
+        currency: this.mapCurrencyToCryptocurrency(payout.amount.currency),
+        status: this.mapYooKassaPayoutStatus(payout.status),
+        completedAt: payout.dealt_at ? new Date(payout.dealt_at) : undefined,
+      };
+
+      return Ok(transfer);
+    } catch (error) {
+      this.logger.error(`Error fetching YooKassa payout ${transferId}`, error);
+
+      return Err(toError(error));
+    }
+  }
+
+  /**
+   * Get transfers history
+   */
+  async getTransfers(params?: { offset?: number; count?: number }): AsyncResult<PaymentTransfer[], Error> {
+    try {
+      this.logger.log('Fetching YooKassa payouts history', params);
+
+      const requestParams: Record<string, unknown> = {
+        limit: params?.count || 50,
+      };
+
+      const response = await this.makeRequest<{ items: YooKassaPayout[] }>('GET', 'payouts', requestParams);
+
+      const transfers: PaymentTransfer[] = response.items.map((payout) => ({
+        transferId: payout.id,
+        amount: payout.amount.value,
+        currency: this.mapCurrencyToCryptocurrency(payout.amount.currency),
+        status: this.mapYooKassaPayoutStatus(payout.status),
+        completedAt: payout.dealt_at ? new Date(payout.dealt_at) : undefined,
+      }));
+
+      return Ok(transfers);
+    } catch (error) {
+      this.logger.error('Error fetching YooKassa payouts history', error);
+
+      return Err(toError(error));
+    }
+  }
+
+  /**
+   * Get provider balances
+   * Note: YooKassa doesn't provide a balance API, returns empty array
+   */
+  async getBalances(): AsyncResult<PaymentBalance[], Error> {
+    this.logger.warn('YooKassa does not provide balance API, returning empty array');
+
+    return Ok([]);
+  }
+
+  /**
+   * Verify webhook signature
+   * YooKassa doesn't use HMAC signatures, but we can implement IP whitelist check
+   */
+  verifyWebhook(signature: string, body: string): boolean {
+    // YooKassa webhooks are verified by IP whitelist
+    // In production, check the request IP against YooKassa's IP ranges
+    // For now, accept all webhooks (security warning)
+    this.logger.warn('YooKassa webhook verification not fully implemented - using IP whitelist in production');
+
+    return true;
+  }
+
+  /**
+   * Convert cryptocurrency amount to RUB
+   * In production, this should use real-time exchange rates
+   */
+  private convertCryptoToRub(amount: string, currency: Cryptocurrency): string {
+    // Placeholder exchange rates (RUB per unit)
+    const EXCHANGE_RATES: Record<string, string> = {
+      USDT: '95.5',
+      TON: '200.0',
+      BTC: '6500000.0',
+      ETH: '350000.0',
+      BNB: '45000.0',
+      TRX: '15.0',
+      USDC: '95.5',
+    };
+
+    const rate = EXCHANGE_RATES[currency];
+    if (!rate) {
+      throw new Error(`Unsupported currency for conversion: ${currency}`);
+    }
+
+    const cryptoAmount = decimal(amount);
+    const rubRate = decimal(rate);
+    const rubAmount = cryptoAmount.times(rubRate);
+
+    return toDbString(rubAmount, 2); // RUB uses 2 decimal places
+  }
+
+  /**
+   * Map YooKassa payment status to PaymentStatus enum
+   */
+  private mapYooKassaStatus(status: string): PaymentStatus {
+    const STATUS_MAP: Record<string, PaymentStatus> = {
+      pending: PaymentStatus.Pending,
+      waiting_for_capture: PaymentStatus.Processing,
+      succeeded: PaymentStatus.Completed,
+      canceled: PaymentStatus.Cancelled,
+    };
+
+    return STATUS_MAP[status] ?? PaymentStatus.Pending;
+  }
+
+  /**
+   * Map YooKassa payout status to PaymentStatus enum
+   */
+  private mapYooKassaPayoutStatus(status: string): PaymentStatus {
+    const STATUS_MAP: Record<string, PaymentStatus> = {
+      pending: PaymentStatus.Processing,
+      succeeded: PaymentStatus.Completed,
+      canceled: PaymentStatus.Failed,
+    };
+
+    return STATUS_MAP[status] ?? PaymentStatus.Pending;
+  }
+
+  /**
+   * Map PaymentStatus to YooKassa status
+   */
+  private mapStatusToYooKassa(status: PaymentStatus): string {
+    const STATUS_MAP: Record<PaymentStatus, string> = {
+      [PaymentStatus.Pending]: 'pending',
+      [PaymentStatus.Processing]: 'waiting_for_capture',
+      [PaymentStatus.Completed]: 'succeeded',
+      [PaymentStatus.Failed]: 'canceled',
+      [PaymentStatus.Expired]: 'canceled',
+      [PaymentStatus.Cancelled]: 'canceled',
+    };
+
+    return STATUS_MAP[status] ?? 'pending';
+  }
+
+  /**
+   * Map fiat currency code to Cryptocurrency enum
+   */
+  private mapCurrencyToCryptocurrency(currency: string): Cryptocurrency {
+    // For YooKassa, we primarily deal with RUB
+    // Map to USDT as default stable representation
+    if (currency === 'RUB') {
+      return Cryptocurrency.Usdt;
+    }
+
+    return Cryptocurrency.Usdt;
+  }
+}

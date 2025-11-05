@@ -2,13 +2,20 @@
  * Payment Configuration Interface
  *
  * Defines the structure for payment system configuration including
- * CryptoPay integration, webhook settings, and provider-specific options.
+ * provider integrations, webhook settings, and provider-specific options.
+ * Each provider has isolated context and configuration.
  *
  * @interface PaymentConfig
  */
 export interface PaymentConfig {
   /** CryptoPay (CryptoBot) configuration */
   cryptoBot: CryptoBotConfig;
+
+  /** Heleket payment gateway configuration */
+  heleket: HelekeConfiguration;
+
+  /** YooKassa payment gateway configuration */
+  yooKassa: YooKassaConfig;
 
   /** Webhook configuration */
   webhook?: PaymentWebhookConfig;
@@ -106,4 +113,65 @@ export interface PaymentLimitsConfig {
 
   /** Maximum transactions per user per day */
   maxTransactionsPerDay?: number;
+}
+
+/**
+ * Heleket Payment Gateway Configuration
+ *
+ * Configuration for Heleket payment processing integration.
+ * Heleket is a Russian payment gateway supporting cards, SBP, and electronic wallets.
+ */
+export interface HelekeConfiguration {
+  /** Heleket API token (required) */
+  apiToken: string;
+
+  /** Heleket merchant ID (required) */
+  merchantId: string;
+
+  /** API base URL (optional, defaults to production) */
+  apiUrl?: string;
+
+  /** Use test mode (defaults to false) */
+  testMode?: boolean;
+
+  /** Request timeout in milliseconds */
+  timeout?: number;
+
+  /** Max retries for API requests */
+  maxRetries?: number;
+
+  /** Success callback URL */
+  successUrl?: string;
+
+  /** Failure callback URL */
+  failUrl?: string;
+}
+
+/**
+ * YooKassa Payment Gateway Configuration
+ *
+ * Configuration for YooKassa (formerly Yandex.Kassa) integration.
+ * YooKassa supports various payment methods including cards, wallets, and bank transfers.
+ */
+export interface YooKassaConfig {
+  /** YooKassa shop ID (required) */
+  shopId: string;
+
+  /** YooKassa secret key (required) */
+  secretKey: string;
+
+  /** API base URL (optional, defaults to production) */
+  apiUrl?: string;
+
+  /** Use test mode (defaults to false) */
+  testMode?: boolean;
+
+  /** Request timeout in milliseconds */
+  timeout?: number;
+
+  /** Max retries for API requests */
+  maxRetries?: number;
+
+  /** Return URL after payment */
+  returnUrl?: string;
 }
