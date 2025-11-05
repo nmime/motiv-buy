@@ -9,6 +9,7 @@ import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl'
 import { CallbackRouterHandler } from '../handler/callback-router.handler';
 import { BotAuthMiddleware } from '../middleware';
 import { BotUserService, BotSessionService } from './auth';
+import { protectHandler } from '../util';
 
 /**
  * Extended Grammy Context with session and i18n support
@@ -286,21 +287,34 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Help);
     });
 
-    this.bot.command('profile', async (ctx) => {
-      await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Profile);
-    });
+    // Protected commands - require authentication
+    this.bot.command(
+      'profile',
+      protectHandler(async (ctx) => {
+        await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Profile);
+      }),
+    );
 
-    this.bot.command('settings', async (ctx) => {
-      await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Settings);
-    });
+    this.bot.command(
+      'settings',
+      protectHandler(async (ctx) => {
+        await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Settings);
+      }),
+    );
 
-    this.bot.command('balance', async (ctx) => {
-      await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Balance);
-    });
+    this.bot.command(
+      'balance',
+      protectHandler(async (ctx) => {
+        await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Balance);
+      }),
+    );
 
-    this.bot.command('menu', async (ctx) => {
-      await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Menu);
-    });
+    this.bot.command(
+      'menu',
+      protectHandler(async (ctx) => {
+        await this.processCommand(this.mapContextToBotContext(ctx), BotCommand.Menu);
+      }),
+    );
   }
 
   /**
@@ -311,9 +325,13 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    this.bot.on('callback_query:data', async (ctx) => {
-      await this.callbackRouter.routeCallback(this.mapContextToBotContext(ctx));
-    });
+    // Protected callback handlers - require authentication
+    this.bot.on(
+      'callback_query:data',
+      protectHandler(async (ctx) => {
+        await this.callbackRouter.routeCallback(this.mapContextToBotContext(ctx));
+      }),
+    );
   }
 
   /**
