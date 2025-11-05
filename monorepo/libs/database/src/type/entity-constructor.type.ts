@@ -65,13 +65,13 @@ export interface RelationConfig {
 /**
  * Helper function to assign entity data with automatic relation handling
  */
-export function assignEntityData(
-  entity: Record<string, unknown>,
+export function assignEntityData<T extends object>(
+  entity: T,
   data: Record<string, unknown>,
   relationMap: Record<string, RelationConfig>,
 ): void {
   const processedKeys = new Set<string>();
-  const entityTarget = entity;
+  const entityTarget = entity as Record<string, unknown>;
 
   // Handle relations
   for (const [idKey, config] of Object.entries(relationMap)) {

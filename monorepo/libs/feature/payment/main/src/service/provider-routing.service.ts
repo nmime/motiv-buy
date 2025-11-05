@@ -3,9 +3,9 @@ import { Result, Ok, Err } from '@app/common-shared';
 import {
   PaymentProvider,
   CurrencyCode,
-  PaymentProviderConfigRepository,
-  ProviderCurrencySupportRepository,
-  ProviderRoutingRuleRepository,
+  PaymentProviderRepository,
+  ProviderCurrencyRepository,
+  ProviderRoutingRepository,
 } from '@app/database';
 import { RoutingRuleType } from '@app/database';
 
@@ -33,9 +33,9 @@ export class ProviderRoutingService {
   private readonly logger = new Logger(ProviderRoutingService.name);
 
   constructor(
-    private readonly providerConfigRepo: PaymentProviderConfigRepository,
-    private readonly currencySupportRepo: ProviderCurrencySupportRepository,
-    private readonly routingRuleRepo: ProviderRoutingRuleRepository,
+    private readonly providerConfigRepo: PaymentProviderRepository,
+    private readonly currencySupportRepo: ProviderCurrencyRepository,
+    private readonly routingRuleRepo: ProviderRoutingRepository,
   ) {}
 
   /**

@@ -191,7 +191,7 @@ export class PaymentProviderEntity {
    */
   constructor(data?: EntityConstructorData<PaymentProviderEntity, 'id' | 'createdAt' | 'updatedAt'>) {
     if (data) {
-      assignEntityData(this, data);
+      assignEntityData(this, data, {});
     }
   }
 }

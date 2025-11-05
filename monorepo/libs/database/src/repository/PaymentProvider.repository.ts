@@ -123,11 +123,10 @@ export class PaymentProviderRepository {
   /**
    * Create or update provider configuration
    */
-  async upsert(data: Partial<PaymentProviderEntity>): Promise<PaymentProviderEntity> {
-    if (!data.provider) {
-      throw new Error('Provider type is required');
-    }
-
+  async upsert(
+    data: Required<Pick<PaymentProviderEntity, 'provider' | 'displayName' | 'providerType'>> &
+      Partial<Omit<PaymentProviderEntity, 'provider' | 'displayName' | 'providerType'>>,
+  ): Promise<PaymentProviderEntity> {
     let entity = await this.em.findOne(PaymentProviderEntity, {
       provider: data.provider,
     });
@@ -136,8 +135,8 @@ export class PaymentProviderRepository {
       // Update existing
       this.em.assign(entity, data);
     } else {
-      // Create new
-      entity = this.em.create(PaymentProviderEntity, data);
+      // Create new using entity constructor which properly handles defaults
+      entity = new PaymentProviderEntity(data as ConstructorParameters<typeof PaymentProviderEntity>[0]);
       this.em.persist(entity);
     }
 
