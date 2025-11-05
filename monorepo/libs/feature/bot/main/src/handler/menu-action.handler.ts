@@ -224,7 +224,7 @@ export class MenuActionHandler {
       .text('💰 Earnings', 'profile:stats:earnings')
       .text('🎯 Performance', 'profile:stats:performance')
       .row()
-      .text('« Back to Profile', 'menu:profile');
+      .text('« Back to Profile', 'profile:view');
   }
 
   /**

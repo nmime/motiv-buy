@@ -6,7 +6,9 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import { EntityManager } from '@mikro-orm/core';
 import { BotContext } from '@app/feature-bot-shared';
+import { UserEntity, UserLastAuthEntity, UserBalanceHistoryEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { ProfileActionHandler } from './profile-action.handler';
 import { BalanceActionHandler } from './balance-action.handler';
@@ -30,6 +32,7 @@ export class CallbackRouterHandler {
   private settingsActionHandlers!: Map<string, (ctx: BotContext, params: string[]) => Promise<void>>;
 
   constructor(
+    private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
     private readonly profileHandler: ProfileActionHandler,
     private readonly balanceHandler: BalanceActionHandler,
@@ -108,6 +111,10 @@ export class CallbackRouterHandler {
       ['details', async (ctx) => this.profileHandler.handleProfileDetails(ctx)],
       ['verify', async (ctx) => this.profileHandler.handleVerification(ctx)],
       ['stats', this.handleProfileStatsMenu.bind(this)],
+      ['stats:overview', async (ctx, params) => this.statisticsHandler.handleStatisticsOverview(ctx)],
+      ['stats:activity', async (ctx, params) => this.statisticsHandler.handleDetailedStatistics(ctx)],
+      ['stats:earnings', async (ctx, params) => this.statisticsHandler.handleEarningsStatistics(ctx)],
+      ['stats:performance', async (ctx, params) => this.statisticsHandler.handleTrafficStatistics(ctx)],
       ['security', this.handleProfileSecurityMenu.bind(this)],
       ['password', this.handlePasswordChange.bind(this)],
       ['email_security', this.handleEmailSecurity.bind(this)],
@@ -587,12 +594,30 @@ export class CallbackRouterHandler {
   }
 
   private async handleProfileStatsMenu(ctx: BotContext, params: string[]): Promise<void> {
-    const keyboard = this.menuHandler.createProfileStatsMenuKeyboard();
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('profile.stats_menu', { default: '📊 Profile Statistics\n\nView your account performance metrics.' }),
-      parseMode: 'HTML',
-      replyMarkup: keyboard,
-    });
+    // If no specific stat requested, show overview using StatisticsActionHandler
+    if (!params || params.length === 0) {
+      await this.statisticsHandler.handleStatisticsOverview(ctx);
+      return;
+    }
+
+    // Route to specific stat views
+    const statType = params[0];
+    switch (statType) {
+      case 'overview':
+        await this.statisticsHandler.handleStatisticsOverview(ctx);
+        break;
+      case 'activity':
+        await this.statisticsHandler.handleDetailedStatistics(ctx);
+        break;
+      case 'earnings':
+        await this.statisticsHandler.handleEarningsStatistics(ctx);
+        break;
+      case 'performance':
+        await this.statisticsHandler.handleTrafficStatistics(ctx);
+        break;
+      default:
+        await this.statisticsHandler.handleStatisticsOverview(ctx);
+    }
   }
 
   private async handleProfileSecurityMenu(ctx: BotContext, params: string[]): Promise<void> {
@@ -628,23 +653,159 @@ export class CallbackRouterHandler {
   }
 
   private async handleLoginHistory(ctx: BotContext, params: string[]): Promise<void> {
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('profile.login_history', {
-        default: '🔐 Login History\n\n📱 Last login: Today\n🌍 Location: Unknown\n🕐 Time: Just now\n\nNo suspicious activity detected.',
-      }),
-      parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:profile'),
-    });
+    try {
+      if (!ctx.from) {
+        await ctx.reply(ctx.t('auth.authentication_required'));
+        return;
+      }
+
+      const em = this.em.fork();
+      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+
+      if (!user) {
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
+        return;
+      }
+
+      const lastAuth = await em.findOne(UserLastAuthEntity, { user: user.id });
+
+      let text = '<b>🔐 Login History</b>\n\n';
+
+      if (lastAuth) {
+        const timeDiff = Date.now() - lastAuth.updatedAt.getTime();
+        const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+        const minutesAgo = Math.floor(timeDiff / (1000 * 60));
+
+        let timeText = 'just now';
+        if (hoursAgo > 24) {
+          timeText = `${Math.floor(hoursAgo / 24)} day(s) ago`;
+        } else if (hoursAgo > 0) {
+          timeText = `${hoursAgo} hour(s) ago`;
+        } else if (minutesAgo > 0) {
+          timeText = `${minutesAgo} minute(s) ago`;
+        }
+
+        text += `<b>Last Login:</b>\n`;
+        text += `📅 Time: ${timeText}\n`;
+        text += `🕐 Date: ${lastAuth.updatedAt.toLocaleString()}\n`;
+        text += `📍 IP: ${lastAuth.ip || 'Unknown'}\n`;
+
+        if (lastAuth.city || lastAuth.country) {
+          text += `🌍 Location: ${lastAuth.city || ''}${lastAuth.city && lastAuth.country ? ', ' : ''}${lastAuth.country || ''}\n`;
+        }
+
+        if (lastAuth.continent) {
+          text += `🗺 Continent: ${lastAuth.continent}\n`;
+        }
+
+        text += '\n✅ No suspicious activity detected.';
+      } else {
+        text += '📱 No login history available yet.\n';
+        text += 'Login history will be tracked starting from your next login.';
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('profile:security'),
+      });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, error as Error);
+    }
   }
 
   private async handleBalanceAnalytics(ctx: BotContext, params: string[]): Promise<void> {
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('balance.analytics', {
-        default: '📊 Balance Analytics\n\n💰 Total earnings: $0.00\n📈 Growth: 0%\n📉 Expenses: $0.00\n\nDetailed analytics are being prepared.',
-      }),
-      parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
-    });
+    try {
+      if (!ctx.from) {
+        await ctx.reply(ctx.t('auth.authentication_required'));
+        return;
+      }
+
+      const em = this.em.fork();
+      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+
+      if (!user) {
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
+        return;
+      }
+
+      // Get all balance history for analytics
+      const history = await em.find(
+        UserBalanceHistoryEntity,
+        { user: user.id },
+        { orderBy: { createdAt: 'DESC' }, limit: 100 }
+      );
+
+      if (history.length === 0) {
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: '📊 <b>Balance Analytics</b>\n\nNo transaction history available yet.\nStart using the platform to see your analytics!',
+          parseMode: 'HTML',
+          replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+        });
+        return;
+      }
+
+      // Calculate analytics
+      const { decimal, add, subtract, toDisplayString, toNumber } = await import('@app/common-shared');
+
+      let totalIncome = decimal(0);
+      let totalExpense = decimal(0);
+      const last30Days = history.filter(tx => {
+        const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+        return daysDiff <= 30;
+      });
+
+      const last7Days = history.filter(tx => {
+        const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+        return daysDiff <= 7;
+      });
+
+      history.forEach(tx => {
+        const amount = decimal(tx.amount);
+        if (amount.greaterThan(0)) {
+          totalIncome = add(totalIncome, amount);
+        } else {
+          totalExpense = add(totalExpense, amount.abs());
+        }
+      });
+
+      const income30Days = last30Days
+        .filter(tx => decimal(tx.amount).greaterThan(0))
+        .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
+
+      const income7Days = last7Days
+        .filter(tx => decimal(tx.amount).greaterThan(0))
+        .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
+
+      const netBalance = subtract(totalIncome, totalExpense);
+      const avgTransaction = history.length > 0 ? totalIncome.div(history.length) : decimal(0);
+
+      let text = '<b>📊 Balance Analytics</b>\n\n';
+      text += '<b>💰 All Time:</b>\n';
+      text += `• Total Income: $${toDisplayString(totalIncome, 2)}\n`;
+      text += `• Total Expenses: $${toDisplayString(totalExpense, 2)}\n`;
+      text += `• Net Balance: $${toDisplayString(netBalance, 2)}\n\n`;
+
+      text += '<b>📈 Last 30 Days:</b>\n';
+      text += `• Income: $${toDisplayString(income30Days, 2)}\n`;
+      text += `• Transactions: ${last30Days.length}\n\n`;
+
+      text += '<b>📅 Last 7 Days:</b>\n';
+      text += `• Income: $${toDisplayString(income7Days, 2)}\n`;
+      text += `• Transactions: ${last7Days.length}\n\n`;
+
+      text += '<b>📊 Averages:</b>\n';
+      text += `• Avg Transaction: $${toDisplayString(avgTransaction, 2)}\n`;
+      text += `• Total Transactions: ${history.length}`;
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+      });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, error as Error);
+    }
   }
 
   private async handleWithdrawalMenu(ctx: BotContext): Promise<void> {
