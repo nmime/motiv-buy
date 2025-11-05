@@ -1,6 +1,6 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Enum, Index } from '@mikro-orm/core';
 import { EntityConstructorData, assignEntityData } from '../type';
-import { PaymentProviderConfigEntity } from './PaymentProviderConfig.entity';
+import { PaymentProviderEntity } from './PaymentProvider.entity';
 import { CurrencyEntity } from './Currency.entity';
 
 /**
@@ -38,13 +38,13 @@ export enum ConditionOperator {
  * Stores dynamic routing rules for intelligent provider selection
  * Enables complex routing logic without code changes
  */
-@Entity({ tableName: 'provider_routing_rules' })
-@Index({ name: 'ix__provider_routing_rules__rule_type', properties: ['ruleType'] })
-@Index({ name: 'ix__provider_routing_rules__is_enabled', properties: ['isEnabled'] })
-@Index({ name: 'ix__provider_routing_rules__priority', properties: ['priority'] })
-@Index({ name: 'ix__provider_routing_rules__provider', properties: ['provider'] })
-@Index({ name: 'ix__provider_routing_rules__currency', properties: ['currency'] })
-export class ProviderRoutingRuleEntity {
+@Entity({ tableName: 'provider_routings' })
+@Index({ name: 'ix__provider_routings__rule_type', properties: ['ruleType'] })
+@Index({ name: 'ix__provider_routings__is_enabled', properties: ['isEnabled'] })
+@Index({ name: 'ix__provider_routings__priority', properties: ['priority'] })
+@Index({ name: 'ix__provider_routings__provider', properties: ['provider'] })
+@Index({ name: 'ix__provider_routings__currency', properties: ['currency'] })
+export class ProviderRoutingEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
@@ -64,8 +64,8 @@ export class ProviderRoutingRuleEntity {
   /**
    * Provider relationship (which provider this rule routes to)
    */
-  @ManyToOne(() => PaymentProviderConfigEntity, { nullable: true, onDelete: 'cascade' })
-  provider!: PaymentProviderConfigEntity | null;
+  @ManyToOne(() => PaymentProviderEntity, { nullable: true, onDelete: 'cascade' })
+  provider!: PaymentProviderEntity | null;
 
   /**
    * Currency filter (null = applies to all currencies)
@@ -194,7 +194,7 @@ export class ProviderRoutingRuleEntity {
   /**
    * Constructor with optional initialization data
    */
-  constructor(data?: EntityConstructorData<ProviderRoutingRuleEntity>) {
+  constructor(data?: EntityConstructorData<ProviderRoutingEntity>) {
     if (data) {
       assignEntityData(this, data);
     }

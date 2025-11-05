@@ -19,7 +19,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
     // ========================================
 
     this.addSql(`
-      INSERT INTO payment_provider_configs (
+      INSERT INTO payment_providers (
         provider, provider_type, is_enabled, status, priority, reliability_score,
         supports_deposits, supports_withdrawals, supports_telegram_integration,
         supports_network_routing, auto_routing_enabled, maintenance_mode,
@@ -55,7 +55,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
 
     // CryptoBot: Supports all major crypto currencies with default networks
     this.addSql(`
-      INSERT INTO provider_currency_support (
+      INSERT INTO provider_currencies (
         provider_id, currency_id, network, is_enabled, is_preferred, routing_priority,
         supports_deposits, supports_withdrawals, min_deposit_amount, min_withdrawal_amount,
         network_fee_estimate, reliability_score
@@ -86,7 +86,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
           ELSE NULL
         END,
         95
-      FROM payment_provider_configs ppc
+      FROM payment_providers ppc
       CROSS JOIN currencies c
       WHERE ppc.provider = 'crypto_bot'
         AND c.code IN ('USDT', 'TON', 'BTC', 'ETH', 'BNB', 'TRX', 'USDC', 'LTC', 'DOGE', 'DAI', 'DASH', 'BCH', 'SOL')
@@ -95,7 +95,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
 
     // CryptoBot: Also support USDT on Tron (secondary option)
     this.addSql(`
-      INSERT INTO provider_currency_support (
+      INSERT INTO provider_currencies (
         provider_id, currency_id, network, is_enabled, is_preferred, routing_priority,
         supports_deposits, supports_withdrawals, min_deposit_amount, min_withdrawal_amount,
         network_fee_estimate, reliability_score
@@ -108,7 +108,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
         true, true, 1.0, 1.0,
         3.0,  -- TRC-20 fees on CryptoBot
         95
-      FROM payment_provider_configs ppc
+      FROM payment_providers ppc
       CROSS JOIN currencies c
       WHERE ppc.provider = 'crypto_bot'
         AND c.code = 'USDT'
@@ -117,7 +117,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
 
     // Heleket: USDT on multiple networks (TRC-20 preferred for lowest fees)
     this.addSql(`
-      INSERT INTO provider_currency_support (
+      INSERT INTO provider_currencies (
         provider_id, currency_id, network, is_enabled, is_preferred, routing_priority,
         supports_deposits, supports_withdrawals, min_deposit_amount, min_withdrawal_amount,
         network_fee_estimate, reliability_score
@@ -140,7 +140,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
           WHEN 'ethereum' THEN 15.0 -- ~$15 fee
         END,
         95
-      FROM payment_provider_configs ppc
+      FROM payment_providers ppc
       CROSS JOIN currencies c
       CROSS JOIN (VALUES ('tron'), ('bsc'), ('ethereum')) AS networks(network_type)
       WHERE ppc.provider = 'heleket'
@@ -150,7 +150,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
 
     // YooKassa: RUB only
     this.addSql(`
-      INSERT INTO provider_currency_support (
+      INSERT INTO provider_currencies (
         provider_id, currency_id, network, is_enabled, is_preferred, routing_priority,
         supports_deposits, supports_withdrawals, min_deposit_amount, min_withdrawal_amount,
         reliability_score
@@ -162,7 +162,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
         true, true, 10,
         true, true, 100.0, 100.0,  -- Min 100 RUB
         95
-      FROM payment_provider_configs ppc
+      FROM payment_providers ppc
       CROSS JOIN currencies c
       WHERE ppc.provider = 'yookassa'
         AND c.code = 'RUB'
@@ -175,7 +175,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
 
     // Rule 1: Telegram users always use CryptoBot (highest priority)
     this.addSql(`
-      INSERT INTO provider_routing_rules (
+      INSERT INTO provider_routings (
         name, description, rule_type, provider_id, currency_id, is_enabled,
         priority, weight, allowed_platforms
       )
@@ -186,13 +186,13 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
         ppc.id,
         NULL,  -- Applies to all currencies
         true, 5, 1, ARRAY['telegram']
-      FROM payment_provider_configs ppc
+      FROM payment_providers ppc
       WHERE ppc.provider = 'crypto_bot';
     `);
 
     // Rule 2: USDT cost optimization - Heleket TRC-20 (50-70% fee savings)
     this.addSql(`
-      INSERT INTO provider_routing_rules (
+      INSERT INTO provider_routings (
         name, description, rule_type, provider_id, currency_id, is_enabled,
         priority, weight
       )
@@ -203,7 +203,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
         ppc.id,
         c.id,
         true, 10, 1
-      FROM payment_provider_configs ppc
+      FROM payment_providers ppc
       CROSS JOIN currencies c
       WHERE ppc.provider = 'heleket'
         AND c.code = 'USDT';
@@ -211,7 +211,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
 
     // Rule 3: Russian users to YooKassa for RUB
     this.addSql(`
-      INSERT INTO provider_routing_rules (
+      INSERT INTO provider_routings (
         name, description, rule_type, provider_id, currency_id, is_enabled,
         priority, weight, allowed_countries
       )
@@ -222,7 +222,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
         ppc.id,
         c.id,
         true, 15, 1, ARRAY['RU', 'BY', 'KZ']
-      FROM payment_provider_configs ppc
+      FROM payment_providers ppc
       CROSS JOIN currencies c
       WHERE ppc.provider = 'yookassa'
         AND c.code = 'RUB';
@@ -230,7 +230,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
 
     // Rule 4: Default fallback - CryptoBot for all other cases
     this.addSql(`
-      INSERT INTO provider_routing_rules (
+      INSERT INTO provider_routings (
         name, description, rule_type, provider_id, currency_id, is_enabled,
         priority, weight
       )
@@ -241,7 +241,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
         ppc.id,
         NULL,  -- Applies to all currencies
         true, 1000, 1  -- Lowest priority (highest number)
-      FROM payment_provider_configs ppc
+      FROM payment_providers ppc
       WHERE ppc.provider = 'crypto_bot';
     `);
 
@@ -252,7 +252,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
   async down(): Promise<void> {
     // Delete seeded routing rules
     this.addSql(`
-      DELETE FROM provider_routing_rules
+      DELETE FROM provider_routings
       WHERE name IN (
         'Telegram Users to CryptoBot',
         'USDT Cost Optimization',
@@ -263,16 +263,16 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
 
     // Delete seeded currency support
     this.addSql(`
-      DELETE FROM provider_currency_support
+      DELETE FROM provider_currencies
       WHERE provider_id IN (
-        SELECT id FROM payment_provider_configs
+        SELECT id FROM payment_providers
         WHERE provider IN ('crypto_bot', 'heleket', 'yookassa')
       );
     `);
 
     // Delete seeded provider configurations
     this.addSql(`
-      DELETE FROM payment_provider_configs
+      DELETE FROM payment_providers
       WHERE provider IN ('crypto_bot', 'heleket', 'yookassa');
     `);
 

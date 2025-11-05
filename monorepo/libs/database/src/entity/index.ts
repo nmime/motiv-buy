@@ -11,9 +11,9 @@ export * from './UserSourceVisit.entity';
 export * from './Currency.entity';
 export * from './CurrencyRatesHistory.entity';
 export * from './PaymentTransaction.entity';
-export * from './PaymentProviderConfig.entity';
-export * from './ProviderCurrencySupport.entity';
-export * from './ProviderRoutingRule.entity';
+export * from './PaymentProvider.entity';
+export * from './ProviderCurrency.entity';
+export * from './ProviderRouting.entity';
 
 // Traffic entities
 export * from './TrafficActions.entity';

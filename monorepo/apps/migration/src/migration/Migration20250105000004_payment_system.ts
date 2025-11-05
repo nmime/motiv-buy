@@ -7,9 +7,9 @@ import { Migration } from '@mikro-orm/migrations';
  * - currencies: Supported fiat and cryptocurrencies
  * - currency_rates_history: Historical exchange rates
  * - payment_transactions: Payment records
- * - payment_provider_configs: Payment provider configuration
- * - provider_currency_support: Provider-currency-network matrix
- * - provider_routing_rules: Dynamic routing rules
+ * - payment_providers: Payment provider configuration
+ * - provider_currencies: Provider-currency-network matrix
+ * - provider_routings: Dynamic routing rules
  *
  * This migration also adds currency_id foreign key to user_balances table.
  */
@@ -26,7 +26,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
         code varchar(10) NOT NULL UNIQUE,
         name varchar(50) NOT NULL,
         symbol varchar(10),
-        type varchar(10) NOT NULL CHECK (type IN ('fiat', 'crypto')),
+        type varchar(10) NOT NULL,
         rate_to_usd decimal(20, 8) NOT NULL DEFAULT '1.0',
         is_active boolean NOT NULL DEFAULT true,
         decimal_places integer NOT NULL DEFAULT 2,
@@ -45,18 +45,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
       CREATE TABLE currency_rates_history (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
         currency_id uuid NOT NULL,
-        provider varchar(30) NOT NULL CHECK (provider IN (
-          'coingecko',
-          'binance',
-          'cryptocompare',
-          'coincap',
-          'kraken',
-          'exchangerate_api',
-          'frankfurter',
-          'freecurrency_api',
-          'central_bank',
-          'manual'
-        )),
+        provider varchar(30) NOT NULL,
         rate_to_usd decimal(20, 8) NOT NULL,
         reliability_score integer NOT NULL DEFAULT 100,
         created_at timestamptz NOT NULL DEFAULT now(),
@@ -82,12 +71,12 @@ export class Migration20250105000004PaymentSystem extends Migration {
       CREATE TABLE payment_transactions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
         user_id varchar(255) NOT NULL,
-        type varchar(20) NOT NULL CHECK (type IN ('top_up', 'withdraw')),
-        provider varchar(20) NOT NULL CHECK (provider IN ('crypto_bot', 'heleket', 'yookassa')),
+        type varchar(20) NOT NULL,
+        provider varchar(20) NOT NULL,
         provider_transaction_id varchar(255),
         amount decimal(20,8) NOT NULL CHECK (amount > 0),
-        currency varchar(10) NOT NULL CHECK (currency IN ('USDT', 'TON', 'BTC', 'ETH', 'BNB', 'TRX', 'USDC', 'RUB', 'USD', 'EUR', 'LTC', 'DOGE', 'DAI', 'DASH', 'BCH', 'SOL')),
-        status varchar(20) NOT NULL CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'cancelled', 'expired')),
+        currency varchar(10) NOT NULL,
+        status varchar(20) NOT NULL,
         pay_url text,
         description text,
         fee decimal(20,8) CHECK (fee IS NULL OR fee >= 0),
@@ -120,9 +109,9 @@ export class Migration20250105000004PaymentSystem extends Migration {
     // PART 3: PAYMENT PROVIDER SYSTEM
     // ========================================
 
-    // 4. Create payment_provider_configs table
+    // 4. Create payment_providers table
     this.addSql(`
-      CREATE TABLE payment_provider_configs (
+      CREATE TABLE payment_providers (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
         provider varchar(50) NOT NULL UNIQUE,
         provider_type varchar(30) NOT NULL DEFAULT 'CRYPTO_NATIVE',
@@ -145,21 +134,21 @@ export class Migration20250105000004PaymentSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX idx_payment_provider_configs_provider ON payment_provider_configs(provider);');
-    this.addSql('CREATE INDEX idx_payment_provider_configs_enabled ON payment_provider_configs(is_enabled);');
-    this.addSql('CREATE INDEX idx_payment_provider_configs_status ON payment_provider_configs(status);');
-    this.addSql('CREATE INDEX idx_payment_provider_configs_priority ON payment_provider_configs(priority);');
+    this.addSql('CREATE INDEX idx_payment_providers_provider ON payment_providers(provider);');
+    this.addSql('CREATE INDEX idx_payment_providers_enabled ON payment_providers(is_enabled);');
+    this.addSql('CREATE INDEX idx_payment_providers_status ON payment_providers(status);');
+    this.addSql('CREATE INDEX idx_payment_providers_priority ON payment_providers(priority);');
 
     this.addSql(`
-      CREATE TRIGGER update_payment_provider_configs_updated_at
-        BEFORE UPDATE ON payment_provider_configs
+      CREATE TRIGGER update_payment_providers_updated_at
+        BEFORE UPDATE ON payment_providers
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at_column();
     `);
 
-    // 5. Create provider_currency_support table
+    // 5. Create provider_currencies table
     this.addSql(`
-      CREATE TABLE provider_currency_support (
+      CREATE TABLE provider_currencies (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
         provider_id uuid NOT NULL,
         currency_id uuid NOT NULL,
@@ -184,30 +173,30 @@ export class Migration20250105000004PaymentSystem extends Migration {
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now(),
         UNIQUE(provider_id, currency_id, network),
-        CONSTRAINT fk__provider_currency_support__provider
-          FOREIGN KEY (provider_id) REFERENCES payment_provider_configs(id) ON DELETE CASCADE,
-        CONSTRAINT fk__provider_currency_support__currency
+        CONSTRAINT fk__provider_currencies__provider
+          FOREIGN KEY (provider_id) REFERENCES payment_providers(id) ON DELETE CASCADE,
+        CONSTRAINT fk__provider_currencies__currency
           FOREIGN KEY (currency_id) REFERENCES currencies(id) ON DELETE CASCADE
       );
     `);
 
-    this.addSql('CREATE INDEX idx_provider_currency_support_provider ON provider_currency_support(provider_id);');
-    this.addSql('CREATE INDEX idx_provider_currency_support_currency ON provider_currency_support(currency_id);');
-    this.addSql('CREATE INDEX idx_provider_currency_support_network ON provider_currency_support(network);');
-    this.addSql('CREATE INDEX idx_provider_currency_support_enabled ON provider_currency_support(is_enabled);');
-    this.addSql('CREATE INDEX idx_provider_currency_support_preferred ON provider_currency_support(is_preferred);');
-    this.addSql('CREATE INDEX idx_provider_currency_support_priority ON provider_currency_support(routing_priority);');
+    this.addSql('CREATE INDEX idx_provider_currencies_provider ON provider_currencies(provider_id);');
+    this.addSql('CREATE INDEX idx_provider_currencies_currency ON provider_currencies(currency_id);');
+    this.addSql('CREATE INDEX idx_provider_currencies_network ON provider_currencies(network);');
+    this.addSql('CREATE INDEX idx_provider_currencies_enabled ON provider_currencies(is_enabled);');
+    this.addSql('CREATE INDEX idx_provider_currencies_preferred ON provider_currencies(is_preferred);');
+    this.addSql('CREATE INDEX idx_provider_currencies_priority ON provider_currencies(routing_priority);');
 
     this.addSql(`
-      CREATE TRIGGER update_provider_currency_support_updated_at
-        BEFORE UPDATE ON provider_currency_support
+      CREATE TRIGGER update_provider_currencies_updated_at
+        BEFORE UPDATE ON provider_currencies
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at_column();
     `);
 
-    // 6. Create provider_routing_rules table
+    // 6. Create provider_routings table
     this.addSql(`
-      CREATE TABLE provider_routing_rules (
+      CREATE TABLE provider_routings (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
         name varchar(255) NOT NULL,
         description text,
@@ -237,26 +226,26 @@ export class Migration20250105000004PaymentSystem extends Migration {
         config jsonb,
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT fk__provider_routing_rules__provider
-          FOREIGN KEY (provider_id) REFERENCES payment_provider_configs(id) ON DELETE SET NULL,
-        CONSTRAINT fk__provider_routing_rules__currency
+        CONSTRAINT fk__provider_routings__provider
+          FOREIGN KEY (provider_id) REFERENCES payment_providers(id) ON DELETE SET NULL,
+        CONSTRAINT fk__provider_routings__currency
           FOREIGN KEY (currency_id) REFERENCES currencies(id) ON DELETE SET NULL,
-        CONSTRAINT fk__provider_routing_rules__fallback_rule
-          FOREIGN KEY (fallback_rule_id) REFERENCES provider_routing_rules(id) ON DELETE SET NULL
+        CONSTRAINT fk__provider_routings__fallback_rule
+          FOREIGN KEY (fallback_rule_id) REFERENCES provider_routings(id) ON DELETE SET NULL
       );
     `);
 
-    this.addSql('CREATE INDEX idx_provider_routing_rules_rule_type ON provider_routing_rules(rule_type);');
-    this.addSql('CREATE INDEX idx_provider_routing_rules_provider ON provider_routing_rules(provider_id);');
-    this.addSql('CREATE INDEX idx_provider_routing_rules_currency ON provider_routing_rules(currency_id);');
-    this.addSql('CREATE INDEX idx_provider_routing_rules_enabled ON provider_routing_rules(is_enabled);');
-    this.addSql('CREATE INDEX idx_provider_routing_rules_priority ON provider_routing_rules(priority);');
-    this.addSql('CREATE INDEX idx_provider_routing_rules_active_from ON provider_routing_rules(active_from);');
-    this.addSql('CREATE INDEX idx_provider_routing_rules_active_until ON provider_routing_rules(active_until);');
+    this.addSql('CREATE INDEX idx_provider_routings_rule_type ON provider_routings(rule_type);');
+    this.addSql('CREATE INDEX idx_provider_routings_provider ON provider_routings(provider_id);');
+    this.addSql('CREATE INDEX idx_provider_routings_currency ON provider_routings(currency_id);');
+    this.addSql('CREATE INDEX idx_provider_routings_enabled ON provider_routings(is_enabled);');
+    this.addSql('CREATE INDEX idx_provider_routings_priority ON provider_routings(priority);');
+    this.addSql('CREATE INDEX idx_provider_routings_active_from ON provider_routings(active_from);');
+    this.addSql('CREATE INDEX idx_provider_routings_active_until ON provider_routings(active_until);');
 
     this.addSql(`
-      CREATE TRIGGER update_provider_routing_rules_updated_at
-        BEFORE UPDATE ON provider_routing_rules
+      CREATE TRIGGER update_provider_routings_updated_at
+        BEFORE UPDATE ON provider_routings
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at_column();
     `);
@@ -282,9 +271,9 @@ export class Migration20250105000004PaymentSystem extends Migration {
     this.addSql('ALTER TABLE user_balances DROP COLUMN IF EXISTS currency_id CASCADE;');
 
     // Drop tables in reverse order (CASCADE handles all dependencies)
-    this.addSql('DROP TABLE IF EXISTS provider_routing_rules CASCADE;');
-    this.addSql('DROP TABLE IF EXISTS provider_currency_support CASCADE;');
-    this.addSql('DROP TABLE IF EXISTS payment_provider_configs CASCADE;');
+    this.addSql('DROP TABLE IF EXISTS provider_routings CASCADE;');
+    this.addSql('DROP TABLE IF EXISTS provider_currencies CASCADE;');
+    this.addSql('DROP TABLE IF EXISTS payment_providers CASCADE;');
     this.addSql('DROP TABLE IF EXISTS payment_transactions CASCADE;');
     this.addSql('DROP TABLE IF EXISTS currency_rates_history CASCADE;');
     this.addSql('DROP TABLE IF EXISTS currencies CASCADE;');
