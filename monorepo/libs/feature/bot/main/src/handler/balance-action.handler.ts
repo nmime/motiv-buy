@@ -6,9 +6,9 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import { UserBalanceEntity, UserBalanceHistoryEntity, UserEntity } from '@app/database';
+import { UserBalanceEntity, UserBalanceHistoryEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { decimal, lessThan, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
@@ -27,24 +27,10 @@ export class BalanceActionHandler {
   /**
    * Handle balance view action
    */
-  async handleBalanceView(ctx: BotContext): Promise<void> {
+  async handleBalanceView(ctx: AuthenticatedBotContext): Promise<void> {
     const em = this.em.fork();
     try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('auth.user_not_found'));
-
-        return;
-      }
-
-      const balances = await this.getUserBalances(user.id);
+      const balances = await this.getUserBalances(ctx.user.id);
       const balanceText = await this.formatBalanceView(ctx, balances);
       const keyboard = this.menuHandler.createBalanceMenuKeyboard();
 
@@ -54,7 +40,7 @@ export class BalanceActionHandler {
         replyMarkup: keyboard,
       });
 
-      this.logger.log('Balance viewed', { userId: user.id });
+      this.logger.log('Balance viewed', { userId: ctx.user.id });
     } catch (error) {
       await this.menuHandler.handleMenuError(ctx, error as Error);
     }
@@ -63,29 +49,15 @@ export class BalanceActionHandler {
   /**
    * Handle transaction history view
    */
-  async handleTransactionHistory(ctx: BotContext, page = 1): Promise<void> {
+  async handleTransactionHistory(ctx: AuthenticatedBotContext, page = 1): Promise<void> {
     const em = this.em.fork();
     try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('auth.user_not_found'));
-
-        return;
-      }
-
       const limit = 10;
       const offset = (page - 1) * limit;
 
       const [transactions, total] = await this.em.findAndCount(
         UserBalanceHistoryEntity,
-        { user: user.id },
+        { user: ctx.user.id },
         {
           orderBy: { createdAt: 'DESC' },
           limit,
@@ -102,7 +74,7 @@ export class BalanceActionHandler {
 
       const totalPages = Math.ceil(total / limit);
       const historyText = await this.formatTransactionHistory(ctx, transactions, page, totalPages);
-      
+
       const keyboard = new InlineKeyboard();
       if (page > 1) {
         keyboard.text(ctx.t('common.previous'), `balance:history:${page - 1}`);
@@ -119,7 +91,7 @@ export class BalanceActionHandler {
         replyMarkup: keyboard,
       });
 
-      this.logger.log('Transaction history viewed', { userId: user.id, page, total });
+      this.logger.log('Transaction history viewed', { userId: ctx.user.id, page, total });
     } catch (error) {
       await this.menuHandler.handleMenuError(ctx, error as Error);
     }
@@ -128,31 +100,17 @@ export class BalanceActionHandler {
   /**
    * Handle withdrawal initiation
    */
-  async handleWithdrawalStart(ctx: BotContext): Promise<void> {
+  async handleWithdrawalStart(ctx: AuthenticatedBotContext): Promise<void> {
     const em = this.em.fork();
     try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('auth.user_not_found'));
-
-        return;
-      }
-
       // Check if user is verified
-      if (!user.isVerified) {
+      if (!ctx.user.isVerified) {
         await ctx.reply(ctx.t('balance.verification_required'));
 
         return;
       }
 
-      const balances = await this.getUserBalances(user.id);
+      const balances = await this.getUserBalances(ctx.user.id);
       const availableBalance = balances.length > 0 ? balances[0].getAvailableBalance() : decimal(0);
 
       if (lessThan(availableBalance, decimal(10))) {
@@ -181,14 +139,8 @@ export class BalanceActionHandler {
   /**
    * Handle deposit initiation
    */
-  async handleDepositStart(ctx: BotContext): Promise<void> {
+  async handleDepositStart(ctx: AuthenticatedBotContext): Promise<void> {
     try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
       const depositText =
         ctx.t('balance.deposit_info_title') + '\n\n' +
         ctx.t('balance.deposit_info_steps') + '\n\n' +
@@ -205,7 +157,7 @@ export class BalanceActionHandler {
 
       await ctx.replyWithHTML(depositText, { reply_markup: depositKeyboard });
 
-      this.logger.log('Deposit info viewed', { userId: ctx.from.id });
+      this.logger.log('Deposit info viewed', { userId: ctx.user.id });
     } catch (error) {
       await this.menuHandler.handleMenuError(ctx, error as Error);
     }
@@ -225,16 +177,9 @@ export class BalanceActionHandler {
   }
 
   /**
-   * Find user by Telegram ID
-   */
-  private async findUserByTelegramId(telegramId: string): Promise<UserEntity | null> {
-    return await this.em.findOne(UserEntity, { telegramId });
-  }
-
-  /**
    * Format balance view
    */
-  private async formatBalanceView(ctx: BotContext, balances: UserBalanceEntity[]): Promise<string> {
+  private async formatBalanceView(ctx: AuthenticatedBotContext, balances: UserBalanceEntity[]): Promise<string> {
     if (balances.length === 0) {
       return ctx.t('balance.no_balances_found');
     }
@@ -267,7 +212,7 @@ export class BalanceActionHandler {
    * Format transaction history
    */
   private async formatTransactionHistory(
-    ctx: BotContext,
+    ctx: AuthenticatedBotContext,
     transactions: UserBalanceHistoryEntity[],
     page: number,
     totalPages: number,
@@ -296,7 +241,7 @@ export class BalanceActionHandler {
   /**
    * Create currency selection keyboard
    */
-  private async createCurrencySelectionKeyboard(ctx: BotContext, balances: UserBalanceEntity[]) {
+  private async createCurrencySelectionKeyboard(ctx: AuthenticatedBotContext, balances: UserBalanceEntity[]) {
     const keyboard = new InlineKeyboard();
 
     for (const balance of balances) {

@@ -84,7 +84,7 @@ export class CallbackRouterHandler {
     this.menuActionHandlers = new Map([
       ['main', this.handleMainMenu.bind(this)],
       ['profile', async (ctx) => this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext)],
-      ['balance', async (ctx) => this.balanceHandler.handleBalanceView(ctx)],
+      ['balance', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
       ['statistics', async (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx)],
       ['orders', this.handleOrdersMenu.bind(this)],
       ['settings', async (ctx) => this.settingsHandler.handleSettingsView(ctx)],
@@ -95,7 +95,7 @@ export class CallbackRouterHandler {
       ['help', this.handleHelpMenu.bind(this)],
       ['traffic', this.handleTrafficMenu.bind(this)],
       ['campaign', this.handleCampaignMenu.bind(this)],
-      ['withdrawal', async (ctx) => this.balanceHandler.handleWithdrawalStart(ctx)],
+      ['withdrawal', async (ctx) => this.balanceHandler.handleWithdrawalStart(ctx as AuthenticatedBotContext)],
       ['notifications', async (ctx) => this.settingsHandler.handleNotificationSettings(ctx)],
     ]);
 
@@ -129,19 +129,19 @@ export class CallbackRouterHandler {
     ]);
 
     this.balanceActionHandlers = new Map([
-      ['view', async (ctx) => this.balanceHandler.handleBalanceView(ctx)],
-      ['current', async (ctx) => this.balanceHandler.handleBalanceView(ctx)],
+      ['view', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
+      ['current', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
       [
         'history',
         async (ctx, params) => {
           const page = params.length > 0 && params[0] === 'page' ? parseInt(params[1]) : 1;
-          await this.balanceHandler.handleTransactionHistory(ctx, page);
+          await this.balanceHandler.handleTransactionHistory(ctx as AuthenticatedBotContext, page);
         },
       ],
       ['analytics', this.handleBalanceAnalytics.bind(this)],
-      ['withdraw', async (ctx) => this.balanceHandler.handleWithdrawalStart(ctx)],
-      ['deposit', async (ctx) => this.balanceHandler.handleDepositStart(ctx)],
-      ['topup', async (ctx) => this.balanceHandler.handleDepositStart(ctx)],
+      ['withdraw', async (ctx) => this.balanceHandler.handleWithdrawalStart(ctx as AuthenticatedBotContext)],
+      ['deposit', async (ctx) => this.balanceHandler.handleDepositStart(ctx as AuthenticatedBotContext)],
+      ['topup', async (ctx) => this.balanceHandler.handleDepositStart(ctx as AuthenticatedBotContext)],
     ]);
 
     this.statsActionHandlers = new Map([
@@ -375,7 +375,7 @@ export class CallbackRouterHandler {
     if (handler) {
       await handler(ctx, params);
     } else {
-      await this.balanceHandler.handleBalanceView(ctx);
+      await this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext);
     }
   }
 
