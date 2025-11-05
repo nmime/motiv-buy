@@ -1,6 +1,7 @@
 export * from './bot-creation.dto';
 export * from './bot-token-validation.dto';
 export * from './traffic-target.dto';
+export * from './source-bot.dto';
 
 // Export bot token validation result
 export { BotTokenValidationResponseDto as BotTokenValidationResultDto } from './bot-token-validation.dto';
