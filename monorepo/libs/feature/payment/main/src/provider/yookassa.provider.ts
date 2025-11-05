@@ -343,8 +343,20 @@ export class YooKassaProvider implements IPaymentProvider {
     amount: string;
     currency: Cryptocurrency;
     comment?: string;
+    destination?: string;
   }): AsyncResult<PaymentTransfer, Error> {
     try {
+      // Validate destination is provided for YooKassa
+      if (!params.destination) {
+        this.logger.error('YooKassa requires destination (bank card number) for payouts');
+
+        return Err(
+          new Error(
+            'Destination required for YooKassa payouts. Please provide bank card number in format: 1234567890123456',
+          ),
+        );
+      }
+
       this.logger.log(`Creating YooKassa payout for user ${params.userId}: ${params.amount} ${params.currency}`);
 
       // Convert cryptocurrency to RUB fiat amount using real-time rates
@@ -357,7 +369,9 @@ export class YooKassaProvider implements IPaymentProvider {
         },
         payout_destination_data: {
           type: 'bank_card',
-          // In production, get card number from user profile
+          card: {
+            number: params.destination, // Bank card number from user
+          },
         },
         description: params.comment || `Withdrawal ${params.amount} ${params.currency}`,
         metadata: {
