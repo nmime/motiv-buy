@@ -1,9 +1,10 @@
 import { Migration } from '@mikro-orm/migrations';
 
 /**
- * Link User Balances to Currencies Migration
+ * Link User Balances to Currencies - Schema Migration
  *
- * Links user_balances table to currencies table with foreign key.
+ * This is a schema-only migration that establishes relationships between
+ * user_balances and currencies tables through foreign key constraints.
  *
  * Steps:
  * 1. Populates currency_id in user_balances for existing records
@@ -51,12 +52,6 @@ export class Migration20250105000006LinkUserBalancesToCurrencies extends Migrati
       ALTER TABLE user_balances
         ADD CONSTRAINT uq__user_balances__user_currency_id
         UNIQUE (user_id, currency_id);
-    `);
-
-    // 5. Add comment to mark old currency column as deprecated
-    this.addSql(`
-      COMMENT ON COLUMN user_balances.currency IS
-      'DEPRECATED: Use currency_id instead. Will be removed in future migration.';
     `);
 
     // Ensure async compliance

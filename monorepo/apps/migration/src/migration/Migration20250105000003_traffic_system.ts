@@ -3,7 +3,7 @@ import { Migration } from '@mikro-orm/migrations';
 /**
  * Traffic System Migration
  *
- * Creates complete traffic management system:
+ * Creates complete traffic management system with all constraints, indexes, and foreign keys:
  * - traffic_sources: Bot sources providing traffic
  * - traffic_source_categories: Categorization for sources
  * - traffic_targets: Channels/groups buying traffic
@@ -32,7 +32,9 @@ export class Migration20250105000003TrafficSystem extends Migration {
         config jsonb,
         managed_by_id uuid,
         created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__traffic_sources__managed_by_id
+          FOREIGN KEY (managed_by_id) REFERENCES users(id) ON DELETE SET NULL
       );
     `);
 
@@ -79,7 +81,9 @@ export class Migration20250105000003TrafficSystem extends Migration {
         config jsonb,
         managed_by_id uuid,
         created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__traffic_targets__managed_by_id
+          FOREIGN KEY (managed_by_id) REFERENCES users(id) ON DELETE SET NULL
       );
     `);
 
@@ -135,7 +139,17 @@ export class Migration20250105000003TrafficSystem extends Migration {
         assigned_traffic_user_id uuid,
         created_by_id uuid,
         created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__traffic_orders__creator_id
+          FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
+        CONSTRAINT fk__traffic_orders__traffic_source_id
+          FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE,
+        CONSTRAINT fk__traffic_orders__traffic_target_id
+          FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE,
+        CONSTRAINT fk__traffic_orders__assigned_traffic_user_id
+          FOREIGN KEY (assigned_traffic_user_id) REFERENCES traffic_users(id) ON DELETE SET NULL,
+        CONSTRAINT fk__traffic_orders__created_by_id
+          FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE SET NULL
       );
     `);
 
@@ -162,7 +176,11 @@ export class Migration20250105000003TrafficSystem extends Migration {
         error_message text,
         retry_count integer NOT NULL DEFAULT 0,
         created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__traffic_actions__traffic_order_id
+          FOREIGN KEY (traffic_order_id) REFERENCES traffic_orders(id) ON DELETE CASCADE,
+        CONSTRAINT fk__traffic_actions__performed_by_id
+          FOREIGN KEY (performed_by_id) REFERENCES traffic_users(id) ON DELETE SET NULL
       );
     `);
 
@@ -184,7 +202,11 @@ export class Migration20250105000003TrafficSystem extends Migration {
         traffic_source_id uuid NOT NULL,
         traffic_source_category_id uuid NOT NULL,
         is_primary boolean NOT NULL DEFAULT false,
-        created_at timestamptz NOT NULL DEFAULT now()
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__traffic_source_categories__traffic_source_id
+          FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE,
+        CONSTRAINT fk__traffic_source_categories__traffic_source_category_id
+          FOREIGN KEY (traffic_source_category_id) REFERENCES traffic_source_categories(id) ON DELETE CASCADE
       );
     `);
 
@@ -222,7 +244,11 @@ export class Migration20250105000003TrafficSystem extends Migration {
         total_orders_completed integer NOT NULL DEFAULT 0,
         total_amount_spent decimal(15,4) NOT NULL DEFAULT 0,
         created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__traffic_target_sources__traffic_target_id
+          FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE,
+        CONSTRAINT fk__traffic_target_sources__traffic_source_id
+          FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE
       );
     `);
 
@@ -249,7 +275,11 @@ export class Migration20250105000003TrafficSystem extends Migration {
         total_orders_shared integer NOT NULL DEFAULT 0,
         notes text,
         created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__traffic_target_users__traffic_target_id
+          FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE,
+        CONSTRAINT fk__traffic_target_users__traffic_user_id
+          FOREIGN KEY (traffic_user_id) REFERENCES traffic_users(id) ON DELETE CASCADE
       );
     `);
 
@@ -273,7 +303,13 @@ export class Migration20250105000003TrafficSystem extends Migration {
         assigned_at timestamptz,
         assigned_by_id uuid,
         created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__user_traffic_targets__user_id
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        CONSTRAINT fk__user_traffic_targets__traffic_target_id
+          FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE,
+        CONSTRAINT fk__user_traffic_targets__assigned_by_id
+          FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL
       );
     `);
 
@@ -298,7 +334,13 @@ export class Migration20250105000003TrafficSystem extends Migration {
         assigned_at timestamptz,
         assigned_by_id uuid,
         created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__user_traffic_sources__user_id
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        CONSTRAINT fk__user_traffic_sources__traffic_source_id
+          FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE,
+        CONSTRAINT fk__user_traffic_sources__assigned_by_id
+          FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL
       );
     `);
 
@@ -322,7 +364,13 @@ export class Migration20250105000003TrafficSystem extends Migration {
         assigned_at timestamptz,
         assigned_by_id uuid,
         created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__user_traffic_orders__user_id
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        CONSTRAINT fk__user_traffic_orders__traffic_order_id
+          FOREIGN KEY (traffic_order_id) REFERENCES traffic_orders(id) ON DELETE CASCADE,
+        CONSTRAINT fk__user_traffic_orders__assigned_by_id
+          FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL
       );
     `);
 
@@ -344,7 +392,11 @@ export class Migration20250105000003TrafficSystem extends Migration {
         role varchar(20) NOT NULL,
         performed_at timestamptz,
         result_data jsonb,
-        created_at timestamptz NOT NULL DEFAULT now()
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__traffic_actions_users__traffic_action_id
+          FOREIGN KEY (traffic_action_id) REFERENCES traffic_actions(id) ON DELETE CASCADE,
+        CONSTRAINT fk__traffic_actions_users__traffic_user_id
+          FOREIGN KEY (traffic_user_id) REFERENCES traffic_users(id) ON DELETE CASCADE
       );
     `);
 
@@ -358,169 +410,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     `);
 
     // ========================================
-    // PART 3: FOREIGN KEY CONSTRAINTS
-    // ========================================
-
-    // Main tables foreign keys
-    this.addSql(`
-      ALTER TABLE traffic_sources
-        ADD CONSTRAINT fk__traffic_sources__managed_by_id
-        FOREIGN KEY (managed_by_id) REFERENCES users(id) ON DELETE SET NULL;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_targets
-        ADD CONSTRAINT fk__traffic_targets__managed_by_id
-        FOREIGN KEY (managed_by_id) REFERENCES users(id) ON DELETE SET NULL;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_orders
-        ADD CONSTRAINT fk__traffic_orders__creator_id
-        FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_orders
-        ADD CONSTRAINT fk__traffic_orders__traffic_source_id
-        FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_orders
-        ADD CONSTRAINT fk__traffic_orders__traffic_target_id
-        FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_orders
-        ADD CONSTRAINT fk__traffic_orders__assigned_traffic_user_id
-        FOREIGN KEY (assigned_traffic_user_id) REFERENCES traffic_users(id) ON DELETE SET NULL;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_orders
-        ADD CONSTRAINT fk__traffic_orders__created_by_id
-        FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE SET NULL;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_actions
-        ADD CONSTRAINT fk__traffic_actions__traffic_order_id
-        FOREIGN KEY (traffic_order_id) REFERENCES traffic_orders(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_actions
-        ADD CONSTRAINT fk__traffic_actions__performed_by_id
-        FOREIGN KEY (performed_by_id) REFERENCES traffic_users(id) ON DELETE SET NULL;
-    `);
-
-    // Junction tables foreign keys
-    this.addSql(`
-      ALTER TABLE traffic_source_categories_junction
-        ADD CONSTRAINT fk__traffic_source_categories__traffic_source_id
-        FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_source_categories_junction
-        ADD CONSTRAINT fk__traffic_source_categories__traffic_source_category_id
-        FOREIGN KEY (traffic_source_category_id) REFERENCES traffic_source_categories(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_target_sources
-        ADD CONSTRAINT fk__traffic_target_sources__traffic_target_id
-        FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_target_sources
-        ADD CONSTRAINT fk__traffic_target_sources__traffic_source_id
-        FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_target_users
-        ADD CONSTRAINT fk__traffic_target_users__traffic_target_id
-        FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_target_users
-        ADD CONSTRAINT fk__traffic_target_users__traffic_user_id
-        FOREIGN KEY (traffic_user_id) REFERENCES traffic_users(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE user_traffic_targets
-        ADD CONSTRAINT fk__user_traffic_targets__user_id
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE user_traffic_targets
-        ADD CONSTRAINT fk__user_traffic_targets__traffic_target_id
-        FOREIGN KEY (traffic_target_id) REFERENCES traffic_targets(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE user_traffic_targets
-        ADD CONSTRAINT fk__user_traffic_targets__assigned_by_id
-        FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL;
-    `);
-
-    this.addSql(`
-      ALTER TABLE user_traffic_sources
-        ADD CONSTRAINT fk__user_traffic_sources__user_id
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE user_traffic_sources
-        ADD CONSTRAINT fk__user_traffic_sources__traffic_source_id
-        FOREIGN KEY (traffic_source_id) REFERENCES traffic_sources(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE user_traffic_sources
-        ADD CONSTRAINT fk__user_traffic_sources__assigned_by_id
-        FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL;
-    `);
-
-    this.addSql(`
-      ALTER TABLE user_traffic_orders
-        ADD CONSTRAINT fk__user_traffic_orders__user_id
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE user_traffic_orders
-        ADD CONSTRAINT fk__user_traffic_orders__traffic_order_id
-        FOREIGN KEY (traffic_order_id) REFERENCES traffic_orders(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE user_traffic_orders
-        ADD CONSTRAINT fk__user_traffic_orders__assigned_by_id
-        FOREIGN KEY (assigned_by_id) REFERENCES users(id) ON DELETE SET NULL;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_actions_users
-        ADD CONSTRAINT fk__traffic_actions_users__traffic_action_id
-        FOREIGN KEY (traffic_action_id) REFERENCES traffic_actions(id) ON DELETE CASCADE;
-    `);
-
-    this.addSql(`
-      ALTER TABLE traffic_actions_users
-        ADD CONSTRAINT fk__traffic_actions_users__traffic_user_id
-        FOREIGN KEY (traffic_user_id) REFERENCES traffic_users(id) ON DELETE CASCADE;
-    `);
-
-    // ========================================
-    // PART 4: UPDATE TRIGGERS
+    // PART 3: UPDATE TRIGGERS
     // ========================================
 
     const tablesWithUpdatedAt = [
@@ -551,26 +441,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
   }
 
   async down(): Promise<void> {
-    // Drop triggers first
-    const tablesWithUpdatedAt = [
-      'traffic_sources',
-      'traffic_source_categories',
-      'traffic_targets',
-      'traffic_users',
-      'traffic_orders',
-      'traffic_actions',
-      'traffic_target_sources',
-      'traffic_target_users',
-      'user_traffic_targets',
-      'user_traffic_sources',
-      'user_traffic_orders',
-    ];
-
-    for (const table of tablesWithUpdatedAt) {
-      this.addSql(`DROP TRIGGER IF EXISTS update_${table}_updated_at ON ${table};`);
-    }
-
-    // Drop tables in reverse order (due to foreign key constraints)
+    // Drop tables in reverse order with CASCADE (automatically handles triggers and constraints)
     this.addSql('DROP TABLE IF EXISTS traffic_actions_users CASCADE;');
     this.addSql('DROP TABLE IF EXISTS user_traffic_orders CASCADE;');
     this.addSql('DROP TABLE IF EXISTS user_traffic_sources CASCADE;');

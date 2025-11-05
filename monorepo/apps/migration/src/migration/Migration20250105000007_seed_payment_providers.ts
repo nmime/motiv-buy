@@ -27,21 +27,21 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
       ) VALUES
       -- CryptoBot: Primary provider, Telegram integration, highest priority
       (
-        'CRYPTO_BOT', 'CRYPTO_NATIVE', true, 'ACTIVE', 10, 98,
+        'crypto_bot', 'crypto_native', true, 'active', 10, 98,
         true, true, true, false, true, false, 100, 60,
         '{"webhooks": true, "polling": true, "invoiceExpiration": true, "transferTracking": true}'::jsonb,
         '{"webhookUrl": "/api/payment/webhook/crypto-bot", "signatureVerification": "hmac-sha256"}'::jsonb
       ),
       -- Heleket: Multi-network support, lowest fees via Tron
       (
-        'HELEKET', 'CRYPTO_NATIVE', true, 'ACTIVE', 20, 95,
+        'heleket', 'crypto_native', true, 'active', 20, 95,
         true, true, false, true, true, false, 50, 30,
         '{"webhooks": true, "polling": true, "networkSelection": true, "lowFees": true}'::jsonb,
         '{"webhookUrl": "/api/payment/webhook/heleket", "signatureVerification": "hmac-sha256", "preferredNetwork": "tron"}'::jsonb
       ),
       -- YooKassa: Fiat gateway for Russian market
       (
-        'YOOKASSA', 'FIAT_GATEWAY', true, 'ACTIVE', 30, 97,
+        'yookassa', 'fiat_gateway', true, 'active', 30, 97,
         true, true, false, false, true, false, 50, 30,
         '{"webhooks": true, "polling": true, "fiatToRub": true, "bankCards": true}'::jsonb,
         '{"webhookUrl": "/api/payment/webhook/yookassa", "signatureVerification": "ip-whitelist", "allowedIps": ["185.71.76.0/27", "185.71.77.0/27"]}'::jsonb
@@ -64,19 +64,19 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
         ppc.id,
         c.id,
         CASE c.code
-          WHEN 'USDT' THEN 'ETHEREUM'  -- CryptoBot prefers ERC-20
-          WHEN 'TON' THEN 'TON'
-          WHEN 'BTC' THEN 'BITCOIN'
-          WHEN 'ETH' THEN 'ETHEREUM'
-          WHEN 'BNB' THEN 'BSC'
-          WHEN 'TRX' THEN 'TRON'
-          WHEN 'USDC' THEN 'ETHEREUM'
-          WHEN 'LTC' THEN 'LITECOIN'
-          WHEN 'DOGE' THEN 'DOGECOIN'
-          WHEN 'DAI' THEN 'ETHEREUM'
-          WHEN 'DASH' THEN 'DASH'
-          WHEN 'BCH' THEN 'BITCOIN_CASH'
-          WHEN 'SOL' THEN 'SOLANA'
+          WHEN 'USDT' THEN 'ethereum'  -- CryptoBot prefers ERC-20
+          WHEN 'TON' THEN 'ton'
+          WHEN 'BTC' THEN 'bitcoin'
+          WHEN 'ETH' THEN 'ethereum'
+          WHEN 'BNB' THEN 'bsc'
+          WHEN 'TRX' THEN 'tron'
+          WHEN 'USDC' THEN 'ethereum'
+          WHEN 'LTC' THEN 'litecoin'
+          WHEN 'DOGE' THEN 'dogecoin'
+          WHEN 'DAI' THEN 'ethereum'
+          WHEN 'DASH' THEN 'dash'
+          WHEN 'BCH' THEN 'bitcoin_cash'
+          WHEN 'SOL' THEN 'solana'
         END,
         true, true, 10,
         true, true, 1.0, 1.0,
@@ -88,7 +88,7 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
         95
       FROM payment_provider_configs ppc
       CROSS JOIN currencies c
-      WHERE ppc.provider = 'CRYPTO_BOT'
+      WHERE ppc.provider = 'crypto_bot'
         AND c.code IN ('USDT', 'TON', 'BTC', 'ETH', 'BNB', 'TRX', 'USDC', 'LTC', 'DOGE', 'DAI', 'DASH', 'BCH', 'SOL')
       ON CONFLICT (provider_id, currency_id, network) DO NOTHING;
     `);
@@ -103,14 +103,14 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
       SELECT
         ppc.id,
         c.id,
-        'TRON',
+        'tron',
         true, false, 20,  -- Not preferred, lower priority
         true, true, 1.0, 1.0,
         3.0,  -- TRC-20 fees on CryptoBot
         95
       FROM payment_provider_configs ppc
       CROSS JOIN currencies c
-      WHERE ppc.provider = 'CRYPTO_BOT'
+      WHERE ppc.provider = 'crypto_bot'
         AND c.code = 'USDT'
       ON CONFLICT (provider_id, currency_id, network) DO NOTHING;
     `);
@@ -127,23 +127,23 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
         c.id,
         network_type,
         true,
-        CASE network_type WHEN 'TRON' THEN true ELSE false END,  -- TRC-20 preferred
+        CASE network_type WHEN 'tron' THEN true ELSE false END,  -- TRC-20 preferred
         CASE network_type
-          WHEN 'TRON' THEN 5       -- Highest priority (lowest fees)
-          WHEN 'BSC' THEN 10
-          WHEN 'ETHEREUM' THEN 15  -- Lowest priority (highest fees)
+          WHEN 'tron' THEN 5       -- Highest priority (lowest fees)
+          WHEN 'bsc' THEN 10
+          WHEN 'ethereum' THEN 15  -- Lowest priority (highest fees)
         END,
         true, true, 1.0, 1.0,
         CASE network_type
-          WHEN 'TRON' THEN 1.0      -- ~$1 fee
-          WHEN 'BSC' THEN 0.5       -- ~$0.50 fee
-          WHEN 'ETHEREUM' THEN 15.0 -- ~$15 fee
+          WHEN 'tron' THEN 1.0      -- ~$1 fee
+          WHEN 'bsc' THEN 0.5       -- ~$0.50 fee
+          WHEN 'ethereum' THEN 15.0 -- ~$15 fee
         END,
         95
       FROM payment_provider_configs ppc
       CROSS JOIN currencies c
-      CROSS JOIN (VALUES ('TRON'), ('BSC'), ('ETHEREUM')) AS networks(network_type)
-      WHERE ppc.provider = 'HELEKET'
+      CROSS JOIN (VALUES ('tron'), ('bsc'), ('ethereum')) AS networks(network_type)
+      WHERE ppc.provider = 'heleket'
         AND c.code = 'USDT'
       ON CONFLICT (provider_id, currency_id, network) DO NOTHING;
     `);
@@ -158,13 +158,13 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
       SELECT
         ppc.id,
         c.id,
-        'NATIVE',
+        'native',
         true, true, 10,
         true, true, 100.0, 100.0,  -- Min 100 RUB
         95
       FROM payment_provider_configs ppc
       CROSS JOIN currencies c
-      WHERE ppc.provider = 'YOOKASSA'
+      WHERE ppc.provider = 'yookassa'
         AND c.code = 'RUB'
       ON CONFLICT (provider_id, currency_id, network) DO NOTHING;
     `);
@@ -182,12 +182,12 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
       SELECT
         'Telegram Users to CryptoBot',
         'Route Telegram users to CryptoBot for seamless integration',
-        'REGION_BASED',
+        'region_based',
         ppc.id,
         NULL,  -- Applies to all currencies
         true, 5, 1, ARRAY['telegram']
       FROM payment_provider_configs ppc
-      WHERE ppc.provider = 'CRYPTO_BOT';
+      WHERE ppc.provider = 'crypto_bot';
     `);
 
     // Rule 2: USDT cost optimization - Heleket TRC-20 (50-70% fee savings)
@@ -199,13 +199,13 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
       SELECT
         'USDT Cost Optimization',
         'Route USDT to Heleket for lowest network fees (TRC-20: ~$1 vs ERC-20: ~$15)',
-        'COST_OPTIMIZATION',
+        'cost_optimization',
         ppc.id,
         c.id,
         true, 10, 1
       FROM payment_provider_configs ppc
       CROSS JOIN currencies c
-      WHERE ppc.provider = 'HELEKET'
+      WHERE ppc.provider = 'heleket'
         AND c.code = 'USDT';
     `);
 
@@ -218,13 +218,13 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
       SELECT
         'Russian Users to YooKassa',
         'Route Russian users to YooKassa for RUB payments with bank cards',
-        'REGION_BASED',
+        'region_based',
         ppc.id,
         c.id,
         true, 15, 1, ARRAY['RU', 'BY', 'KZ']
       FROM payment_provider_configs ppc
       CROSS JOIN currencies c
-      WHERE ppc.provider = 'YOOKASSA'
+      WHERE ppc.provider = 'yookassa'
         AND c.code = 'RUB';
     `);
 
@@ -237,12 +237,12 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
       SELECT
         'Default Provider',
         'Default fallback to CryptoBot for all other cases',
-        'DEFAULT',
+        'default',
         ppc.id,
         NULL,  -- Applies to all currencies
         true, 1000, 1  -- Lowest priority (highest number)
       FROM payment_provider_configs ppc
-      WHERE ppc.provider = 'CRYPTO_BOT';
+      WHERE ppc.provider = 'crypto_bot';
     `);
 
     // Ensure async compliance
@@ -266,14 +266,14 @@ export class Migration20250105000007SeedPaymentProviders extends Migration {
       DELETE FROM provider_currency_support
       WHERE provider_id IN (
         SELECT id FROM payment_provider_configs
-        WHERE provider IN ('CRYPTO_BOT', 'HELEKET', 'YOOKASSA')
+        WHERE provider IN ('crypto_bot', 'heleket', 'yookassa')
       );
     `);
 
     // Delete seeded provider configurations
     this.addSql(`
       DELETE FROM payment_provider_configs
-      WHERE provider IN ('CRYPTO_BOT', 'HELEKET', 'YOOKASSA');
+      WHERE provider IN ('crypto_bot', 'heleket', 'yookassa');
     `);
 
     // Ensure async compliance
