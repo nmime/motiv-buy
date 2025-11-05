@@ -6,7 +6,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { UserEntity, UserStatus } from '@app/database';
 import { BotValidationUtil } from '../util/bot-validation.util';
@@ -26,12 +26,12 @@ export class ProfileActionHandler {
   /**
    * Handle profile view action
    *
-   * Note: This handler should be called with protectHandler() or within a protected composer
-   * to ensure ctx.user exists. See protected-composer.util.ts
+   * Note: This handler must be wrapped with protectHandler()
+   * Context type guarantees user exists - no null checks or assertions needed
    */
-  async handleProfileView(ctx: BotContext): Promise<void> {
-    // ctx.user is guaranteed to exist by protected composer/handler wrapper
-    const profileText = this.formatProfileView(ctx.user!);
+  async handleProfileView(ctx: AuthenticatedBotContext): Promise<void> {
+    // ctx.user is GUARANTEED by AuthenticatedBotContext type - no ! needed
+    const profileText = this.formatProfileView(ctx.user);
     const keyboard = this.menuHandler.createProfileMenuKeyboard();
 
     await this.messageService.sendOrEditMessage(ctx, {
@@ -40,15 +40,15 @@ export class ProfileActionHandler {
       replyMarkup: keyboard,
     });
 
-    this.logger.log('Profile viewed', { userId: ctx.user!.id, telegramId: ctx.user!.telegramId });
+    this.logger.log('Profile viewed', { userId: ctx.user.id, telegramId: ctx.user.telegramId });
   }
 
   /**
    * Handle profile edit initiation
    *
-   * Note: This handler should be called with protectHandler() or within a protected composer
+   * Note: This handler must be wrapped with protectHandler()
    */
-  async handleProfileEditStart(ctx: BotContext): Promise<void> {
+  async handleProfileEditStart(ctx: AuthenticatedBotContext): Promise<void> {
     // Store edit mode in session
     if (ctx.session) {
       ctx.session.conversationState = 'profile_edit';
@@ -65,9 +65,9 @@ export class ProfileActionHandler {
   /**
    * Handle profile field update
    *
-   * Note: This handler should be called with protectHandler() or within a protected composer
+   * Note: This handler must be wrapped with protectHandler()
    */
-  async handleProfileFieldUpdate(ctx: BotContext, field: string, value: string): Promise<void> {
+  async handleProfileFieldUpdate(ctx: AuthenticatedBotContext, field: string, value: string): Promise<void> {
     // Validate input based on field type
     const validation = this.validateProfileField(field, value);
 
@@ -76,8 +76,8 @@ export class ProfileActionHandler {
       return;
     }
 
-    // Update user field - ctx.user! is guaranteed by protected handler
-    await this.updateUserField(ctx.user!, field, validation.sanitized as string);
+    // Update user field - ctx.user is GUARANTEED by AuthenticatedBotContext
+    await this.updateUserField(ctx.user, field, validation.sanitized as string);
 
     await ctx.reply(`✅ Successfully updated ${field}!`);
 
@@ -91,19 +91,19 @@ export class ProfileActionHandler {
     await this.handleProfileView(ctx);
 
     this.logger.log('Profile updated', {
-      userId: ctx.user!.id,
+      userId: ctx.user.id,
       field,
-      telegramId: ctx.user!.telegramId,
+      telegramId: ctx.user.telegramId,
     });
   }
 
   /**
    * Handle profile details view
    *
-   * Note: This handler should be called with protectHandler() or within a protected composer
+   * Note: This handler must be wrapped with protectHandler()
    */
-  async handleProfileDetails(ctx: BotContext): Promise<void> {
-    const detailsText = this.formatProfileDetails(ctx.user!);
+  async handleProfileDetails(ctx: AuthenticatedBotContext): Promise<void> {
+    const detailsText = this.formatProfileDetails(ctx.user);
     const keyboard = this.menuHandler.createBackButton('menu:profile');
 
     await ctx.replyWithHTML(detailsText, { reply_markup: keyboard });
@@ -112,10 +112,10 @@ export class ProfileActionHandler {
   /**
    * Handle account verification
    *
-   * Note: This handler should be called with protectHandler() or within a protected composer
+   * Note: This handler must be wrapped with protectHandler()
    */
-  async handleVerification(ctx: BotContext): Promise<void> {
-    if (ctx.user!.isVerified) {
+  async handleVerification(ctx: AuthenticatedBotContext): Promise<void> {
+    if (ctx.user.isVerified) {
       await ctx.reply(ctx.t('user.profile.already_verified'));
       return;
     }
@@ -130,7 +130,7 @@ export class ProfileActionHandler {
 
     await ctx.replyWithHTML(verificationText);
 
-    this.logger.log('Verification info viewed', { userId: ctx.user!.id });
+    this.logger.log('Verification info viewed', { userId: ctx.user.id });
   }
 
   /**

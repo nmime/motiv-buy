@@ -7,7 +7,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { BotContext } from '@app/feature-bot-shared';
+import { BotContext, AuthenticatedBotContext } from '@app/feature-bot-shared';
 import {
   UserEntity,
   UserLastAuthEntity,
@@ -83,7 +83,7 @@ export class CallbackRouterHandler {
 
     this.menuActionHandlers = new Map([
       ['main', this.handleMainMenu.bind(this)],
-      ['profile', async (ctx) => this.profileHandler.handleProfileView(ctx)],
+      ['profile', async (ctx) => this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext)],
       ['balance', async (ctx) => this.balanceHandler.handleBalanceView(ctx)],
       ['statistics', async (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx)],
       ['orders', this.handleOrdersMenu.bind(this)],
@@ -100,7 +100,7 @@ export class CallbackRouterHandler {
     ]);
 
     this.profileActionHandlers = new Map([
-      ['view', async (ctx) => this.profileHandler.handleProfileView(ctx)],
+      ['view', async (ctx) => this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext)],
       [
         'edit',
         async (ctx, params) => {
@@ -111,12 +111,12 @@ export class CallbackRouterHandler {
               ctx.session.formData = { field: params[0] };
             }
           } else {
-            await this.profileHandler.handleProfileEditStart(ctx);
+            await this.profileHandler.handleProfileEditStart(ctx as AuthenticatedBotContext);
           }
         },
       ],
-      ['details', async (ctx) => this.profileHandler.handleProfileDetails(ctx)],
-      ['verify', async (ctx) => this.profileHandler.handleVerification(ctx)],
+      ['details', async (ctx) => this.profileHandler.handleProfileDetails(ctx as AuthenticatedBotContext)],
+      ['verify', async (ctx) => this.profileHandler.handleVerification(ctx as AuthenticatedBotContext)],
       ['stats', this.handleProfileStatsMenu.bind(this)],
       ['stats:overview', async (ctx, params) => this.statisticsHandler.handleStatisticsOverview(ctx)],
       ['stats:activity', async (ctx, params) => this.statisticsHandler.handleDetailedStatistics(ctx)],
@@ -362,7 +362,7 @@ export class CallbackRouterHandler {
     if (handler) {
       await handler(ctx, params);
     } else {
-      await this.profileHandler.handleProfileView(ctx);
+      await this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext);
     }
   }
 
@@ -499,7 +499,7 @@ export class CallbackRouterHandler {
    * Route verify actions
    */
   private async routeVerifyAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
-    await this.profileHandler.handleVerification(ctx);
+    await this.profileHandler.handleVerification(ctx as AuthenticatedBotContext);
   }
 
   /**

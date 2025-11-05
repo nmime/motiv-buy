@@ -48,6 +48,35 @@ export interface BotContext extends Context, SessionFlavor<BotSessionData>, I18n
 }
 
 /**
+ * Authenticated Bot Context
+ *
+ * Type-safe context for handlers that require authentication.
+ * Use this type in protected handlers to guarantee user exists.
+ * The protectHandler() middleware ensures this contract is met.
+ *
+ * @interface AuthenticatedBotContext
+ * @extends BotContext
+ *
+ * @example
+ * ```typescript
+ * async function handleProfile(ctx: AuthenticatedBotContext) {
+ *   // ctx.user is guaranteed to exist - no need for checks or assertions
+ *   const profile = formatProfile(ctx.user);
+ * }
+ * ```
+ */
+export interface AuthenticatedBotContext extends BotContext {
+  /** Authenticated user entity - GUARANTEED to exist */
+  user: UserEntity;
+
+  /** Authentication status - GUARANTEED to be true */
+  isAuthenticated: true;
+
+  /** Session ID - GUARANTEED to exist */
+  sessionId: string;
+}
+
+/**
  * Bot User Interface
  *
  * Represents a Telegram user in bot context with comprehensive user information.
