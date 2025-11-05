@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Enum, Index } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne, Enum, Index, Ref } from '@mikro-orm/core';
 import { EntityConstructorData, assignEntityData } from '../type';
 import { PaymentProviderEntity } from './PaymentProvider.entity';
 import { CurrencyEntity } from './Currency.entity';
@@ -64,14 +64,14 @@ export class ProviderRoutingEntity {
   /**
    * Provider relationship (which provider this rule routes to)
    */
-  @ManyToOne(() => PaymentProviderEntity, { nullable: true, onDelete: 'cascade' })
-  provider!: PaymentProviderEntity | null;
+  @ManyToOne('PaymentProviderEntity', { nullable: true, joinColumn: 'provider_id', referenceColumnName: 'id', ref: true })
+  provider!: Ref<PaymentProviderEntity> | null;
 
   /**
    * Currency filter (null = applies to all currencies)
    */
-  @ManyToOne(() => CurrencyEntity, { nullable: true, onDelete: 'cascade' })
-  currency!: CurrencyEntity | null;
+  @ManyToOne('CurrencyEntity', { nullable: true, joinColumn: 'currency_id', referenceColumnName: 'id', ref: true })
+  currency!: Ref<CurrencyEntity> | null;
 
   /**
    * Rule priority (lower number = higher priority)
@@ -107,7 +107,7 @@ export class ProviderRoutingEntity {
   @Property({ type: 'time', fieldName: 'active_to_time', nullable: true })
   activeToTime!: string | null; // e.g., '18:00:00'
 
-  @Property({ type: 'varchar', length: 7, array: true, fieldName: 'active_days_of_week', nullable: true })
+  @Property({ type: 'varchar[]', fieldName: 'active_days_of_week', nullable: true })
   activeDaysOfWeek!: string[] | null; // e.g., ['MON', 'TUE', 'WED']
 
   @Property({ type: 'date', fieldName: 'active_from_date', nullable: true })
@@ -128,16 +128,16 @@ export class ProviderRoutingEntity {
   /**
    * Geographic conditions
    */
-  @Property({ type: 'varchar', length: 2, array: true, fieldName: 'allowed_countries', nullable: true })
+  @Property({ type: 'varchar[]', fieldName: 'allowed_countries', nullable: true })
   allowedCountries!: string[] | null; // ISO 3166-1 alpha-2 codes
 
-  @Property({ type: 'varchar', length: 2, array: true, fieldName: 'blocked_countries', nullable: true })
+  @Property({ type: 'varchar[]', fieldName: 'blocked_countries', nullable: true })
   blockedCountries!: string[] | null;
 
   /**
    * Platform/source conditions
    */
-  @Property({ type: 'varchar', length: 20, array: true, fieldName: 'allowed_platforms', nullable: true })
+  @Property({ type: 'varchar[]', fieldName: 'allowed_platforms', nullable: true })
   allowedPlatforms!: string[] | null; // e.g., ['telegram', 'web', 'mobile']
 
   /**
@@ -194,9 +194,27 @@ export class ProviderRoutingEntity {
   /**
    * Constructor with optional initialization data
    */
-  constructor(data?: EntityConstructorData<ProviderRoutingEntity, 'id' | 'createdAt' | 'updatedAt'>) {
+  constructor(
+    data?: EntityConstructorData<
+      ProviderRoutingEntity,
+      'id' | 'createdAt' | 'updatedAt' | 'getSuccessRate' | 'isCurrentlyActive',
+      never,
+      'provider' | 'currency'
+    >,
+  ) {
     if (data) {
-      assignEntityData(this, data);
+      assignEntityData(this, data, {
+        providerId: {
+          field: 'provider',
+          entityClass: PaymentProviderEntity,
+          required: false,
+        },
+        currencyId: {
+          field: 'currency',
+          entityClass: CurrencyEntity,
+          required: false,
+        },
+      });
     }
   }
 

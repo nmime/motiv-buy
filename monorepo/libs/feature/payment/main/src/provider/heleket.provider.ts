@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
-import { decimal, toDbString } from '@app/common-shared/util';
+import { decimal, toDbString } from '@app/common-shared';
 import {
   Cryptocurrency,
   IPaymentProvider,
@@ -88,8 +88,8 @@ interface HelekeBalance {
  * API Documentation: https://doc.heleket.com/
  */
 @Injectable()
-export class HelekeProvider implements IPaymentProvider {
-  private readonly logger = new Logger(HelekeProvider.name);
+export class HeleketProvider implements IPaymentProvider {
+  private readonly logger = new Logger(HeleketProvider.name);
   private readonly apiToken: string;
   private readonly merchantId: string;
   private readonly baseUrl: string;
@@ -105,7 +105,7 @@ export class HelekeProvider implements IPaymentProvider {
     this.maxRetries = config.maxRetries || 3;
 
     this.logger.log(
-      `HelekeProvider initialized (merchantId: ${this.merchantId}, testMode: ${config.testMode || false})`,
+      `HeleketProvider initialized (merchantId: ${this.merchantId}, testMode: ${config.testMode || false})`,
     );
   }
 

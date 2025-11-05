@@ -4,14 +4,14 @@ import { PaymentSharedModule } from '@app/feature-payment-shared';
 import {
   DatabaseModule,
   PaymentTransactionEntity,
-  PaymentProviderConfigRepository,
-  ProviderCurrencySupportRepository,
-  ProviderRoutingRuleRepository,
+  PaymentProviderRepository,
+  ProviderCurrencyRepository,
+  ProviderRoutingRepository,
 } from '@app/database';
 import { CurrencySharedModule } from '@app/feature-currency-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
 import { CryptoBotProvider } from './provider/crypto-bot.provider';
-import { HelekeProvider } from './provider/heleket.provider';
+import { HeleketProvider } from './provider/heleket.provider';
 import { YooKassaProvider } from './provider/yookassa.provider';
 import { PaymentProviderFactory } from './service/payment-provider.factory';
 import { PaymentService } from './service/payment.service';
@@ -51,7 +51,7 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
   providers: [
     // Payment providers
     CryptoBotProvider,
-    HelekeProvider,
+    HeleketProvider,
     YooKassaProvider,
     // Services
     PaymentProviderFactory,
@@ -59,16 +59,16 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
     ProviderRoutingService,
     PaymentPollingService,
     // Repositories for routing
-    PaymentProviderConfigRepository,
-    ProviderCurrencySupportRepository,
-    ProviderRoutingRuleRepository,
+    PaymentProviderRepository,
+    ProviderCurrencyRepository,
+    ProviderRoutingRepository,
   ],
   exports: [
     PaymentService,
     PaymentProviderFactory,
     PaymentPollingService,
     CryptoBotProvider,
-    HelekeProvider,
+    HeleketProvider,
     YooKassaProvider,
   ],
 })
