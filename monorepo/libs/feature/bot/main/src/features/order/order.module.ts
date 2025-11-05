@@ -9,11 +9,13 @@
  */
 
 import { Module } from '@nestjs/common';
+import { BotSharedModule } from '@app/feature-bot-shared';
 import { OrderService } from './order.service';
 import { OrderHandler } from './order.handler';
 import { OrderConfigHandler, OrderCreationHandler, OrderEditHandler, OrderManagementHandler } from './handlers';
 
 @Module({
+  imports: [BotSharedModule],
   providers: [
     OrderService,
     OrderHandler,
