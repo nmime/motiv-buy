@@ -63,6 +63,9 @@
       "@app/feature-balance-shared": [
         "libs/feature/balance/shared/src"
       ],
+      "@app/feature-currency-shared": [
+        "libs/feature/currency/shared/src"
+      ],
       "@app/feature-bot-main": [
         "libs/feature/bot/main/src"
       ],

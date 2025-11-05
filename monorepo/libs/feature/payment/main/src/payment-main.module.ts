@@ -8,7 +8,7 @@ import {
   ProviderCurrencySupportRepository,
   ProviderRoutingRuleRepository,
 } from '@app/database';
-import { BalanceMainModule } from '@app/feature-balance-main';
+import { CurrencySharedModule } from '@app/feature-currency-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
 import { CryptoBotProvider } from './provider/crypto-bot.provider';
 import { HelekeProvider } from './provider/heleket.provider';
@@ -44,7 +44,7 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
     MikroOrmModule.forFeature([PaymentTransactionEntity]),
     PaymentSharedModule, // Includes PaymentConfigModule
     DatabaseModule, // For repository access
-    BalanceMainModule, // For CurrencyRateService
+    CurrencySharedModule, // For CurrencyRateService
     AppCommonIntlModule, // For I18n support
   ],
   controllers: [PaymentController, PaymentWebhookController],

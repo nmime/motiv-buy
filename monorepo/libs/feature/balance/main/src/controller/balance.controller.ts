@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { BalanceService } from '../service/balance.service';
-import { CurrencyRateService } from '../service/currency-rate.service';
+import { CurrencyRateService } from '@app/feature-currency-shared';
 import { PaymentService } from '@app/feature-payment-main';
 import { CreateInvoiceDto, CreateTransferDto } from '@app/feature-payment-shared';
 import { BalanceDto, TopUpRequestDto, TransactionDto, TransactionFilterDto, WithdrawRequestDto } from '../dto';

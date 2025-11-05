@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
 import { decimal, toDbString } from '@app/common-shared/util';
 import { CurrencyCode } from '@app/database';
-import { CurrencyRateService } from '@app/feature-balance-main';
+import { CurrencyRateService } from '@app/feature-currency-shared';
 import {
   Cryptocurrency,
   IPaymentProvider,
