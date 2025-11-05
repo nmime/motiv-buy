@@ -131,7 +131,7 @@ module.exports = [
         },
       ],
 
-      // Rule to forbid `Enum` postfix and enforce snake_case enum values
+      // Enforce enum value format: only allow snake_case, short uppercase codes, or numeric strings
       'no-restricted-syntax': [
         'error',
         {
@@ -139,12 +139,9 @@ module.exports = [
           message: "Enum names should not end with 'Enum'.",
         },
         {
-          selector: 'TSEnumMember[initializer.type="Literal"][initializer.value=/^[A-Z][a-z]+([A-Z][a-z]*)+$/]',
-          message: 'Enum values must be lowercase snake_case, not PascalCase. Use "my_value" instead of "MyValue".',
-        },
-        {
-          selector: 'TSEnumMember[initializer.type="Literal"][initializer.value=/^[A-Z]+_[A-Z_]+$/]',
-          message: 'Enum values must be lowercase snake_case, not SCREAMING_SNAKE_CASE. Use "my_value" instead of "MY_VALUE".',
+          // Only allow: snake_case (my_value), short uppercase (USD, BTC), or numeric strings (10, 0.5)
+          selector: 'TSEnumMember[initializer.type="Literal"][initializer.value=/./]:not([initializer.value=/^([a-z][a-z0-9]*(_[a-z0-9]+)*|[A-Z]{2,5}|\\d+(\\.\\d+)?)$/])',
+          message: 'Enum values must be lowercase snake_case (e.g., "my_value"), short uppercase codes (e.g., "USD"), or numeric strings (e.g., "10"). Keys must be PascalCase.',
         },
       ],
 
