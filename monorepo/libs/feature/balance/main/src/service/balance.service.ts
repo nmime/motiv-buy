@@ -9,7 +9,7 @@ import {
 } from '@app/database';
 import { PaymentService } from '@app/feature-payment-main';
 import { CreateInvoiceDto, CreateTransferDto } from '@app/feature-payment-shared';
-import { CurrencyRateService } from './currency-rate.service';
+import { CurrencyRateService } from '@app/feature-currency-shared';
 import { decimal, ensureNonNegative, Err, Ok, Result, subtract, sum, toNumber } from '@app/common-shared';
 import { BalanceDto, TransactionDto, TransactionFilterDto, TransactionType } from '../dto';
 import { TopUpRequestDto } from '../dto/topup-request.dto';
