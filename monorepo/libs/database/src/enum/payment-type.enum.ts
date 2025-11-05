@@ -2,6 +2,6 @@
  * Payment transaction type
  */
 export enum PaymentType {
-  TopUp = 'TOP_UP',
-  Withdraw = 'WITHDRAW',
+  TopUp = 'top_up',
+  Withdraw = 'withdraw',
 }

@@ -1,6 +1,6 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Enum, Index, Unique } from '@mikro-orm/core';
 import { EntityConstructorData, assignEntityData } from '../type';
-import { PaymentProviderConfigEntity } from './PaymentProviderConfig.entity';
+import { PaymentProviderEntity } from './PaymentProvider.entity';
 import { CurrencyEntity } from './Currency.entity';
 
 /**
@@ -8,24 +8,24 @@ import { CurrencyEntity } from './Currency.entity';
  */
 export enum NetworkType {
   // Bitcoin networks
-  Bitcoin = 'BITCOIN',
-  BitcoinCash = 'BITCOIN_CASH',
+  Bitcoin = 'bitcoin',
+  BitcoinCash = 'bitcoin_cash',
 
   // Ethereum and EVM-compatible
-  Ethereum = 'ETHEREUM',
-  BSC = 'BSC', // Binance Smart Chain
-  Polygon = 'POLYGON',
+  Ethereum = 'ethereum',
+  BSC = 'bsc', // Binance Smart Chain
+  Polygon = 'polygon',
 
   // Other networks
-  Tron = 'TRON', // TRC-20
-  TON = 'TON', // Telegram Open Network
-  Solana = 'SOLANA',
-  Litecoin = 'LITECOIN',
-  Dogecoin = 'DOGECOIN',
-  Dash = 'DASH',
+  Tron = 'tron', // TRC-20
+  TON = 'ton', // Telegram Open Network
+  Solana = 'solana',
+  Litecoin = 'litecoin',
+  Dogecoin = 'dogecoin',
+  Dash = 'dash',
 
   // Native (no specific network)
-  Native = 'NATIVE',
+  Native = 'native',
 }
 
 /**
@@ -33,21 +33,21 @@ export enum NetworkType {
  * Many-to-many relationship between payment providers and currencies
  * Stores which providers support which currencies and on which networks
  */
-@Entity({ tableName: 'provider_currency_support' })
-@Unique({ name: 'ix__provider_currency_support__provider_currency_network', properties: ['provider', 'currency', 'network'] })
-@Index({ name: 'ix__provider_currency_support__provider', properties: ['provider'] })
-@Index({ name: 'ix__provider_currency_support__currency', properties: ['currency'] })
-@Index({ name: 'ix__provider_currency_support__is_enabled', properties: ['isEnabled'] })
-@Index({ name: 'ix__provider_currency_support__is_preferred', properties: ['isPreferred'] })
-export class ProviderCurrencySupportEntity {
+@Entity({ tableName: 'provider_currencies' })
+@Unique({ name: 'ix__provider_currencies__provider_currency_network', properties: ['provider', 'currency', 'network'] })
+@Index({ name: 'ix__provider_currencies__provider', properties: ['provider'] })
+@Index({ name: 'ix__provider_currencies__currency', properties: ['currency'] })
+@Index({ name: 'ix__provider_currencies__is_enabled', properties: ['isEnabled'] })
+@Index({ name: 'ix__provider_currencies__is_preferred', properties: ['isPreferred'] })
+export class ProviderCurrencyEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
   /**
    * Provider relationship
    */
-  @ManyToOne(() => PaymentProviderConfigEntity, { onDelete: 'cascade' })
-  provider!: PaymentProviderConfigEntity;
+  @ManyToOne(() => PaymentProviderEntity, { onDelete: 'cascade' })
+  provider!: PaymentProviderEntity;
 
   /**
    * Currency relationship
@@ -146,7 +146,7 @@ export class ProviderCurrencySupportEntity {
   /**
    * Constructor with optional initialization data
    */
-  constructor(data?: EntityConstructorData<ProviderCurrencySupportEntity>) {
+  constructor(data?: EntityConstructorData<ProviderCurrencyEntity, 'id' | 'createdAt' | 'updatedAt'>) {
     if (data) {
       assignEntityData(this, data);
     }

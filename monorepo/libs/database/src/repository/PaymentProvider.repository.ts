@@ -1,21 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { PaymentProviderConfigEntity, ProviderStatus } from '../entity/PaymentProviderConfig.entity';
+import { PaymentProviderEntity, ProviderStatus } from '../entity/PaymentProvider.entity';
 import { PaymentProvider } from '../enum';
 
 /**
- * Repository for PaymentProviderConfig operations
+ * Repository for PaymentProvider operations
  * Handles database queries for payment provider configuration
  */
 @Injectable()
-export class PaymentProviderConfigRepository {
+export class PaymentProviderRepository {
   constructor(private readonly em: EntityManager) {}
 
   /**
    * Find provider by type
    */
-  async findByProvider(provider: PaymentProvider): Promise<PaymentProviderConfigEntity | null> {
-    return this.em.findOne(PaymentProviderConfigEntity, {
+  async findByProvider(provider: PaymentProvider): Promise<PaymentProviderEntity | null> {
+    return this.em.findOne(PaymentProviderEntity, {
       provider,
       isEnabled: true,
     });
@@ -24,9 +24,9 @@ export class PaymentProviderConfigRepository {
   /**
    * Get all active providers
    */
-  async findAllActive(): Promise<PaymentProviderConfigEntity[]> {
+  async findAllActive(): Promise<PaymentProviderEntity[]> {
     return this.em.find(
-      PaymentProviderConfigEntity,
+      PaymentProviderEntity,
       {
         isEnabled: true,
         status: ProviderStatus.Active,
@@ -40,9 +40,9 @@ export class PaymentProviderConfigRepository {
   /**
    * Get all enabled providers (including maintenance mode)
    */
-  async findAllEnabled(): Promise<PaymentProviderConfigEntity[]> {
+  async findAllEnabled(): Promise<PaymentProviderEntity[]> {
     return this.em.find(
-      PaymentProviderConfigEntity,
+      PaymentProviderEntity,
       {
         isEnabled: true,
       },
@@ -55,9 +55,9 @@ export class PaymentProviderConfigRepository {
   /**
    * Get providers that support deposits
    */
-  async findDepositProviders(): Promise<PaymentProviderConfigEntity[]> {
+  async findDepositProviders(): Promise<PaymentProviderEntity[]> {
     return this.em.find(
-      PaymentProviderConfigEntity,
+      PaymentProviderEntity,
       {
         isEnabled: true,
         status: ProviderStatus.Active,
@@ -72,9 +72,9 @@ export class PaymentProviderConfigRepository {
   /**
    * Get providers that support withdrawals
    */
-  async findWithdrawalProviders(): Promise<PaymentProviderConfigEntity[]> {
+  async findWithdrawalProviders(): Promise<PaymentProviderEntity[]> {
     return this.em.find(
-      PaymentProviderConfigEntity,
+      PaymentProviderEntity,
       {
         isEnabled: true,
         status: ProviderStatus.Active,
@@ -89,9 +89,9 @@ export class PaymentProviderConfigRepository {
   /**
    * Get providers with Telegram integration
    */
-  async findTelegramProviders(): Promise<PaymentProviderConfigEntity[]> {
+  async findTelegramProviders(): Promise<PaymentProviderEntity[]> {
     return this.em.find(
-      PaymentProviderConfigEntity,
+      PaymentProviderEntity,
       {
         isEnabled: true,
         status: ProviderStatus.Active,
@@ -106,9 +106,9 @@ export class PaymentProviderConfigRepository {
   /**
    * Get providers with fiat conversion support
    */
-  async findFiatProviders(): Promise<PaymentProviderConfigEntity[]> {
+  async findFiatProviders(): Promise<PaymentProviderEntity[]> {
     return this.em.find(
-      PaymentProviderConfigEntity,
+      PaymentProviderEntity,
       {
         isEnabled: true,
         status: ProviderStatus.Active,
@@ -123,12 +123,12 @@ export class PaymentProviderConfigRepository {
   /**
    * Create or update provider configuration
    */
-  async upsert(data: Partial<PaymentProviderConfigEntity>): Promise<PaymentProviderConfigEntity> {
+  async upsert(data: Partial<PaymentProviderEntity>): Promise<PaymentProviderEntity> {
     if (!data.provider) {
       throw new Error('Provider type is required');
     }
 
-    let entity = await this.em.findOne(PaymentProviderConfigEntity, {
+    let entity = await this.em.findOne(PaymentProviderEntity, {
       provider: data.provider,
     });
 
@@ -137,7 +137,7 @@ export class PaymentProviderConfigRepository {
       this.em.assign(entity, data);
     } else {
       // Create new
-      entity = this.em.create(PaymentProviderConfigEntity, data);
+      entity = this.em.create(PaymentProviderEntity, data);
       this.em.persist(entity);
     }
 
@@ -149,8 +149,8 @@ export class PaymentProviderConfigRepository {
   /**
    * Update provider status
    */
-  async updateStatus(provider: PaymentProvider, status: ProviderStatus): Promise<PaymentProviderConfigEntity | null> {
-    const entity = await this.em.findOne(PaymentProviderConfigEntity, { provider });
+  async updateStatus(provider: PaymentProvider, status: ProviderStatus): Promise<PaymentProviderEntity | null> {
+    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return null;
@@ -165,8 +165,8 @@ export class PaymentProviderConfigRepository {
   /**
    * Enable/disable provider
    */
-  async setEnabled(provider: PaymentProvider, enabled: boolean): Promise<PaymentProviderConfigEntity | null> {
-    const entity = await this.em.findOne(PaymentProviderConfigEntity, { provider });
+  async setEnabled(provider: PaymentProvider, enabled: boolean): Promise<PaymentProviderEntity | null> {
+    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return null;
@@ -181,8 +181,8 @@ export class PaymentProviderConfigRepository {
   /**
    * Update provider priority
    */
-  async updatePriority(provider: PaymentProvider, priority: number): Promise<PaymentProviderConfigEntity | null> {
-    const entity = await this.em.findOne(PaymentProviderConfigEntity, { provider });
+  async updatePriority(provider: PaymentProvider, priority: number): Promise<PaymentProviderEntity | null> {
+    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return null;
@@ -200,8 +200,8 @@ export class PaymentProviderConfigRepository {
   async updateReliabilityScore(
     provider: PaymentProvider,
     score: number,
-  ): Promise<PaymentProviderConfigEntity | null> {
-    const entity = await this.em.findOne(PaymentProviderConfigEntity, { provider });
+  ): Promise<PaymentProviderEntity | null> {
+    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return null;
@@ -216,9 +216,9 @@ export class PaymentProviderConfigRepository {
   /**
    * Get provider configuration with relationships
    */
-  async findWithRelations(provider: PaymentProvider): Promise<PaymentProviderConfigEntity | null> {
+  async findWithRelations(provider: PaymentProvider): Promise<PaymentProviderEntity | null> {
     return this.em.findOne(
-      PaymentProviderConfigEntity,
+      PaymentProviderEntity,
       { provider },
       {
         populate: ['currencySupport', 'routingRules'],
@@ -230,7 +230,7 @@ export class PaymentProviderConfigRepository {
    * Delete provider configuration (use with caution)
    */
   async delete(provider: PaymentProvider): Promise<boolean> {
-    const entity = await this.em.findOne(PaymentProviderConfigEntity, { provider });
+    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return false;

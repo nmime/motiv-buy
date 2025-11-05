@@ -1,13 +1,13 @@
 export enum ExceptionKind {
-  ClientDataValidation = 'ClientDataValidation',
+  ClientDataValidation = 'client_data_validation',
 
-  Validation = 'Validation',
-  Unauthorized = 'Unauthorized',
-  Forbidden = 'Forbidden',
-  NotFound = 'NotFound',
-  Conflict = 'Conflict',
+  Validation = 'validation',
+  Unauthorized = 'unauthorized',
+  Forbidden = 'forbidden',
+  NotFound = 'not_found',
+  Conflict = 'conflict',
 
-  RateLimitExceed = 'RateLimitExceed',
+  RateLimitExceed = 'rate_limit_exceed',
 
-  Internal = 'Internal',
+  Internal = 'internal',
 }

@@ -8,20 +8,20 @@ import { CurrencyEntity } from './Currency.entity';
  */
 export enum RateProvider {
   // Crypto providers (free tier)
-  CoinGecko = 'COINGECKO', // 50 calls/min, no API key required
-  Binance = 'BINANCE', // 2400 calls/min, no API key required
-  CryptoCompare = 'CRYPTOCOMPARE', // 100k calls/month free
-  CoinCap = 'COINCAP', // Unlimited free tier
-  Kraken = 'KRAKEN', // Public API, unlimited
+  CoinGecko = 'coingecko', // 50 calls/min, no API key required
+  Binance = 'binance', // 2400 calls/min, no API key required
+  CryptoCompare = 'cryptocompare', // 100k calls/month free
+  CoinCap = 'coincap', // Unlimited free tier
+  Kraken = 'kraken', // Public API, unlimited
 
   // Fiat providers (free tier)
-  ExchangeRateApi = 'EXCHANGERATE_API', // 1500 calls/month free
-  Frankfurter = 'FRANKFURTER', // ECB data, unlimited free
-  FreeCurrencyApi = 'FREECURRENCY_API', // 5000 calls/month free
+  ExchangeRateApi = 'exchangerate_api', // 1500 calls/month free
+  Frankfurter = 'frankfurter', // ECB data, unlimited free
+  FreeCurrencyApi = 'freecurrency_api', // 5000 calls/month free
 
   // Fallback
-  CentralBank = 'CENTRAL_BANK',
-  Manual = 'MANUAL',
+  CentralBank = 'central_bank',
+  Manual = 'manual',
 }
 
 /**

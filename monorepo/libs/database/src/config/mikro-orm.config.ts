@@ -21,9 +21,9 @@ import {
   TrafficOrderEntity,
   TrafficActionsEntity,
   TrafficSourceCategoryEntity,
-  PaymentProviderConfigEntity,
-  ProviderCurrencySupportEntity,
-  ProviderRoutingRuleEntity,
+  PaymentProviderEntity,
+  ProviderCurrencyEntity,
+  ProviderRoutingEntity,
 } from '../entity';
 import {
   TrafficActionsUsersEntity,

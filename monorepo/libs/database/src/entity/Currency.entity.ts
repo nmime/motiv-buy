@@ -6,8 +6,8 @@ import { CurrencyRatesHistoryEntity } from './CurrencyRatesHistory.entity';
  * Currency type classification
  */
 export enum CurrencyType {
-  Fiat = 'FIAT',
-  Crypto = 'CRYPTO',
+  Fiat = 'fiat',
+  Crypto = 'crypto',
 }
 
 /**

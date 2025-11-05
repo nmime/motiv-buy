@@ -1,34 +1,34 @@
 import { Entity, PrimaryKey, Property, Enum, Index, Unique, OneToMany, Collection } from '@mikro-orm/core';
 import { PaymentProvider } from '../enum';
 import { EntityConstructorData, assignEntityData } from '../type';
-import { ProviderCurrencySupportEntity } from './ProviderCurrencySupport.entity';
-import { ProviderRoutingRuleEntity } from './ProviderRoutingRule.entity';
+import { ProviderCurrencyEntity } from './ProviderCurrency.entity';
+import { ProviderRoutingEntity } from './ProviderRouting.entity';
 
 /**
  * Provider status for enabling/disabling providers dynamically
  */
 export enum ProviderStatus {
-  Active = 'ACTIVE',
-  Inactive = 'INACTIVE',
-  Maintenance = 'MAINTENANCE',
+  Active = 'active',
+  Inactive = 'inactive',
+  Maintenance = 'maintenance',
 }
 
 /**
  * Provider type classification
  */
 export enum ProviderType {
-  CryptoNative = 'CRYPTO_NATIVE', // Direct cryptocurrency payments
-  FiatGateway = 'FIAT_GATEWAY', // Fiat currency gateway with conversion
-  Hybrid = 'HYBRID', // Supports both
+  CryptoNative = 'crypto_native', // Direct cryptocurrency payments
+  FiatGateway = 'fiat_gateway', // Fiat currency gateway with conversion
+  Hybrid = 'hybrid', // Supports both
 }
 
 /**
  * Update strategy for payment status
  */
 export enum UpdateStrategy {
-  Webhook = 'WEBHOOK',
-  Polling = 'POLLING',
-  Hybrid = 'HYBRID',
+  Webhook = 'webhook',
+  Polling = 'polling',
+  Hybrid = 'hybrid',
 }
 
 /**
@@ -36,12 +36,12 @@ export enum UpdateStrategy {
  * Stores dynamic configuration for all payment providers
  * Eliminates hardcoded provider logic and enables runtime configuration
  */
-@Entity({ tableName: 'payment_provider_configs' })
-@Unique({ name: 'ix__payment_provider_configs__provider', properties: ['provider'] })
-@Index({ name: 'ix__payment_provider_configs__status', properties: ['status'] })
-@Index({ name: 'ix__payment_provider_configs__is_enabled', properties: ['isEnabled'] })
-@Index({ name: 'ix__payment_provider_configs__priority', properties: ['priority'] })
-export class PaymentProviderConfigEntity {
+@Entity({ tableName: 'payment_providers' })
+@Unique({ name: 'ix__payment_providers__provider', properties: ['provider'] })
+@Index({ name: 'ix__payment_providers__status', properties: ['status'] })
+@Index({ name: 'ix__payment_providers__is_enabled', properties: ['isEnabled'] })
+@Index({ name: 'ix__payment_providers__priority', properties: ['priority'] })
+export class PaymentProviderEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
 
@@ -180,16 +180,16 @@ export class PaymentProviderConfigEntity {
   /**
    * Relationships
    */
-  @OneToMany(() => ProviderCurrencySupportEntity, (support) => support.provider)
-  currencySupport!: Collection<ProviderCurrencySupportEntity>;
+  @OneToMany(() => ProviderCurrencyEntity, (support) => support.provider)
+  currencySupport!: Collection<ProviderCurrencyEntity>;
 
-  @OneToMany(() => ProviderRoutingRuleEntity, (rule) => rule.provider)
-  routingRules!: Collection<ProviderRoutingRuleEntity>;
+  @OneToMany(() => ProviderRoutingEntity, (rule) => rule.provider)
+  routingRules!: Collection<ProviderRoutingEntity>;
 
   /**
    * Constructor with optional initialization data
    */
-  constructor(data?: EntityConstructorData<PaymentProviderConfigEntity>) {
+  constructor(data?: EntityConstructorData<PaymentProviderEntity, 'id' | 'createdAt' | 'updatedAt'>) {
     if (data) {
       assignEntityData(this, data);
     }
