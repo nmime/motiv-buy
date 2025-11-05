@@ -8,15 +8,15 @@
     "build:api": "nx build api",
     "build:bot": "nx build bot",
     "build:migration": "nx build migration",
-    "build:libs": "nx run-many -t build --projects=tag:type:lib",
+    "build:libs": "nx run-many -t build --projects='tag:type:utility,tag:type:data,tag:type:feature'",
     "build:apps": "nx run-many -t build --projects=tag:type:app",
     "dev": "nx run-many -t serve --parallel=3",
     "dev:api": "nx serve api",
     "dev:bot": "nx serve bot",
-    "dev:migration": "nx serve migration-cli",
+    "dev:migration": "nx serve migration",
     "test": "nx run-many -t test --passWithNoTests",
     "test:apps": "nx run-many -t test --projects=tag:type:app --passWithNoTests",
-    "test:libs": "nx run-many -t test --projects=tag:type:lib --passWithNoTests",
+    "test:libs": "nx run-many -t test --projects='tag:type:utility,tag:type:data,tag:type:feature' --passWithNoTests",
     "test:watch": "nx run-many -t test --watch --passWithNoTests",
     "test:coverage": "nx run-many -t test --coverage --passWithNoTests",
     "test:affected": "nx affected -t test --passWithNoTests",
@@ -35,7 +35,7 @@
     "migration:status": "ts-node -r tsconfig-paths/register apps/migration/src/main.ts status",
     "migration:fresh": "ts-node -r tsconfig-paths/register apps/migration/src/main.ts fresh",
     "migration:create": "ts-node -r tsconfig-paths/register apps/migration/src/main.ts create",
-    "migration:prod": "node dist/apps/migration/src/main.js"
+    "migration:prod": "node dist/apps/migration/main.js"
   },
   "private": true,
   "devDependencies": {
