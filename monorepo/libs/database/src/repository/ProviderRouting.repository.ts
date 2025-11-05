@@ -1,22 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { ProviderRoutingRuleEntity, RoutingRuleType } from '../entity/ProviderRoutingRule.entity';
-import { PaymentProvider, CurrencyCode } from '../enum';
+import { ProviderRoutingEntity, RoutingRuleType, ConditionOperator } from '../entity/ProviderRouting.entity';
+import { CurrencyCode } from '../entity/Currency.entity';
+import { PaymentProvider } from '../enum';
 
 /**
- * Repository for ProviderRoutingRule operations
+ * Repository for ProviderRouting operations
  * Handles queries for routing rules
  */
 @Injectable()
-export class ProviderRoutingRuleRepository {
+export class ProviderRoutingRepository {
   constructor(private readonly em: EntityManager) {}
 
   /**
    * Find all active rules sorted by priority
    */
-  async findActiveRules(): Promise<ProviderRoutingRuleEntity[]> {
+  async findActiveRules(): Promise<ProviderRoutingEntity[]> {
     return this.em.find(
-      ProviderRoutingRuleEntity,
+      ProviderRoutingEntity,
       {
         isEnabled: true,
       },
@@ -30,9 +31,9 @@ export class ProviderRoutingRuleRepository {
   /**
    * Find rules by type
    */
-  async findByType(ruleType: RoutingRuleType): Promise<ProviderRoutingRuleEntity[]> {
+  async findByType(ruleType: RoutingRuleType): Promise<ProviderRoutingEntity[]> {
     return this.em.find(
-      ProviderRoutingRuleEntity,
+      ProviderRoutingEntity,
       {
         ruleType,
         isEnabled: true,
@@ -47,9 +48,9 @@ export class ProviderRoutingRuleRepository {
   /**
    * Find rules for a specific provider
    */
-  async findByProvider(provider: PaymentProvider): Promise<ProviderRoutingRuleEntity[]> {
+  async findByProvider(provider: PaymentProvider): Promise<ProviderRoutingEntity[]> {
     return this.em.find(
-      ProviderRoutingRuleEntity,
+      ProviderRoutingEntity,
       {
         provider: { provider },
         isEnabled: true,
@@ -64,9 +65,9 @@ export class ProviderRoutingRuleRepository {
   /**
    * Find rules for a specific currency
    */
-  async findByCurrency(currencyCode: CurrencyCode): Promise<ProviderRoutingRuleEntity[]> {
+  async findByCurrency(currencyCode: CurrencyCode): Promise<ProviderRoutingEntity[]> {
     return this.em.find(
-      ProviderRoutingRuleEntity,
+      ProviderRoutingEntity,
       {
         currency: { code: currencyCode },
         isEnabled: true,
@@ -86,7 +87,7 @@ export class ProviderRoutingRuleRepository {
     country?: string;
     platform?: string;
     amount?: string;
-  }): Promise<ProviderRoutingRuleEntity[]> {
+  }): Promise<ProviderRoutingEntity[]> {
     const conditions: Record<string, unknown> = {
       isEnabled: true,
     };
@@ -96,7 +97,7 @@ export class ProviderRoutingRuleRepository {
       conditions.$or = [{ currency: { code: params.currencyCode } }, { currency: null }];
     }
 
-    const rules = await this.em.find(ProviderRoutingRuleEntity, conditions, {
+    const rules = await this.em.find(ProviderRoutingEntity, conditions, {
       populate: ['provider', 'currency'],
       orderBy: { priority: 'ASC' },
     });
@@ -152,9 +153,9 @@ export class ProviderRoutingRuleRepository {
   /**
    * Find default routing rule
    */
-  async findDefaultRule(): Promise<ProviderRoutingRuleEntity | null> {
+  async findDefaultRule(): Promise<ProviderRoutingEntity | null> {
     return this.em.findOne(
-      ProviderRoutingRuleEntity,
+      ProviderRoutingEntity,
       {
         ruleType: RoutingRuleType.Default,
         isEnabled: true,
@@ -169,15 +170,15 @@ export class ProviderRoutingRuleRepository {
   /**
    * Find fallback rule by ID
    */
-  async findFallbackRule(ruleId: string): Promise<ProviderRoutingRuleEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingRuleEntity, { id: ruleId });
+  async findFallbackRule(ruleId: string): Promise<ProviderRoutingEntity | null> {
+    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule || !rule.fallbackRuleId) {
       return null;
     }
 
     return this.em.findOne(
-      ProviderRoutingRuleEntity,
+      ProviderRoutingEntity,
       {
         id: rule.fallbackRuleId,
         isEnabled: true,
@@ -191,10 +192,10 @@ export class ProviderRoutingRuleRepository {
   /**
    * Create or update routing rule
    */
-  async upsert(data: Partial<ProviderRoutingRuleEntity>): Promise<ProviderRoutingRuleEntity> {
+  async upsert(data: Partial<ProviderRoutingEntity>): Promise<ProviderRoutingEntity> {
     if (data.id) {
       // Update existing
-      const entity = await this.em.findOne(ProviderRoutingRuleEntity, { id: data.id });
+      const entity = await this.em.findOne(ProviderRoutingEntity, { id: data.id });
 
       if (!entity) {
         throw new Error(`Rule with ID ${data.id} not found`);
@@ -206,7 +207,7 @@ export class ProviderRoutingRuleRepository {
       return entity;
     } else {
       // Create new
-      const entity = this.em.create(ProviderRoutingRuleEntity, data);
+      const entity = this.em.create(ProviderRoutingEntity, data);
       this.em.persist(entity);
       await this.em.flush();
 
@@ -218,7 +219,7 @@ export class ProviderRoutingRuleRepository {
    * Record rule usage (increment counters)
    */
   async recordUsage(ruleId: string, success: boolean): Promise<void> {
-    const rule = await this.em.findOne(ProviderRoutingRuleEntity, { id: ruleId });
+    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return;
@@ -240,8 +241,8 @@ export class ProviderRoutingRuleRepository {
   /**
    * Enable/disable rule
    */
-  async setEnabled(ruleId: string, enabled: boolean): Promise<ProviderRoutingRuleEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingRuleEntity, { id: ruleId });
+  async setEnabled(ruleId: string, enabled: boolean): Promise<ProviderRoutingEntity | null> {
+    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return null;
@@ -256,8 +257,8 @@ export class ProviderRoutingRuleRepository {
   /**
    * Update rule priority
    */
-  async updatePriority(ruleId: string, priority: number): Promise<ProviderRoutingRuleEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingRuleEntity, { id: ruleId });
+  async updatePriority(ruleId: string, priority: number): Promise<ProviderRoutingEntity | null> {
+    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return null;
@@ -272,8 +273,8 @@ export class ProviderRoutingRuleRepository {
   /**
    * Update load balancing weight
    */
-  async updateWeight(ruleId: string, weight: number): Promise<ProviderRoutingRuleEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingRuleEntity, { id: ruleId });
+  async updateWeight(ruleId: string, weight: number): Promise<ProviderRoutingEntity | null> {
+    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return null;
@@ -288,7 +289,7 @@ export class ProviderRoutingRuleRepository {
   /**
    * Get rules sorted by success rate
    */
-  async findBySuccessRate(limit: number = 10): Promise<ProviderRoutingRuleEntity[]> {
+  async findBySuccessRate(limit: number = 10): Promise<ProviderRoutingEntity[]> {
     const rules = await this.findActiveRules();
 
     // Sort by success rate
@@ -301,7 +302,7 @@ export class ProviderRoutingRuleRepository {
    * Delete routing rule
    */
   async delete(ruleId: string): Promise<boolean> {
-    const rule = await this.em.findOne(ProviderRoutingRuleEntity, { id: ruleId });
+    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return false;
@@ -315,8 +316,8 @@ export class ProviderRoutingRuleRepository {
   /**
    * Reset rule statistics
    */
-  async resetStatistics(ruleId: string): Promise<ProviderRoutingRuleEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingRuleEntity, { id: ruleId });
+  async resetStatistics(ruleId: string): Promise<ProviderRoutingEntity | null> {
+    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return null;

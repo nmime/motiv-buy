@@ -1,22 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { ProviderCurrencySupportEntity, NetworkType } from '../entity/ProviderCurrencySupport.entity';
-import { PaymentProvider, CurrencyCode } from '../enum';
+import { ProviderCurrencyEntity, NetworkType } from '../entity/ProviderCurrency.entity';
+import { CurrencyCode } from '../entity/Currency.entity';
+import { PaymentProvider } from '../enum';
 
 /**
- * Repository for ProviderCurrencySupport operations
+ * Repository for ProviderCurrency operations
  * Handles queries for provider-currency relationships
  */
 @Injectable()
-export class ProviderCurrencySupportRepository {
+export class ProviderCurrencyRepository {
   constructor(private readonly em: EntityManager) {}
 
   /**
    * Find all currencies supported by a provider
    */
-  async findByProvider(provider: PaymentProvider): Promise<ProviderCurrencySupportEntity[]> {
+  async findByProvider(provider: PaymentProvider): Promise<ProviderCurrencyEntity[]> {
     return this.em.find(
-      ProviderCurrencySupportEntity,
+      ProviderCurrencyEntity,
       {
         provider: { provider },
         isEnabled: true,
@@ -31,9 +32,9 @@ export class ProviderCurrencySupportRepository {
   /**
    * Find all providers that support a specific currency
    */
-  async findByCurrency(currencyCode: CurrencyCode): Promise<ProviderCurrencySupportEntity[]> {
+  async findByCurrency(currencyCode: CurrencyCode): Promise<ProviderCurrencyEntity[]> {
     return this.em.find(
-      ProviderCurrencySupportEntity,
+      ProviderCurrencyEntity,
       {
         currency: { code: currencyCode },
         isEnabled: true,
@@ -52,7 +53,7 @@ export class ProviderCurrencySupportRepository {
     provider: PaymentProvider,
     currencyCode: CurrencyCode,
     network?: NetworkType,
-  ): Promise<ProviderCurrencySupportEntity | null> {
+  ): Promise<ProviderCurrencyEntity | null> {
     const conditions: Record<string, unknown> = {
       provider: { provider },
       currency: { code: currencyCode },
@@ -62,7 +63,7 @@ export class ProviderCurrencySupportRepository {
       conditions.network = network;
     }
 
-    return this.em.findOne(ProviderCurrencySupportEntity, conditions, {
+    return this.em.findOne(ProviderCurrencyEntity, conditions, {
       populate: ['provider', 'currency'],
     });
   }
@@ -73,9 +74,9 @@ export class ProviderCurrencySupportRepository {
   async findPreferredNetwork(
     provider: PaymentProvider,
     currencyCode: CurrencyCode,
-  ): Promise<ProviderCurrencySupportEntity | null> {
+  ): Promise<ProviderCurrencyEntity | null> {
     return this.em.findOne(
-      ProviderCurrencySupportEntity,
+      ProviderCurrencyEntity,
       {
         provider: { provider },
         currency: { code: currencyCode },
@@ -91,9 +92,9 @@ export class ProviderCurrencySupportRepository {
   /**
    * Find all providers that support deposits for a currency
    */
-  async findDepositProviders(currencyCode: CurrencyCode): Promise<ProviderCurrencySupportEntity[]> {
+  async findDepositProviders(currencyCode: CurrencyCode): Promise<ProviderCurrencyEntity[]> {
     return this.em.find(
-      ProviderCurrencySupportEntity,
+      ProviderCurrencyEntity,
       {
         currency: { code: currencyCode },
         isEnabled: true,
@@ -109,9 +110,9 @@ export class ProviderCurrencySupportRepository {
   /**
    * Find all providers that support withdrawals for a currency
    */
-  async findWithdrawalProviders(currencyCode: CurrencyCode): Promise<ProviderCurrencySupportEntity[]> {
+  async findWithdrawalProviders(currencyCode: CurrencyCode): Promise<ProviderCurrencyEntity[]> {
     return this.em.find(
-      ProviderCurrencySupportEntity,
+      ProviderCurrencyEntity,
       {
         currency: { code: currencyCode },
         isEnabled: true,
@@ -130,7 +131,7 @@ export class ProviderCurrencySupportRepository {
   async findBestProvider(
     currencyCode: CurrencyCode,
     criteria: 'lowest_fee' | 'fastest' | 'most_reliable',
-  ): Promise<ProviderCurrencySupportEntity | null> {
+  ): Promise<ProviderCurrencyEntity | null> {
     const orderBy: Record<string, 'ASC' | 'DESC'> = {};
 
     switch (criteria) {
@@ -146,7 +147,7 @@ export class ProviderCurrencySupportRepository {
     }
 
     const results = await this.em.find(
-      ProviderCurrencySupportEntity,
+      ProviderCurrencyEntity,
       {
         currency: { code: currencyCode },
         isEnabled: true,
@@ -165,7 +166,7 @@ export class ProviderCurrencySupportRepository {
    * Check if provider supports currency
    */
   async supportsProviderCurrency(provider: PaymentProvider, currencyCode: CurrencyCode): Promise<boolean> {
-    const count = await this.em.count(ProviderCurrencySupportEntity, {
+    const count = await this.em.count(ProviderCurrencyEntity, {
       provider: { provider },
       currency: { code: currencyCode },
       isEnabled: true,
@@ -177,14 +178,14 @@ export class ProviderCurrencySupportRepository {
   /**
    * Create or update provider-currency support
    */
-  async upsert(data: Partial<ProviderCurrencySupportEntity>): Promise<ProviderCurrencySupportEntity> {
+  async upsert(data: Partial<ProviderCurrencyEntity>): Promise<ProviderCurrencyEntity> {
     if (!data.provider || !data.currency) {
       throw new Error('Provider and currency are required');
     }
 
     const network = data.network || NetworkType.Native;
 
-    let entity = await this.em.findOne(ProviderCurrencySupportEntity, {
+    let entity = await this.em.findOne(ProviderCurrencyEntity, {
       provider: data.provider,
       currency: data.currency,
       network,
@@ -195,7 +196,7 @@ export class ProviderCurrencySupportRepository {
       this.em.assign(entity, data);
     } else {
       // Create new
-      entity = this.em.create(ProviderCurrencySupportEntity, {
+      entity = this.em.create(ProviderCurrencyEntity, {
         ...data,
         network,
       });
@@ -215,7 +216,7 @@ export class ProviderCurrencySupportRepository {
     currencyCode: CurrencyCode,
     network: NetworkType,
     enabled: boolean,
-  ): Promise<ProviderCurrencySupportEntity | null> {
+  ): Promise<ProviderCurrencyEntity | null> {
     const entity = await this.findByProviderAndCurrency(provider, currencyCode, network);
 
     if (!entity) {
@@ -235,9 +236,9 @@ export class ProviderCurrencySupportRepository {
     provider: PaymentProvider,
     currencyCode: CurrencyCode,
     network: NetworkType,
-  ): Promise<ProviderCurrencySupportEntity | null> {
+  ): Promise<ProviderCurrencyEntity | null> {
     // First, unset all other networks as not preferred
-    const allNetworks = await this.em.find(ProviderCurrencySupportEntity, {
+    const allNetworks = await this.em.find(ProviderCurrencyEntity, {
       provider: { provider },
       currency: { code: currencyCode },
     });
@@ -267,7 +268,7 @@ export class ProviderCurrencySupportRepository {
     currencyCode: CurrencyCode,
     network: NetworkType,
     priority: number,
-  ): Promise<ProviderCurrencySupportEntity | null> {
+  ): Promise<ProviderCurrencyEntity | null> {
     const entity = await this.findByProviderAndCurrency(provider, currencyCode, network);
 
     if (!entity) {
@@ -288,7 +289,7 @@ export class ProviderCurrencySupportRepository {
     currencyCode: CurrencyCode,
     network: NetworkType,
     score: number,
-  ): Promise<ProviderCurrencySupportEntity | null> {
+  ): Promise<ProviderCurrencyEntity | null> {
     const entity = await this.findByProviderAndCurrency(provider, currencyCode, network);
 
     if (!entity) {

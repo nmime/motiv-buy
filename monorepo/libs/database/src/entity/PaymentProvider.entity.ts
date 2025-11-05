@@ -8,27 +8,27 @@ import { ProviderRoutingEntity } from './ProviderRouting.entity';
  * Provider status for enabling/disabling providers dynamically
  */
 export enum ProviderStatus {
-  Active = 'ACTIVE',
-  Inactive = 'INACTIVE',
-  Maintenance = 'MAINTENANCE',
+  Active = 'active',
+  Inactive = 'inactive',
+  Maintenance = 'maintenance',
 }
 
 /**
  * Provider type classification
  */
 export enum ProviderType {
-  CryptoNative = 'CRYPTO_NATIVE', // Direct cryptocurrency payments
-  FiatGateway = 'FIAT_GATEWAY', // Fiat currency gateway with conversion
-  Hybrid = 'HYBRID', // Supports both
+  CryptoNative = 'crypto_native', // Direct cryptocurrency payments
+  FiatGateway = 'fiat_gateway', // Fiat currency gateway with conversion
+  Hybrid = 'hybrid', // Supports both
 }
 
 /**
  * Update strategy for payment status
  */
 export enum UpdateStrategy {
-  Webhook = 'WEBHOOK',
-  Polling = 'POLLING',
-  Hybrid = 'HYBRID',
+  Webhook = 'webhook',
+  Polling = 'polling',
+  Hybrid = 'hybrid',
 }
 
 /**
@@ -189,7 +189,7 @@ export class PaymentProviderEntity {
   /**
    * Constructor with optional initialization data
    */
-  constructor(data?: EntityConstructorData<PaymentProviderEntity>) {
+  constructor(data?: EntityConstructorData<PaymentProviderEntity, 'id' | 'createdAt' | 'updatedAt'>) {
     if (data) {
       assignEntityData(this, data);
     }

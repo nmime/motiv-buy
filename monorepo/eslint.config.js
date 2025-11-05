@@ -117,7 +117,7 @@ module.exports = [
         },
         {
           selector: 'enumMember',
-          format: ['StrictPascalCase'],
+          format: ['StrictPascalCase', 'UPPER_CASE'],
           leadingUnderscore: 'forbid',
           trailingUnderscore: 'forbid',
         },
@@ -131,12 +131,20 @@ module.exports = [
         },
       ],
 
-      // Rule to forbid `Enum` postfix
+      // Rule to forbid `Enum` postfix and enforce snake_case enum values
       'no-restricted-syntax': [
         'error',
         {
           selector: 'TSEnumDeclaration[id.name=/Enum$/]',
           message: "Enum names should not end with 'Enum'.",
+        },
+        {
+          selector: 'TSEnumMember[initializer.type="Literal"][initializer.value=/^[A-Z][a-z]+([A-Z][a-z]*)+$/]',
+          message: 'Enum values must be lowercase snake_case, not PascalCase. Use "my_value" instead of "MyValue".',
+        },
+        {
+          selector: 'TSEnumMember[initializer.type="Literal"][initializer.value=/^[A-Z]+_[A-Z_]+$/]',
+          message: 'Enum values must be lowercase snake_case, not SCREAMING_SNAKE_CASE. Use "my_value" instead of "MY_VALUE".',
         },
       ],
 

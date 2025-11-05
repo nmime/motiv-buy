@@ -1,12 +1,12 @@
 import * as geoip from 'geoip-lite';
 
 export enum Continent {
-  Europe = 'Europe',
-  Asia = 'Asia',
-  Africa = 'Africa',
-  NorthAmerica = 'NorthAmerica',
-  SouthAmerica = 'SouthAmerica',
-  Oceania = 'Oceania',
+  Europe = 'europe',
+  Asia = 'asia',
+  Africa = 'africa',
+  NorthAmerica = 'north_america',
+  SouthAmerica = 'south_america',
+  Oceania = 'oceania',
 }
 
 export enum CountryCode {

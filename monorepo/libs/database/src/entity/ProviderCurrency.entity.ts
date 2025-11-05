@@ -8,24 +8,24 @@ import { CurrencyEntity } from './Currency.entity';
  */
 export enum NetworkType {
   // Bitcoin networks
-  Bitcoin = 'BITCOIN',
-  BitcoinCash = 'BITCOIN_CASH',
+  Bitcoin = 'bitcoin',
+  BitcoinCash = 'bitcoin_cash',
 
   // Ethereum and EVM-compatible
-  Ethereum = 'ETHEREUM',
-  BSC = 'BSC', // Binance Smart Chain
-  Polygon = 'POLYGON',
+  Ethereum = 'ethereum',
+  BSC = 'bsc', // Binance Smart Chain
+  Polygon = 'polygon',
 
   // Other networks
-  Tron = 'TRON', // TRC-20
-  TON = 'TON', // Telegram Open Network
-  Solana = 'SOLANA',
-  Litecoin = 'LITECOIN',
-  Dogecoin = 'DOGECOIN',
-  Dash = 'DASH',
+  Tron = 'tron', // TRC-20
+  TON = 'ton', // Telegram Open Network
+  Solana = 'solana',
+  Litecoin = 'litecoin',
+  Dogecoin = 'dogecoin',
+  Dash = 'dash',
 
   // Native (no specific network)
-  Native = 'NATIVE',
+  Native = 'native',
 }
 
 /**
@@ -146,7 +146,7 @@ export class ProviderCurrencyEntity {
   /**
    * Constructor with optional initialization data
    */
-  constructor(data?: EntityConstructorData<ProviderCurrencyEntity>) {
+  constructor(data?: EntityConstructorData<ProviderCurrencyEntity, 'id' | 'createdAt' | 'updatedAt'>) {
     if (data) {
       assignEntityData(this, data);
     }

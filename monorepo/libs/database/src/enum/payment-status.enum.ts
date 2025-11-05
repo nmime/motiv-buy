@@ -2,10 +2,10 @@
  * Payment transaction status
  */
 export enum PaymentStatus {
-  Pending = 'PENDING',
-  Processing = 'PROCESSING',
-  Completed = 'COMPLETED',
-  Failed = 'FAILED',
-  Cancelled = 'CANCELLED',
-  Expired = 'EXPIRED',
+  Pending = 'pending',
+  Processing = 'processing',
+  Completed = 'completed',
+  Failed = 'failed',
+  Cancelled = 'cancelled',
+  Expired = 'expired',
 }
