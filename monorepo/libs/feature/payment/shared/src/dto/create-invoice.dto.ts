@@ -12,7 +12,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { CurrencyCode } from '@app/database';
+import { CurrencyCode, PaymentProvider } from '@app/database';
 
 /**
  * Custom validator to ensure amount is within acceptable range
@@ -93,4 +93,15 @@ export class CreateInvoiceDto {
     message: 'expiresIn cannot exceed 2678400 seconds (31 days)',
   })
   expiresIn?: number = 86400; // Default 24 hours
+
+  @ApiPropertyOptional({
+    description: 'Optional payment provider selection. If not specified, best provider will be selected automatically.',
+    enum: PaymentProvider,
+    example: PaymentProvider.CryptoBot,
+  })
+  @IsOptional()
+  @IsEnum(PaymentProvider, {
+    message: 'Provider must be a valid payment provider',
+  })
+  provider?: PaymentProvider;
 }

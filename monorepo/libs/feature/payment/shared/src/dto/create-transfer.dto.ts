@@ -9,7 +9,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { CurrencyCode } from '@app/database';
+import { CurrencyCode, PaymentProvider } from '@app/database';
 
 /**
  * Custom validator to ensure withdrawal amount is within acceptable range
@@ -84,4 +84,27 @@ export class CreateTransferDto {
     message: 'Comment cannot exceed 1024 characters',
   })
   comment?: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional payment provider selection. If not specified, best provider will be selected automatically.',
+    enum: PaymentProvider,
+    example: PaymentProvider.CryptoBot,
+  })
+  @IsOptional()
+  @IsEnum(PaymentProvider, {
+    message: 'Provider must be a valid payment provider',
+  })
+  provider?: PaymentProvider;
+
+  @ApiPropertyOptional({
+    description: 'Optional destination for withdrawal (e.g., bank card number for YooKassa, wallet address for crypto providers)',
+    example: '1234567890123456',
+    maxLength: 256,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(256, {
+    message: 'Destination cannot exceed 256 characters',
+  })
+  destination?: string;
 }
