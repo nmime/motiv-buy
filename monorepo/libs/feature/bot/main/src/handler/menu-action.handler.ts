@@ -186,6 +186,118 @@ export class MenuActionHandler {
   }
 
   /**
+   * Create traffic menu keyboard
+   */
+  createTrafficMenuKeyboard(): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('📊 Live Stats', 'traffic:live')
+      .text('🎯 Sources', 'traffic:sources')
+      .row()
+      .text('📈 Analytics', 'traffic:analytics')
+      .text('⚙️ Optimize', 'traffic:optimize')
+      .row()
+      .text('« Back to Menu', 'menu:main');
+  }
+
+  /**
+   * Create campaign menu keyboard
+   */
+  createCampaignMenuKeyboard(): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('📋 Active Campaigns', 'campaign:active')
+      .text('✅ Completed', 'campaign:completed')
+      .row()
+      .text('➕ Create Campaign', 'campaign:create')
+      .text('📊 Analytics', 'campaign:analytics')
+      .row()
+      .text('« Back to Menu', 'menu:main');
+  }
+
+  /**
+   * Create profile stats menu keyboard
+   */
+  createProfileStatsMenuKeyboard(): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('📊 Overview', 'profile:stats:overview')
+      .text('📈 Activity', 'profile:stats:activity')
+      .row()
+      .text('💰 Earnings', 'profile:stats:earnings')
+      .text('🎯 Performance', 'profile:stats:performance')
+      .row()
+      .text('« Back to Profile', 'menu:profile');
+  }
+
+  /**
+   * Create profile security menu keyboard
+   */
+  createProfileSecurityMenuKeyboard(): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('🔑 Change Password', 'profile:password')
+      .text('📧 Email Security', 'profile:email_security')
+      .row()
+      .text('📱 2FA Settings', 'profile:2fa')
+      .text('🔐 Login History', 'profile:login_history')
+      .row()
+      .text('« Back to Profile', 'menu:profile');
+  }
+
+  /**
+   * Create admin menu keyboard
+   */
+  createAdminMenuKeyboard(): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('👥 Users', 'admin:users')
+      .text('📊 Stats', 'admin:stats')
+      .row()
+      .text('⚙️ Settings', 'admin:settings')
+      .text('📝 Logs', 'admin:logs')
+      .row()
+      .text('« Back to Menu', 'menu:main');
+  }
+
+  /**
+   * Create data export menu keyboard
+   */
+  createExportMenuKeyboard(): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('📊 Export Statistics', 'export:stats')
+      .text('💰 Export Transactions', 'export:transactions')
+      .row()
+      .text('📋 Export Orders', 'export:orders')
+      .text('👤 Export Profile', 'export:profile')
+      .row()
+      .text('« Back to Settings', 'menu:settings');
+  }
+
+  /**
+   * Create withdrawal menu keyboard
+   */
+  createWithdrawalMenuKeyboard(): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('💸 New Withdrawal', 'withdrawal:create')
+      .text('📜 History', 'withdrawal:history')
+      .row()
+      .text('⚙️ Methods', 'withdrawal:methods')
+      .text('📊 Limits', 'withdrawal:limits')
+      .row()
+      .text('« Back to Menu', 'menu:main');
+  }
+
+  /**
+   * Create deposit menu keyboard
+   */
+  createDepositMenuKeyboard(): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('💰 Add Funds', 'deposit:create')
+      .text('📜 History', 'deposit:history')
+      .row()
+      .text('💳 Payment Methods', 'deposit:methods')
+      .text('🎁 Bonuses', 'deposit:bonuses')
+      .row()
+      .text('« Back to Menu', 'menu:main');
+  }
+
+  /**
    * Create back to menu button
    */
   createBackButton(returnTo = 'menu:main'): InlineKeyboard {
