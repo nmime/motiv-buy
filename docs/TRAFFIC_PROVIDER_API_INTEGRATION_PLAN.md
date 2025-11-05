@@ -1,1314 +1,708 @@
 # Traffic Provider API Integration Plan
 
-## Executive Summary
+## Overview
 
-This document provides a comprehensive analysis and integration plan for creating a public API that allows external traffic providers (SubGram, FlyerService, and others) to integrate with our platform. Currently, our system has infrastructure for traffic order management but lacks the critical **traffic delivery** and **provider integration** layer.
+**Goal:** Build a public API that lets external traffic providers (SubGram, FlyerService, etc.) deliver traffic for our orders.
 
-**Current State:** 60-70% complete with strong foundation (data models, REST API, bot token validation)
-**Missing:** Traffic execution system, provider integration API, webhook handlers, balance integration
+**Current Status:** 60% complete - we can create orders but can't execute them.
 
----
-
-## Table of Contents
-
-1. [API Comparison & Analysis](#api-comparison--analysis)
-2. [Current Implementation Status](#current-implementation-status)
-3. [Gap Analysis](#gap-analysis)
-4. [Integration Architecture](#integration-architecture)
-5. [Public API Design](#public-api-design)
-6. [Implementation Plan](#implementation-plan)
-7. [Security & Authentication](#security--authentication)
-8. [Testing Strategy](#testing-strategy)
+**What's Missing:** The actual traffic delivery system and provider integration layer.
 
 ---
 
-## 1. API Comparison & Analysis
+## What We Have ✅
 
-### 1.1 SubGram API Structure
+### Data Layer
+- **Entities:** `TrafficOrderEntity`, `TrafficSourceEntity`, `TrafficTargetEntity`, `TrafficUserEntity`, `TrafficActionsEntity`
+- **Repositories:** Full CRUD operations for all entities
+- **Enums:** Order status, action types, source types, target types
 
-SubGram provides a comprehensive API with three main categories:
+### API Layer (Internal - for our clients)
+- **Controllers:** 4 controllers, 18 REST endpoints
+- **Endpoints:**
+  - `/traffic/orders` - Order management (create, list, update, cancel)
+  - `/traffic/sources/bots` - Bot registration and management
+  - `/traffic/targets` - Target management
+  - `/traffic/bot-token/validate` - Bot token validation
 
-#### **Publisher API (Traffic Sellers - Bot Owners)**
+### Services
+- `TrafficService` (920 lines) - Core business logic
+- `BotTokenValidationService` (545 lines) - Token validation with Redis caching
+- Authentication with JWT and bot tokens
 
-| Endpoint | Purpose | Auth |
-|----------|---------|------|
-| `POST /get-sponsors` | Request sponsor list for users; handles mandatory subscription blocks | Bot API Key |
-| `POST /bots` | Manage bots (add, update, retrieve info) with actions: `add`, `update`, `info` | Secret Key |
-| `POST /get-user-subscriptions` | Check user subscription status across resources | Bot API Key |
-
-#### **Advertiser API (Traffic Buyers - Campaign Managers)**
-
-| Endpoint | Purpose | Auth |
-|----------|---------|------|
-| `POST /orders` | Create and manage advertising campaigns with actions: `create`, `update`, `info` | Secret Key |
-
-#### **General Methods (All Users)**
-
-| Endpoint | Purpose | Auth |
-|----------|---------|------|
-| `POST /get-balance` | Retrieve account balance and bot revenue summary | API Token |
-| `GET /filters` | Public endpoint returning available targeting filters | None |
-| `GET /statistic` | Analytics for ads or bot performance with `action` parameter | API Token |
-| `POST /toggle-exclusion` | Manage exclusion lists for bots or sponsors | Secret Key |
-| **Webhooks** | Real-time subscription event notifications via POST to custom endpoints | Api-Key Header |
-
-#### **Authentication Model**
-
-SubGram uses **three distinct authentication types**:
-
-1. **Secret Key** - Full management access (order creation, bot configuration)
-2. **API Token** - Read-only access (balance, statistics)
-3. **Bot API Key** - Per-bot operations (sponsor requests, subscription checks)
-
-**Our Assessment:** This multi-tier auth model provides excellent security and flexibility. We should adopt a similar approach.
-
-#### **Request/Response Format**
-
-```json
-{
-  "status": "ok|error|warning|gender|age|register",
-  "code": 200,
-  "message": "Description",
-  "result": { }
-}
-```
-
-**Key Features:**
-- Demographic-based targeting (gender, age, country, language)
-- Subscription tracking with statuses: `subscribed`, `unsubscribed`, `notgetted`
-- Pricing coefficients for advanced targeting
-- Schedule controls (daily time windows, excluded days)
-- Webhook system for real-time events
-- Exclusion lists for content filtering
-
----
-
-### 1.2 FlyerService API
-
-**Status:** Unable to access documentation (requires JavaScript rendering)
-
-**Recommendation:**
-- Request OpenAPI/Swagger specification file directly
-- Contact FlyerService support for API documentation
-- Alternatively, reverse-engineer from client implementation if available
-
-**Assumed Similarities** (based on industry standards):
-- REST API with JSON
-- Bot token validation
-- Order/campaign management
-- Webhook notifications
-- Targeting parameters
-
----
-
-### 1.3 Naming Convention Comparison
-
-#### **SubGram Conventions:**
-
-| Component | Pattern | Examples |
-|-----------|---------|----------|
-| Endpoints | `/action-noun` or `/get-noun` | `/get-sponsors`, `/get-balance`, `/toggle-exclusion` |
-| Actions | String literals in body | `action: "add"`, `action: "create"`, `action: "update"` |
-| Status | Lowercase strings | `"ok"`, `"error"`, `"warning"` |
-| Fields | snake_case | `user_id`, `chat_id`, `bot_id`, `max_sponsors` |
-
-#### **Our Conventions (from CLAUDE.md):**
-
-| Component | Pattern | Examples |
-|-----------|---------|----------|
-| Endpoints | `/resource/action` | `/traffic/orders`, `/traffic/sources/bots` |
-| Enums | PascalCase | `TrafficOrderStatus`, `TrafficSourceType`, `BotStatus` |
-| Enum Values | lowercase_snake_case (enforced by ESLint) | `pending`, `in_progress`, `completed` |
-| DTOs | `[Domain][Operation]Dto` | `CreateTrafficOrderDto`, `BotResponseDto` |
-| Services | `[Domain]Service` | `TrafficService`, `BotTokenValidationService` |
-| Fields | camelCase | `userId`, `chatId`, `botId`, `maxSponsors` |
-
-**Compatibility Strategy:**
-
-1. **External API (Provider-facing):** Use snake_case to match industry standards (SubGram, Telegram Bot API)
-2. **Internal API (Client-facing):** Keep camelCase for consistency with our existing codebase
-3. **Transformation Layer:** Create DTOs that transform between conventions
-4. **Database:** Continue using camelCase entity fields, transform at serialization
-
----
-
-## 2. Current Implementation Status
-
-### 2.1 What We Have ✅
-
-#### **Data Layer (Complete)**
-
-- **Entities:**
-  - `TrafficOrderEntity` - Order management with status tracking
-  - `TrafficSourceEntity` - Bot/traffic provider registration
-  - `TrafficTargetEntity` - Channels/groups receiving traffic
-  - `TrafficUserEntity` - Users performing traffic actions
-  - `TrafficActionsEntity` - Individual action tracking
-  - Junction tables for many-to-many relationships
-
-- **Repositories:**
-  - `TrafficOrderRepository` - 15+ methods for order CRUD and analytics
-  - `TrafficSourceRepository` - 8+ methods for source management
-  - `TrafficTargetRepository` - 11+ methods for target management
-
-#### **API Layer (Complete)**
-
-- **Controllers:**
-  - `TrafficController` - Bot token validation and permissions (4 endpoints)
-  - `TrafficSourceController` - Bot registration and management (7 endpoints)
-  - `TrafficOrderController` - Order creation and management (5 endpoints)
-  - `TrafficTargetController` - Target management (2 endpoints)
-
-- **Total:** 18 REST endpoints for internal use
-
-#### **Service Layer (Partial)**
-
-- `TrafficService` (920 lines) - Core business logic for:
-  - Bot validation and registration
-  - Order creation and management
-  - Available traffic listing
-  - Settings management
-
-- `BotTokenValidationService` (545 lines) - Comprehensive token validation:
-  - Redis caching (5-minute expiry)
-  - Rate limiting (100 requests/minute per IP)
-  - Token format validation
-  - Permissions management
-
-#### **Authentication & Security**
-
-- JWT-based user authentication
-- Bot token validation system with decorators
-- Custom exceptions for error handling
-- Rate limiting infrastructure
-
-#### **Bot Integration**
-
-- Telegram bot implementation (Grammy framework)
-- Order creation flow (A1-A6 steps)
+### Telegram Bot
+- Order creation flow (A1-A6)
 - Bot menu system
-- Session state management
+- Session management
 
 ---
 
-### 2.2 What's Missing ❌
+## What's Missing ❌
 
-#### **Critical Gaps:**
+### Critical Gaps
 
-1. **Traffic Delivery System**
-   - No mechanism to assign orders to traffic users
-   - No action scheduling or execution
+1. **No Traffic Execution**
+   - Orders created but never fulfilled
    - `TrafficActionsEntity` exists but unused
-   - `currentCount` field never updated
-   - No progress tracking
+   - No progress tracking (`currentCount` never updates)
 
-2. **Provider Integration API**
-   - No public API for external providers to integrate
-   - Missing `/get-orders` endpoint for providers to fetch available orders
-   - No `/submit-action` endpoint for providers to report completions
-   - No provider authentication/API key system
+2. **No Provider API**
+   - External providers can't fetch available orders
+   - No endpoint to submit completed actions
+   - No way for providers to register
 
-3. **Webhook System**
-   - No webhook handlers for traffic completion events
-   - No webhook registration endpoints
-   - No webhook signature verification
-   - No retry mechanism for failed webhooks
+3. **No Webhooks**
+   - No real-time notifications
+   - No webhook registration
+   - No event delivery system
 
-4. **Balance Integration**
-   - Order creation doesn't deduct balance
-   - No payment processing on order creation
-   - `spentAmount` field never updated
-   - No refund logic for cancelled orders
-   - Missing integration with `@app/feature-balance-main`
+4. **Balance Not Connected**
+   - Creating orders doesn't deduct balance
+   - No payment processing
+   - No refunds on cancellation
 
-5. **Bot-Shared Integration**
-   - `BotTokenValidationService.validateWithBotShared()` is placeholder
-   - No real Telegram Bot API calls
-   - Permission system is static, not dynamic
-   - No actual bot ownership verification
-
-6. **Ownership & Access Control**
-   - `findSourcesByManager()` returns all sources (not filtered by user)
-   - `validateSourceAccess()` doesn't check actual ownership
-   - `managedBy` field in entities not properly utilized
-   - Missing entity-level permission checks
-
-7. **Analytics & Reporting**
-   - Statistics methods return hardcoded values
-   - No real earnings calculations
-   - No completion rate tracking
-   - Missing dashboard/analytics endpoints
-
-8. **Repository Mismatch**
-   - Declared interfaces in `main/src/repository/` don't match implementations
-   - Methods like `updateStatus()` in interface not in repository
-
-9. **Testing**
-   - Very limited test coverage
-   - No integration tests
-   - Only bot-token validation has test file
+5. **Access Control Missing**
+   - No ownership verification
+   - Anyone can access any order/source
+   - Security vulnerability
 
 ---
 
-## 3. Gap Analysis
+## SubGram API Insights
 
-### 3.1 SubGram vs Our Implementation
+### What They Do Well
 
-| Feature | SubGram | Our System | Gap |
-|---------|---------|------------|-----|
-| **Traffic Buying** | ✅ `/orders` (create, update, info) | ✅ Full REST API | ⚠️ No balance deduction |
-| **Traffic Selling (Bot Registration)** | ✅ `/bots` (add, update, info) | ✅ Bot registration API | ❌ No traffic delivery |
-| **Sponsor/Order Matching** | ✅ `/get-sponsors` | ❌ Missing | **CRITICAL GAP** |
-| **User Action Tracking** | ✅ `/get-user-subscriptions` | ❌ Missing | **CRITICAL GAP** |
-| **Balance Management** | ✅ `/get-balance` | ✅ Balance feature exists | ❌ Not integrated |
-| **Targeting Filters** | ✅ `/filters` (public) | ❌ Missing | Needed for UI |
-| **Analytics** | ✅ `/statistic` | ⚠️ Hardcoded values | Needs implementation |
-| **Webhooks** | ✅ Real-time events | ❌ Missing | **CRITICAL GAP** |
-| **Exclusion Lists** | ✅ `/toggle-exclusion` | ❌ Missing | Nice-to-have |
-| **Multi-tier Auth** | ✅ Secret Key, API Token, Bot Key | ⚠️ Only JWT + Bot Token | Needs API key system |
+**Publisher Side (Traffic Sellers):**
+- `POST /get-sponsors` - Get ads to show users (critical!)
+- `POST /bots` - Register bots for selling traffic
+- `POST /get-user-subscriptions` - Check subscription status
 
-### 3.2 Priority Matrix
+**Advertiser Side (Traffic Buyers):**
+- `POST /orders` - Create/manage campaigns
 
-| Gap | Impact | Effort | Priority |
-|-----|--------|--------|----------|
-| Provider Integration API | 🔴 Critical | High | **P0** |
-| Webhook System | 🔴 Critical | Medium | **P0** |
-| Traffic Delivery System | 🔴 Critical | High | **P0** |
-| Balance Integration | 🔴 Critical | Low | **P0** |
-| Bot-Shared Integration | 🟡 High | Medium | **P1** |
-| Ownership/Access Control | 🟡 High | Low | **P1** |
-| Analytics & Reporting | 🟢 Medium | Medium | **P2** |
-| Targeting Filters API | 🟢 Medium | Low | **P2** |
-| Exclusion Lists | 🔵 Low | Low | **P3** |
+**General:**
+- `GET /filters` - Available targeting options
+- `POST /get-balance` - Earnings and balance
+- Webhooks for real-time updates
+
+### Their Auth Model
+- **Secret Key** - Full access (create orders, manage bots)
+- **API Token** - Read-only (stats, balance)
+- **Bot Key** - Per-bot operations
+
+### Key Lesson
+They separate **order creation** (advertiser) from **order fulfillment** (publisher). We have the first, need the second.
 
 ---
 
-## 4. Integration Architecture
+## Our Solution: Provider API
 
-### 4.1 High-Level Architecture
+### Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        External Providers                        │
-│                  (SubGram, FlyerService, Others)                 │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               │ REST API (snake_case)
-                               │ + Webhook Callbacks
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                   Provider Integration Layer                     │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐ │
-│  │  Provider API    │  │  Webhook Handler │  │  Auth/API Key │ │
-│  │  Controller      │  │  Service         │  │  Validation   │ │
-│  └──────────────────┘  └──────────────────┘  └───────────────┘ │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               │ Internal DTO Transformation
-                               │ (snake_case → camelCase)
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                      Core Traffic System                         │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐ │
-│  │  Traffic Service │  │  Order Matching  │  │  Action       │ │
-│  │  (Existing)      │  │  Engine (NEW)    │  │  Scheduler    │ │
-│  └──────────────────┘  └──────────────────┘  └───────────────┘ │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                     Integration Services                         │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐ │
-│  │  Balance Service │  │  Bot-Shared      │  │  Payment      │ │
-│  │  Integration     │  │  Integration     │  │  Integration  │ │
-│  └──────────────────┘  └──────────────────┘  └───────────────┘ │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                          Data Layer                              │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐ │
-│  │  Traffic Entities│  │  Repositories    │  │  PostgreSQL   │ │
-│  └──────────────────┘  └──────────────────┘  └───────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
-                               │
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                        Client Layer                              │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐ │
-│  │  REST API        │  │  Telegram Bot    │  │  Web UI       │ │
-│  │  (camelCase)     │  │  (Grammy)        │  │  (Future)     │ │
-│  └──────────────────┘  └──────────────────┘  └───────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
+External Providers → Provider API → Traffic Execution Engine → Our Orders
+                         ↓
+                    Webhooks (notifications)
 ```
 
-### 4.2 Provider Abstraction Layer
+### Module Structure
 
-To support multiple providers (SubGram, FlyerService, custom integrations), we need an abstraction layer:
+Create new module: `libs/feature/traffic-provider/`
 
-```typescript
-// libs/feature/traffic/main/src/provider/traffic-provider.interface.ts
-
-export interface TrafficProviderConfig {
-  providerId: string;
-  providerName: string;
-  apiKey: string;
-  webhookUrl: string;
-  isActive: boolean;
-  supportedActions: TrafficActionType[];
-}
-
-export interface TrafficProviderAdapter {
-  /**
-   * Submit an order to the provider
-   */
-  submitOrder(order: TrafficOrderEntity): Promise<Result<string, Error>>;
-
-  /**
-   * Cancel an order with the provider
-   */
-  cancelOrder(orderId: string): Promise<Result<void, Error>>;
-
-  /**
-   * Get order status from provider
-   */
-  getOrderStatus(orderId: string): Promise<Result<ProviderOrderStatus, Error>>;
-
-  /**
-   * Validate webhook signature
-   */
-  validateWebhookSignature(payload: unknown, signature: string): boolean;
-
-  /**
-   * Parse webhook payload into standardized format
-   */
-  parseWebhookPayload(payload: unknown): Result<TrafficActionEvent, Error>;
-}
 ```
-
-**Implementations:**
-- `SubgramProviderAdapter` - SubGram API integration
-- `FlyerServiceProviderAdapter` - FlyerService API integration
-- `CustomProviderAdapter` - For direct bot integrations
+libs/feature/traffic-provider/
+├── main/
+│   ├── controller/
+│   │   ├── provider-order.controller.ts
+│   │   ├── provider-webhook.controller.ts
+│   │   └── provider-analytics.controller.ts
+│   ├── service/
+│   │   ├── provider.service.ts
+│   │   ├── order-matching.service.ts
+│   │   ├── action-validator.service.ts
+│   │   └── webhook.service.ts
+│   └── guard/
+│       └── provider-api-key.guard.ts
+└── shared/
+    ├── dto/
+    │   ├── provider-order.dto.ts
+    │   ├── provider-action.dto.ts
+    │   └── provider-webhook.dto.ts
+    └── exception/
+```
 
 ---
 
-## 5. Public API Design
-
-### 5.1 Provider-Facing Endpoints
-
-#### **Authentication**
-
-All provider endpoints require API key authentication:
-
-```
-Authorization: Bearer <PROVIDER_API_KEY>
-```
-
-#### **Endpoint Specification**
+## API Design (Our Conventions)
 
 **Base Path:** `/api/v1/provider`
 
-| Method | Endpoint | Purpose | Auth |
-|--------|----------|---------|------|
-| `GET` | `/orders/available` | Get orders available for the provider | API Key |
-| `POST` | `/orders/:orderId/actions` | Submit completed action | API Key |
-| `GET` | `/orders/:orderId/status` | Get order status and progress | API Key |
-| `POST` | `/webhooks/register` | Register webhook URL | API Key |
-| `GET` | `/webhooks` | Get registered webhooks | API Key |
-| `DELETE` | `/webhooks/:webhookId` | Delete webhook | API Key |
-| `GET` | `/filters` | Get available targeting filters (public) | None |
-| `GET` | `/balance` | Get provider earnings and balance | API Key |
-| `GET` | `/statistics` | Get performance statistics | API Key |
+### Core Endpoints
 
----
-
-### 5.2 Detailed Endpoint Specifications
-
-#### **GET /api/v1/provider/orders/available**
-
-Get list of orders that match the provider's capabilities.
-
-**Request:**
-```http
-GET /api/v1/provider/orders/available?type=channel_subscribers&status=active
-Authorization: Bearer <PROVIDER_API_KEY>
-```
-
-**Query Parameters:**
-- `type` (optional): Filter by traffic type (`channel_subscribers`, `post_views`, etc.)
-- `status` (optional): Filter by status (`active`, `pending`)
-- `limit` (optional): Number of results (default: 50, max: 100)
-- `offset` (optional): Pagination offset
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "code": 200,
-  "result": {
-    "orders": [
-      {
-        "order_id": "ORD-123456",
-        "type": "channel_subscribers",
-        "target": {
-          "telegram_id": "@channel_name",
-          "username": "channel_name",
-          "type": "channel"
-        },
-        "requirements": {
-          "total_count": 1000,
-          "current_count": 250,
-          "remaining_count": 750,
-          "per_day_limit": 100,
-          "targeting": {
-            "gender": ["male", "female"],
-            "age_min": 18,
-            "age_max": 35,
-            "countries": ["US", "UK", "CA"],
-            "languages": ["en"]
-          }
-        },
-        "pricing": {
-          "price_per_action": "0.50",
-          "total_budget": "500.00",
-          "spent_amount": "125.00"
-        },
-        "schedule": {
-          "start_date": "2025-11-05T00:00:00Z",
-          "end_date": "2025-11-15T23:59:59Z",
-          "daily_start_hour": 9,
-          "daily_end_hour": 21
-        },
-        "status": "active"
-      }
-    ],
-    "pagination": {
-      "total": 15,
-      "limit": 50,
-      "offset": 0,
-      "has_more": false
-    }
-  }
-}
-```
-
----
-
-#### **POST /api/v1/provider/orders/:orderId/actions**
-
-Submit completed traffic actions for an order.
-
-**Request:**
-```http
-POST /api/v1/provider/orders/ORD-123456/actions
-Authorization: Bearer <PROVIDER_API_KEY>
-Content-Type: application/json
-
-{
-  "actions": [
-    {
-      "user_id": 123456789,
-      "username": "john_doe",
-      "action_type": "subscribe",
-      "completed_at": "2025-11-05T10:30:00Z",
-      "proof": {
-        "screenshot_url": "https://...",
-        "additional_data": {}
-      }
-    }
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "code": 200,
-  "result": {
-    "accepted": 1,
-    "rejected": 0,
-    "actions": [
-      {
-        "action_id": "ACT-789012",
-        "user_id": 123456789,
-        "status": "accepted",
-        "reward": "0.50"
-      }
-    ],
-    "order_progress": {
-      "current_count": 251,
-      "remaining_count": 749,
-      "completion_percentage": 25.1
-    }
-  }
-}
-```
-
----
-
-#### **POST /api/v1/provider/webhooks/register**
-
-Register a webhook URL to receive real-time updates.
-
-**Request:**
-```http
-POST /api/v1/provider/webhooks/register
-Authorization: Bearer <PROVIDER_API_KEY>
-Content-Type: application/json
-
-{
-  "url": "https://provider.example.com/webhooks/traffic",
-  "events": ["order.created", "order.updated", "order.completed", "order.cancelled"],
-  "secret": "webhook_signing_secret"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "code": 200,
-  "result": {
-    "webhook_id": "WH-456789",
-    "url": "https://provider.example.com/webhooks/traffic",
-    "events": ["order.created", "order.updated", "order.completed", "order.cancelled"],
-    "created_at": "2025-11-05T10:00:00Z",
-    "is_active": true
-  }
-}
-```
-
----
-
-#### **GET /api/v1/provider/filters**
-
-Get available targeting filters (public endpoint, no auth required).
-
-**Request:**
-```http
-GET /api/v1/provider/filters
-```
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "code": 200,
-  "result": {
-    "genders": ["male", "female"],
-    "age_ranges": [
-      {"label": "18-24", "min": 18, "max": 24},
-      {"label": "25-34", "min": 25, "max": 34},
-      {"label": "35-44", "min": 35, "max": 44}
-    ],
-    "countries": [
-      {"code": "US", "name": "United States"},
-      {"code": "UK", "name": "United Kingdom"}
-    ],
-    "languages": [
-      {"code": "en", "name": "English"},
-      {"code": "ru", "name": "Russian"}
-    ],
-    "traffic_types": [
-      {
-        "type": "channel_subscribers",
-        "display_name": "Channel Subscribers",
-        "base_price": "0.50"
-      }
-    ]
-  }
-}
-```
-
----
-
-### 5.3 Webhook Payload Format
-
-When an order is created/updated, providers receive webhooks:
-
-**Order Created Event:**
-```json
-{
-  "event": "order.created",
-  "timestamp": "2025-11-05T10:00:00Z",
-  "signature": "sha256=...",
-  "data": {
-    "order_id": "ORD-123456",
-    "type": "channel_subscribers",
-    "target": {
-      "telegram_id": "@channel_name",
-      "username": "channel_name"
-    },
-    "requirements": {
-      "total_count": 1000,
-      "per_day_limit": 100
-    },
-    "pricing": {
-      "price_per_action": "0.50"
-    }
-  }
-}
-```
-
-**Action Completed Event** (reverse webhook - we send to order creator):
-```json
-{
-  "event": "action.completed",
-  "timestamp": "2025-11-05T10:30:00Z",
-  "data": {
-    "order_id": "ORD-123456",
-    "action_id": "ACT-789012",
-    "user_id": 123456789,
-    "action_type": "subscribe",
-    "status": "verified",
-    "completed_at": "2025-11-05T10:30:00Z"
-  }
-}
-```
-
----
-
-## 6. Implementation Plan
-
-### 6.1 Phase 0: Foundation (P0 - Critical) - 2 weeks
-
-**Goal:** Enable basic provider integration and traffic delivery
-
-#### **Tasks:**
-
-1. **Create Provider API Module** (`libs/feature/traffic-provider`)
-   - `main/` - Controllers, services, provider adapters
-   - `shared/` - DTOs for provider API (snake_case)
-   - Module structure:
-     ```
-     libs/feature/traffic-provider/
-     ├── main/
-     │   ├── src/
-     │   │   ├── controller/
-     │   │   │   ├── provider-order.controller.ts
-     │   │   │   ├── provider-webhook.controller.ts
-     │   │   │   └── provider-analytics.controller.ts
-     │   │   ├── service/
-     │   │   │   ├── provider.service.ts
-     │   │   │   ├── webhook.service.ts
-     │   │   │   └── action-validator.service.ts
-     │   │   ├── adapter/
-     │   │   │   ├── traffic-provider.interface.ts
-     │   │   │   ├── subgram-provider.adapter.ts
-     │   │   │   └── flyerservice-provider.adapter.ts
-     │   │   └── guard/
-     │   │       └── provider-api-key.guard.ts
-     │   └── test/
-     └── shared/
-         └── src/
-             ├── dto/
-             │   ├── provider-order.dto.ts (snake_case)
-             │   ├── provider-action.dto.ts (snake_case)
-             │   └── provider-webhook.dto.ts (snake_case)
-             └── exception/
-     ```
-
-2. **Provider API Key System**
-   - New entity: `ProviderApiKeyEntity`
-   - Fields: `apiKey`, `providerId`, `providerName`, `permissions`, `isActive`, `createdBy`, `lastUsedAt`
-   - Repository: `ProviderApiKeyRepository`
-   - Service: `ProviderApiKeyService` (generate, validate, revoke)
-   - Guard: `ProviderApiKeyGuard`
-
-3. **Implement Core Provider Endpoints**
-   - `GET /api/v1/provider/orders/available`
-   - `POST /api/v1/provider/orders/:orderId/actions`
-   - `GET /api/v1/provider/orders/:orderId/status`
-   - `GET /api/v1/provider/filters` (public)
-
-4. **Webhook Infrastructure**
-   - New entity: `WebhookEntity` (url, events, secret, providerId, isActive)
-   - Service: `WebhookService` (register, validate signature, send webhooks)
-   - Controller: `ProviderWebhookController`
-   - Queue: NATS message queue for async webhook delivery
-   - Retry logic: Exponential backoff (3 retries)
-
-5. **Balance Integration**
-   - Update `TrafficService.createTrafficOrder()`:
-     ```typescript
-     // Before creating order
-     const totalCost = multiply(pricePerAction, targetCount);
-     const balanceResult = await this.balanceService.deductBalance(userId, totalCost);
-     if (balanceResult.err) {
-       throw new InsufficientBalanceException();
-     }
-     ```
-   - Update `TrafficService` to track `spentAmount` on action completion
-   - Add refund logic in `cancelTrafficOrder()`
-
-6. **Action Submission & Validation**
-   - Service: `ActionValidatorService`
-   - Validate user eligibility (not already subscribed)
-   - Verify action completion (optional: check via Telegram API)
-   - Update order progress (`currentCount`)
-   - Create `TrafficActionsEntity` record
-   - Credit provider's balance
-
-**Deliverables:**
-- Provider API module with 4 core endpoints
-- API key authentication system
-- Webhook registration and delivery
-- Balance deduction on order creation
-- Action submission and validation
-
-**Testing:**
-- Unit tests for all services
-- Integration tests for API endpoints
-- Webhook delivery tests with mock providers
-
----
-
-### 6.2 Phase 1: Provider Adapters (P0 - Critical) - 2 weeks
-
-**Goal:** Implement SubGram and FlyerService integration
-
-#### **Tasks:**
-
-1. **SubGram Provider Adapter**
-   - Implement `SubgramProviderAdapter` class
-   - Map our orders to SubGram's `/orders` API format
-   - Handle webhook payload from SubGram
-   - Signature verification using SubGram's method
-
-2. **FlyerService Provider Adapter**
-   - Research FlyerService API (obtain documentation)
-   - Implement `FlyerServiceProviderAdapter` class
-   - Map our orders to FlyerService format
-   - Handle webhook payload
-
-3. **Provider Registry**
-   - Service: `ProviderRegistryService`
-   - Register available providers
-   - Route orders to appropriate provider based on capabilities
-   - Load balancing between providers
-
-4. **Order Matching Engine**
-   - Service: `OrderMatchingService`
-   - Algorithm to match orders with available providers
-   - Consider: provider capabilities, pricing, capacity, performance history
-   - Support multiple providers per order
-
-**Deliverables:**
-- SubGram adapter with full integration
-- FlyerService adapter
-- Provider registry and routing system
-- Order matching engine
-
----
-
-### 6.3 Phase 2: Bot-Shared Integration (P1 - High) - 1 week
-
-**Goal:** Real bot token validation and ownership verification
-
-#### **Tasks:**
-
-1. **Integrate with Bot-Shared Feature**
-   - Update `BotTokenValidationService.validateWithBotShared()`
-   - Use real Telegram Bot API calls via bot-shared
-   - Implement `@app/feature-bot-shared` integration
-
-2. **Dynamic Permission System**
-   - Fetch bot permissions from Telegram API
-   - Validate bot ownership (user must be bot creator)
-   - Cache results in Redis
-
-3. **Bot Ownership Verification**
-   - Before creating `TrafficSourceEntity`, verify user owns bot
-   - Check via Telegram Bot API `/getMe` and compare creator
-
-**Deliverables:**
-- Real bot token validation
-- Ownership verification
-- Dynamic permission system
-
----
-
-### 6.4 Phase 3: Access Control & Security (P1 - High) - 1 week
-
-**Goal:** Implement proper ownership and access control
-
-#### **Tasks:**
-
-1. **Entity-Level Access Control**
-   - Update `TrafficOrderRepository.findByCreator()` to filter by user
-   - Implement `validateSourceAccess()` to check ownership
-   - Guard: `TrafficOrderOwnershipGuard`
-   - Guard: `TrafficSourceOwnershipGuard`
-
-2. **API Key Permissions**
-   - Define permission scopes: `orders:read`, `orders:write`, `actions:submit`, `webhooks:manage`
-   - Enforce permissions in guards
-   - Rate limiting per API key
-
-3. **Webhook Security**
-   - HMAC-SHA256 signature verification
-   - Request timestamp validation (prevent replay attacks)
-   - IP whitelist (optional)
-
-**Deliverables:**
-- Ownership guards on all endpoints
-- API key permission system
-- Enhanced webhook security
-
----
-
-### 6.5 Phase 4: Analytics & Reporting (P2 - Medium) - 1 week
-
-**Goal:** Real statistics and performance tracking
-
-#### **Tasks:**
-
-1. **Statistics Service**
-   - Service: `TrafficAnalyticsService`
-   - Calculate real earnings for providers
-   - Track completion rates
-   - Monitor order performance
-
-2. **Provider Analytics API**
-   - `GET /api/v1/provider/balance` - Real earnings and balance
-   - `GET /api/v1/provider/statistics` - Performance metrics
-   - Daily/weekly/monthly aggregations
-
-3. **Dashboard Data**
-   - Aggregate data for admin dashboard
-   - Real-time metrics via Redis
-
-**Deliverables:**
-- Real analytics and statistics
-- Provider balance and earnings tracking
-- Performance monitoring
-
----
-
-### 6.6 Phase 5: Advanced Features (P2-P3) - 2 weeks
-
-**Goal:** Exclusion lists, advanced targeting, optimization
-
-#### **Tasks:**
-
-1. **Exclusion Lists**
-   - Entity: `ExclusionListEntity`
-   - API: `POST /api/v1/provider/exclusions`
-   - Filter orders based on excluded topics/categories
-
-2. **Advanced Targeting**
-   - Implement all SubGram targeting parameters
-   - Pricing coefficients for advanced targeting
-   - Schedule controls (daily time windows)
-
-3. **Performance Optimization**
-   - Database query optimization
-   - Caching strategy (Redis)
-   - Load testing and tuning
-
-**Deliverables:**
-- Exclusion list functionality
-- Full targeting parameter support
-- Optimized performance
-
----
-
-## 7. Security & Authentication
-
-### 7.1 Multi-Tier Authentication
-
-| Auth Type | Use Case | Header | Permissions |
-|-----------|----------|--------|-------------|
-| **JWT Bearer Token** | Client API (users) | `Authorization: Bearer <JWT>` | Full user permissions |
-| **Provider API Key** | Provider API | `Authorization: Bearer <API_KEY>` | Provider-specific permissions |
-| **Bot Token** | Bot operations | `Auth: <BOT_TOKEN>` | Bot-specific permissions |
-| **Webhook Secret** | Webhook verification | `X-Signature: <HMAC>` | Signature validation |
-
-### 7.2 API Key Management
-
-**Generation:**
+#### 1. Get Available Orders
 ```typescript
-// Format: prov_live_<random_32_chars>
+GET /api/v1/provider/orders/available
+Authorization: Bearer <PROVIDER_API_KEY>
+
+Response:
+{
+  orders: [
+    {
+      orderId: string;
+      type: 'channel_subscribers' | 'post_views' | 'group_members';
+      target: {
+        telegramId: string;
+        username: string;
+        type: 'channel' | 'group' | 'bot';
+      };
+      requirements: {
+        totalCount: number;
+        currentCount: number;
+        remainingCount: number;
+        dailyLimit: number;
+        targeting: {
+          gender?: 'male' | 'female';
+          ageMin?: number;
+          ageMax?: number;
+          countries?: string[];
+          languages?: string[];
+        };
+      };
+      pricing: {
+        pricePerAction: string; // Decimal
+        totalBudget: string;
+        spentAmount: string;
+      };
+      status: 'active' | 'paused';
+    }
+  ];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+  };
+}
+```
+
+#### 2. Submit Completed Actions
+```typescript
+POST /api/v1/provider/orders/:orderId/actions
+Authorization: Bearer <PROVIDER_API_KEY>
+
+Request:
+{
+  actions: [
+    {
+      userId: number; // Telegram user ID
+      username?: string;
+      actionType: 'subscribe' | 'view' | 'join';
+      completedAt: string; // ISO timestamp
+      proof?: {
+        screenshotUrl?: string;
+      };
+    }
+  ];
+}
+
+Response:
+{
+  accepted: number;
+  rejected: number;
+  actions: [
+    {
+      actionId: string;
+      userId: number;
+      status: 'accepted' | 'rejected';
+      reason?: string;
+      reward: string; // Decimal
+    }
+  ];
+  orderProgress: {
+    currentCount: number;
+    remainingCount: number;
+    completionPercentage: number;
+  };
+}
+```
+
+#### 3. Register Webhook
+```typescript
+POST /api/v1/provider/webhooks
+Authorization: Bearer <PROVIDER_API_KEY>
+
+Request:
+{
+  url: string;
+  events: ['order.created', 'order.updated', 'order.completed', 'order.cancelled'];
+  secret: string; // For HMAC signature
+}
+
+Response:
+{
+  webhookId: string;
+  url: string;
+  events: string[];
+  isActive: boolean;
+  createdAt: string;
+}
+```
+
+#### 4. Get Provider Balance
+```typescript
+GET /api/v1/provider/balance
+Authorization: Bearer <PROVIDER_API_KEY>
+
+Response:
+{
+  balance: string; // Decimal
+  totalEarnings: string;
+  pendingEarnings: string;
+  completedActions: number;
+  activeOrders: number;
+}
+```
+
+#### 5. Get Targeting Filters (Public)
+```typescript
+GET /api/v1/provider/filters
+
+Response:
+{
+  genders: ['male', 'female'];
+  ageRanges: [
+    { label: '18-24', min: 18, max: 24 },
+    { label: '25-34', min: 25, max: 34 }
+  ];
+  countries: [
+    { code: 'US', name: 'United States' }
+  ];
+  languages: [
+    { code: 'en', name: 'English' }
+  ];
+  trafficTypes: [
+    {
+      type: 'channel_subscribers';
+      displayName: 'Channel Subscribers';
+      basePrice: string; // Decimal
+    }
+  ];
+}
+```
+
+---
+
+## Webhook Events
+
+### Order Created
+```typescript
+POST <provider_webhook_url>
+X-Signature: sha256=<hmac>
+
+{
+  event: 'order.created';
+  timestamp: string;
+  data: {
+    orderId: string;
+    type: string;
+    target: {...};
+    requirements: {...};
+    pricing: {...};
+  };
+}
+```
+
+### Action Completed (Reverse - we send to order creator)
+```typescript
+POST <customer_webhook_url>
+X-Signature: sha256=<hmac>
+
+{
+  event: 'action.completed';
+  timestamp: string;
+  data: {
+    orderId: string;
+    actionId: string;
+    userId: number;
+    actionType: string;
+    status: 'verified';
+    completedAt: string;
+  };
+}
+```
+
+---
+
+## Database Changes
+
+### New Entities
+
+#### ProviderApiKeyEntity
+```typescript
+{
+  id: string;
+  apiKeyHash: string; // bcrypt hash
+  providerId: string;
+  providerName: string;
+  permissions: string[]; // ['orders:read', 'orders:write', 'actions:submit']
+  isActive: boolean;
+  createdBy: User;
+  createdAt: Date;
+  lastUsedAt?: Date;
+}
+```
+
+#### ProviderWebhookEntity
+```typescript
+{
+  id: string;
+  providerId: string;
+  url: string;
+  events: string[];
+  secret: string;
+  isActive: boolean;
+  createdAt: Date;
+  lastTriggeredAt?: Date;
+}
+```
+
+#### WebhookDeliveryLogEntity
+```typescript
+{
+  id: string;
+  webhook: ProviderWebhookEntity;
+  eventType: string;
+  payload: object;
+  responseStatus?: number;
+  responseBody?: string;
+  attemptCount: number;
+  deliveredAt?: Date;
+  failedAt?: Date;
+}
+```
+
+---
+
+## Implementation Plan
+
+### Phase 0: Core Provider API (2 weeks) 🔴 Critical
+
+**Goal:** Enable basic provider integration
+
+**Tasks:**
+1. Create `libs/feature/traffic-provider` module
+2. Implement provider API key system
+   - Entity, repository, service
+   - `ProviderApiKeyGuard` for authentication
+3. Build core endpoints:
+   - `GET /provider/orders/available`
+   - `POST /provider/orders/:id/actions`
+   - `POST /provider/webhooks`
+   - `GET /provider/filters`
+4. Create `OrderMatchingService` - match orders to providers
+5. Create `ActionValidatorService` - validate and accept actions
+6. Connect to balance service:
+   - Deduct balance on order creation
+   - Credit provider on action completion
+   - Update `order.spentAmount`
+
+**Deliverables:**
+- 4 working API endpoints
+- API key auth system
+- Balance integration
+- Action submission working
+
+---
+
+### Phase 1: Webhook System (1 week) 🔴 Critical
+
+**Goal:** Real-time notifications
+
+**Tasks:**
+1. Create `WebhookService`
+   - Register webhooks
+   - HMAC signature generation/validation
+   - Delivery with retry logic
+2. Use NATS message queue for async delivery
+3. Webhook delivery logging
+4. Retry mechanism (3 attempts, exponential backoff)
+
+**Deliverables:**
+- Webhook registration API
+- Event delivery system
+- Delivery logs
+
+---
+
+### Phase 2: Order Execution Engine (1.5 weeks) 🔴 Critical
+
+**Goal:** Actual traffic delivery
+
+**Tasks:**
+1. Create `OrderExecutionService`
+   - Assign orders to providers
+   - Track progress
+   - Update `currentCount` on action completion
+   - Mark orders complete when `currentCount >= totalCount`
+2. Action scheduling
+3. Provider performance tracking
+4. Auto-pause orders when budget exhausted
+
+**Deliverables:**
+- End-to-end order fulfillment
+- Progress tracking
+- Auto-completion
+
+---
+
+### Phase 3: Access Control (1 week) 🟡 High
+
+**Goal:** Security and ownership
+
+**Tasks:**
+1. Create ownership guards:
+   - `TrafficOrderOwnershipGuard`
+   - `TrafficSourceOwnershipGuard`
+2. Fix repository methods to filter by user:
+   - `findByCreator()` - add userId filter
+   - `validateSourceAccess()` - real ownership check
+3. API key permissions:
+   - `orders:read`, `orders:write`, `actions:submit`, `webhooks:manage`
+4. Rate limiting per API key (Redis)
+
+**Deliverables:**
+- Ownership enforcement
+- Permission system
+- Rate limiting
+
+---
+
+### Phase 4: Bot Ownership Verification (1 week) 🟡 High
+
+**Goal:** Real bot token validation
+
+**Tasks:**
+1. Integrate with `@app/feature-bot-shared`
+2. Update `BotTokenValidationService.validateWithBotShared()`
+3. Verify bot ownership via Telegram API
+4. Dynamic permission checking
+
+**Deliverables:**
+- Real bot validation
+- Ownership verification
+
+---
+
+### Phase 5: Analytics & Reporting (1 week) 🟢 Medium
+
+**Goal:** Real statistics
+
+**Tasks:**
+1. Create `TrafficAnalyticsService`
+2. Implement real calculations:
+   - Provider earnings
+   - Completion rates
+   - Order performance
+3. Build analytics endpoints:
+   - `GET /provider/balance`
+   - `GET /provider/statistics`
+
+**Deliverables:**
+- Real analytics
+- Provider dashboard data
+
+---
+
+### Phase 6: Provider Adapters (2 weeks) 🟢 Medium
+
+**Goal:** Integrate SubGram/FlyerService
+
+**Tasks:**
+1. Create provider adapter interface:
+```typescript
+interface TrafficProviderAdapter {
+  submitOrder(order: TrafficOrderEntity): Promise<Result<string, Error>>;
+  cancelOrder(orderId: string): Promise<Result<void, Error>>;
+  validateWebhookSignature(payload: unknown, signature: string): boolean;
+}
+```
+2. Implement `SubgramProviderAdapter`
+3. Implement `FlyerServiceProviderAdapter` (after getting docs)
+4. Create `ProviderRegistryService`
+
+**Deliverables:**
+- SubGram integration
+- FlyerService integration
+- Provider abstraction layer
+
+---
+
+## Timeline
+
+| Phase | Priority | Duration | Dependencies |
+|-------|----------|----------|--------------|
+| Phase 0: Core API | 🔴 Critical | 2 weeks | None |
+| Phase 1: Webhooks | 🔴 Critical | 1 week | Phase 0 |
+| Phase 2: Execution | 🔴 Critical | 1.5 weeks | Phase 0 |
+| Phase 3: Security | 🟡 High | 1 week | Phase 0 |
+| Phase 4: Bot Verification | 🟡 High | 1 week | Phase 3 |
+| Phase 5: Analytics | 🟢 Medium | 1 week | Phase 2 |
+| Phase 6: Adapters | 🟢 Medium | 2 weeks | Phase 1, 2 |
+
+**Total:** ~8-9 weeks
+
+**MVP:** Phases 0-2 = 4.5 weeks
+
+---
+
+## Security
+
+### API Key Format
+```typescript
+// Format: prov_live_<32_random_chars>
 const apiKey = `prov_live_${generateRandomString(32)}`;
 ```
 
-**Storage:**
-- Hash API keys in database (bcrypt)
-- Store only hash, never plaintext
-- Include metadata: created_at, last_used_at, permissions
+### Storage
+- Hash keys with bcrypt before storing
+- Never store plaintext
+- Track last usage
 
-**Validation:**
+### Webhook Signatures
 ```typescript
-async validateApiKey(apiKey: string): Promise<Result<Provider, Error>> {
-  const hash = await bcrypt.hash(apiKey, SALT_ROUNDS);
-  const provider = await this.providerRepository.findByApiKeyHash(hash);
-  if (!provider || !provider.isActive) {
-    return Err(new InvalidApiKeyError());
-  }
-  await this.providerRepository.updateLastUsed(provider.id);
-  return Ok(provider);
-}
-```
-
-### 7.3 Webhook Signature Verification
-
-**Algorithm:** HMAC-SHA256
-
-**Signature Generation (our side):**
-```typescript
+// Generate signature
 const signature = crypto
   .createHmac('sha256', webhook.secret)
   .update(JSON.stringify(payload))
   .digest('hex');
 
-headers['X-Signature'] = `sha256=${signature}`;
+// Verify (timing-safe comparison)
+crypto.timingSafeEqual(
+  Buffer.from(receivedSignature),
+  Buffer.from(expectedSignature)
+);
 ```
 
-**Signature Verification (provider side):**
-```typescript
-validateWebhookSignature(payload: unknown, signature: string): boolean {
-  const expected = crypto
-    .createHmac('sha256', this.config.webhookSecret)
-    .update(JSON.stringify(payload))
-    .digest('hex');
-
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(`sha256=${expected}`)
-  );
-}
-```
-
-### 7.4 Rate Limiting
-
-**Per API Key:**
-- 1000 requests per minute for `/orders/available`
-- 10000 requests per minute for `/orders/:id/actions`
-- 100 requests per minute for analytics endpoints
-
-**Implementation:** Redis with sliding window algorithm
+### Rate Limits
+- 1000 req/min for `/orders/available`
+- 10000 req/min for `/orders/:id/actions`
+- 100 req/min for analytics
 
 ---
 
-## 8. Testing Strategy
+## Testing
 
-### 8.1 Unit Tests
-
-**Coverage Target:** >80%
-
-**Test Files:**
+### Unit Tests
 ```
 libs/feature/traffic-provider/main/test/
 ├── service/
 │   ├── provider.service.spec.ts
-│   ├── webhook.service.spec.ts
-│   └── action-validator.service.spec.ts
-├── adapter/
-│   ├── subgram-provider.adapter.spec.ts
-│   └── flyerservice-provider.adapter.spec.ts
+│   ├── order-matching.service.spec.ts
+│   ├── action-validator.service.spec.ts
+│   └── webhook.service.spec.ts
 └── guard/
     └── provider-api-key.guard.spec.ts
 ```
 
-### 8.2 Integration Tests
+### Integration Tests
+- Order creation → provider fetch → action submit → completion
+- Webhook delivery and retry
+- Balance deduction and crediting
+- API key authentication
 
-**Test Scenarios:**
-1. Complete order flow: Create → Match → Submit Actions → Complete
-2. Webhook delivery and retry logic
-3. Balance deduction and refund
-4. API key authentication and permissions
-5. Signature verification
-
-### 8.3 E2E Tests
-
-**Test Suite:**
+### E2E Tests
 ```typescript
 describe('Provider API E2E', () => {
   it('should allow provider to fetch available orders');
   it('should accept valid action submissions');
-  it('should reject invalid actions');
   it('should update order progress correctly');
   it('should deliver webhooks on order updates');
-  it('should retry failed webhook deliveries');
   it('should enforce rate limits');
+  it('should reject invalid API keys');
 });
 ```
 
-### 8.4 Load Testing
-
-**Tool:** k6 or Artillery
-
-**Scenarios:**
-- 100 concurrent providers fetching orders
-- 1000 action submissions per second
-- Webhook delivery under load
+**Target Coverage:** >80%
 
 ---
 
-## 9. Migration & Deployment
+## Next Steps
 
-### 9.1 Database Migrations
+### This Week
+1. ✅ Review this plan
+2. ⏳ Get FlyerService API docs
+3. ⏳ Decide on MVP vs full implementation
+4. ⏳ Create Phase 0 tasks in project tracker
 
-**New Tables:**
-```sql
--- Provider API keys
-CREATE TABLE provider_api_key (
-  id UUID PRIMARY KEY,
-  api_key_hash VARCHAR(255) NOT NULL UNIQUE,
-  provider_id VARCHAR(100) NOT NULL,
-  provider_name VARCHAR(255) NOT NULL,
-  permissions JSONB NOT NULL,
-  is_active BOOLEAN DEFAULT true,
-  created_by UUID REFERENCES "user"(id),
-  created_at TIMESTAMP DEFAULT NOW(),
-  last_used_at TIMESTAMP,
-  INDEX idx_provider_api_key_hash (api_key_hash),
-  INDEX idx_provider_id (provider_id)
-);
-
--- Webhooks
-CREATE TABLE webhook (
-  id UUID PRIMARY KEY,
-  provider_id VARCHAR(100) NOT NULL,
-  url VARCHAR(500) NOT NULL,
-  events TEXT[] NOT NULL,
-  secret VARCHAR(255) NOT NULL,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT NOW(),
-  last_triggered_at TIMESTAMP,
-  INDEX idx_provider_webhooks (provider_id, is_active)
-);
-
--- Webhook delivery logs
-CREATE TABLE webhook_delivery_log (
-  id UUID PRIMARY KEY,
-  webhook_id UUID REFERENCES webhook(id),
-  event_type VARCHAR(100) NOT NULL,
-  payload JSONB NOT NULL,
-  response_status INT,
-  response_body TEXT,
-  attempt_count INT DEFAULT 0,
-  delivered_at TIMESTAMP,
-  failed_at TIMESTAMP,
-  INDEX idx_webhook_deliveries (webhook_id, delivered_at)
-);
-```
-
-### 9.2 Feature Flags
-
-Use environment variables to enable/disable features:
-
-```env
-TRAFFIC_PROVIDER_API_ENABLED=true
-TRAFFIC_WEBHOOK_ENABLED=true
-TRAFFIC_SUBGRAM_ENABLED=true
-TRAFFIC_FLYERSERVICE_ENABLED=false
-```
-
-### 9.3 Rollout Plan
-
-**Stage 1: Internal Testing (1 week)**
-- Deploy to staging environment
-- Test with mock providers
-- Performance testing
-
-**Stage 2: Beta (2 weeks)**
-- Invite 2-3 trusted providers
-- Monitor metrics and errors
-- Gather feedback
-
-**Stage 3: General Availability**
-- Open to all providers
-- Documentation published
-- Support channels ready
-
----
-
-## 10. Documentation Requirements
-
-### 10.1 Provider API Documentation
-
-**Tool:** OpenAPI/Swagger (already integrated)
-
-**Sections:**
-1. Getting Started
-2. Authentication
-3. API Endpoints (full reference)
-4. Webhooks
-5. Error Codes
-6. Rate Limits
-7. SDKs (optional: JS, Python, Go)
-
-### 10.2 Integration Guides
-
-**Guides:**
-- SubGram Integration Guide
-- FlyerService Integration Guide
-- Custom Provider Integration Guide
-
----
-
-## 11. Success Metrics
-
-### 11.1 Technical Metrics
-
-| Metric | Target |
-|--------|--------|
-| API Response Time (p95) | <200ms |
-| Webhook Delivery Success Rate | >99% |
-| Action Validation Accuracy | >99.5% |
-| API Uptime | >99.9% |
-| Test Coverage | >80% |
-
-### 11.2 Business Metrics
-
-| Metric | Target |
-|--------|--------|
-| Active Providers | 5+ in first month |
-| Orders Fulfilled per Day | 100+ |
-| Average Order Completion Time | <7 days |
-| Provider Revenue | Track and report |
-
----
-
-## 12. Risks & Mitigation
-
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| **Provider API abuse** | High | Medium | Rate limiting, API key revocation, monitoring |
-| **Webhook delivery failures** | High | Medium | Retry logic, dead letter queue, monitoring |
-| **Balance calculation errors** | Critical | Low | Decimal.js, comprehensive testing, audit logs |
-| **Bot token validation bypass** | High | Low | Multi-layer validation, bot-shared integration |
-| **Fraudulent action submissions** | High | Medium | Action validator, proof verification, ML detection |
-| **Database performance degradation** | High | Medium | Query optimization, indexes, connection pooling |
-| **Third-party API downtime** (SubGram, FlyerService) | Medium | Medium | Multiple provider support, fallback mechanisms |
-
----
-
-## 13. Next Steps
-
-### 13.1 Immediate Actions (This Week)
-
-1. ✅ **Review this document** with team
-2. ⏳ **Prioritize phases** based on business needs
-3. ⏳ **Obtain FlyerService API documentation**
-4. ⏳ **Create Phase 0 epic** in project management tool
-5. ⏳ **Set up staging environment** for testing
-
-### 13.2 Phase 0 Kickoff (Next Week)
-
-1. Create `libs/feature/traffic-provider` module structure
+### Next Week
+1. Create `libs/feature/traffic-provider` module
 2. Implement provider API key system
-3. Build core 4 endpoints
-4. Set up webhook infrastructure
-5. Integrate with balance service
+3. Build first endpoint: `GET /provider/orders/available`
+4. Connect balance service to order creation
 
 ---
 
-## 14. Appendices
+## Success Metrics
 
-### Appendix A: Current File Structure
-
-See [Current Implementation Status](#current-implementation-status)
-
-### Appendix B: API Naming Convention Examples
-
-**External API (snake_case):**
-```json
-{
-  "order_id": "ORD-123",
-  "user_id": 12345,
-  "price_per_action": "0.50"
-}
-```
-
-**Internal API (camelCase):**
-```json
-{
-  "orderId": "ORD-123",
-  "userId": 12345,
-  "pricePerAction": "0.50"
-}
-```
-
-**Transformation:**
-```typescript
-// libs/feature/traffic-provider/shared/src/mapper/order.mapper.ts
-
-export function toProviderOrderDto(order: TrafficOrderEntity): ProviderOrderDto {
-  return {
-    order_id: order.orderId,
-    user_id: order.creator.userId,
-    price_per_action: order.pricePerAction,
-    // ... rest of mapping (camelCase → snake_case)
-  };
-}
-
-export function fromProviderActionDto(dto: ProviderActionDto): CreateActionDto {
-  return {
-    userId: dto.user_id,
-    actionType: dto.action_type,
-    completedAt: dto.completed_at,
-    // ... rest of mapping (snake_case → camelCase)
-  };
-}
-```
-
-### Appendix C: Example Provider Configuration
-
-```typescript
-// config/providers.config.ts
-
-export const PROVIDER_CONFIGS: TrafficProviderConfig[] = [
-  {
-    providerId: 'subgram',
-    providerName: 'SubGram',
-    apiKey: process.env.SUBGRAM_API_KEY,
-    webhookUrl: process.env.SUBGRAM_WEBHOOK_URL,
-    isActive: true,
-    supportedActions: [
-      TrafficActionType.ChannelSubscribe,
-      TrafficActionType.GroupJoin,
-      TrafficActionType.PostView,
-    ],
-  },
-  {
-    providerId: 'flyerservice',
-    providerName: 'FlyerService',
-    apiKey: process.env.FLYERSERVICE_API_KEY,
-    webhookUrl: process.env.FLYERSERVICE_WEBHOOK_URL,
-    isActive: false, // Enable after integration
-    supportedActions: [
-      TrafficActionType.ChannelSubscribe,
-    ],
-  },
-];
-```
+| Metric | Target |
+|--------|--------|
+| API response time (p95) | <200ms |
+| Webhook delivery success | >99% |
+| Action validation accuracy | >99.5% |
+| Test coverage | >80% |
+| Active providers (Month 1) | 3+ |
+| Orders fulfilled/day | 100+ |
 
 ---
 
-## Conclusion
+## Risks
 
-This integration plan provides a comprehensive roadmap for building a production-ready traffic provider API. The phased approach ensures critical features are implemented first while maintaining code quality and security standards.
+| Risk | Mitigation |
+|------|------------|
+| API abuse | Rate limiting, API key revocation, monitoring |
+| Webhook failures | Retry logic, dead letter queue |
+| Balance errors | Decimal.js, comprehensive testing, audit logs |
+| Fraudulent actions | Validation service, proof verification, ML detection |
+| Provider downtime | Multiple provider support, fallback mechanisms |
 
-**Estimated Timeline:**
-- **Phase 0 (Critical):** 2 weeks
-- **Phase 1 (Critical):** 2 weeks
-- **Phase 2 (High):** 1 week
-- **Phase 3 (High):** 1 week
-- **Phase 4 (Medium):** 1 week
-- **Phase 5 (Low):** 2 weeks
+---
 
-**Total:** ~9 weeks for complete implementation
+## Key Decisions
 
-**Key Success Factors:**
-1. Maintain strict type safety (no `any`, no `as`)
-2. Use Decimal.js for all financial calculations
-3. Comprehensive testing at every phase
-4. Proper module separation (main/shared)
-5. Security-first approach (authentication, validation, rate limiting)
-6. Extensive documentation for providers
+### 1. Keep Our Naming Conventions
+- **API:** camelCase for all fields (our standard)
+- **Enums:** lowercase_snake_case (ESLint enforced)
+- **Endpoints:** RESTful patterns (`/provider/orders/available`)
 
-By following this plan, we'll create a robust, scalable traffic provider integration system that supports multiple providers and enables our platform to compete with SubGram and FlyerService.
+### 2. New Module for Provider API
+- Separate from existing traffic feature
+- Clear boundary between client API and provider API
+- Easier to maintain and test
+
+### 3. Balance Integration is Critical
+- Must connect before launch
+- Use Decimal.js for all calculations
+- Implement refunds for cancelled orders
+
+### 4. Start with MVP (Phases 0-2)
+- 4.5 weeks to working system
+- Can launch with basic functionality
+- Add features incrementally
+
+---
+
+## Questions to Answer
+
+1. **FlyerService API** - Need documentation
+2. **Provider onboarding** - Manual approval or self-service?
+3. **Pricing model** - How do we price provider services?
+4. **Dispute resolution** - How to handle rejected actions?
+5. **Minimum order size** - Should we enforce minimums?
+
+---
+
+## Resources
+
+- **Current traffic implementation:** `libs/feature/traffic/`
+- **SubGram API docs:** https://api.subgram.org/api-docs
+- **Balance service:** `libs/feature/balance/`
+- **Bot service:** `libs/feature/bot/`
