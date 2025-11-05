@@ -35,7 +35,7 @@
     "migration:status": "ts-node -r tsconfig-paths/register apps/migration/src/main.ts status",
     "migration:fresh": "ts-node -r tsconfig-paths/register apps/migration/src/main.ts fresh",
     "migration:create": "ts-node -r tsconfig-paths/register apps/migration/src/main.ts create",
-    "migration:prod": "node dist/apps/migration/main.js"
+    "migration:prod": "node dist/apps/migration/src/main.js"
   },
   "private": true,
   "devDependencies": {

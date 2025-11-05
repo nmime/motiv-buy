@@ -3,13 +3,6 @@
   "version": "1.0.0",
   "description": "Motivational shopping bot workspace",
   "private": true,
-  "scripts": {
-    "dev": "cd monorepo && pnpm run dev",
-    "build": "cd monorepo && pnpm run build",
-    "test": "cd monorepo && pnpm run test",
-    "lint": "cd monorepo && pnpm run lint",
-    "typecheck": "cd monorepo && pnpm run typecheck"
-  },
   "keywords": [
     "bot",
     "motivation",
@@ -21,6 +14,5 @@
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
-  },
-  "packageManager": "pnpm@10.15.1"
+  }
 }

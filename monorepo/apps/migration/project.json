@@ -1,5 +1,5 @@
 {
-  "name": "migration-cli",
+  "name": "migration",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/migration/src",
   "projectType": "application",
@@ -48,15 +48,15 @@
         "build"
       ],
       "options": {
-        "buildTarget": "migration-cli:build",
+        "buildTarget": "migration:build",
         "runBuildTargetDependencies": true
       },
       "configurations": {
         "development": {
-          "buildTarget": "migration-cli:build"
+          "buildTarget": "migration:build"
         },
         "production": {
-          "buildTarget": "migration-cli:build:production"
+          "buildTarget": "migration:build:production"
         }
       }
     },
