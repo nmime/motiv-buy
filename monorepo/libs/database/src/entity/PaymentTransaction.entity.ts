@@ -19,9 +19,11 @@ export class PaymentTransactionEntity {
   @Index()
   userId!: string;
 
+  @Property({ type: 'varchar', length: 20 })
   @Enum(() => PaymentType)
   type!: PaymentType;
 
+  @Property({ type: 'varchar', length: 20 })
   @Enum(() => PaymentProvider)
   provider!: PaymentProvider;
 
@@ -32,9 +34,11 @@ export class PaymentTransactionEntity {
   @Property({ type: 'decimal', precision: 20, scale: 8 })
   amount!: string;
 
+  @Property({ type: 'varchar', length: 10 })
   @Enum(() => Cryptocurrency)
   currency!: Cryptocurrency;
 
+  @Property({ type: 'varchar', length: 20 })
   @Enum(() => PaymentStatus)
   @Index()
   status!: PaymentStatus;
