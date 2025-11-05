@@ -19,6 +19,9 @@ import {
   TrafficOrderEntity,
   TrafficActionsEntity,
   TrafficSourceCategoryEntity,
+  PaymentProviderConfigEntity,
+  ProviderCurrencySupportEntity,
+  ProviderRoutingRuleEntity,
 } from '../entity';
 import {
   TrafficActionsUsersEntity,
@@ -53,6 +56,9 @@ export function createMikroOrmConfig(config: DatabaseConfig): Options {
       TrafficTargetSourceEntity,
       TrafficTargetUsersEntity,
       TrafficSourceCategoriesEntity,
+      PaymentProviderConfigEntity,
+      ProviderCurrencySupportEntity,
+      ProviderRoutingRuleEntity,
     ],
     host: config.host,
     port: config.port,

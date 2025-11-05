@@ -4,6 +4,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
 import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared/util';
 import { PaymentProviderFactory } from './payment-provider.factory';
+import { ProviderRoutingService, RoutingContext } from './provider-routing.service';
 import {
   UserBalanceRepository,
   UserBalanceEntity,
@@ -56,6 +57,7 @@ export class PaymentService {
     private readonly transactionRepository: EntityRepository<PaymentTransactionEntity>,
     private readonly providerFactory: PaymentProviderFactory,
     private readonly userBalanceRepository: UserBalanceRepository,
+    private readonly routingService: ProviderRoutingService,
     private readonly em: EntityManager,
   ) {}
 
@@ -64,15 +66,42 @@ export class PaymentService {
    * Generates payment link and stores pending transaction
    *
    * @param userId - User ID requesting top-up
-   * @param dto - Invoice creation parameters
-   * @param providerType - Payment provider to use (defaults to CryptoBot)
+   * @param dto - Invoice creation parameters (includes optional provider selection)
    */
   async createTopUp(
     userId: string,
     dto: CreateInvoiceDto,
-    providerType: PaymentProvider = PaymentProvider.CryptoBot,
   ): AsyncResult<InvoiceResponseDto, Error> {
     try {
+      // Select payment provider using routing service if not explicitly specified
+      let providerType: PaymentProvider;
+
+      if (dto.provider) {
+        // User explicitly selected a provider
+        providerType = dto.provider;
+        this.logger.log(`Using user-selected provider: ${providerType}`);
+      } else {
+        // Use routing service to select best provider
+        const routingContext: RoutingContext = {
+          currency: dto.currency,
+          amount: dto.amount,
+          userId,
+          operation: 'deposit',
+        };
+
+        const routingResult = await this.routingService.selectDepositProvider(routingContext);
+
+        if (routingResult.err) {
+          this.logger.error('Failed to select provider via routing', routingResult.val);
+          // Fallback to CryptoBot if routing fails
+          providerType = PaymentProvider.CryptoBot;
+          this.logger.warn(`Routing failed, using fallback provider: ${providerType}`);
+        } else {
+          providerType = routingResult.val;
+          this.logger.log(`Routing selected provider: ${providerType}`);
+        }
+      }
+
       this.logger.log(
         `Creating top-up invoice for user ${userId}: ${dto.amount} ${dto.currency} via ${providerType}`,
       );
@@ -200,13 +229,11 @@ export class PaymentService {
    * FIXED: Now checks balance in requested currency (was always checking RUB)
    *
    * @param userId - User ID requesting withdrawal
-   * @param dto - Transfer creation parameters
-   * @param providerType - Payment provider to use (defaults to CryptoBot)
+   * @param dto - Transfer creation parameters (includes optional provider and destination)
    */
   async createWithdrawal(
     userId: string,
     dto: CreateTransferDto,
-    providerType: PaymentProvider = PaymentProvider.CryptoBot,
   ): AsyncResult<TransferResponseDto, Error> {
     // Store balance before transaction for potential rollback
     let balanceBeforeTransaction: string | null = null;
@@ -214,6 +241,35 @@ export class PaymentService {
     let transfer: PaymentTransfer | null = null;
 
     try {
+      // Select payment provider using routing service if not explicitly specified
+      let providerType: PaymentProvider;
+
+      if (dto.provider) {
+        // User explicitly selected a provider
+        providerType = dto.provider;
+        this.logger.log(`Using user-selected provider: ${providerType}`);
+      } else {
+        // Use routing service to select best provider
+        const routingContext: RoutingContext = {
+          currency: dto.currency,
+          amount: dto.amount,
+          userId,
+          operation: 'withdrawal',
+        };
+
+        const routingResult = await this.routingService.selectWithdrawalProvider(routingContext);
+
+        if (routingResult.err) {
+          this.logger.error('Failed to select provider via routing', routingResult.val);
+          // Fallback to CryptoBot if routing fails
+          providerType = PaymentProvider.CryptoBot;
+          this.logger.warn(`Routing failed, using fallback provider: ${providerType}`);
+        } else {
+          providerType = routingResult.val;
+          this.logger.log(`Routing selected provider: ${providerType}`);
+        }
+      }
+
       this.logger.log(`Creating withdrawal for user ${userId}: ${dto.amount} ${dto.currency} via ${providerType}`);
 
       // Get the appropriate payment provider
@@ -275,6 +331,7 @@ export class PaymentService {
           amount: dto.amount,
           currency: cryptocurrency,
           comment: dto.comment,
+          destination: dto.destination, // Pass destination for providers that need it (e.g., YooKassa)
         });
 
         if (transferResult.err) {
@@ -461,8 +518,11 @@ export class PaymentService {
         return Ok(transaction);
       }
 
+      // Get the provider that was used for this transaction
+      const provider = this.providerFactory.getProvider(transaction.provider);
+
       // Get status from provider
-      const providerResult = await this.provider.getInvoice(invoiceId);
+      const providerResult = await provider.getInvoice(invoiceId);
 
       if (providerResult.err) {
         this.logger.error('Failed to get invoice from provider', providerResult.val);
@@ -924,12 +984,15 @@ export class PaymentService {
         return Err(new Error('Transaction has no provider transaction ID'));
       }
 
+      // Get the provider that was used for this transaction
+      const provider = this.providerFactory.getProvider(transaction.provider);
+
       // Get latest status based on transaction type
       let providerResult;
       if (transaction.type === PaymentType.TopUp) {
-        providerResult = await this.provider.getInvoice(transaction.providerTransactionId);
+        providerResult = await provider.getInvoice(transaction.providerTransactionId);
       } else {
-        providerResult = await this.provider.getTransfer(transaction.providerTransactionId);
+        providerResult = await provider.getTransfer(transaction.providerTransactionId);
       }
 
       if (providerResult.err) {

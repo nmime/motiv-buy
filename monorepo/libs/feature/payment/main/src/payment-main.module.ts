@@ -1,13 +1,20 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PaymentSharedModule } from '@app/feature-payment-shared';
-import { DatabaseModule, PaymentTransactionEntity } from '@app/database';
+import {
+  DatabaseModule,
+  PaymentTransactionEntity,
+  PaymentProviderConfigRepository,
+  ProviderCurrencySupportRepository,
+  ProviderRoutingRuleRepository,
+} from '@app/database';
 import { BalanceMainModule } from '@app/feature-balance-main';
 import { CryptoBotProvider } from './provider/crypto-bot.provider';
 import { HelekeProvider } from './provider/heleket.provider';
 import { YooKassaProvider } from './provider/yookassa.provider';
 import { PaymentProviderFactory } from './service/payment-provider.factory';
 import { PaymentService } from './service/payment.service';
+import { ProviderRoutingService } from './service/provider-routing.service';
 import { PaymentPollingService } from './service/payment-polling.service';
 import { PaymentController } from './controller/payment.controller';
 import { PaymentWebhookController } from './controller/payment-webhook.controller';
@@ -38,12 +45,19 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
   ],
   controllers: [PaymentController, PaymentWebhookController],
   providers: [
+    // Payment providers
     CryptoBotProvider,
     HelekeProvider,
     YooKassaProvider,
+    // Services
     PaymentProviderFactory,
     PaymentService,
+    ProviderRoutingService,
     PaymentPollingService,
+    // Repositories for routing
+    PaymentProviderConfigRepository,
+    ProviderCurrencySupportRepository,
+    ProviderRoutingRuleRepository,
   ],
   exports: [
     PaymentService,
