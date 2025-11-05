@@ -586,7 +586,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleProfileStatsMenu(ctx: BotContext): Promise<void> {
+  private async handleProfileStatsMenu(ctx: BotContext, params: string[]): Promise<void> {
     const keyboard = this.menuHandler.createProfileStatsMenuKeyboard();
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('profile.stats_menu', { default: '📊 Profile Statistics\n\nView your account performance metrics.' }),
@@ -595,7 +595,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleProfileSecurityMenu(ctx: BotContext): Promise<void> {
+  private async handleProfileSecurityMenu(ctx: BotContext, params: string[]): Promise<void> {
     const keyboard = this.menuHandler.createProfileSecurityMenuKeyboard();
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('profile.security_menu', { default: '🔒 Security Settings\n\nManage your account security options.' }),
@@ -604,7 +604,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handlePasswordChange(ctx: BotContext): Promise<void> {
+  private async handlePasswordChange(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('profile.password_change', {
         default: '🔑 Change Password\n\nTo change your password, please enter your current password:',
@@ -616,7 +616,7 @@ export class CallbackRouterHandler {
     }
   }
 
-  private async handleEmailSecurity(ctx: BotContext): Promise<void> {
+  private async handleEmailSecurity(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('profile.email_security', {
         default:
@@ -627,7 +627,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleLoginHistory(ctx: BotContext): Promise<void> {
+  private async handleLoginHistory(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('profile.login_history', {
         default: '🔐 Login History\n\n📱 Last login: Today\n🌍 Location: Unknown\n🕐 Time: Just now\n\nNo suspicious activity detected.',
@@ -637,7 +637,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleBalanceAnalytics(ctx: BotContext): Promise<void> {
+  private async handleBalanceAnalytics(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('balance.analytics', {
         default: '📊 Balance Analytics\n\n💰 Total earnings: $0.00\n📈 Growth: 0%\n📉 Expenses: $0.00\n\nDetailed analytics are being prepared.',
@@ -737,7 +737,7 @@ export class CallbackRouterHandler {
   }
 
   // Order management handlers
-  private async handleDeletedOrders(ctx: BotContext): Promise<void> {
+  private async handleDeletedOrders(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.deleted_list', { default: '🗑 Deleted Orders\n\nNo deleted orders found.' }),
       parseMode: 'HTML',
@@ -848,7 +848,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderIntegration(ctx: BotContext): Promise<void> {
+  private async handleOrderIntegration(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.integration', { default: '🔗 Order Integration\n\nConnect your order with external services.' }),
       parseMode: 'HTML',
@@ -856,7 +856,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderTransfer(ctx: BotContext): Promise<void> {
+  private async handleOrderTransfer(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.transfer', { default: '🔄 Transfer Order\n\nTransfer this order to another account.' }),
       parseMode: 'HTML',
