@@ -1,65 +1,191 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AsyncResult, Err, Ok, toError } from '@app/common-shared';
+import { createHmac } from 'crypto';
+import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
+import { decimal, toDbString } from '@app/common-shared/util';
 import {
+  Cryptocurrency,
   IPaymentProvider,
   PaymentBalance,
-  PaymentConfigService,
   PaymentInvoice,
   PaymentStatus,
   PaymentTransaction,
   PaymentTransfer,
+  PaymentConfigService,
 } from '@app/feature-payment-shared';
-import { Cryptocurrency } from '@app/database';
 
 /**
- * Heleket Payment Provider (Mock Implementation)
+ * Heleket API Response
+ */
+interface HelekeResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+/**
+ * Heleket Payment Order
+ */
+interface HelekePaymentOrder {
+  orderId: string;
+  merchantId: string;
+  amount: string;
+  currency: string;
+  status: 'pending' | 'success' | 'failed' | 'expired' | 'cancelled';
+  paymentUrl: string;
+  createdAt: string;
+  paidAt?: string;
+  expiredAt?: string;
+  description?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+}
+
+/**
+ * Heleket Payout
+ */
+interface HelekePayout {
+  payoutId: string;
+  merchantId: string;
+  amount: string;
+  currency: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  cardNumber?: string;
+  sbpPhone?: string;
+  walletId?: string;
+  createdAt: string;
+  completedAt?: string;
+  failureReason?: string;
+}
+
+/**
+ * Heleket Balance
+ */
+interface HelekeBalance {
+  currency: string;
+  available: string;
+  frozen: string;
+}
+
+/**
+ * Heleket payment provider implementation
+ * Integrates with Heleket cryptocurrency payment gateway
  *
- * This is a placeholder implementation for the Heleket payment provider.
- * Heleket is a universal payment solution supporting various payment methods.
+ * Heleket is a CRYPTO-NATIVE gateway that accepts cryptocurrencies directly
+ * on multiple blockchain networks without fiat conversion.
  *
- * TODO: Replace with actual Heleket API integration
- * - Implement actual HTTP client
- * - Implement webhook signature verification
- * - Map Heleket-specific data to common interface
+ * Supported Cryptocurrencies:
+ * - BTC, ETH, USDT, USDC (major cryptocurrencies)
+ * - BNB, TRX, TON (alt coins)
+ * - LTC, DOGE, DAI, DASH, BCH, SOL (additional coins)
  *
- * @see https://docs.heleket.com/ (API documentation placeholder)
+ * Multi-chain support:
+ * - USDT: Tron (TRC-20), Ethereum (ERC-20), TON
+ * - USDC: Ethereum (ERC-20), BSC (BEP-20)
+ *
+ * API Documentation: https://doc.heleket.com/
  */
 @Injectable()
-export class HeleketProvider implements IPaymentProvider {
-  private readonly logger = new Logger(HeleketProvider.name);
-
-  // Configuration (placeholder - will be loaded from PaymentConfigService)
-  private readonly apiKey: string;
+export class HelekeProvider implements IPaymentProvider {
+  private readonly logger = new Logger(HelekeProvider.name);
+  private readonly apiToken: string;
   private readonly merchantId: string;
-  private readonly secretKey: string;
-  private readonly apiUrl: string;
-  private readonly testMode: boolean;
+  private readonly baseUrl: string;
+  private readonly timeout: number;
+  private readonly maxRetries: number;
 
   constructor(private readonly paymentConfig: PaymentConfigService) {
-    // Load configuration from PaymentConfigService
-    // TODO: Implement actual configuration loading
-    this.apiKey = process.env.HELEKET_API_KEY || '';
-    this.merchantId = process.env.HELEKET_MERCHANT_ID || '';
-    this.secretKey = process.env.HELEKET_SECRET_KEY || '';
-    this.apiUrl = process.env.HELEKET_API_URL || 'https://api.heleket.com/v1';
-    this.testMode = process.env.HELEKET_TEST_MODE === 'true';
+    const config = this.paymentConfig.getHelekeConfig();
+    this.apiToken = config.apiToken;
+    this.merchantId = config.merchantId;
+    this.baseUrl = config.apiUrl || 'https://api.heleket.com/v1';
+    this.timeout = config.timeout || 10000;
+    this.maxRetries = config.maxRetries || 3;
 
-    this.logger.warn(
-      'HeleketProvider is using a mock implementation. Replace with actual API integration before production use.',
+    this.logger.log(
+      `HelekeProvider initialized (merchantId: ${this.merchantId}, testMode: ${config.testMode || false})`,
     );
+  }
 
-    if (!this.apiKey || !this.merchantId || !this.secretKey) {
-      this.logger.error('HeleketProvider is not properly configured. Check environment variables.');
-    } else {
-      this.logger.log(`HeleketProvider initialized (testMode: ${this.testMode}, merchantId: ${this.merchantId})`);
+  /**
+   * Make HTTP request to Heleket API with retry logic
+   */
+  private async makeRequest<T>(
+    method: string,
+    endpoint: string,
+    params?: Record<string, unknown>,
+  ): Promise<HelekeResponse<T>> {
+    const url = `${this.baseUrl}/${endpoint}`;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const options: RequestInit = {
+          method,
+          headers: {
+            Authorization: `Bearer ${this.apiToken}`,
+            'Content-Type': 'application/json',
+            'X-Merchant-Id': this.merchantId,
+          },
+          signal: AbortSignal.timeout(this.timeout),
+        };
+
+        if (params && method === 'POST') {
+          options.body = JSON.stringify(params);
+        } else if (params && method === 'GET') {
+          const queryString = new URLSearchParams(
+            Object.entries(params).reduce(
+              (acc, [key, value]) => {
+                if (value !== undefined && value !== null) {
+                  return { ...acc, [key]: String(value) };
+                }
+
+                return acc;
+              },
+              {} as Record<string, string>,
+            ),
+          ).toString();
+
+          const fullUrl = queryString ? `${url}?${queryString}` : url;
+          const response = await fetch(fullUrl, options);
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          return response.json();
+        }
+
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        lastError = toError(error);
+        this.logger.warn(`Request attempt ${attempt + 1} failed: ${method} ${endpoint}`, {
+          error: lastError.message,
+        });
+
+        if (attempt < this.maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt) * 1000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
     }
+
+    this.logger.error(`All ${this.maxRetries + 1} attempts failed: ${method} ${endpoint}`, lastError);
+    throw lastError || new Error('Request failed after all retries');
   }
 
   /**
    * Create payment invoice for top-up
-   *
-   * Mock implementation - creates a fake invoice
-   * TODO: Implement actual Heleket API call
+   * Generates payment link for Russian payment methods
    */
   async createInvoice(params: {
     amount: string;
@@ -69,75 +195,84 @@ export class HeleketProvider implements IPaymentProvider {
     expiresIn?: number;
   }): AsyncResult<PaymentInvoice, Error> {
     try {
-      this.logger.log(`Creating Heleket invoice for user ${params.userId}: ${params.amount} ${params.currency} (mock)`);
+      this.logger.log(`Creating Heleket payment for user ${params.userId}: ${params.amount} ${params.currency}`);
 
-      // Mock validation
-      if (!this.isConfigured()) {
-        throw new Error('HeleketProvider is not configured');
-      }
+      // Heleket is a crypto-native gateway - accept cryptocurrencies directly
+      const network = this.selectNetwork(params.currency);
 
-      // Mock invoice creation
-      const invoiceId = `heleket_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      const mockInvoice: PaymentInvoice = {
-        invoiceId,
+      const requestParams: Record<string, unknown> = {
+        merchantId: this.merchantId,
         amount: params.amount,
         currency: params.currency,
-        payUrl: `${this.testMode ? 'https://sandbox.heleket.com' : 'https://pay.heleket.com'}/invoice/${invoiceId}`,
-        expiresAt: params.expiresIn ? new Date(Date.now() + params.expiresIn * 1000) : undefined,
-        description: params.description,
+        network,
+        orderId: `USER_${params.userId}_${Date.now()}`,
+        description: params.description || `Top-up ${params.amount} ${params.currency}`,
+        expiresIn: params.expiresIn || 3600, // 1 hour default
       };
 
-      this.logger.log(`Mock Heleket invoice created: ${invoiceId}`);
+      const response = await this.makeRequest<HelekePaymentOrder>('POST', 'payments/create', requestParams);
 
-      return Ok(mockInvoice);
+      if (!response.success || !response.data) {
+        this.logger.error('Failed to create Heleket payment', response.error);
+
+        return Err(new Error(response.error?.message || 'Failed to create payment'));
+      }
+
+      const order = response.data;
+      const paymentInvoice: PaymentInvoice = {
+        invoiceId: order.orderId,
+        amount: params.amount,
+        currency: params.currency,
+        payUrl: order.paymentUrl,
+        expiresAt: order.expiredAt ? new Date(order.expiredAt) : undefined,
+        description: order.description,
+      };
+
+      this.logger.log(`Heleket payment created: ${paymentInvoice.invoiceId} on ${network} network`);
+
+      return Ok(paymentInvoice);
     } catch (error) {
-      this.logger.error('Error creating Heleket invoice (mock)', error);
+      this.logger.error('Error creating Heleket payment', error);
 
       return Err(toError(error));
     }
   }
 
   /**
-   * Get invoice status
-   *
-   * Mock implementation - simulates invoice status
-   * TODO: Implement actual Heleket API call
+   * Get invoice status from Heleket
    */
   async getInvoice(invoiceId: string): AsyncResult<PaymentTransaction, Error> {
     try {
-      this.logger.log(`Getting Heleket invoice status: ${invoiceId} (mock)`);
+      this.logger.log(`Fetching Heleket payment status: ${invoiceId}`);
 
-      if (!this.isConfigured()) {
-        throw new Error('HeleketProvider is not configured');
+      const response = await this.makeRequest<HelekePaymentOrder>('GET', `payments/${invoiceId}`);
+
+      if (!response.success || !response.data) {
+        this.logger.error('Failed to get Heleket payment', response.error);
+
+        return Err(new Error(response.error?.message || 'Failed to get payment status'));
       }
 
-      // Mock invoice data
-      const mockTransaction: PaymentTransaction = {
-        transactionId: invoiceId,
-        invoiceId,
-        amount: '100.00', // Mock amount
-        currency: Cryptocurrency.Usdt, // Mock currency
-        status: PaymentStatus.Pending, // Mock status
-        paidAt: undefined,
-        fee: '1.00', // Mock fee
+      const order = response.data;
+      const transaction: PaymentTransaction = {
+        transactionId: order.orderId,
+        invoiceId: order.orderId,
+        amount: order.amount,
+        currency: this.mapCurrencyToCryptocurrency(order.currency),
+        status: this.mapHelekeStatus(order.status),
+        paidAt: order.paidAt ? new Date(order.paidAt) : undefined,
       };
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      return Ok(mockTransaction);
+      return Ok(transaction);
     } catch (error) {
-      this.logger.error(`Error getting Heleket invoice ${invoiceId} (mock)`, error);
+      this.logger.error(`Error fetching Heleket payment ${invoiceId}`, error);
 
       return Err(toError(error));
     }
   }
 
   /**
-   * Get invoices history
-   *
-   * Mock implementation - returns empty array
-   * TODO: Implement actual Heleket API call
+   * Get invoices history with filtering
    */
   async getInvoices(params?: {
     status?: PaymentStatus;
@@ -145,23 +280,37 @@ export class HeleketProvider implements IPaymentProvider {
     count?: number;
   }): AsyncResult<PaymentTransaction[], Error> {
     try {
-      this.logger.log('Getting Heleket invoices history (mock)', params);
+      this.logger.log('Fetching Heleket payments history', params);
 
-      if (!this.isConfigured()) {
-        throw new Error('HeleketProvider is not configured');
+      const requestParams: Record<string, unknown> = {
+        limit: params?.count || 50,
+        offset: params?.offset || 0,
+      };
+
+      if (params?.status) {
+        requestParams.status = this.mapStatusToHeleke(params.status);
       }
 
-      // Mock empty history
-      const transactions: PaymentTransaction[] = [];
+      const response = await this.makeRequest<HelekePaymentOrder[]>('GET', 'payments', requestParams);
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      if (!response.success || !response.data) {
+        this.logger.error('Failed to get Heleket payments history', response.error);
 
-      this.logger.log(`Retrieved ${transactions.length} Heleket invoices (mock)`);
+        return Err(new Error(response.error?.message || 'Failed to get payments history'));
+      }
+
+      const transactions: PaymentTransaction[] = response.data.map((order) => ({
+        transactionId: order.orderId,
+        invoiceId: order.orderId,
+        amount: order.amount,
+        currency: this.mapCurrencyToCryptocurrency(order.currency),
+        status: this.mapHelekeStatus(order.status),
+        paidAt: order.paidAt ? new Date(order.paidAt) : undefined,
+      }));
 
       return Ok(transactions);
     } catch (error) {
-      this.logger.error('Error getting Heleket invoices (mock)', error);
+      this.logger.error('Error fetching Heleket payments history', error);
 
       return Err(toError(error));
     }
@@ -169,9 +318,7 @@ export class HeleketProvider implements IPaymentProvider {
 
   /**
    * Create transfer for withdrawal
-   *
-   * Mock implementation - creates fake transfer
-   * TODO: Implement actual Heleket API call
+   * Heleket supports payouts to cards, SBP, and wallets
    */
   async createTransfer(params: {
     userId: string;
@@ -180,30 +327,42 @@ export class HeleketProvider implements IPaymentProvider {
     comment?: string;
   }): AsyncResult<PaymentTransfer, Error> {
     try {
-      this.logger.log(
-        `Creating Heleket transfer for user ${params.userId}: ${params.amount} ${params.currency} (mock)`,
-      );
+      this.logger.log(`Creating Heleket payout for user ${params.userId}: ${params.amount} ${params.currency}`);
 
-      if (!this.isConfigured()) {
-        throw new Error('HeleketProvider is not configured');
-      }
+      // Heleket is crypto-native - send cryptocurrencies directly
+      const network = this.selectNetwork(params.currency);
 
-      // Mock transfer creation
-      const transferId = `heleket_transfer_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      const mockTransfer: PaymentTransfer = {
-        transferId,
+      const requestParams: Record<string, unknown> = {
+        merchantId: this.merchantId,
         amount: params.amount,
         currency: params.currency,
-        status: PaymentStatus.Processing, // Mock status
-        completedAt: undefined,
-        fee: '2.00', // Mock fee
+        network,
+        payoutId: `PAYOUT_${params.userId}_${Date.now()}`,
+        comment: params.comment,
       };
 
-      this.logger.log(`Mock Heleket transfer created: ${transferId}`);
+      const response = await this.makeRequest<HelekePayout>('POST', 'payouts/create', requestParams);
 
-      return Ok(mockTransfer);
+      if (!response.success || !response.data) {
+        this.logger.error('Failed to create Heleket payout', response.error);
+
+        return Err(new Error(response.error?.message || 'Failed to create payout'));
+      }
+
+      const payout = response.data;
+      const transfer: PaymentTransfer = {
+        transferId: payout.payoutId,
+        amount: params.amount,
+        currency: params.currency,
+        status: this.mapHelekePayoutStatus(payout.status),
+        completedAt: payout.completedAt ? new Date(payout.completedAt) : undefined,
+      };
+
+      this.logger.log(`Heleket payout created: ${transfer.transferId} on ${network} network`);
+
+      return Ok(transfer);
     } catch (error) {
-      this.logger.error('Error creating Heleket transfer (mock)', error);
+      this.logger.error('Error creating Heleket payout', error);
 
       return Err(toError(error));
     }
@@ -211,34 +370,31 @@ export class HeleketProvider implements IPaymentProvider {
 
   /**
    * Get transfer status
-   *
-   * Mock implementation - simulates transfer status
-   * TODO: Implement actual Heleket API call
    */
   async getTransfer(transferId: string): AsyncResult<PaymentTransfer, Error> {
     try {
-      this.logger.log(`Getting Heleket transfer: ${transferId} (mock)`);
+      this.logger.log(`Fetching Heleket payout status: ${transferId}`);
 
-      if (!this.isConfigured()) {
-        throw new Error('HeleketProvider is not configured');
+      const response = await this.makeRequest<HelekePayout>('GET', `payouts/${transferId}`);
+
+      if (!response.success || !response.data) {
+        this.logger.error('Failed to get Heleket payout', response.error);
+
+        return Err(new Error(response.error?.message || 'Failed to get payout status'));
       }
 
-      // Mock transfer data
-      const mockTransfer: PaymentTransfer = {
-        transferId,
-        amount: '100.00', // Mock amount
-        currency: Cryptocurrency.Usdt, // Mock currency
-        status: PaymentStatus.Completed, // Mock status
-        completedAt: new Date(),
-        fee: '2.00', // Mock fee
+      const payout = response.data;
+      const transfer: PaymentTransfer = {
+        transferId: payout.payoutId,
+        amount: payout.amount,
+        currency: this.mapCurrencyToCryptocurrency(payout.currency),
+        status: this.mapHelekePayoutStatus(payout.status),
+        completedAt: payout.completedAt ? new Date(payout.completedAt) : undefined,
       };
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      return Ok(mockTransfer);
+      return Ok(transfer);
     } catch (error) {
-      this.logger.error(`Error getting Heleket transfer ${transferId} (mock)`, error);
+      this.logger.error(`Error fetching Heleket payout ${transferId}`, error);
 
       return Err(toError(error));
     }
@@ -246,134 +402,178 @@ export class HeleketProvider implements IPaymentProvider {
 
   /**
    * Get transfers history
-   *
-   * Mock implementation - returns empty array
-   * TODO: Implement actual Heleket API call
    */
   async getTransfers(params?: { offset?: number; count?: number }): AsyncResult<PaymentTransfer[], Error> {
     try {
-      this.logger.log('Getting Heleket transfers history (mock)', params);
+      this.logger.log('Fetching Heleket payouts history', params);
 
-      if (!this.isConfigured()) {
-        throw new Error('HeleketProvider is not configured');
+      const requestParams: Record<string, unknown> = {
+        limit: params?.count || 50,
+        offset: params?.offset || 0,
+      };
+
+      const response = await this.makeRequest<HelekePayout[]>('GET', 'payouts', requestParams);
+
+      if (!response.success || !response.data) {
+        this.logger.error('Failed to get Heleket payouts history', response.error);
+
+        return Err(new Error(response.error?.message || 'Failed to get payouts history'));
       }
 
-      // Mock empty history
-      const transfers: PaymentTransfer[] = [];
-
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      this.logger.log(`Retrieved ${transfers.length} Heleket transfers (mock)`);
+      const transfers: PaymentTransfer[] = response.data.map((payout) => ({
+        transferId: payout.payoutId,
+        amount: payout.amount,
+        currency: this.mapCurrencyToCryptocurrency(payout.currency),
+        status: this.mapHelekePayoutStatus(payout.status),
+        completedAt: payout.completedAt ? new Date(payout.completedAt) : undefined,
+      }));
 
       return Ok(transfers);
     } catch (error) {
-      this.logger.error('Error getting Heleket transfers (mock)', error);
+      this.logger.error('Error fetching Heleket payouts history', error);
 
       return Err(toError(error));
     }
   }
 
   /**
-   * Get account balances
-   *
-   * Mock implementation - returns mock balances
-   * TODO: Implement actual Heleket API call
+   * Get provider balances
    */
   async getBalances(): AsyncResult<PaymentBalance[], Error> {
     try {
-      this.logger.log('Getting Heleket account balances (mock)');
+      this.logger.log('Fetching Heleket balances');
 
-      if (!this.isConfigured()) {
-        throw new Error('HeleketProvider is not configured');
+      const response = await this.makeRequest<HelekeBalance[]>('GET', 'balance');
+
+      if (!response.success || !response.data) {
+        this.logger.error('Failed to get Heleket balances', response.error);
+
+        return Err(new Error(response.error?.message || 'Failed to get balances'));
       }
 
-      // Mock balances
-      const balances: PaymentBalance[] = [
-        {
-          currency: Cryptocurrency.Usdt,
-          available: '1000.00',
-          onHold: '0.00',
-        },
-        {
-          currency: Cryptocurrency.Rub,
-          available: '50000.00',
-          onHold: '0.00',
-        },
-      ];
-
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      this.logger.log(`Retrieved ${balances.length} Heleket balances (mock)`);
+      const balances: PaymentBalance[] = response.data.map((balance) => ({
+        currency: this.mapCurrencyToCryptocurrency(balance.currency),
+        available: balance.available,
+        onHold: balance.frozen,
+      }));
 
       return Ok(balances);
     } catch (error) {
-      this.logger.error('Error getting Heleket balances (mock)', error);
+      this.logger.error('Error fetching Heleket balances', error);
 
       return Err(toError(error));
     }
   }
 
   /**
-   * Verify webhook signature
-   *
-   * Mock implementation - always returns true
-   * TODO: Implement actual Heleket signature verification
-   *
-   * @param signature Webhook signature from Heleket
-   * @param body Request body
-   * @returns True if signature is valid, false otherwise
+   * Verify webhook signature using HMAC-SHA256
    */
   verifyWebhook(signature: string, body: string): boolean {
     try {
-      this.logger.log('Verifying Heleket webhook signature (mock)', { signature: signature.substring(0, 10) + '...' });
+      const hmac = createHmac('sha256', this.apiToken);
+      hmac.update(body);
+      const expectedSignature = hmac.digest('hex');
 
-      // TODO: Implement actual signature verification
-      // Heleket likely uses HMAC-SHA256 with secretKey
-      // const expectedSignature = createHmac('sha256', this.secretKey).update(body).digest('hex');
-      // const isValid = signature === expectedSignature;
-
-      // Mock: always valid for now
-      const isValid = true;
-
-      if (!isValid) {
-        this.logger.warn('Invalid Heleket webhook signature (mock)');
-      }
-
-      return isValid;
+      return signature === expectedSignature;
     } catch (error) {
-      this.logger.error('Error verifying Heleket webhook signature (mock)', error);
+      this.logger.error('Error verifying Heleket webhook signature', error);
 
       return false;
     }
   }
 
   /**
-   * Get provider configuration status
-   *
-   * @returns Configuration status
+   * Select blockchain network for cryptocurrency
+   * Heleket supports multiple networks for multi-chain assets like USDT and USDC
    */
-  getConfigStatus(): {
-    configured: boolean;
-    apiKey: boolean;
-    merchantId: boolean;
-    secretKey: boolean;
-  } {
-    return {
-      configured: this.isConfigured(),
-      apiKey: !!this.apiKey,
-      merchantId: !!this.merchantId,
-      secretKey: !!this.secretKey,
+  private selectNetwork(currency: Cryptocurrency): string {
+    // Network mapping for cryptocurrencies
+    // Prefer networks with lower fees and faster confirmation
+    const NETWORK_MAP: Record<string, string> = {
+      USDT: 'tron', // TRC-20 (lowest fees)
+      USDC: 'ethereum', // ERC-20
+      BTC: 'bitcoin',
+      ETH: 'ethereum',
+      BNB: 'bsc', // BSC (BEP-20)
+      TRX: 'tron',
+      TON: 'ton',
+      LTC: 'litecoin',
+      DOGE: 'dogecoin',
+      DAI: 'ethereum',
+      DASH: 'dash',
+      BCH: 'bitcoin-cash',
+      SOL: 'solana',
     };
+
+    return NETWORK_MAP[currency] || currency.toLowerCase();
   }
 
   /**
-   * Check if provider is properly configured
-   *
-   * @returns True if configured, false otherwise
+   * Map Heleket payment status to PaymentStatus enum
    */
-  private isConfigured(): boolean {
-    return !!(this.apiKey && this.merchantId && this.secretKey);
+  private mapHelekeStatus(status: string): PaymentStatus {
+    const STATUS_MAP: Record<string, PaymentStatus> = {
+      pending: PaymentStatus.Pending,
+      success: PaymentStatus.Completed,
+      failed: PaymentStatus.Failed,
+      expired: PaymentStatus.Expired,
+      cancelled: PaymentStatus.Cancelled,
+    };
+
+    return STATUS_MAP[status] ?? PaymentStatus.Pending;
+  }
+
+  /**
+   * Map Heleket payout status to PaymentStatus enum
+   */
+  private mapHelekePayoutStatus(status: string): PaymentStatus {
+    const STATUS_MAP: Record<string, PaymentStatus> = {
+      pending: PaymentStatus.Pending,
+      processing: PaymentStatus.Processing,
+      completed: PaymentStatus.Completed,
+      failed: PaymentStatus.Failed,
+    };
+
+    return STATUS_MAP[status] ?? PaymentStatus.Pending;
+  }
+
+  /**
+   * Map PaymentStatus to Heleket status
+   */
+  private mapStatusToHeleke(status: PaymentStatus): string {
+    const STATUS_MAP: Record<PaymentStatus, string> = {
+      [PaymentStatus.Pending]: 'pending',
+      [PaymentStatus.Processing]: 'processing',
+      [PaymentStatus.Completed]: 'success',
+      [PaymentStatus.Failed]: 'failed',
+      [PaymentStatus.Expired]: 'expired',
+      [PaymentStatus.Cancelled]: 'cancelled',
+    };
+
+    return STATUS_MAP[status] ?? 'pending';
+  }
+
+  /**
+   * Map currency string to Cryptocurrency enum
+   * Heleket is crypto-native and returns actual cryptocurrency codes
+   */
+  private mapCurrencyToCryptocurrency(currency: string): Cryptocurrency {
+    const CURRENCY_MAP: Record<string, Cryptocurrency> = {
+      USDT: Cryptocurrency.Usdt,
+      BTC: Cryptocurrency.Btc,
+      ETH: Cryptocurrency.Eth,
+      USDC: Cryptocurrency.Usdc,
+      BNB: Cryptocurrency.Bnb,
+      TRX: Cryptocurrency.Trx,
+      TON: Cryptocurrency.Ton,
+      LTC: Cryptocurrency.Ltc,
+      DOGE: Cryptocurrency.Doge,
+      DAI: Cryptocurrency.Dai,
+      DASH: Cryptocurrency.Dash,
+      BCH: Cryptocurrency.Bch,
+      SOL: Cryptocurrency.Sol,
+    };
+
+    return CURRENCY_MAP[currency.toUpperCase()] || Cryptocurrency.Usdt;
   }
 }

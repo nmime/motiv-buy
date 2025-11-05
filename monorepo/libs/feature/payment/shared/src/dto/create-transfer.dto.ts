@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsString,
   IsEnum,
   IsOptional,
-  IsString,
-  Matches,
   MaxLength,
+  Matches,
   Validate,
   ValidatorConstraint,
   ValidatorConstraintInterface,
@@ -86,7 +86,7 @@ export class CreateTransferDto {
   comment?: string;
 
   @ApiPropertyOptional({
-    description: 'Payment provider to use (optional, auto-selected based on currency if not specified)',
+    description: 'Optional payment provider selection. If not specified, best provider will be selected automatically.',
     enum: PaymentProvider,
     example: PaymentProvider.CryptoBot,
   })
@@ -95,4 +95,16 @@ export class CreateTransferDto {
     message: 'Provider must be a valid payment provider',
   })
   provider?: PaymentProvider;
+
+  @ApiPropertyOptional({
+    description: 'Optional destination for withdrawal (e.g., bank card number for YooKassa, wallet address for crypto providers)',
+    example: '1234567890123456',
+    maxLength: 256,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(256, {
+    message: 'Destination cannot exceed 256 characters',
+  })
+  destination?: string;
 }

@@ -85,6 +85,7 @@ export interface IPaymentProvider {
     amount: string;
     currency: Cryptocurrency;
     comment?: string;
+    destination?: string; // For providers like YooKassa (bank card), crypto providers use userId
   }): AsyncResult<PaymentTransfer, Error>;
 
   /**

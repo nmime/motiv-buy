@@ -1,13 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsEnum,
-  IsInt,
-  IsOptional,
   IsString,
-  Matches,
+  IsEnum,
+  IsOptional,
+  IsInt,
+  Min,
   Max,
   MaxLength,
-  Min,
+  Matches,
   Validate,
   ValidatorConstraint,
   ValidatorConstraintInterface,
@@ -95,7 +95,7 @@ export class CreateInvoiceDto {
   expiresIn?: number = 86400; // Default 24 hours
 
   @ApiPropertyOptional({
-    description: 'Payment provider to use (optional, auto-selected based on currency if not specified)',
+    description: 'Optional payment provider selection. If not specified, best provider will be selected automatically.',
     enum: PaymentProvider,
     example: PaymentProvider.CryptoBot,
   })
