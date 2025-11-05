@@ -12,7 +12,7 @@ import { Migration } from '@mikro-orm/migrations';
  * - Provider currency support configurations
  * - Routing rules for intelligent provider selection
  */
-export class Migration20250105000006SeedPaymentProviders extends Migration {
+export class Migration20250105000007SeedPaymentProviders extends Migration {
   async up(): Promise<void> {
     // ========================================
     // PART 1: SEED PROVIDER CONFIGURATIONS
