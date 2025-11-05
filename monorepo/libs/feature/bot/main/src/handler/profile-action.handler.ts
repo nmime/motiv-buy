@@ -25,217 +25,199 @@ export class ProfileActionHandler {
 
   /**
    * Handle profile view action
+   *
+   * Note: Auth middleware ensures ctx.user exists for authenticated routes
    */
   async handleProfileView(ctx: BotContext): Promise<void> {
-    const em = this.em.fork();
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const profileText = this.formatProfileView(user);
-      const keyboard = this.menuHandler.createProfileMenuKeyboard();
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text: profileText,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-
-      this.logger.log('Profile viewed', { userId: user.id, telegramId: user.telegramId });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+    if (!ctx.user) {
+      await ctx.reply(ctx.t('auth.authentication_required'));
+      return;
     }
+
+    const profileText = this.formatProfileView(ctx.user);
+    const keyboard = this.menuHandler.createProfileMenuKeyboard();
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: profileText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+
+    this.logger.log('Profile viewed', { userId: ctx.user.id, telegramId: ctx.user.telegramId });
   }
 
   /**
    * Handle profile edit initiation
+   *
+   * Note: Auth middleware ensures ctx.user exists for authenticated routes
    */
   async handleProfileEditStart(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      // Store edit mode in session
-      if (ctx.session) {
-        ctx.session.conversationState = 'profile_edit';
-        ctx.session.formData = { step: 'select_field' };
-      }
-
-      const editKeyboard = this.createProfileEditKeyboard();
-
-      await ctx.reply(ctx.t('user.profile.edit_prompt'), {
-        reply_markup: editKeyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+    if (!ctx.user) {
+      await ctx.reply(ctx.t('auth.authentication_required'));
+      return;
     }
+
+    // Store edit mode in session
+    if (ctx.session) {
+      ctx.session.conversationState = 'profile_edit';
+      ctx.session.formData = { step: 'select_field' };
+    }
+
+    const editKeyboard = this.createProfileEditKeyboard();
+
+    await ctx.reply(ctx.t('user.profile.edit_prompt'), {
+      reply_markup: editKeyboard,
+    });
   }
 
   /**
    * Handle profile field update
+   *
+   * Note: Auth middleware ensures ctx.user exists for authenticated routes
    */
   async handleProfileFieldUpdate(ctx: BotContext, field: string, value: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      // Validate input based on field type
-      const validation = this.validateProfileField(field, value);
-
-      if (!validation.isValid) {
-        await ctx.reply(`❌ ${validation.error}\n\nPlease try again or use /cancel to abort.`);
-
-        return;
-      }
-
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Update user field
-      await this.updateUserField(user, field, validation.sanitized as string);
-
-      await ctx.reply(`✅ Successfully updated ${field}!`);
-
-      // Clear session state
-      if (ctx.session) {
-        ctx.session.conversationState = undefined;
-        ctx.session.formData = {};
-      }
-
-      // Show updated profile
-      await this.handleProfileView(ctx);
-
-      this.logger.log('Profile updated', {
-        userId: user.id,
-        field,
-        telegramId: user.telegramId,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+    if (!ctx.user) {
+      await ctx.reply(ctx.t('auth.authentication_required'));
+      return;
     }
+
+    // Validate input based on field type
+    const validation = this.validateProfileField(field, value);
+
+    if (!validation.isValid) {
+      await ctx.reply(`❌ ${validation.error}\n\nPlease try again or use /cancel to abort.`);
+      return;
+    }
+
+    // Update user field
+    await this.updateUserField(ctx.user, field, validation.sanitized as string);
+
+    await ctx.reply(`✅ Successfully updated ${field}!`);
+
+    // Clear session state
+    if (ctx.session) {
+      ctx.session.conversationState = undefined;
+      ctx.session.formData = {};
+    }
+
+    // Show updated profile
+    await this.handleProfileView(ctx);
+
+    this.logger.log('Profile updated', {
+      userId: ctx.user.id,
+      field,
+      telegramId: ctx.user.telegramId,
+    });
   }
 
   /**
    * Handle profile details view
+   *
+   * Note: Auth middleware ensures ctx.user exists for authenticated routes
    */
   async handleProfileDetails(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const detailsText = this.formatProfileDetails(user);
-      const keyboard = this.menuHandler.createBackButton('menu:profile');
-
-      await ctx.replyWithHTML(detailsText, { reply_markup: keyboard });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+    if (!ctx.user) {
+      await ctx.reply(ctx.t('auth.authentication_required'));
+      return;
     }
+
+    const detailsText = this.formatProfileDetails(ctx.user);
+    const keyboard = this.menuHandler.createBackButton('menu:profile');
+
+    await ctx.replyWithHTML(detailsText, { reply_markup: keyboard });
   }
 
   /**
    * Handle account verification
+   *
+   * Note: Auth middleware ensures ctx.user exists for authenticated routes
    */
   async handleVerification(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      if (user.isVerified) {
-        await ctx.reply(ctx.t('user.profile.already_verified'));
-
-        return;
-      }
-
-      const verificationText =
-        '🔐 <b>Account Verification</b>\n\n' +
-        'To verify your account, please complete the following steps:\n\n' +
-        '1. Ensure your profile information is complete\n' +
-        '2. Complete at least 5 traffic orders successfully\n' +
-        '3. Maintain a good reputation score\n\n' +
-        'Once all requirements are met, your account will be automatically verified.';
-
-      await ctx.replyWithHTML(verificationText);
-
-      this.logger.log('Verification info viewed', { userId: user.id });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+    if (!ctx.user) {
+      await ctx.reply(ctx.t('auth.authentication_required'));
+      return;
     }
+
+    if (ctx.user.isVerified) {
+      await ctx.reply(ctx.t('user.profile.already_verified'));
+      return;
+    }
+
+    const verificationText =
+      '🔐 <b>Account Verification</b>\n\n' +
+      'To verify your account, please complete the following steps:\n\n' +
+      '1. Ensure your profile information is complete\n' +
+      '2. Complete at least 5 traffic orders successfully\n' +
+      '3. Maintain a good reputation score\n\n' +
+      'Once all requirements are met, your account will be automatically verified.';
+
+    await ctx.replyWithHTML(verificationText);
+
+    this.logger.log('Verification info viewed', { userId: ctx.user.id });
   }
 
   /**
-   * Find user by Telegram ID
+   * Field update map for O(1) lookup performance
    */
-  private async findUserByTelegramId(telegramId: string): Promise<UserEntity | null> {
-    return await this.em.findOne(UserEntity, { telegramId });
-  }
+  private readonly fieldUpdaters: Record<string, (user: UserEntity, value: string) => void> = {
+    username: (user, value) => {
+      user.username = value;
+    },
+    firstName: (user, value) => {
+      user.firstName = value;
+    },
+    lastName: (user, value) => {
+      user.lastName = value;
+    },
+    languageCode: (user, value) => {
+      user.languageCode = value;
+    },
+  };
 
   /**
    * Update user field
    */
   private async updateUserField(user: UserEntity, field: string, value: string): Promise<void> {
-    switch (field) {
-      case 'username':
-        user.username = value;
-        break;
-      case 'firstName':
-        user.firstName = value;
-        break;
-      case 'lastName':
-        user.lastName = value;
-        break;
-      case 'languageCode':
-        user.languageCode = value;
-        break;
-      default:
-        throw new Error(`Unknown field: ${field}`);
+    const updater = this.fieldUpdaters[field];
+
+    if (!updater) {
+      throw new Error(`Unknown field: ${field}`);
     }
 
+    updater(user, value);
     await this.em.persistAndFlush(user);
   }
+
+  /**
+   * Field validator map for O(1) lookup performance
+   */
+  private readonly fieldValidators: Record<
+    string,
+    (value: string) => { isValid: boolean; error?: string; sanitized?: unknown }
+  > = {
+    username: (value) => BotValidationUtil.validateUsername(value),
+    firstName: (value) =>
+      BotValidationUtil.validateUserInput(value, {
+        type: 'text',
+        minLength: 1,
+        maxLength: 64,
+        trim: true,
+      }),
+    lastName: (value) =>
+      BotValidationUtil.validateUserInput(value, {
+        type: 'text',
+        minLength: 1,
+        maxLength: 64,
+        trim: true,
+      }),
+    languageCode: (value) =>
+      BotValidationUtil.validateUserInput(value, {
+        type: 'text',
+        maxLength: 10,
+        trim: true,
+        toLowerCase: true,
+      }),
+  };
 
   /**
    * Validate profile field
@@ -244,27 +226,13 @@ export class ProfileActionHandler {
     field: string,
     value: string,
   ): { isValid: boolean; error?: string; sanitized?: unknown } {
-    switch (field) {
-      case 'username':
-        return BotValidationUtil.validateUsername(value);
-      case 'firstName':
-      case 'lastName':
-        return BotValidationUtil.validateUserInput(value, {
-          type: 'text',
-          minLength: 1,
-          maxLength: 64,
-          trim: true,
-        });
-      case 'languageCode':
-        return BotValidationUtil.validateUserInput(value, {
-          type: 'text',
-          maxLength: 10,
-          trim: true,
-          toLowerCase: true,
-        });
-      default:
-        return { isValid: false, error: 'Unknown field' };
+    const validator = this.fieldValidators[field];
+
+    if (!validator) {
+      return { isValid: false, error: 'Unknown field' };
     }
+
+    return validator(value);
   }
 
   /**

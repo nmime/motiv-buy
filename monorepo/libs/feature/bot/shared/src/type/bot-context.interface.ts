@@ -1,5 +1,6 @@
 import { Context, InlineKeyboard, SessionFlavor } from 'grammy';
 import { I18nContextFlavor } from '@app/common-intl';
+import { UserEntity } from '@app/database';
 
 /**
  * Bot Context Interface
@@ -12,11 +13,20 @@ import { I18nContextFlavor } from '@app/common-intl';
  * @extends Context
  */
 export interface BotContext extends Context, SessionFlavor<BotSessionData>, I18nContextFlavor {
+  /** Authenticated user entity from database (available after auth middleware) */
+  user?: UserEntity;
+
   /** Additional bot state information */
   state?: BotStateData;
 
-  /** Authentication status */
+  /** Authentication status (set by auth middleware) */
   isAuthenticated?: boolean;
+
+  /** Session ID for the current user */
+  sessionId?: string;
+
+  /** Whether this is a new user (first time using bot) */
+  isNewUser?: boolean;
 
   /** User ID for quick access */
   userId?: string;

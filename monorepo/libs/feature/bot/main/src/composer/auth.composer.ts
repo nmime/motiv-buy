@@ -63,6 +63,18 @@ export class AuthComposer {
   }
 
   /**
+   * Auth state handlers map for O(1) lookup performance
+   */
+  private readonly authStateHandlers: Record<AuthState, (ctx: BotContext) => Promise<MenuConfig>> = {
+    [AuthState.Authenticated]: (ctx) => this.composeAuthenticatedMenu(ctx),
+    [AuthState.LoginFlow]: (ctx) => this.composeLoginMenu(ctx),
+    [AuthState.RegisterFlow]: (ctx) => this.composeRegistrationMenu(ctx),
+    [AuthState.VerificationFlow]: (ctx) => this.composeVerificationMenu(ctx, VerificationType.Email),
+    [AuthState.ProfileSetup]: (ctx) => this.composePostAuthMenu(ctx, true),
+    [AuthState.Unauthenticated]: (ctx) => this.composeWelcomeMenu(ctx),
+  };
+
+  /**
    * Compose authentication gateway menu
    *
    * @param ctx - Bot context
@@ -76,20 +88,14 @@ export class AuthComposer {
       // Check current authentication state
       const authState = await this.getCurrentAuthState(ctx);
 
-      switch (authState) {
-        case AuthState.Authenticated:
-          return await this.composeAuthenticatedMenu(ctx);
-        case AuthState.LoginFlow:
-          return await this.composeLoginMenu(ctx);
-        case AuthState.RegisterFlow:
-          return await this.composeRegistrationMenu(ctx);
-        case AuthState.VerificationFlow:
-          return await this.composeVerificationMenu(ctx, VerificationType.Email);
-        case AuthState.ProfileSetup:
-          return await this.composePostAuthMenu(ctx, true);
-        default:
-          return await this.composeWelcomeMenu(ctx);
+      // Get handler from map
+      const handler = this.authStateHandlers[authState];
+
+      if (handler) {
+        return await handler(ctx);
       }
+
+      return await this.composeWelcomeMenu(ctx);
     } catch (err: unknown) {
       this.logger.error('Error composing auth gateway', {
         error: unknownToError(err),
