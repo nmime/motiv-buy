@@ -417,7 +417,7 @@ export class SettingsActionHandler {
   /**
    * Format notification settings
    */
-  private formatNotificationSettings(prefs: any): string {
+  private formatNotificationSettings(prefs: UserPreferences['notifications']): string {
     return (
       '<b>🔔 Notification Settings</b>\n\n' +
       `Balance Changes: ${prefs.balance ? '✅ Enabled' : '❌ Disabled'}\n` +
@@ -432,7 +432,7 @@ export class SettingsActionHandler {
   /**
    * Format privacy settings
    */
-  private formatPrivacySettings(prefs: any): string {
+  private formatPrivacySettings(prefs: UserPreferences['privacy']): string {
     return (
       '<b>🔒 Privacy Settings</b>\n\n' +
       `Show Profile: ${prefs.showProfile ? '✅ Public' : '❌ Private'}\n` +
@@ -470,7 +470,7 @@ export class SettingsActionHandler {
   /**
    * Create notification keyboard
    */
-  private createNotificationKeyboard(prefs: any) {
+  private createNotificationKeyboard(prefs: UserPreferences['notifications']) {
     const { InlineKeyboard } = require('grammy');
 
     return new InlineKeyboard()
@@ -488,7 +488,7 @@ export class SettingsActionHandler {
   /**
    * Create privacy keyboard
    */
-  private createPrivacyKeyboard(prefs: any) {
+  private createPrivacyKeyboard(prefs: UserPreferences['privacy']) {
     const { InlineKeyboard } = require('grammy');
 
     return new InlineKeyboard()
