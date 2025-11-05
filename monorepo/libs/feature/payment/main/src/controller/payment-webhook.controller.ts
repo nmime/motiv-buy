@@ -14,8 +14,10 @@ import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';
+import { HelekeProvider } from '../provider/heleket.provider';
+import { YooKassaProvider } from '../provider/yookassa.provider';
 import { PaymentService } from '../service/payment.service';
-import { WebhookUpdateDto } from '@app/feature-payment-shared';
+import { WebhookUpdateDto, PaymentConfigService } from '@app/feature-payment-shared';
 
 /**
  * Controller for handling payment webhook callbacks
@@ -63,7 +65,10 @@ export class PaymentWebhookController {
 
   constructor(
     private readonly cryptoBotProvider: CryptoBotProvider,
+    private readonly helekeProvider: HelekeProvider,
+    private readonly yooKassaProvider: YooKassaProvider,
     private readonly paymentService: PaymentService,
+    private readonly paymentConfig: PaymentConfigService,
   ) {}
 
   /**
@@ -209,6 +214,276 @@ export class PaymentWebhookController {
 
       // Return success to prevent unnecessary retries
       // Provider will retry if we return error status
+      return { ok: true };
+    }
+  }
+
+  /**
+   * Handle Heleke webhook notifications
+   * Verifies HMAC signature and processes payment status updates
+   *
+   * @param signature - HMAC-SHA256 signature from Heleke
+   * @param body - Raw webhook payload as string
+   * @returns Success response
+   */
+  @Post('heleke')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 requests per minute
+  @ApiOperation({
+    summary: 'Heleke webhook endpoint',
+    description: 'Receives and processes webhook notifications from Heleke payment gateway',
+  })
+  @ApiHeader({
+    name: 'x-heleke-signature',
+    description: 'HMAC-SHA256 signature for webhook verification',
+    required: true,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Webhook processed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        ok: { type: 'boolean', example: true },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Invalid webhook signature',
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: 'Rate limit exceeded',
+  })
+  async handleHelekeWebhook(
+    @Headers('x-heleke-signature') signature: string | undefined,
+    @Body() rawBody: unknown,
+  ): Promise<{ ok: boolean }> {
+    const requestId = randomUUID();
+    const logContext = { requestId, provider: 'Heleke' };
+
+    try {
+      this.logger.log('Received Heleke webhook', logContext);
+
+      // Validate signature header presence
+      if (!signature) {
+        this.logger.warn('Webhook rejected: Missing signature header', logContext);
+        throw new UnauthorizedException('Missing signature');
+      }
+
+      // Sanitize and convert body to string for signature verification
+      const bodyString = this.sanitizeBody(rawBody);
+
+      // Verify webhook signature
+      const isValid = this.helekeProvider.verifyWebhook(signature, bodyString);
+
+      if (!isValid) {
+        this.logger.warn('Webhook rejected: Invalid signature', {
+          ...logContext,
+          signatureLength: signature.length,
+          bodyLength: bodyString.length,
+        });
+
+        throw new UnauthorizedException('Invalid signature');
+      }
+
+      // Parse and validate webhook data
+      let webhookData: WebhookUpdateDto;
+      try {
+        webhookData = this.parseWebhookData(rawBody);
+      } catch (error) {
+        this.logger.error('Failed to parse Heleke webhook data', {
+          ...logContext,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          rawBodyType: typeof rawBody,
+        });
+
+        return { ok: true };
+      }
+
+      this.logger.log('Valid Heleke webhook received', {
+        ...logContext,
+        updateType: webhookData.updateType,
+        payloadId: webhookData.payload.id,
+        status: webhookData.payload.status,
+      });
+
+      // Process webhook through payment service
+      const result = await this.paymentService.processWebhook(webhookData, requestId);
+
+      if (result.err) {
+        this.logger.error('Heleke webhook processing failed', {
+          ...logContext,
+          error: result.val.message,
+          updateType: webhookData.updateType,
+          payloadId: webhookData.payload.id,
+        });
+
+        return { ok: true };
+      }
+
+      this.logger.log('Heleke webhook processed successfully', {
+        ...logContext,
+        transactionId: result.val.id,
+        status: result.val.status,
+      });
+
+      return { ok: true };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        this.logger.warn('Heleke webhook authentication failed', {
+          ...logContext,
+          error: error.message,
+        });
+
+        throw error;
+      }
+
+      this.logger.error('Unexpected error processing Heleke webhook', {
+        ...logContext,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      return { ok: true };
+    }
+  }
+
+  /**
+   * Handle YooKassa webhook notifications
+   * Verifies request origin via IP whitelist
+   *
+   * @param ipAddress - Request IP address for verification
+   * @param body - Raw webhook payload
+   * @returns Success response
+   */
+  @Post('yookassa')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 requests per minute
+  @ApiOperation({
+    summary: 'YooKassa webhook endpoint',
+    description: 'Receives and processes webhook notifications from YooKassa payment gateway',
+  })
+  @ApiHeader({
+    name: 'x-forwarded-for',
+    description: 'Client IP address for whitelist verification',
+    required: false,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Webhook processed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        ok: { type: 'boolean', example: true },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'IP address not whitelisted',
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: 'Rate limit exceeded',
+  })
+  async handleYooKassaWebhook(
+    @Headers('x-forwarded-for') forwardedFor: string | undefined,
+    @Headers('x-real-ip') realIp: string | undefined,
+    @Body() rawBody: unknown,
+  ): Promise<{ ok: boolean }> {
+    const requestId = randomUUID();
+    const ipAddress = forwardedFor || realIp || 'unknown';
+    const logContext = { requestId, provider: 'YooKassa', ipAddress };
+
+    try {
+      this.logger.log('Received YooKassa webhook', logContext);
+
+      // Get allowed IPs from configuration
+      const config = this.paymentConfig.getYooKassaConfig();
+      const allowedIps = config.allowedWebhookIps;
+
+      // Verify IP whitelist if configured
+      if (allowedIps && allowedIps.length > 0) {
+        const clientIp = forwardedFor?.split(',')[0].trim() || realIp || '';
+
+        if (!allowedIps.includes(clientIp)) {
+          this.logger.warn('Webhook rejected: IP not whitelisted', {
+            ...logContext,
+            clientIp,
+            allowedIps: allowedIps.join(', '),
+          });
+
+          throw new UnauthorizedException('IP address not whitelisted');
+        }
+
+        this.logger.debug('IP whitelist check passed', { ...logContext, clientIp });
+      } else {
+        this.logger.warn(
+          'YooKassa webhook IP whitelist not configured - accepting all requests',
+          logContext,
+        );
+      }
+
+      // Parse and validate webhook data
+      let webhookData: WebhookUpdateDto;
+      try {
+        webhookData = this.parseWebhookData(rawBody);
+      } catch (error) {
+        this.logger.error('Failed to parse YooKassa webhook data', {
+          ...logContext,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          rawBodyType: typeof rawBody,
+        });
+
+        return { ok: true };
+      }
+
+      this.logger.log('Valid YooKassa webhook received', {
+        ...logContext,
+        updateType: webhookData.updateType,
+        payloadId: webhookData.payload.id,
+        status: webhookData.payload.status,
+      });
+
+      // Process webhook through payment service
+      const result = await this.paymentService.processWebhook(webhookData, requestId);
+
+      if (result.err) {
+        this.logger.error('YooKassa webhook processing failed', {
+          ...logContext,
+          error: result.val.message,
+          updateType: webhookData.updateType,
+          payloadId: webhookData.payload.id,
+        });
+
+        return { ok: true };
+      }
+
+      this.logger.log('YooKassa webhook processed successfully', {
+        ...logContext,
+        transactionId: result.val.id,
+        status: result.val.status,
+      });
+
+      return { ok: true };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        this.logger.warn('YooKassa webhook authentication failed', {
+          ...logContext,
+          error: error.message,
+        });
+
+        throw error;
+      }
+
+      this.logger.error('Unexpected error processing YooKassa webhook', {
+        ...logContext,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
       return { ok: true };
     }
   }

@@ -1,4 +1,17 @@
 /**
+ * Payment update strategy type
+ * Determines how payment status updates are received
+ */
+export enum PaymentUpdateStrategy {
+  /** Use webhooks only (push-based) */
+  Webhook = 'WEBHOOK',
+  /** Use polling only (pull-based) */
+  Polling = 'POLLING',
+  /** Use both webhooks and polling (hybrid - most reliable) */
+  Hybrid = 'HYBRID',
+}
+
+/**
  * Payment Configuration Interface
  *
  * Defines the structure for payment system configuration including
@@ -19,6 +32,9 @@ export interface PaymentConfig {
 
   /** Webhook configuration */
   webhook?: PaymentWebhookConfig;
+
+  /** Polling configuration */
+  polling?: PaymentPollingConfig;
 
   /** Payment feature flags */
   features?: PaymentFeatureFlags;
@@ -47,6 +63,12 @@ export interface CryptoBotConfig {
 
   /** Max retries for API requests */
   maxRetries?: number;
+
+  /** Payment update strategy (defaults to Hybrid) */
+  updateStrategy?: PaymentUpdateStrategy;
+
+  /** Webhook URL for receiving callbacks */
+  webhookUrl?: string;
 }
 
 /**
@@ -66,6 +88,35 @@ export interface PaymentWebhookConfig {
 
   /** Enable webhook signature verification */
   verifySignature?: boolean;
+
+  /** YooKassa allowed IP addresses for webhook verification */
+  yooKassaAllowedIps?: string[];
+}
+
+/**
+ * Payment Polling Configuration
+ *
+ * Configuration for polling-based status updates.
+ */
+export interface PaymentPollingConfig {
+  /** Enable polling service */
+  enabled?: boolean;
+
+  /** Polling interval in milliseconds (default: 30000 = 30 seconds) */
+  interval?: number;
+
+  /** Maximum age of pending transactions to poll (in minutes, default: 1440 = 24 hours) */
+  maxPendingAge?: number;
+
+  /** Batch size for polling queries (default: 50) */
+  batchSize?: number;
+
+  /** Enable polling for specific providers */
+  providers?: {
+    cryptoBot?: boolean;
+    heleke?: boolean;
+    yooKassa?: boolean;
+  };
 }
 
 /**
@@ -145,6 +196,12 @@ export interface HelekeConfiguration {
 
   /** Failure callback URL */
   failUrl?: string;
+
+  /** Payment update strategy (defaults to Hybrid) */
+  updateStrategy?: PaymentUpdateStrategy;
+
+  /** Webhook URL for receiving callbacks */
+  webhookUrl?: string;
 }
 
 /**
@@ -174,4 +231,13 @@ export interface YooKassaConfig {
 
   /** Return URL after payment */
   returnUrl?: string;
+
+  /** Payment update strategy (defaults to Hybrid) */
+  updateStrategy?: PaymentUpdateStrategy;
+
+  /** Webhook URL for receiving callbacks */
+  webhookUrl?: string;
+
+  /** Allowed IP addresses for webhook verification */
+  allowedWebhookIps?: string[];
 }

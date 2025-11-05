@@ -5,8 +5,10 @@ import {
   PaymentConfig,
   CryptoBotConfig,
   PaymentWebhookConfig,
+  PaymentPollingConfig,
   HelekeConfiguration,
   YooKassaConfig,
+  PaymentUpdateStrategy,
 } from './payment-config.interface';
 
 /**
@@ -90,6 +92,33 @@ export class PaymentConfigService {
     PAYMENT_FEATURE_HISTORY: Joi.boolean().default(true),
     PAYMENT_FEATURE_AUTO_CREDIT: Joi.boolean().default(true),
     PAYMENT_FEATURE_TESTNET: Joi.boolean().default(false),
+
+    // Polling Configuration
+    PAYMENT_POLLING_ENABLED: Joi.boolean().default(true),
+    PAYMENT_POLLING_INTERVAL: Joi.number().min(5000).max(300000).default(30000),
+    PAYMENT_POLLING_MAX_PENDING_AGE: Joi.number().min(1).max(10080).default(1440),
+    PAYMENT_POLLING_BATCH_SIZE: Joi.number().min(1).max(500).default(50),
+    PAYMENT_POLLING_CRYPTOBOT: Joi.boolean().default(true),
+    PAYMENT_POLLING_HELEKE: Joi.boolean().default(true),
+    PAYMENT_POLLING_YOOKASSA: Joi.boolean().default(true),
+
+    // Update Strategies
+    CRYPTO_BOT_UPDATE_STRATEGY: Joi.string()
+      .valid('WEBHOOK', 'POLLING', 'HYBRID')
+      .default('HYBRID'),
+    HELEKET_UPDATE_STRATEGY: Joi.string()
+      .valid('WEBHOOK', 'POLLING', 'HYBRID')
+      .default('HYBRID'),
+    YOOKASSA_UPDATE_STRATEGY: Joi.string()
+      .valid('WEBHOOK', 'POLLING', 'HYBRID')
+      .default('HYBRID'),
+
+    // Webhook URLs
+    HELEKET_WEBHOOK_URL: Joi.string().uri().optional(),
+    YOOKASSA_WEBHOOK_URL: Joi.string().uri().optional(),
+
+    // YooKassa webhook IP whitelist (comma-separated)
+    YOOKASSA_WEBHOOK_IPS: Joi.string().optional(),
   });
 
   constructor(private readonly configService: ConfigService<Record<string, unknown>, true>) {}
@@ -103,6 +132,7 @@ export class PaymentConfigService {
       heleket: this.getHelekeConfig(),
       yooKassa: this.getYooKassaConfig(),
       webhook: this.getWebhookConfig(),
+      polling: this.getPollingConfig(),
       features: this.getFeatureFlags(),
       limits: this.getLimitsConfig(),
     };
@@ -119,12 +149,17 @@ export class PaymentConfigService {
    * Get CryptoBot configuration
    */
   getCryptoBotConfig(): CryptoBotConfig {
+    const strategyStr = this.configService.get<string>('CRYPTO_BOT_UPDATE_STRATEGY') ?? 'HYBRID';
+    const updateStrategy = strategyStr as PaymentUpdateStrategy;
+
     return {
       apiToken: this.getCryptoBotApiToken(),
       apiUrl: this.configService.get<string>('CRYPTO_BOT_API_URL'),
       testnet: this.configService.get<boolean>('CRYPTO_BOT_TESTNET') ?? false,
       timeout: this.configService.get<number>('CRYPTO_BOT_TIMEOUT') ?? 10000,
       maxRetries: this.configService.get<number>('CRYPTO_BOT_MAX_RETRIES') ?? 3,
+      updateStrategy,
+      webhookUrl: this.configService.get<string>('CRYPTO_BOT_WEBHOOK_URL'),
     };
   }
 
@@ -132,6 +167,9 @@ export class PaymentConfigService {
    * Get Heleket configuration
    */
   getHelekeConfig(): HelekeConfiguration {
+    const strategyStr = this.configService.get<string>('HELEKET_UPDATE_STRATEGY') ?? 'HYBRID';
+    const updateStrategy = strategyStr as PaymentUpdateStrategy;
+
     return {
       apiToken: this.configService.getOrThrow<string>('HELEKET_API_TOKEN'),
       merchantId: this.configService.getOrThrow<string>('HELEKET_MERCHANT_ID'),
@@ -141,6 +179,8 @@ export class PaymentConfigService {
       maxRetries: this.configService.get<number>('HELEKET_MAX_RETRIES') ?? 3,
       successUrl: this.configService.get<string>('HELEKET_SUCCESS_URL'),
       failUrl: this.configService.get<string>('HELEKET_FAIL_URL'),
+      updateStrategy,
+      webhookUrl: this.configService.get<string>('HELEKET_WEBHOOK_URL'),
     };
   }
 
@@ -148,6 +188,13 @@ export class PaymentConfigService {
    * Get YooKassa configuration
    */
   getYooKassaConfig(): YooKassaConfig {
+    const strategyStr = this.configService.get<string>('YOOKASSA_UPDATE_STRATEGY') ?? 'HYBRID';
+    const updateStrategy = strategyStr as PaymentUpdateStrategy;
+
+    // Parse comma-separated IP list
+    const ipString = this.configService.get<string>('YOOKASSA_WEBHOOK_IPS');
+    const allowedWebhookIps = ipString ? ipString.split(',').map((ip) => ip.trim()) : undefined;
+
     return {
       shopId: this.configService.getOrThrow<string>('YOOKASSA_SHOP_ID'),
       secretKey: this.configService.getOrThrow<string>('YOOKASSA_SECRET_KEY'),
@@ -156,6 +203,9 @@ export class PaymentConfigService {
       timeout: this.configService.get<number>('YOOKASSA_TIMEOUT') ?? 10000,
       maxRetries: this.configService.get<number>('YOOKASSA_MAX_RETRIES') ?? 3,
       returnUrl: this.configService.get<string>('YOOKASSA_RETURN_URL'),
+      updateStrategy,
+      webhookUrl: this.configService.get<string>('YOOKASSA_WEBHOOK_URL'),
+      allowedWebhookIps,
     };
   }
 
@@ -163,11 +213,35 @@ export class PaymentConfigService {
    * Get webhook configuration
    */
   getWebhookConfig(): PaymentWebhookConfig {
+    // Parse comma-separated IP list
+    const yooKassaIpString = this.configService.get<string>('YOOKASSA_WEBHOOK_IPS');
+    const yooKassaAllowedIps = yooKassaIpString
+      ? yooKassaIpString.split(',').map((ip) => ip.trim())
+      : undefined;
+
     return {
       url: this.configService.get<string>('CRYPTO_BOT_WEBHOOK_URL'),
       secret: this.configService.get<string>('CRYPTO_BOT_WEBHOOK_SECRET'),
       timeout: this.configService.get<number>('CRYPTO_BOT_WEBHOOK_TIMEOUT') ?? 30,
       verifySignature: this.configService.get<boolean>('CRYPTO_BOT_WEBHOOK_VERIFY') ?? true,
+      yooKassaAllowedIps,
+    };
+  }
+
+  /**
+   * Get polling configuration
+   */
+  getPollingConfig(): PaymentPollingConfig {
+    return {
+      enabled: this.configService.get<boolean>('PAYMENT_POLLING_ENABLED') ?? true,
+      interval: this.configService.get<number>('PAYMENT_POLLING_INTERVAL') ?? 30000,
+      maxPendingAge: this.configService.get<number>('PAYMENT_POLLING_MAX_PENDING_AGE') ?? 1440,
+      batchSize: this.configService.get<number>('PAYMENT_POLLING_BATCH_SIZE') ?? 50,
+      providers: {
+        cryptoBot: this.configService.get<boolean>('PAYMENT_POLLING_CRYPTOBOT') ?? true,
+        heleke: this.configService.get<boolean>('PAYMENT_POLLING_HELEKE') ?? true,
+        yooKassa: this.configService.get<boolean>('PAYMENT_POLLING_YOOKASSA') ?? true,
+      },
     };
   }
 
