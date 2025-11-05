@@ -364,17 +364,156 @@ Api-Key: <bot_api_key>
 
 ## FlyerService Task Workflow
 
-**Status:** ❌ Documentation unavailable (requires JavaScript)
+### Key Difference: Task Allocation Model
 
-**What We Know:**
-- Similar industry (Telegram traffic)
-- Likely similar workflow to SubGram
-- REST API with JSON
+FlyerService uses **pre-allocation** - tasks are assigned to specific users for 1 hour.
 
-**What We Need:**
-- Request OpenAPI/Swagger spec
-- Contact FlyerService support
-- Or test with actual API access
+### Complete Lifecycle
+
+```
+1. User interacts with bot
+   ↓
+
+2. Bot calls POST /check
+   ↓ {key, userId}
+   ↓ Check mandatory subscriptions
+
+3. If skip=false, user must complete mandatory subscriptions first
+   ↓
+
+4. Bot calls POST /get_tasks
+   ↓ {key, userId, limit: 5}
+
+5. FlyerService allocates 5 tasks to user
+   ↓ Tasks locked for 1 hour
+   ↓ Returns: signature, task type, price, links
+
+6. Bot shows tasks to user
+   ↓ User picks one
+
+7. User completes task
+   ↓ (subscribes channel, starts bot, gives boost, etc.)
+
+8. Bot calls POST /check_task
+   ↓ {key, signature}
+
+9. FlyerService verifies completion
+   ↓ Returns status
+
+10. Status possibilities:
+    - 'incomplete' → Task not done, try again
+    - 'waiting' → Done, awaiting payment (24h for channels)
+    - 'complete' → Done and paid
+    - 'abort' → Was subscribed, now unsubscribed
+    - 'unavailable' → Order cancelled
+
+11. If 'waiting':
+    ↓ Wait 24 hours
+    ↓ Verify still subscribed
+    ↓ Status changes to 'complete'
+
+12. Payment processed
+```
+
+### FlyerService Endpoints
+
+**1. Check Mandatory Subscription:**
+```typescript
+POST /check
+{
+  key: string;
+  userId: number;
+  languageCode?: string;
+  message?: { /* custom buttons */ };
+}
+
+Response:
+{
+  skip: boolean;    // Can user skip mandatory subscriptions?
+}
+```
+
+**2. Get Tasks (Allocation):**
+```typescript
+POST /get_tasks
+{
+  key: string;
+  userId: number;
+  limit?: number;   // Default: 5, Max: 10
+}
+
+Response:
+{
+  result: [
+    {
+      signature: string;      // Unique task ID
+      task: 'start bot' | 'subscribe channel' | 'give boost' | 'follow link' | 'perform action' | 'view posts';
+      resourceId?: number;
+      price: number;          // In rubles
+      links: string[];
+      photo?: string;
+      name?: string;
+      status: string;
+    }
+  ];
+}
+```
+
+**3. Check Task Completion:**
+```typescript
+POST /check_task
+{
+  key: string;
+  signature: string;    // Task ID
+}
+
+Response:
+{
+  result: null | 'unavailable' | 'incomplete' | 'abort' | 'waiting' | 'complete';
+}
+```
+
+**4. Get Completed Tasks:**
+```typescript
+POST /get_completed_tasks
+{
+  key: string;
+  userId: number;
+}
+
+Response:
+{
+  result: {
+    completedTasks: [...];
+    countAllTasks: number;
+  };
+}
+```
+
+### Key Features
+
+**Task Allocation:**
+- Tasks assigned to user for 1 hour
+- If not completed, released back to pool
+- Prevents multiple users competing for same task
+
+**Multiple Task Types:**
+1. Start bot
+2. Subscribe channel
+3. Give boost (Telegram Premium)
+4. Follow link
+5. Perform action (custom)
+6. View posts
+
+**Payment Delay:**
+- **Channels:** 24-hour waiting period
+- **Other tasks:** Immediate payment
+- Reason: Verify user doesn't unsubscribe
+
+**Status Granularity:**
+- More detailed than SubGram
+- Tracks waiting, abort states
+- Better fraud prevention
 
 ---
 
@@ -555,22 +694,71 @@ Platform **pushes** orders:
 
 ---
 
+## Workflow Comparison Summary
+
+| Feature | SubGram | FlyerService | Our Choice |
+|---------|---------|--------------|------------|
+| **Model** | Dynamic (pull on demand) | Pre-allocation (1 hour) | Support both |
+| **Task Limit** | Unlimited | 5-10 per request | Configurable |
+| **Task Types** | Channel subscription | 6 types | Start with 3, expand |
+| **Verification** | Real-time | Check by signature | Both methods |
+| **Payment** | Immediate | 24h delay for channels | Start immediate |
+| **Status States** | 3 states | 6 states | Combined (8 states) |
+| **Targeting** | Demographics-based | Not visible | Demographics |
+| **Auth** | Three-tier | Single key | API key system |
+
+### SubGram Strengths
+- ✅ Simpler (no allocation tracking)
+- ✅ Real-time payment
+- ✅ Proven for subscriptions
+- ✅ Demographics targeting
+- ✅ Webhook system
+
+### FlyerService Strengths
+- ✅ Task allocation (better UX)
+- ✅ Multiple task types
+- ✅ Fraud prevention (24h delay)
+- ✅ More granular status
+- ✅ Prevents task competition
+
+---
+
 ## Summary
 
-**SubGram's Workflow = Proven Model**
+**Both Models Have Value**
 
 **Key Insights:**
 1. Separate buy-side and sell-side APIs
-2. Pull model for order distribution
-3. Verification before crediting
+2. Two approaches: dynamic (SubGram) vs allocation (FlyerService)
+3. Verification before crediting (both)
 4. Real-time webhooks for updates
 5. Balance settlement on every action
 
 **Our Path Forward:**
-- Build provider API (pull model)
-- Implement action verification
-- Connect balance service
-- Add webhook system
-- Support multiple providers (SubGram, FlyerService, custom)
 
-**Timeline:** 4.5 weeks for MVP (Phases 0-2)
+**Phase 1: SubGram Model (Simpler)**
+- Build provider API (pull model)
+- Dynamic order fetching
+- Immediate verification and payment
+- Channel subscriptions, bot starts, group joins
+
+**Phase 2: FlyerService Features**
+- Add task allocation system
+- Support multiple task types
+- Optional 24h payment delay
+- Better fraud prevention
+
+**Phase 3: Advanced**
+- Multiple providers (SubGram, FlyerService, custom)
+- Provider abstraction layer
+- Hybrid models
+
+**Timeline:**
+- MVP (SubGram model): 4.5 weeks
+- Full system (both models): 7-8 weeks
+
+---
+
+## Detailed Comparison Document
+
+See `/docs/FLYERSERVICE_VS_SUBGRAM_COMPARISON.md` for complete API comparison, payment models, and implementation recommendations.
