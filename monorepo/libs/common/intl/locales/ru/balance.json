@@ -1,0 +1,33 @@
+{
+  "balance": {
+    "title": "💰 Баланс",
+    "current": "💰 Текущий баланс",
+    "total_earned": "📊 Всего заработано",
+    "available": "✅ Доступно",
+    "pending": "🔒 Ожидается",
+    "locked": "🔐 Заблокировано",
+    "total": "📈 Всего",
+    "last_transaction": "📅 Последняя транзакция:",
+    "no_transactions": "Нет транзакций",
+    "withdrawal_status": "💸 Статус вывода",
+    "minimum_withdrawal": "Минимальный вывод:",
+    "history": "📊 История транзакций",
+    "page": "Страница {{page}} из {{total}}",
+    "top_up": "💳 Пополнить",
+    "withdraw": "💸 Вывод",
+    "recent_activity": "📈 Последняя активность",
+    "account_created": "Аккаунт создан:",
+    "balance_updated": "✅ Баланс обновлен",
+    "insufficient_funds": "❌ Недостаточно средств",
+    "withdrawal_initiated": "✅ Вывод инициирован",
+    "withdrawal_failed": "❌ Ошибка вывода",
+    "topup_amount": "Сумма пополнения:",
+    "currency": "Валюта:",
+    "transaction_date": "Дата транзакции:",
+    "transaction_type": "Тип:",
+    "transaction_status": "Статус:",
+    "earned": "Заработано",
+    "spent": "Потрачено",
+    "transferred": "Переведено"
+  }
+}

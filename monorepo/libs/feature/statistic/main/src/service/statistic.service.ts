@@ -2,26 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import * as crypto from 'crypto';
 import {
-  TrafficOrderRepository,
-  TrafficSourceRepository,
   TrafficActionsRepository,
-  UserRepository,
-  TrafficOrderStatus,
-  UserStatus,
   TrafficActionStatus,
+  TrafficOrderRepository,
+  TrafficOrderStatus,
+  TrafficSourceRepository,
+  UserRepository,
+  UserStatus,
 } from '@app/database';
 import {
-  StatisticQueryDto,
-  TrafficSourceStatisticDto,
-  TrafficOrderStatisticDto,
-  TrafficTargetStatisticDto,
-  UserStatisticDto,
-  StatisticType,
-  LineChartQueryDto,
   ChartDataPointDto,
   ChartInterval,
+  LineChartQueryDto,
+  StatisticQueryDto,
+  StatisticType,
+  TrafficOrderStatisticDto,
+  TrafficSourceStatisticDto,
+  TrafficTargetStatisticDto,
+  UserStatisticDto,
 } from '../dto';
-import { ServiceStatisticResponse, ServiceLineChartData } from '../type';
+import { ServiceLineChartData, ServiceStatisticResponse } from '../type';
 import { StatisticRepository, TimeSeriesData } from '../repository/statistic.repository';
 
 /**
@@ -40,15 +40,6 @@ import { StatisticRepository, TimeSeriesData } from '../repository/statistic.rep
  */
 @Injectable()
 export class StatisticService {
-  constructor(
-    private readonly em: EntityManager,
-    private readonly trafficOrderRepository: TrafficOrderRepository,
-    private readonly trafficSourceRepository: TrafficSourceRepository,
-    private readonly trafficActionsRepository: TrafficActionsRepository,
-    private readonly userRepository: UserRepository,
-    private readonly statisticRepository: StatisticRepository,
-  ) {}
-
   private readonly statisticHandlers = {
     [StatisticType.TrafficSource]: (userId: string, query: StatisticQueryDto) =>
       this.getTrafficSourceStatistics(userId, query),
@@ -58,7 +49,6 @@ export class StatisticService {
       this.getTrafficTargetStatistics(userId, query),
     [StatisticType.User]: (userId: string, query: StatisticQueryDto) => this.getUserStatistics(userId, query),
   };
-
   private readonly chartDataHandlers = {
     [StatisticType.TrafficSource]: (userId: string, query: LineChartQueryDto) =>
       this.getTrafficSourceChartData(userId, query),
@@ -68,6 +58,15 @@ export class StatisticService {
       this.getTrafficTargetChartData(userId, query),
     [StatisticType.User]: (userId: string, query: LineChartQueryDto) => this.getUserChartData(userId, query),
   };
+
+  constructor(
+    private readonly em: EntityManager,
+    private readonly trafficOrderRepository: TrafficOrderRepository,
+    private readonly trafficSourceRepository: TrafficSourceRepository,
+    private readonly trafficActionsRepository: TrafficActionsRepository,
+    private readonly userRepository: UserRepository,
+    private readonly statisticRepository: StatisticRepository,
+  ) {}
 
   async getStatistics(userId: string, query: StatisticQueryDto): Promise<ServiceStatisticResponse> {
     if (!query.type) {
@@ -194,6 +193,14 @@ export class StatisticService {
       period: this.formatPeriod(query.fromDate, query.endDate),
       interval: query.interval ?? ChartInterval.Hour,
     };
+  }
+
+  generateShareToken(userId: string, query?: StatisticQueryDto): string {
+    const timestamp = Date.now();
+    const randomStr = crypto.randomUUID();
+    const typeHash = query?.type ? String(query.type).substring(0, 3) : 'all';
+
+    return `${typeHash}-${userId}-${timestamp}-${randomStr}`;
   }
 
   /**
@@ -776,13 +783,5 @@ export class StatisticService {
     }
 
     return { userId, statisticType };
-  }
-
-  generateShareToken(userId: string, query?: StatisticQueryDto): string {
-    const timestamp = Date.now();
-    const randomStr = crypto.randomUUID();
-    const typeHash = query?.type ? String(query.type).substring(0, 3) : 'all';
-
-    return `${typeHash}-${userId}-${timestamp}-${randomStr}`;
   }
 }

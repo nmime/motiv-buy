@@ -1,17 +1,17 @@
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, Headers, Ip, Query, Req, UseGuards } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
-import { ApiProblemExceptions } from '@app/common-exception';
-import { AsyncResult } from '@app/common-shared';
-import { AuthService } from '../service';
-import { AuthDevRequestDto, AuthResponseDto, TelegramWidgetAuthDto } from '../dto';
-import { AppThrottlerGuard, IpAuthGuard, AuthResultDto } from '@app/feature-auth-shared';
 import {
+  ApiProblemExceptions,
   NotInDevModeException,
   TmaDataValidationException,
   UserBlockedException,
   UserNotFoundException,
 } from '@app/common-exception';
+import { AsyncResult } from '@app/common-shared';
+import { AuthService } from '../service';
+import { AuthDevRequestDto, AuthResponseDto, TelegramWidgetAuthDto } from '../dto';
+import { AppThrottlerGuard, AuthResultDto, IpAuthGuard } from '@app/feature-auth-shared';
 
 @ApiTags('auth')
 @Controller()

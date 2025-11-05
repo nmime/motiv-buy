@@ -5,7 +5,7 @@
  */
 
 import { InlineKeyboard } from 'grammy';
-import { Order, OrderStatus, OrderDisplayLocation, UserGender, AVAILABLE_TOPICS } from './order.types';
+import { AVAILABLE_TOPICS, Order, OrderDisplayLocation, OrderStatus, UserGender } from './order.types';
 
 /**
  * Pagination configuration
@@ -20,25 +20,16 @@ export function createMainMenuKeyboard(): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // Row 1: Buy subscribers (prominent button)
-  keyboard
-    .text('👥 Купить подписчиков', 'order:list')
-    .row();
+  keyboard.text('👥 Купить подписчиков', 'order:list').row();
 
   // Row 2: Traffic selling and My orders
-  keyboard
-    .text('🤖 Продажа трафика', 'traffic:manage')
-    .text('📋 Мои заказы', 'order:list')
-    .row();
+  keyboard.text('🤖 Продажа трафика', 'traffic:manage').text('📋 Мои заказы', 'order:list').row();
 
   // Row 3: Profile and Balance
-  keyboard
-    .text('👤 Профиль', 'profile:view')
-    .text('💰 Баланс', 'balance:view')
-    .row();
+  keyboard.text('👤 Профиль', 'profile:view').text('💰 Баланс', 'balance:view').row();
 
   // Row 4: Support
-  keyboard
-    .text('🏢 Тех. поддержка', 'support:contact');
+  keyboard.text('🏢 Тех. поддержка', 'support:contact');
 
   return keyboard;
 }
@@ -56,8 +47,8 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
   keyboard.text('🔍 Поиск', 'order:search').row();
 
   // Filter orders
-  const filteredOrders = orders.filter(o =>
-    !showDeleted ? o.status !== OrderStatus.Deleted : o.status === OrderStatus.Deleted
+  const filteredOrders = orders.filter((o) =>
+    !showDeleted ? o.status !== OrderStatus.Deleted : o.status === OrderStatus.Deleted,
   );
 
   // Calculate pagination
@@ -67,7 +58,7 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
   const pageOrders = filteredOrders.slice(startIndex, endIndex);
 
   // List orders for current page
-  pageOrders.forEach(order => {
+  pageOrders.forEach((order) => {
     const statusEmoji = getStatusEmoji(order.status);
     const statusText = getStatusText(order.status);
     const label = `${statusEmoji} ${order.config.name || 'Без названия'}`;
@@ -98,11 +89,12 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
         keyboard.text(btn.text, btn.callback_data).row();
       }
     });
+
     keyboard.row();
   }
 
   // Show deleted orders button
-  if (!showDeleted && orders.some(o => o.status === OrderStatus.Deleted)) {
+  if (!showDeleted && orders.some((o) => o.status === OrderStatus.Deleted)) {
     keyboard.text('🗑️ Удаленные заказы', 'order:deleted').row();
   }
 
@@ -135,30 +127,21 @@ export function createAddBotAdminKeyboard(channelUsername?: string): InlineKeybo
   const keyboard = new InlineKeyboard();
 
   // Main add button - opens channel selector
-  keyboard
-    .text('➕ Добавить в канал/чат', 'order:bot:add_dialog')
-    .row();
+  keyboard.text('➕ Добавить в канал/чат', 'order:bot:add_dialog').row();
 
   // Alternative add button
   if (channelUsername) {
-    keyboard
-      .url('➕ Добавить в канал', `https://t.me/${channelUsername}?startgroup=admin`)
-      .row();
+    keyboard.url('➕ Добавить в канал', `https://t.me/${channelUsername}?startgroup=admin`).row();
   }
 
   // Confirmation button
-  keyboard
-    .text('✅ Я добавил бота в администраторы', 'order:bot:check')
-    .row();
+  keyboard.text('✅ Я добавил бота в администраторы', 'order:bot:check').row();
 
   // Skip button
-  keyboard
-    .text('❌ Я не хочу добавлять бота (не рекомендуется)', 'order:bot:skip')
-    .row();
+  keyboard.text('❌ Я не хочу добавлять бота (не рекомендуется)', 'order:bot:skip').row();
 
   // Back button
-  keyboard
-    .text('◀️ Назад', 'order:create:back');
+  keyboard.text('◀️ Назад', 'order:create:back');
 
   return keyboard;
 }
@@ -170,29 +153,19 @@ export function createModerationKeyboard(orderId: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // Continue to configuration
-  keyboard
-    .text('⚙️ Продолжить настройку ➡️', `order:config:start:${orderId}`)
-    .row();
+  keyboard.text('⚙️ Продолжить настройку ➡️', `order:config:start:${orderId}`).row();
 
   // Skip configuration
-  keyboard
-    .text('Пропустить (использовать настройки по умолчанию)', `order:config:skip:${orderId}`)
-    .row();
+  keyboard.text('Пропустить (использовать настройки по умолчанию)', `order:config:skip:${orderId}`).row();
 
   // Top menu row
-  keyboard
-    .text('💻 Интеграция (API)', 'order:integration')
-    .text('🔄 Передать бота', 'order:transfer')
-    .row();
+  keyboard.text('💻 Интеграция (API)', 'order:integration').text('🔄 Передать бота', 'order:transfer').row();
 
   // Stop button
-  keyboard
-    .text('⏸️ Остановить', `order:stop:${orderId}`)
-    .row();
+  keyboard.text('⏸️ Остановить', `order:stop:${orderId}`).row();
 
   // Back button
-  keyboard
-    .text('◀️ Назад', 'order:list');
+  keyboard.text('◀️ Назад', 'order:list');
 
   return keyboard;
 }
@@ -273,7 +246,7 @@ export function createGenderKeyboard(orderId: string): InlineKeyboard {
 export function createTopicsKeyboard(orderId: string, selectedTopics: string[]): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
-  AVAILABLE_TOPICS.forEach(topic => {
+  AVAILABLE_TOPICS.forEach((topic) => {
     const isSelected = selectedTopics.includes(topic.id);
     const prefix = isSelected ? '☑' : '☐';
     keyboard.text(`${prefix} ${topic.name}`, `order:topic:${topic.id}:${orderId}`).row();
@@ -325,10 +298,7 @@ export function createViewOrderKeyboard(order: Order): InlineKeyboard {
 
   // Start/Stop and Delete
   const actionText = order.status === OrderStatus.Active ? '⏸️ Остановить' : '▶️ Запустить';
-  keyboard
-    .text(actionText, `order:toggle:${order.id}`)
-    .text('🗑️ Удалить', `order:delete:${order.id}`)
-    .row();
+  keyboard.text(actionText, `order:toggle:${order.id}`).text('🗑️ Удалить', `order:delete:${order.id}`).row();
 
   // Download IDs and Report
   keyboard
@@ -341,10 +311,7 @@ export function createViewOrderKeyboard(order: Order): InlineKeyboard {
 
   // Balance section
   keyboard.text('⬇️ Баланс аккаунта ⬇️', 'balance:view').row();
-  keyboard
-    .text('👤 Остаток', 'balance:view')
-    .text('💸 Пополнить баланс', 'balance:topup')
-    .row();
+  keyboard.text('👤 Остаток', 'balance:view').text('💸 Пополнить баланс', 'balance:topup').row();
 
   // Back to orders list
   keyboard.text('◀️ Назад к списку заказов', 'order:list');
@@ -372,9 +339,7 @@ export function createStatsKeyboard(orderId: string): InlineKeyboard {
 export function createDeleteConfirmKeyboard(orderId: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
-  keyboard
-    .text('✅ Да, удалить', `order:delete:confirm:${orderId}`)
-    .text('❌ Отмена', `order:view:${orderId}`);
+  keyboard.text('✅ Да, удалить', `order:delete:confirm:${orderId}`).text('❌ Отмена', `order:view:${orderId}`);
 
   return keyboard;
 }
@@ -392,6 +357,7 @@ function getStatusEmoji(status: OrderStatus): string {
     [OrderStatus.Completed]: '✅',
     [OrderStatus.Deleted]: '🗑️',
   };
+
   return emojiMap[status] || '⚪';
 }
 
@@ -404,5 +370,6 @@ function getStatusText(status: OrderStatus): string {
     [OrderStatus.Completed]: 'Завершен',
     [OrderStatus.Deleted]: 'Удален',
   };
+
   return textMap[status] || 'Неизвестно';
 }

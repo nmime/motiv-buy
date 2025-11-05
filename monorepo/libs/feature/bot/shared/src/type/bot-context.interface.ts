@@ -1,4 +1,5 @@
 import { Context, InlineKeyboard, SessionFlavor } from 'grammy';
+import { I18nContextFlavor } from '@app/common-intl';
 
 /**
  * Bot Context Interface
@@ -10,7 +11,7 @@ import { Context, InlineKeyboard, SessionFlavor } from 'grammy';
  * @interface BotContext
  * @extends Context
  */
-export interface BotContext extends Context, SessionFlavor<BotSessionData> {
+export interface BotContext extends Context, SessionFlavor<BotSessionData>, I18nContextFlavor {
   /** Additional bot state information */
   state?: BotStateData;
 
@@ -28,17 +29,6 @@ export interface BotContext extends Context, SessionFlavor<BotSessionData> {
 
   /** Request metadata */
   metadata?: BotContextMetadata;
-
-  /**
-   * I18n translation function
-   * Automatically uses user's language from session
-   */
-  t(key: string, options?: Record<string, any>): string;
-
-  /**
-   * User's current language code (from session or Telegram)
-   */
-  language: string;
 
   /** Reply with HTML formatted text */
   replyWithHTML(text: string, extra?: BotReplyExtra): Promise<BotMessage>;

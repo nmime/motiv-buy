@@ -8,9 +8,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import { UserEntity, TrafficOrderEntity, TrafficOrderStatus, TrafficOrderType } from '@app/database';
+import { TrafficOrderEntity, TrafficOrderStatus, UserEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, toDisplayString } from '@app/common-shared/util';
+import { decimal, toDisplayString } from '@app/common-shared';
+import { MessageService } from '../service/message.service';
 
 @Injectable()
 export class OrderActionHandler {
@@ -19,6 +20,7 @@ export class OrderActionHandler {
   constructor(
     private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -27,7 +29,7 @@ export class OrderActionHandler {
   async handleActiveOrders(ctx: BotContext, page = 1): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -35,7 +37,7 @@ export class OrderActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -58,7 +60,7 @@ export class OrderActionHandler {
       );
 
       if (orders.length === 0) {
-        await ctx.reply('You have no active orders. Create one to get started!');
+        await ctx.reply(ctx.t('bot.order.no_active_orders'));
 
         return;
       }
@@ -74,7 +76,11 @@ export class OrderActionHandler {
 
       keyboard = keyboard.text('« Back', 'menu:orders');
 
-      await ctx.replyWithHTML(ordersText, { reply_markup: keyboard });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ordersText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
 
       this.logger.log('Active orders viewed', { userId: user.id, page });
     } catch (error) {
@@ -88,7 +94,7 @@ export class OrderActionHandler {
   async handleCompletedOrders(ctx: BotContext, page = 1): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -96,7 +102,7 @@ export class OrderActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -149,7 +155,7 @@ export class OrderActionHandler {
   async handleCreateOrderStart(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -157,7 +163,7 @@ export class OrderActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -192,7 +198,7 @@ export class OrderActionHandler {
   async handleOrderDetails(ctx: BotContext, orderId: string): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -228,7 +234,7 @@ export class OrderActionHandler {
   async handleOrderSearch(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -264,9 +270,7 @@ export class OrderActionHandler {
     let text = `<b>📦 ${title}</b> (Page ${page}/${totalPages})\n\n`;
 
     for (const order of orders) {
-      const progress = decimal(order.currentCount)
-        .div(order.targetCount)
-        .mul(100);
+      const progress = decimal(order.currentCount).div(order.targetCount).mul(100);
       const progressDisplay = toDisplayString(progress, 1);
       const statusEmoji = this.getStatusEmoji(order.status);
       const budgetDisplay = toDisplayString(order.totalBudget, 2);
@@ -287,9 +291,7 @@ export class OrderActionHandler {
    * Format order details
    */
   private async formatOrderDetails(order: TrafficOrderEntity): Promise<string> {
-    const progress = decimal(order.currentCount)
-      .div(order.targetCount)
-      .mul(100);
+    const progress = decimal(order.currentCount).div(order.targetCount).mul(100);
     const progressDisplay = toDisplayString(progress, 1);
     const statusEmoji = this.getStatusEmoji(order.status);
     const source = await order.trafficSource.load();

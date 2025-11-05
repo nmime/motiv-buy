@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsUUID, IsDateString } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsUUID } from 'class-validator';
 
 export enum StatisticType {
   TrafficSource = 'traffic_source',

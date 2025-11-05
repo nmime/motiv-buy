@@ -2,9 +2,12 @@
 -- This script runs when the PostgreSQL container starts for the first time
 
 -- Create extensions for development
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
-CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+CREATE
+EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE
+EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE
+EXTENSION IF NOT EXISTS "pg_stat_statements";
 
 -- Create development schemas
 CREATE SCHEMA IF NOT EXISTS test;
@@ -12,40 +15,60 @@ CREATE SCHEMA IF NOT EXISTS analytics;
 CREATE SCHEMA IF NOT EXISTS audit;
 
 -- Grant permissions for development user
-GRANT ALL PRIVILEGES ON DATABASE motiv_buy_development TO motiv_dev;
-GRANT USAGE ON SCHEMA public TO motiv_dev;
-GRANT CREATE ON SCHEMA public TO motiv_dev;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO motiv_dev;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO motiv_dev;
+GRANT
+ALL
+PRIVILEGES
+ON
+DATABASE
+motiv_buy_development TO motiv_dev;
+GRANT USAGE ON SCHEMA
+public TO motiv_dev;
+GRANT CREATE
+ON SCHEMA public TO motiv_dev;
+GRANT ALL PRIVILEGES ON ALL
+TABLES IN SCHEMA public TO motiv_dev;
+GRANT ALL PRIVILEGES ON ALL
+SEQUENCES IN SCHEMA public TO motiv_dev;
 
 -- Set up development-friendly settings
-ALTER DATABASE motiv_buy_development SET log_statement = 'all';
-ALTER DATABASE motiv_buy_development SET log_min_duration_statement = 0;
-ALTER DATABASE motiv_buy_development SET shared_preload_libraries = 'pg_stat_statements';
+ALTER
+DATABASE motiv_buy_development SET log_statement = 'all';
+ALTER
+DATABASE motiv_buy_development SET log_min_duration_statement = 0;
+ALTER
+DATABASE motiv_buy_development SET shared_preload_libraries = 'pg_stat_statements';
 
 -- Development helper functions
-CREATE OR REPLACE FUNCTION reset_sequences()
+CREATE
+OR REPLACE FUNCTION reset_sequences()
 RETURNS void AS $$
 DECLARE
-    rec RECORD;
+rec RECORD;
 BEGIN
-    FOR rec IN SELECT schemaname, tablename, attname, adsrc
-               FROM pg_attrdef 
-               JOIN pg_attribute ON adrelid = attrelid AND adnum = attnum
-               JOIN pg_class ON oid = attrelid
-               JOIN pg_namespace ON relnamespace = pg_namespace.oid
-               WHERE adsrc ~ 'nextval'
+FOR rec IN
+SELECT schemaname, tablename, attname, adsrc
+FROM pg_attrdef
+         JOIN pg_attribute ON adrelid = attrelid AND adnum = attnum
+         JOIN pg_class ON oid = attrelid
+         JOIN pg_namespace ON relnamespace = pg_namespace.oid
+WHERE adsrc ~ 'nextval'
     LOOP
         EXECUTE 'SELECT setval(''' || rec.adsrc || ''', COALESCE((SELECT MAX(' || rec.attname || ') FROM ' || rec.schemaname || '.' || rec.tablename || '), 1), false)';
-    END LOOP;
+END LOOP;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 -- Log initialization
-DO $$
+DO
+$$
 BEGIN
-    RAISE NOTICE 'Motiv-Buy Development Database initialized successfully';
-    RAISE NOTICE 'Database: %', current_database();
-    RAISE NOTICE 'Extensions installed: uuid-ossp, pg_trgm, pg_stat_statements';
-    RAISE NOTICE 'Helper function available: reset_sequences()';
+    RAISE
+NOTICE 'Motiv-Buy Development Database initialized successfully';
+    RAISE
+NOTICE 'Database: %', current_database();
+    RAISE
+NOTICE 'Extensions installed: uuid-ossp, pg_trgm, pg_stat_statements';
+    RAISE
+NOTICE 'Helper function available: reset_sequences()';
 END $$;

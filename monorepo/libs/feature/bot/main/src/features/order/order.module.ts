@@ -11,12 +11,7 @@
 import { Module } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { OrderHandler } from './order.handler';
-import {
-  OrderCreationHandler,
-  OrderManagementHandler,
-  OrderConfigHandler,
-  OrderEditHandler,
-} from './handlers';
+import { OrderConfigHandler, OrderCreationHandler, OrderEditHandler, OrderManagementHandler } from './handlers';
 
 @Module({
   providers: [

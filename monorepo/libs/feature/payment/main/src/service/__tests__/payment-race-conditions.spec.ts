@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager, LockMode } from '@mikro-orm/core';
 import { PaymentService } from '../payment.service';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
-import { UserBalanceRepository, CurrencyType, PaymentTransactionEntity, PaymentStatus, PaymentType } from '@app/database';
-import { Ok, Err } from '@app/common-shared';
+import { CurrencyType, PaymentStatus, UserBalanceRepository } from '@app/database';
+import { Err, Ok } from '@app/common-shared';
 import { CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
 
 /**

@@ -7,7 +7,9 @@
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/libs/feature/auth/main",
         "main": "libs/feature/auth/main/src/index.ts",
@@ -20,7 +22,9 @@
           },
           {
             "name": "typescript-transform-paths/nx-transformer",
-            "options": { "afterDeclarations": true }
+            "options": {
+              "afterDeclarations": true
+            }
           }
         ]
       }

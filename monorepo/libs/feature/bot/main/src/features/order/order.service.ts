@@ -8,15 +8,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { BotContext } from '@app/feature-bot-shared';
 import {
+  ChannelInfo,
+  DEFAULT_ORDER_CONFIG,
   Order,
   OrderConfiguration,
   OrderFlowStep,
   OrderSessionState,
-  OrderStatus,
-  ChannelInfo,
-  DEFAULT_ORDER_CONFIG,
   OrderStatistics,
-  DailyStats,
+  OrderStatus,
 } from './order.types';
 
 @Injectable()
@@ -40,7 +39,7 @@ export class OrderService {
    */
   async getUserOrders(userId: string): Promise<Order[]> {
     const userOrders = Array.from(this.orders.values())
-      .filter(order => order.userId === userId)
+      .filter((order) => order.userId === userId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     return userOrders;
@@ -56,11 +55,7 @@ export class OrderService {
   /**
    * Create new order
    */
-  async createOrder(
-    userId: string,
-    config: Partial<OrderConfiguration>,
-    channel: ChannelInfo,
-  ): Promise<Order> {
+  async createOrder(userId: string, config: Partial<OrderConfiguration>, channel: ChannelInfo): Promise<Order> {
     const orderId = this.generateOrderId();
 
     const fullConfig: OrderConfiguration = {
@@ -88,10 +83,7 @@ export class OrderService {
   /**
    * Update order configuration
    */
-  async updateOrderConfig(
-    orderId: string,
-    config: Partial<OrderConfiguration>,
-  ): Promise<Order | null> {
+  async updateOrderConfig(orderId: string, config: Partial<OrderConfiguration>): Promise<Order | null> {
     const order = this.orders.get(orderId);
     if (!order) {
       return null;
@@ -101,6 +93,7 @@ export class OrderService {
       ...order.config,
       ...config,
     };
+
     order.updatedAt = new Date();
 
     this.orders.set(orderId, order);
@@ -237,6 +230,7 @@ export class OrderService {
     // TODO: Implement real check using Telegram API
     // For now, return false to simulate manual check
     this.logger.log(`Checking bot admin status for channel: ${channelId}`);
+
     return false;
   }
 
@@ -270,6 +264,7 @@ export class OrderService {
     if (state.expiresAt && Date.now() > state.expiresAt) {
       this.logger.warn('Session expired, clearing state');
       this.clearOrderSessionState(ctx);
+
       return null;
     }
 
@@ -283,6 +278,7 @@ export class OrderService {
     if (!ctx.session) {
       ctx.session = {};
     }
+
     if (!ctx.session.formData) {
       ctx.session.formData = {};
     }
@@ -316,6 +312,7 @@ export class OrderService {
     };
 
     this.saveOrderSessionState(ctx, state);
+
     return state;
   }
 
@@ -340,6 +337,7 @@ export class OrderService {
         ...state.config,
         ...config,
       };
+
       this.saveOrderSessionState(ctx, state);
     }
   }

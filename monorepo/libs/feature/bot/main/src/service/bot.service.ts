@@ -1,14 +1,17 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Bot, Context, session, SessionFlavor } from 'grammy';
-import { BotContext, BotCommand } from '@app/feature-bot-shared';
+import { BotCommand, BotContext } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
 import { unknownToError } from '@app/common-shared';
 import { OrderHandler } from '../features/order/order.handler';
+import { I18nService } from 'nestjs-i18n';
+import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl';
+import { CallbackRouterHandler } from '../handler/callback-router.handler';
 
 /**
- * Extended Grammy Context with session support
+ * Extended Grammy Context with session and i18n support
  */
-interface BotSessionContext extends Context, SessionFlavor<Record<string, unknown>> {
+interface BotSessionContext extends Context, SessionFlavor<Record<string, unknown>>, I18nContextFlavor {
   userId?: string;
   isAuthenticated?: boolean;
   userData?: {
@@ -38,6 +41,8 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly botConfigService: BotConfigService,
     private readonly orderHandler: OrderHandler,
+    private readonly i18n: I18nService,
+    private readonly callbackRouter: CallbackRouterHandler,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -59,7 +64,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
       const botToken = this.botConfigService.getBotToken();
       if (!botToken) {
-        throw new Error('Bot token is not configured');
+        throw new Error(this.i18n.t('common.errors.bot_token_not_configured'));
       }
 
       // Create Grammy bot instance
@@ -71,6 +76,9 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
           initial: () => ({}),
         }),
       );
+
+      // Install i18n middleware for translations
+      this.bot.use(createGrammyI18nMiddleware(this.i18n));
 
       // Install basic context setup middleware
       this.bot.use(async (ctx, next) => {
@@ -126,7 +134,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
    */
   async start(): Promise<void> {
     if (!this.bot) {
-      throw new Error('Bot is not initialized');
+      throw new Error(this.i18n.t('common.errors.bot_not_initialized'));
     }
 
     if (this.isRunning) {
@@ -309,43 +317,8 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    // Import handlers dynamically to avoid circular dependencies
-    const { CallbackRouterHandler } = require('../handler/callback-router.handler');
-    const { MenuActionHandler } = require('../handler/menu-action.handler');
-    const { ProfileActionHandler } = require('../handler/profile-action.handler');
-    const { BalanceActionHandler } = require('../handler/balance-action.handler');
-    const { StatisticsActionHandler } = require('../handler/statistics-action.handler');
-    const { OrderActionHandler } = require('../handler/order-action.handler');
-    const { SettingsActionHandler } = require('../handler/settings-action.handler');
-    const { RateLimitMiddleware } = require('../middleware/rate-limit.middleware');
-
-    // Get EntityManager from context
-    const em = this.bot.api.config.use(async (prev, method, payload, signal) => {
-      return await prev(method, payload, signal);
-    });
-
-    // Note: In production, these should be injected via dependency injection
-    // For now, we'll create instances directly
-    const menuHandler = new MenuActionHandler();
-    const rateLimitMiddleware = new RateLimitMiddleware();
-    const profileHandler = new ProfileActionHandler(null as any, menuHandler);
-    const balanceHandler = new BalanceActionHandler(null as any, menuHandler);
-    const statisticsHandler = new StatisticsActionHandler(null as any, menuHandler);
-    const orderHandler = new OrderActionHandler(null as any, menuHandler);
-    const settingsHandler = new SettingsActionHandler(null as any, menuHandler);
-
-    const callbackRouter = new CallbackRouterHandler(
-      menuHandler,
-      profileHandler,
-      balanceHandler,
-      statisticsHandler,
-      orderHandler,
-      settingsHandler,
-      rateLimitMiddleware,
-    );
-
     this.bot.on('callback_query:data', async (ctx) => {
-      await callbackRouter.routeCallback(this.mapContextToBotContext(ctx));
+      await this.callbackRouter.routeCallback(this.mapContextToBotContext(ctx));
     });
   }
 
@@ -461,20 +434,18 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
         return await ctx.answerCallbackQuery(text);
       },
+      api: ctx.api,
       session: ctx.session,
       state: ctx.userData,
+      language: ctx.language,
+      t: ctx.t,
     } as unknown as BotContext;
   }
 
   // Command handlers
   private async handleStartCommand(ctx: BotContext): Promise<void> {
     // Import main menu from order feature
-    const message = `═══════════════════════════════════════
-        <b>SubGram - Реклама в телеграм ботах</b>
-             12,403 monthly users
-═══════════════════════════════════════
-
-Выбери нужный пункт 👇`;
+    const message = `Выбери нужный пункт 👇`;
 
     await ctx.replyWithHTML(message, {
       reply_markup: {

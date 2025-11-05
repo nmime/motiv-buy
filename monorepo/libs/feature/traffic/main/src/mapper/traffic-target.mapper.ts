@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository, EntityManager } from '@mikro-orm/core';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { TrafficTargetEntity, TrafficTargetType, UserEntity } from '@app/database';
 import { ITrafficTargetRepository } from '../repository';
 

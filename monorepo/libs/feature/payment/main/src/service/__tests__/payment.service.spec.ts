@@ -4,21 +4,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { getRepositoryToken } from '@mikro-orm/nestjs';
-import { PaymentService, TransactionQueryOptions } from '../payment.service';
+import { PaymentService } from '../payment.service';
 import { PaymentTransactionEntity } from '../../entity/payment-transaction.entity';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
-import { UserBalanceRepository, CurrencyType } from '@app/database';
-import { Ok, Err } from '@app/common-shared';
+import { CurrencyType, UserBalanceRepository } from '@app/database';
+import { Err, Ok } from '@app/common-shared';
 import {
   CreateInvoiceDto,
   CreateTransferDto,
-  WebhookUpdateDto,
-  PaymentStatus,
-  PaymentType,
-  PaymentProvider,
   Cryptocurrency,
   PaymentInvoice,
+  PaymentProvider,
+  PaymentStatus,
   PaymentTransfer,
+  PaymentType,
+  WebhookUpdateDto,
 } from '@app/feature-payment-shared';
 
 /**

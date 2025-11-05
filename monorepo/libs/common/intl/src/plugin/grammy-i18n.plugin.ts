@@ -8,7 +8,7 @@
 
 import { Context, MiddlewareFn } from 'grammy';
 import { I18nService } from 'nestjs-i18n';
-import { Language, defaultLanguage } from '@app/common-shared';
+import { defaultLanguage, Language } from '@app/common-shared';
 
 /**
  * Session interface with language support
@@ -25,16 +25,16 @@ export interface I18nSessionFlavor {
  */
 export interface I18nContextFlavor {
   /**
+   * Current user's language code
+   */
+  language: string;
+
+  /**
    * Translate a key using user's language
    * @param key - Translation key (e.g., 'order.main_menu.title')
    * @param options - Optional parameters for interpolation
    */
   t(key: string, options?: Record<string, any>): string;
-
-  /**
-   * Current user's language code
-   */
-  language: string;
 }
 
 /**
@@ -110,6 +110,7 @@ function detectUserLanguage<C extends Context & I18nSessionFlavor>(ctx: C): stri
   // 2. Check Telegram user language
   if (ctx.from?.language_code) {
     const lang = normalizeLanguageCode(ctx.from.language_code);
+
     return lang;
   }
 
@@ -163,10 +164,7 @@ function normalizeLanguageCode(langCode: string): string {
  * });
  * ```
  */
-export function changeUserLanguage<C extends Context & I18nSessionFlavor>(
-  ctx: C,
-  newLanguage: string,
-): boolean {
+export function changeUserLanguage<C extends Context & I18nSessionFlavor>(ctx: C, newLanguage: string): boolean {
   const normalizedLang = normalizeLanguageCode(newLanguage);
 
   if (!ctx.session) {
@@ -200,5 +198,6 @@ export function getSupportedLanguages(): string[] {
  */
 export function isLanguageSupported(langCode: string): boolean {
   const normalized = normalizeLanguageCode(langCode);
+
   return getSupportedLanguages().includes(normalized);
 }

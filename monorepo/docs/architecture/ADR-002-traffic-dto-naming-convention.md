@@ -6,7 +6,8 @@
 
 ## Context
 
-The traffic-main module imports `TrafficOrderDto` and `TrafficOrderStatusDto` from traffic-shared, but these DTOs don't exist. Available DTOs use different naming:
+The traffic-main module imports `TrafficOrderDto` and `TrafficOrderStatusDto` from traffic-shared, but these DTOs don't
+exist. Available DTOs use different naming:
 
 - `TrafficOrderResponseDto` (detailed order with status)
 - `CreateTrafficOrderDto` (order creation)
@@ -90,7 +91,8 @@ export * from './traffic-purchase.dto';
 
 ## Related Patterns
 
-This follows the **Adapter Pattern** at the type level, allowing old interfaces to work with new implementations without code changes.
+This follows the **Adapter Pattern** at the type level, allowing old interfaces to work with new implementations without
+code changes.
 
 ## Metrics
 

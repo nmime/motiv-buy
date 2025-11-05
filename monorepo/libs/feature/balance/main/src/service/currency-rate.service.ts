@@ -2,14 +2,13 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import {
-  CurrencyRepository,
-  CurrencyRatesHistoryRepository,
   CurrencyCode,
+  CurrencyRatesHistoryRepository,
+  CurrencyRepository,
   CurrencyType,
   RateProvider,
 } from '@app/database';
-import { Result, Ok, Err } from '@app/common-shared';
-import { decimal, abs, multiply, divide, toDbString, subtract, Decimal } from '@app/common-shared/util';
+import { abs, decimal, Decimal, divide, Err, multiply, Ok, Result, subtract, toDbString } from '@app/common-shared';
 
 /**
  * Circuit breaker state for provider health tracking
@@ -88,6 +87,146 @@ export class CurrencyRateService implements OnModuleInit {
     private readonly configService: ConfigService,
   ) {
     this.initializeCircuitBreakers();
+  }
+
+  /**
+   * Convert amount from one currency to another
+   */
+  async convertAmount(amount: string, fromCode: CurrencyCode, toCode: CurrencyCode): Promise<Result<string, Error>> {
+    try {
+      const amountDecimal = decimal(amount);
+
+      if (fromCode === toCode) {
+        return Ok(amount);
+      }
+
+      const convertedAmount = await this.currencyRepository.convertAmount(fromCode, toCode, amountDecimal.toNumber());
+
+      if (convertedAmount === null) {
+        return Err(new Error(`Unable to convert from ${fromCode} to ${toCode}`));
+      }
+
+      const toCurrency = await this.currencyRepository.findByCode(toCode);
+      const decimals = toCurrency?.decimalPlaces || 2;
+
+      return Ok(toDbString(convertedAmount, decimals));
+    } catch (error) {
+      this.logger.error(`Error converting currency: ${error}`);
+
+      return Err(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Get current rate for a currency (to USD)
+   */
+  async getCurrentRate(code: CurrencyCode): Promise<Result<string, Error>> {
+    try {
+      const currencyData = await this.currencyRepository.getCurrencyWithRate(code);
+
+      if (!currencyData) {
+        return Err(new Error(`Currency ${code} not found`));
+      }
+
+      return Ok(currencyData.currency.rateToUsd);
+    } catch (error) {
+      return Err(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Update all rates from all providers
+   */
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async updateAllRates(): Promise<void> {
+    this.logger.log('🔄 Starting rate update from all providers');
+
+    const startTime = Date.now();
+    const results = await Promise.allSettled([
+      // Crypto providers (minimum 2)
+      this.fetchCoinGeckoRates(),
+      this.fetchBinanceRates(),
+      this.fetchCryptoCompareRates(),
+      this.fetchCoinCapRates(),
+      this.fetchKrakenRates(),
+
+      // Fiat providers (minimum 2)
+      this.fetchExchangeRateAPI(),
+      this.fetchFrankfurterRates(),
+      this.fetchFreeCurrencyRates(),
+    ]);
+
+    const duration = Date.now() - startTime;
+    const successful = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
+
+    this.logger.log(
+      `✅ Rate update completed in ${duration}ms - Success: ${successful}, Failed: ${failed}, Total: ${results.length}`,
+    );
+
+    // Check if we have minimum providers
+    await this.verifyMinimumProviders();
+  }
+
+  /**
+   * Get provider health status
+   */
+  async getProviderHealthStatus(): Promise<
+    Array<{
+      provider: RateProvider;
+      isAvailable: boolean;
+      failures: number;
+      lastFailure: Date | null;
+    }>
+  > {
+    const status = [];
+
+    for (const [provider, breaker] of this.circuitBreakers.entries()) {
+      status.push({
+        provider,
+        isAvailable: !breaker.isOpen,
+        failures: breaker.failures,
+        lastFailure: breaker.lastFailure,
+      });
+    }
+
+    return status;
+  }
+
+  /**
+   * Retry logic with exponential backoff
+   * Note: Sequential await in loop is intentional for retry logic with delays
+   */
+
+  /**
+   * Cleanup old rates daily
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupOldRates(): Promise<void> {
+    this.logger.log('🧹 Cleaning up old rates');
+
+    try {
+      const deletedCount = await this.currencyRatesHistoryRepository.cleanupOldRates(7);
+      this.logger.log(`✅ Cleaned up ${deletedCount} old rate entries`);
+    } catch (error) {
+      this.logger.error(`Error cleaning up rates: ${error}`);
+    }
+  }
+
+  /**
+   * Initialize currencies and fetch initial rates
+   */
+  async onModuleInit(): Promise<void> {
+    this.logger.log('🚀 Initializing currency rate service');
+
+    try {
+      await this.initializeCurrencies();
+      await this.updateAllRates();
+
+      this.logger.log('✅ Currency rate service initialized successfully');
+    } catch (error) {
+      this.logger.error(`Error initializing currency service: ${error}`);
+    }
   }
 
   /**
@@ -194,10 +333,6 @@ export class CurrencyRateService implements OnModuleInit {
     }
   }
 
-  /**
-   * Retry logic with exponential backoff
-   * Note: Sequential await in loop is intentional for retry logic with delays
-   */
   /* eslint-disable no-await-in-loop */
   private async retryWithBackoff<T>(
     fn: () => Promise<T>,
@@ -229,7 +364,6 @@ export class CurrencyRateService implements OnModuleInit {
     this.recordFailure(provider, lastError);
     throw lastError;
   }
-  /* eslint-enable no-await-in-loop */
 
   /**
    * Fetch with timeout
@@ -268,51 +402,6 @@ export class CurrencyRateService implements OnModuleInit {
     }
 
     return isValid;
-  }
-
-  /**
-   * Convert amount from one currency to another
-   */
-  async convertAmount(amount: string, fromCode: CurrencyCode, toCode: CurrencyCode): Promise<Result<string, Error>> {
-    try {
-      const amountDecimal = decimal(amount);
-
-      if (fromCode === toCode) {
-        return Ok(amount);
-      }
-
-      const convertedAmount = await this.currencyRepository.convertAmount(fromCode, toCode, amountDecimal.toNumber());
-
-      if (convertedAmount === null) {
-        return Err(new Error(`Unable to convert from ${fromCode} to ${toCode}`));
-      }
-
-      const toCurrency = await this.currencyRepository.findByCode(toCode);
-      const decimals = toCurrency?.decimalPlaces || 2;
-
-      return Ok(toDbString(convertedAmount, decimals));
-    } catch (error) {
-      this.logger.error(`Error converting currency: ${error}`);
-
-      return Err(error instanceof Error ? error : new Error(String(error)));
-    }
-  }
-
-  /**
-   * Get current rate for a currency (to USD)
-   */
-  async getCurrentRate(code: CurrencyCode): Promise<Result<string, Error>> {
-    try {
-      const currencyData = await this.currencyRepository.getCurrencyWithRate(code);
-
-      if (!currencyData) {
-        return Err(new Error(`Currency ${code} not found`));
-      }
-
-      return Ok(currencyData.currency.rateToUsd);
-    } catch (error) {
-      return Err(error instanceof Error ? error : new Error(String(error)));
-    }
   }
 
   /**
@@ -788,40 +877,6 @@ export class CurrencyRateService implements OnModuleInit {
   }
 
   /**
-   * Update all rates from all providers
-   */
-  @Cron(CronExpression.EVERY_10_MINUTES)
-  async updateAllRates(): Promise<void> {
-    this.logger.log('🔄 Starting rate update from all providers');
-
-    const startTime = Date.now();
-    const results = await Promise.allSettled([
-      // Crypto providers (minimum 2)
-      this.fetchCoinGeckoRates(),
-      this.fetchBinanceRates(),
-      this.fetchCryptoCompareRates(),
-      this.fetchCoinCapRates(),
-      this.fetchKrakenRates(),
-
-      // Fiat providers (minimum 2)
-      this.fetchExchangeRateAPI(),
-      this.fetchFrankfurterRates(),
-      this.fetchFreeCurrencyRates(),
-    ]);
-
-    const duration = Date.now() - startTime;
-    const successful = results.filter((r) => r.status === 'fulfilled').length;
-    const failed = results.filter((r) => r.status === 'rejected').length;
-
-    this.logger.log(
-      `✅ Rate update completed in ${duration}ms - Success: ${successful}, Failed: ${failed}, Total: ${results.length}`,
-    );
-
-    // Check if we have minimum providers
-    await this.verifyMinimumProviders();
-  }
-
-  /**
    * Verify we have minimum 2 providers for each currency type
    */
   private async verifyMinimumProviders(): Promise<void> {
@@ -855,62 +910,6 @@ export class CurrencyRateService implements OnModuleInit {
     });
 
     await Promise.all(checkPromises);
-  }
-
-  /**
-   * Get provider health status
-   */
-  async getProviderHealthStatus(): Promise<
-    Array<{
-      provider: RateProvider;
-      isAvailable: boolean;
-      failures: number;
-      lastFailure: Date | null;
-    }>
-  > {
-    const status = [];
-
-    for (const [provider, breaker] of this.circuitBreakers.entries()) {
-      status.push({
-        provider,
-        isAvailable: !breaker.isOpen,
-        failures: breaker.failures,
-        lastFailure: breaker.lastFailure,
-      });
-    }
-
-    return status;
-  }
-
-  /**
-   * Cleanup old rates daily
-   */
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
-  async cleanupOldRates(): Promise<void> {
-    this.logger.log('🧹 Cleaning up old rates');
-
-    try {
-      const deletedCount = await this.currencyRatesHistoryRepository.cleanupOldRates(7);
-      this.logger.log(`✅ Cleaned up ${deletedCount} old rate entries`);
-    } catch (error) {
-      this.logger.error(`Error cleaning up rates: ${error}`);
-    }
-  }
-
-  /**
-   * Initialize currencies and fetch initial rates
-   */
-  async onModuleInit(): Promise<void> {
-    this.logger.log('🚀 Initializing currency rate service');
-
-    try {
-      await this.initializeCurrencies();
-      await this.updateAllRates();
-
-      this.logger.log('✅ Currency rate service initialized successfully');
-    } catch (error) {
-      this.logger.error(`Error initializing currency service: ${error}`);
-    }
   }
 
   /**

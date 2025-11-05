@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import 'reflect-metadata';
 
@@ -8,18 +8,20 @@ import { createMikroOrmConfig } from './config/mikro-orm.config';
 import * as repositories from './repository';
 
 import {
-  UserEntity,
+  TrafficActionsEntity,
+  TrafficOrderEntity,
+  TrafficSourceEntity,
+  TrafficTargetEntity,
+  TrafficUserEntity,
   UserBalanceEntity,
   UserBalanceHistoryEntity,
+  UserEntity,
   UserLastAuthEntity,
   UserRefLinkEntity,
   UserSettingsEntity,
   UserSourceVisitEntity,
-  TrafficSourceEntity,
-  TrafficTargetEntity,
-  TrafficUserEntity,
-  TrafficOrderEntity,
-  TrafficActionsEntity,
+  CurrencyEntity,
+  CurrencyRatesHistoryEntity,
 } from './entity';
 import { TrafficSourceCategoryEntity } from './entity/TrafficSourceCategory.entity';
 import { TrafficSourceCategoriesEntity } from './entity/junction/TrafficSourceCategories.entity';
@@ -27,9 +29,9 @@ import {
   TrafficActionsUsersEntity,
   TrafficTargetSourceEntity,
   TrafficTargetUsersEntity,
-  UserTrafficTargetEntity,
   UserTrafficOrderEntity,
   UserTrafficSourceEntity,
+  UserTrafficTargetEntity,
 } from './entity/junction';
 
 const entityClasses = [
@@ -40,6 +42,8 @@ const entityClasses = [
   UserRefLinkEntity,
   UserSettingsEntity,
   UserSourceVisitEntity,
+  CurrencyEntity,
+  CurrencyRatesHistoryEntity,
   TrafficSourceEntity,
   TrafficSourceCategoryEntity,
   TrafficTargetEntity,

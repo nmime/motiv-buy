@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsNumberString } from 'class-validator';
+import { IsNotEmpty, IsNumberString, IsOptional, IsString } from 'class-validator';
 
 /**
  * Telegram Widget Authentication DTO

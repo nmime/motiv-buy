@@ -1,5 +1,5 @@
 /**
- * Cryptocurrency types supported by payment providers
+ * Cryptocurrency and fiat currency types supported by payment providers
  * Note: This enum includes both mainnet and testnet currencies
  */
 export enum Cryptocurrency {
@@ -67,6 +67,21 @@ export enum Cryptocurrency {
    * Solana (Mainnet)
    */
   Sol = 'SOL',
+
+  /**
+   * Russian Ruble (Fiat)
+   */
+  Rub = 'RUB',
+
+  /**
+   * US Dollar (Fiat)
+   */
+  Usd = 'USD',
+
+  /**
+   * Euro (Fiat)
+   */
+  Eur = 'EUR',
 
   /**
    * Jetton (Testnet only - @CryptoBot test environment)

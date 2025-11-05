@@ -2,10 +2,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BotSubscriptionService } from '../bot-subscription.service';
 import {
+  BulkSubscriptionCheckResult,
   ChatMemberStatus,
   ChatType,
   SubscriptionCheckResult,
-  BulkSubscriptionCheckResult,
 } from '../bot-subscription.interface';
 import { Bot } from 'grammy';
 

@@ -1,6 +1,5 @@
 import { defineConfig } from '@mikro-orm/postgresql';
-import { type Options } from '@mikro-orm/core';
-import { ReflectMetadataProvider } from '@mikro-orm/core';
+import { type Options, ReflectMetadataProvider } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
 import 'reflect-metadata';
 import { DatabaseConfig } from './database.config';
@@ -13,6 +12,9 @@ import {
   UserLastAuthEntity,
   UserRefLinkEntity,
   UserSourceVisitEntity,
+  CurrencyEntity,
+  CurrencyRatesHistoryEntity,
+  PaymentTransactionEntity,
   TrafficSourceEntity,
   TrafficTargetEntity,
   TrafficUserEntity,
@@ -25,12 +27,12 @@ import {
 } from '../entity';
 import {
   TrafficActionsUsersEntity,
-  UserTrafficTargetEntity,
-  UserTrafficSourceEntity,
-  UserTrafficOrderEntity,
+  TrafficSourceCategoriesEntity,
   TrafficTargetSourceEntity,
   TrafficTargetUsersEntity,
-  TrafficSourceCategoriesEntity,
+  UserTrafficOrderEntity,
+  UserTrafficSourceEntity,
+  UserTrafficTargetEntity,
 } from '../entity/junction';
 
 export function createMikroOrmConfig(config: DatabaseConfig): Options {
@@ -43,6 +45,9 @@ export function createMikroOrmConfig(config: DatabaseConfig): Options {
       UserLastAuthEntity,
       UserRefLinkEntity,
       UserSourceVisitEntity,
+      CurrencyEntity,
+      CurrencyRatesHistoryEntity,
+      PaymentTransactionEntity,
       TrafficSourceEntity,
       TrafficTargetEntity,
       TrafficUserEntity,

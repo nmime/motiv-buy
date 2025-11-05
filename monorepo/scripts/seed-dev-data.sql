@@ -18,8 +18,11 @@
 --   (3, 'USD', 25.00);
 
 -- For now, just log that the seed script ran
-DO $$
+DO
+$$
 BEGIN
-    RAISE NOTICE 'Development seed data script executed';
-    RAISE NOTICE 'Add your test data here once database schema is finalized';
+    RAISE
+NOTICE 'Development seed data script executed';
+    RAISE
+NOTICE 'Add your test data here once database schema is finalized';
 END $$;

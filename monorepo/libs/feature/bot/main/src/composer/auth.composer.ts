@@ -1,7 +1,7 @@
 import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
-import { BotContext, MenuConfig, MenuType, MenuButton, CallbackUtil } from '@app/feature-bot-shared';
+import { BotContext, CallbackUtil, MenuButton, MenuConfig, MenuType } from '@app/feature-bot-shared';
 import { SessionService } from '../service/session.service';
 import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
@@ -60,50 +60,6 @@ export class AuthComposer {
    */
   getComposer(): Composer<BotContext> {
     return this.composer;
-  }
-
-  /**
-   * Setup Grammy composer with auth-specific handlers
-   */
-  private setupComposer(): void {
-    // Main authentication flows
-    this.composer.callbackQuery('auth:start', (ctx) => this.handleAuthStart(ctx));
-    this.composer.callbackQuery('auth:login', (ctx) => this.handleLogin(ctx));
-    this.composer.callbackQuery('auth:register', (ctx) => this.handleRegister(ctx));
-    this.composer.callbackQuery('auth:logout', (ctx) => this.handleLogout(ctx));
-
-    // Registration flow
-    this.composer.callbackQuery(/^auth:register_/, (ctx) => this.handleRegistrationFlow(ctx));
-    this.composer.callbackQuery('auth:quick_register', (ctx) => this.handleQuickRegister(ctx));
-    this.composer.callbackQuery('auth:complete_profile', (ctx) => this.handleCompleteProfile(ctx));
-
-    // Login flow
-    this.composer.callbackQuery(/^auth:login_/, (ctx) => this.handleLoginFlow(ctx));
-    this.composer.callbackQuery('auth:forgot_password', (ctx) => this.handleForgotPassword(ctx));
-
-    // Verification flow
-    this.composer.callbackQuery(/^auth:verify_/, (ctx) => this.handleVerificationFlow(ctx));
-    this.composer.callbackQuery(/^auth:resend_/, (ctx) => this.handleResendVerification(ctx));
-    this.composer.callbackQuery(/^auth:change_/, (ctx) => this.handleChangeVerificationMethod(ctx));
-
-    // Profile management
-    this.composer.callbackQuery('auth:profile_setup', (ctx) => this.handleProfileSetup(ctx));
-    this.composer.callbackQuery('auth:tutorial', (ctx) => this.handleTutorial(ctx));
-    this.composer.callbackQuery('auth:skip_tutorial', (ctx) => this.handleSkipTutorial(ctx));
-
-    // Account actions
-    this.composer.callbackQuery('auth:confirm_logout', (ctx) => this.handleConfirmLogout(ctx));
-    this.composer.callbackQuery('auth:delete_account', (ctx) => this.handleDeleteAccount(ctx));
-    this.composer.callbackQuery('auth:export_data', (ctx) => this.handleExportData(ctx));
-
-    // Security and settings
-    this.composer.callbackQuery('auth:security', (ctx) => this.handleSecurityMenu(ctx));
-    this.composer.callbackQuery('auth:privacy', (ctx) => this.handlePrivacySettings(ctx));
-    this.composer.callbackQuery('auth:sessions', (ctx) => this.handleSessionManagement(ctx));
-
-    // Help and support
-    this.composer.callbackQuery('auth:help', (ctx) => this.handleAuthHelp(ctx));
-    this.composer.callbackQuery('auth:contact_support', (ctx) => this.handleContactSupport(ctx));
   }
 
   /**
@@ -615,7 +571,68 @@ export class AuthComposer {
     return keyboard;
   }
 
+  /**
+   * Get authentication status message
+   *
+   * @param isAuthenticated - Whether user is authenticated
+   * @param username - User's username (if available)
+   * @returns string - Status message
+   */
+  getAuthStatusMessage(isAuthenticated: boolean, username?: string): string {
+    if (isAuthenticated) {
+      const userDisplay = username ? `@${username}` : 'User';
+
+      return `✅ Logged in as ${userDisplay}`;
+    }
+
+    return '❌ Not authenticated. Please log in to continue.';
+  }
+
   // Grammy composer handlers
+
+  /**
+   * Setup Grammy composer with auth-specific handlers
+   */
+  private setupComposer(): void {
+    // Main authentication flows
+    this.composer.callbackQuery('auth:start', (ctx) => this.handleAuthStart(ctx));
+    this.composer.callbackQuery('auth:login', (ctx) => this.handleLogin(ctx));
+    this.composer.callbackQuery('auth:register', (ctx) => this.handleRegister(ctx));
+    this.composer.callbackQuery('auth:logout', (ctx) => this.handleLogout(ctx));
+
+    // Registration flow
+    this.composer.callbackQuery(/^auth:register_/, (ctx) => this.handleRegistrationFlow(ctx));
+    this.composer.callbackQuery('auth:quick_register', (ctx) => this.handleQuickRegister(ctx));
+    this.composer.callbackQuery('auth:complete_profile', (ctx) => this.handleCompleteProfile(ctx));
+
+    // Login flow
+    this.composer.callbackQuery(/^auth:login_/, (ctx) => this.handleLoginFlow(ctx));
+    this.composer.callbackQuery('auth:forgot_password', (ctx) => this.handleForgotPassword(ctx));
+
+    // Verification flow
+    this.composer.callbackQuery(/^auth:verify_/, (ctx) => this.handleVerificationFlow(ctx));
+    this.composer.callbackQuery(/^auth:resend_/, (ctx) => this.handleResendVerification(ctx));
+    this.composer.callbackQuery(/^auth:change_/, (ctx) => this.handleChangeVerificationMethod(ctx));
+
+    // Profile management
+    this.composer.callbackQuery('auth:profile_setup', (ctx) => this.handleProfileSetup(ctx));
+    this.composer.callbackQuery('auth:tutorial', (ctx) => this.handleTutorial(ctx));
+    this.composer.callbackQuery('auth:skip_tutorial', (ctx) => this.handleSkipTutorial(ctx));
+
+    // Account actions
+    this.composer.callbackQuery('auth:confirm_logout', (ctx) => this.handleConfirmLogout(ctx));
+    this.composer.callbackQuery('auth:delete_account', (ctx) => this.handleDeleteAccount(ctx));
+    this.composer.callbackQuery('auth:export_data', (ctx) => this.handleExportData(ctx));
+
+    // Security and settings
+    this.composer.callbackQuery('auth:security', (ctx) => this.handleSecurityMenu(ctx));
+    this.composer.callbackQuery('auth:privacy', (ctx) => this.handlePrivacySettings(ctx));
+    this.composer.callbackQuery('auth:sessions', (ctx) => this.handleSessionManagement(ctx));
+
+    // Help and support
+    this.composer.callbackQuery('auth:help', (ctx) => this.handleAuthHelp(ctx));
+    this.composer.callbackQuery('auth:contact_support', (ctx) => this.handleContactSupport(ctx));
+  }
 
   /**
    * Handle authentication start
@@ -804,6 +821,8 @@ export class AuthComposer {
     }
   }
 
+  // Additional handler stubs for comprehensive auth flow
+
   /**
    * Handle logout confirmation
    */
@@ -846,8 +865,6 @@ export class AuthComposer {
       await ctx.answerCallbackQuery('❌ Logout failed');
     }
   }
-
-  // Additional handler stubs for comprehensive auth flow
 
   private async handleRegistrationFlow(ctx: BotContext): Promise<void> {
     const callbackData = ctx.callbackQuery?.data || '';
@@ -962,12 +979,12 @@ export class AuthComposer {
     // Implement password reset
   }
 
+  // Helper methods
+
   private async handleCompleteProfile(ctx: BotContext): Promise<void> {
     await ctx.answerCallbackQuery('✅ Profile completion');
     // Implement profile completion
   }
-
-  // Helper methods
 
   private async getCurrentAuthState(ctx: BotContext): Promise<AuthState> {
     const userId = ctx.from?.id?.toString();
@@ -1143,22 +1160,5 @@ export class AuthComposer {
     }
 
     return text;
-  }
-
-  /**
-   * Get authentication status message
-   *
-   * @param isAuthenticated - Whether user is authenticated
-   * @param username - User's username (if available)
-   * @returns string - Status message
-   */
-  getAuthStatusMessage(isAuthenticated: boolean, username?: string): string {
-    if (isAuthenticated) {
-      const userDisplay = username ? `@${username}` : 'User';
-
-      return `✅ Logged in as ${userDisplay}`;
-    }
-
-    return '❌ Not authenticated. Please log in to continue.';
   }
 }

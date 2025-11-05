@@ -12,7 +12,7 @@ export enum PaymentMethod {
 }
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsOptional, IsString, IsDateString, Min, Max } from 'class-validator';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class TransactionDto {
   @ApiProperty({ description: 'Transaction ID' })

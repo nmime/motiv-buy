@@ -22,12 +22,12 @@ scrape_configs:
   # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: [ 'localhost:9090' ]
 
   # API Application
   - job_name: 'api'
     static_configs:
-      - targets: ['api-prod:3000']
+      - targets: [ 'api-prod:3000' ]
     metrics_path: '/metrics'
     scrape_interval: 10s
     scrape_timeout: 5s

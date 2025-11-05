@@ -141,13 +141,6 @@ export class CsrfProtectionMiddleware {
   }
 
   /**
-   * Create random token
-   */
-  private createToken(): string {
-    return randomBytes(32).toString('hex');
-  }
-
-  /**
    * Check if action requires CSRF protection
    */
   requiresCsrfProtection(action: string): boolean {
@@ -188,8 +181,8 @@ export class CsrfProtectionMiddleware {
         action,
       });
 
-      await ctx.answerCallbackQuery('Security validation failed');
-      await ctx.reply('❌ Security validation failed. Please try again.');
+      await ctx.answerCallbackQuery(ctx.t('common.errors.validation_error'));
+      await ctx.reply(ctx.t('common.errors.validation_error'));
 
       return;
     }
@@ -222,5 +215,12 @@ export class CsrfProtectionMiddleware {
       .join(':');
 
     return `${action}:${paramString}`;
+  }
+
+  /**
+   * Create random token
+   */
+  private createToken(): string {
+    return randomBytes(32).toString('hex');
   }
 }

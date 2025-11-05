@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 import { defaultLanguage } from '@app/common-shared';
-import * as path from 'path';
+import path from 'node:path';
 
 @Module({
   controllers: [],
@@ -11,7 +11,7 @@ import * as path from 'path';
     I18nModule.forRoot({
       fallbackLanguage: defaultLanguage,
       loaderOptions: {
-        path: path.join(__dirname, '../locales/'),
+        path: path.join(process.cwd(), 'libs/common/intl/locales'),
         watch: true,
       },
       logging: false,

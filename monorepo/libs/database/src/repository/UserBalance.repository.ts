@@ -2,7 +2,7 @@ import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
 import { UserBalanceEntity } from '../entity';
 import { UserEntity } from '../entity/User.entity';
 import { CurrencyCode, CurrencyEntity } from '../entity/Currency.entity';
-import { decimal, add, subtract, toDbString, greaterThanOrEqual } from '@app/common-shared/util';
+import { add, decimal, greaterThanOrEqual, subtract, toDbString } from '@app/common-shared';
 
 export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
   constructor(em: EntityManager) {
@@ -39,6 +39,7 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
         balance,
         lockedBalance: '0',
       });
+
       this.em.persist(userBalance);
     } else {
       userBalance.balance = balance;
@@ -49,7 +50,11 @@ export class UserBalanceRepository extends EntityRepository<UserBalanceEntity> {
     return userBalance;
   }
 
-  async updateBalance(user: UserEntity, currencyCode: CurrencyCode, newBalance: string): Promise<UserBalanceEntity | null> {
+  async updateBalance(
+    user: UserEntity,
+    currencyCode: CurrencyCode,
+    newBalance: string,
+  ): Promise<UserBalanceEntity | null> {
     const userBalance = await this.findByUserAndCurrency(user.id, currencyCode);
     if (userBalance) {
       userBalance.balance = newBalance;

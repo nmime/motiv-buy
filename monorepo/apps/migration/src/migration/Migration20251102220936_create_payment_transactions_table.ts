@@ -4,63 +4,31 @@ import { Migration } from '@mikro-orm/migrations';
  * Payment Transactions Migration
  *
  * Creates the payment_transactions table for tracking cryptocurrency payments
- * through various payment providers (CryptoBot, etc.)
+ * through various payment providers (CryptoBot, Heleket, YooKassa, etc.)
  *
  * Features:
- * - Support for multiple cryptocurrencies (USDT, TON, BTC, ETH, LTC, BNB, TRX, USDC, JET)
+ * - Support for multiple cryptocurrencies and fiat (USDT, TON, BTC, ETH, BNB, TRX, USDC, RUB, USD, EUR, JET)
  * - Transaction types: TOP_UP and WITHDRAW
- * - Payment providers: CRYPTO_BOT (extensible for future providers)
+ * - Payment providers: CRYPTO_BOT, HELEKET, YOOKASSA (extensible for future providers)
  * - Transaction status tracking with comprehensive states
  * - Automatic timestamp management with triggers
  * - Optimized indexes for common query patterns
+ * - Uses varchar with CHECK constraints (not PostgreSQL ENUM) to match TypeScript enums
  */
 export class Migration20251102220936CreatePaymentTransactionsTable extends Migration {
   async up(): Promise<void> {
-    // 1. Create ENUM types for type-safe constraints
-    this.addSql(`
-      CREATE TYPE payment_transaction_type AS ENUM ('TOP_UP', 'WITHDRAW');
-    `);
-
-    this.addSql(`
-      CREATE TYPE payment_provider AS ENUM ('CRYPTO_BOT');
-    `);
-
-    this.addSql(`
-      CREATE TYPE payment_currency AS ENUM (
-        'USDT',
-        'TON',
-        'BTC',
-        'ETH',
-        'LTC',
-        'BNB',
-        'TRX',
-        'USDC',
-        'JET'
-      );
-    `);
-
-    this.addSql(`
-      CREATE TYPE payment_transaction_status AS ENUM (
-        'PENDING',
-        'PROCESSING',
-        'COMPLETED',
-        'FAILED',
-        'CANCELLED',
-        'EXPIRED'
-      );
-    `);
-
-    // 2. Create payment_transactions table
+    // 1. Create payment_transactions table
+    // Using varchar for enums (TypeScript-only enums, no PostgreSQL ENUM types)
     this.addSql(`
       CREATE TABLE payment_transactions (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id varchar(255) NOT NULL,
-        type payment_transaction_type NOT NULL,
-        provider payment_provider NOT NULL,
+        type varchar(20) NOT NULL,
+        provider varchar(20) NOT NULL,
         provider_transaction_id varchar(255),
         amount decimal(20,8) NOT NULL,
-        currency payment_currency NOT NULL,
-        status payment_transaction_status NOT NULL,
+        currency varchar(10) NOT NULL,
+        status varchar(20) NOT NULL,
         pay_url text,
         description text,
         fee decimal(20,8),
@@ -72,7 +40,33 @@ export class Migration20251102220936CreatePaymentTransactionsTable extends Migra
       );
     `);
 
-    // 3. Add check constraints for data integrity
+    // 2. Add check constraints for data integrity and enum values
+    // These constraints MUST match the TypeScript enums exactly to maintain consistency
+    this.addSql(`
+      ALTER TABLE payment_transactions
+        ADD CONSTRAINT chk__payment_transactions__type_values
+        CHECK (type IN ('TOP_UP', 'WITHDRAW'));
+    `);
+
+    this.addSql(`
+      ALTER TABLE payment_transactions
+        ADD CONSTRAINT chk__payment_transactions__provider_values
+        CHECK (provider IN ('CRYPTO_BOT', 'HELEKET', 'YOOKASSA'));
+    `);
+
+    this.addSql(`
+      ALTER TABLE payment_transactions
+        ADD CONSTRAINT chk__payment_transactions__currency_values
+        CHECK (currency IN ('USDT', 'TON', 'BTC', 'ETH', 'BNB', 'TRX', 'USDC', 'RUB', 'USD', 'EUR', 'JET'));
+    `);
+
+    this.addSql(`
+      ALTER TABLE payment_transactions
+        ADD CONSTRAINT chk__payment_transactions__status_values
+        CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED', 'EXPIRED'));
+    `);
+
+    // 3. Add other check constraints for data integrity
     this.addSql(`
       ALTER TABLE payment_transactions
         ADD CONSTRAINT chk__payment_transactions__amount_positive
@@ -136,16 +130,12 @@ export class Migration20251102220936CreatePaymentTransactionsTable extends Migra
         ON payment_transactions;
     `);
 
-    // 2. Drop table (CASCADE will drop associated indexes)
+    // 2. Drop table (CASCADE will drop associated indexes and constraints)
     this.addSql(`
       DROP TABLE IF EXISTS payment_transactions CASCADE;
     `);
 
-    // 3. Drop ENUM types
-    this.addSql('DROP TYPE IF EXISTS payment_transaction_status CASCADE;');
-    this.addSql('DROP TYPE IF EXISTS payment_currency CASCADE;');
-    this.addSql('DROP TYPE IF EXISTS payment_provider CASCADE;');
-    this.addSql('DROP TYPE IF EXISTS payment_transaction_type CASCADE;');
+    // Note: No ENUM types to drop since we're using varchar with CHECK constraints
 
     // Ensure async compliance
     await Promise.resolve();

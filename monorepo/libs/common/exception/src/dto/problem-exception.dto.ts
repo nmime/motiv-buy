@@ -3,9 +3,8 @@ import { ProblemKind } from '../enum';
 import { ExceptionClass } from '../type';
 import { OptionalClassConstructor } from '@app/common-shared';
 import { ReferenceObject, SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import { ExceptionHttpStatusMapper } from '../mapper';
+import { ExceptionHttpStatusMapper, ProblemKindMapper } from '../mapper';
 import { formatTitleFromClassName } from '../util';
-import { ProblemKindMapper } from '../mapper';
 
 export function getProblemType(problemType: string): string {
   return `/api/problems/${problemType}`;

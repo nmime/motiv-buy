@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createHash, createHmac } from 'crypto';
-import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
+import { AsyncResult, Err, Ok, toError } from '@app/common-shared';
 import {
   Cryptocurrency,
   IPaymentProvider,
   PaymentBalance,
+  PaymentConfigService,
   PaymentInvoice,
   PaymentStatus,
   PaymentTransaction,
   PaymentTransfer,
-  PaymentConfigService,
 } from '@app/feature-payment-shared';
 
 /**
@@ -96,56 +96,6 @@ export class CryptoBotProvider implements IPaymentProvider {
     this.baseUrl = this.paymentConfig.isTestnet() ? 'https://testnet-pay.crypt.bot/api' : 'https://pay.crypt.bot/api';
 
     this.logger.log(`CryptoBotProvider initialized (testnet: ${this.paymentConfig.isTestnet()})`);
-  }
-
-  /**
-   * Make HTTP request to Crypto Pay API
-   */
-  private async makeRequest<T>(
-    method: string,
-    endpoint: string,
-    params?: Record<string, unknown>,
-  ): Promise<CryptoPayResponse<T>> {
-    const url = `${this.baseUrl}/${endpoint}`;
-
-    try {
-      const options: RequestInit = {
-        method,
-        headers: {
-          'Crypto-Pay-API-Token': this.apiToken,
-          'Content-Type': 'application/json',
-        },
-      };
-
-      if (params && method === 'POST') {
-        options.body = JSON.stringify(params);
-      } else if (params && method === 'GET') {
-        const queryString = new URLSearchParams(
-          Object.entries(params).reduce(
-            (acc, [key, value]) => {
-              if (value !== undefined && value !== null) {
-                return { ...acc, [key]: String(value) };
-              }
-
-              return acc;
-            },
-            {} as Record<string, string>,
-          ),
-        ).toString();
-
-        const fullUrl = queryString ? `${url}?${queryString}` : url;
-        const response = await fetch(fullUrl, options);
-
-        return response.json();
-      }
-
-      const response = await fetch(url, options);
-
-      return response.json();
-    } catch (error) {
-      this.logger.error(`HTTP request failed: ${method} ${endpoint}`, error);
-      throw error;
-    }
   }
 
   /**
@@ -469,6 +419,56 @@ export class CryptoBotProvider implements IPaymentProvider {
       this.logger.error('Error verifying webhook signature', error);
 
       return false;
+    }
+  }
+
+  /**
+   * Make HTTP request to Crypto Pay API
+   */
+  private async makeRequest<T>(
+    method: string,
+    endpoint: string,
+    params?: Record<string, unknown>,
+  ): Promise<CryptoPayResponse<T>> {
+    const url = `${this.baseUrl}/${endpoint}`;
+
+    try {
+      const options: RequestInit = {
+        method,
+        headers: {
+          'Crypto-Pay-API-Token': this.apiToken,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      if (params && method === 'POST') {
+        options.body = JSON.stringify(params);
+      } else if (params && method === 'GET') {
+        const queryString = new URLSearchParams(
+          Object.entries(params).reduce(
+            (acc, [key, value]) => {
+              if (value !== undefined && value !== null) {
+                return { ...acc, [key]: String(value) };
+              }
+
+              return acc;
+            },
+            {} as Record<string, string>,
+          ),
+        ).toString();
+
+        const fullUrl = queryString ? `${url}?${queryString}` : url;
+        const response = await fetch(fullUrl, options);
+
+        return response.json();
+      }
+
+      const response = await fetch(url, options);
+
+      return response.json();
+    } catch (error) {
+      this.logger.error(`HTTP request failed: ${method} ${endpoint}`, error);
+      throw error;
     }
   }
 

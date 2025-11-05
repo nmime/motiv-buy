@@ -2,16 +2,16 @@ import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { TrafficService } from './service';
 import {
-  TrafficTargetEntity,
   TrafficOrderEntity,
+  TrafficOrderRepository,
   TrafficSourceEntity,
+  TrafficSourceRepository,
+  TrafficTargetEntity,
+  TrafficTargetRepository,
   TrafficUserEntity,
   UserEntity,
-  TrafficTargetRepository,
-  TrafficSourceRepository,
-  TrafficOrderRepository,
 } from '@app/database';
-import { TrafficTargetMapper, TrafficSourceMapper, TrafficOrderMapper } from './mapper';
+import { TrafficOrderMapper, TrafficSourceMapper, TrafficTargetMapper } from './mapper';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
 
 @Module({

@@ -9,6 +9,7 @@ import {
   ProviderRoutingRuleRepository,
 } from '@app/database';
 import { BalanceMainModule } from '@app/feature-balance-main';
+import { AppCommonIntlModule } from '@app/common-intl';
 import { CryptoBotProvider } from './provider/crypto-bot.provider';
 import { HelekeProvider } from './provider/heleket.provider';
 import { YooKassaProvider } from './provider/yookassa.provider';
@@ -27,6 +28,7 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
  *
  * Features:
  * - Multiple payment provider integrations (CryptoBot, Heleket, YooKassa)
+ * - Smart routing system for dynamic provider selection
  * - Each provider has isolated context and configuration
  * - Invoice creation and management
  * - Transfer/withdrawal processing
@@ -34,6 +36,7 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
  * - Polling service for status updates (pull-based)
  * - Hybrid update strategies (webhook + polling for maximum reliability)
  * - Balance integration for user credits
+ * - Internationalization support
  * - Centralized configuration via PaymentConfigModule
  */
 @Module({
@@ -42,6 +45,7 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
     PaymentSharedModule, // Includes PaymentConfigModule
     DatabaseModule, // For repository access
     BalanceMainModule, // For CurrencyRateService
+    AppCommonIntlModule, // For I18n support
   ],
   controllers: [PaymentController, PaymentWebhookController],
   providers: [

@@ -2,7 +2,8 @@
 
 ## Overview
 
-The Result type system provides a robust, type-safe way to handle errors in your application. It's based on the `ts-results` library with additional utility functions and domain-specific error types.
+The Result type system provides a robust, type-safe way to handle errors in your application. It's based on the
+`ts-results` library with additional utility functions and domain-specific error types.
 
 ## Installation
 

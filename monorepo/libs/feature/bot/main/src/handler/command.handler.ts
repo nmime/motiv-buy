@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext, BotCommand, MenuType } from '@app/feature-bot-shared';
+import { BotCommand, BotContext, MenuType } from '@app/feature-bot-shared';
 import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceService } from '@app/feature-balance-main';
@@ -148,12 +148,12 @@ export class CommandHandler {
         if (existingUser) {
           // Existing user - welcome back
           await ctx.replyWithHTML(
-            `<b>Welcome back, ${userName}! 👋</b>\n\n` +
-              `Great to see you again! Your account is ready to use.\n\n` +
-              `✅ Account: Active\n` +
-              `📱 Platform: Telegram Bot\n` +
-              `🆔 ID: ${userId}\n\n` +
-              `Use the menu below to access your dashboard:`,
+            `<b>${ctx.t('bot.commands.welcome_back', { name: userName })}</b>\n\n` +
+              ctx.t('bot.commands.welcome_back_message') + `\n\n` +
+              ctx.t('bot.commands.account_status') + `\n` +
+              ctx.t('bot.commands.platform_status') + `\n` +
+              `${ctx.t('bot.commands.user_id')} ${userId}\n\n` +
+              ctx.t('bot.commands.use_menu'),
             {
               reply_markup: {
                 inline_keyboard: [
@@ -173,15 +173,15 @@ export class CommandHandler {
         } else {
           // New user - registration flow
           await ctx.replyWithHTML(
-            `<b>Welcome to MotivBuy! 🚀</b>\n\n` +
-              `Hello <b>${userName}</b>, I'm your personal traffic campaign assistant!\n\n` +
-              `🎯 <b>What I can help you with:</b>\n` +
-              `• Track your traffic campaign performance\n` +
-              `• Monitor earnings and balance in real-time\n` +
-              `• Manage multiple traffic sources\n` +
-              `• Generate detailed analytics reports\n` +
-              `• Handle withdrawals and payments\n` +
-              `• Optimize your campaigns for better results\n\n` +
+            `<b>${ctx.t('bot.commands.welcome_new')}</b>\n\n` +
+              `Hello <b>${userName}</b>, ${ctx.t('bot.commands.welcome_new_intro')}\n\n` +
+              `🎯 <b>${ctx.t('bot.commands.help_features')}</b>\n` +
+              ctx.t('bot.commands.feature_track') + `\n` +
+              ctx.t('bot.commands.feature_monitor') + `\n` +
+              ctx.t('bot.commands.feature_manage') + `\n` +
+              ctx.t('bot.commands.feature_analytics') + `\n` +
+              ctx.t('bot.commands.feature_withdraw') + `\n` +
+              ctx.t('bot.commands.feature_optimize') + `\n\n` +
               `Let's get you set up! 🛠️`,
             {
               reply_markup: {
@@ -218,7 +218,7 @@ export class CommandHandler {
       });
 
       await ctx.reply(
-        `Welcome to MotivBuy! 🚀\n\n` +
+        ctx.t('bot.commands.welcome_new') + `\n\n` +
           `I'm here to help you manage your traffic campaigns and earnings.\n\n` +
           `Use /menu to see available options or /help for assistance.`,
       );
@@ -327,7 +327,7 @@ export class CommandHandler {
       // Get user balance information
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -372,7 +372,7 @@ export class CommandHandler {
         userId,
       });
 
-      await ctx.reply('Unable to fetch balance information. Please try again later.');
+      await ctx.reply(ctx.t('common.errors.fetch_failed'));
     }
   }
 

@@ -8,9 +8,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import { UserEntity, TrafficOrderEntity, TrafficOrderStatus, UserBalanceHistoryEntity } from '@app/database';
+import { TrafficOrderEntity, TrafficOrderStatus, UserBalanceHistoryEntity, UserEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, sum, toNumber, toDisplayString } from '@app/common-shared/util';
+import { decimal, sum, toDisplayString, toNumber } from '@app/common-shared';
+import { MessageService } from '../service/message.service';
 
 interface UserStatistics {
   totalOrders: number;
@@ -29,6 +30,7 @@ export class StatisticsActionHandler {
   constructor(
     private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -37,7 +39,7 @@ export class StatisticsActionHandler {
   async handleStatisticsOverview(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -45,7 +47,7 @@ export class StatisticsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -54,7 +56,11 @@ export class StatisticsActionHandler {
       const statsText = this.formatStatisticsOverview(stats, user);
       const keyboard = this.menuHandler.createStatisticsMenuKeyboard();
 
-      await ctx.replyWithHTML(statsText, { reply_markup: keyboard });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: statsText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
 
       this.logger.log('Statistics overview viewed', { userId: user.id });
     } catch (error) {
@@ -68,7 +74,7 @@ export class StatisticsActionHandler {
   async handleDetailedStatistics(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -76,7 +82,7 @@ export class StatisticsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -99,7 +105,7 @@ export class StatisticsActionHandler {
   async handleTrafficStatistics(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -107,7 +113,7 @@ export class StatisticsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -130,7 +136,7 @@ export class StatisticsActionHandler {
   async handleEarningsStatistics(ctx: BotContext): Promise<void> {
     try {
       if (!ctx.from) {
-        await ctx.reply('Please authenticate first using /start');
+        await ctx.reply(ctx.t('auth.authentication_required'));
 
         return;
       }
@@ -138,7 +144,7 @@ export class StatisticsActionHandler {
       const user = await this.findUserByTelegramId(ctx.from.id.toString());
 
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }

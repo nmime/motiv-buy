@@ -2,19 +2,18 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { RedisModule } from '@app/common-redis';
 import {
-  UserRepository,
-  UserRefLinkRepository,
-  UserSourceVisitRepository,
   UserLastAuthRepository,
+  UserRefLinkRepository,
+  UserRepository,
+  UserSourceVisitRepository,
 } from '@app/database';
-import { AuthConfigModule } from './config';
+import { AuthConfigModule, AuthConfigService } from './config';
 import { createAuthJwtModuleOptions } from './const';
-import { AuthConfigService } from './config';
 import {
+  AuthCreateUserService,
   AuthJwtCacheService,
   AuthJwtValidationService,
   AuthUserService,
-  AuthCreateUserService,
   AuthUserVisitService,
   GetSourceParamsService,
   GetUserRefLinkService,

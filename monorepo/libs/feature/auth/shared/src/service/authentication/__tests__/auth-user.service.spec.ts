@@ -6,8 +6,8 @@ import { EntityManager } from '@mikro-orm/core';
 import { AuthUserService } from '../auth-user.service';
 import { AuthCreateUserService } from '../auth-create-user.service';
 import { AuthUserVisitService } from '../auth-user-visit.service';
-import { GetSourceParamsService, GetUserRefLinkService, SourceRegisterService, getGeoByIp } from '../../source';
-import { UserRepository, UserEntity, UserLastAuthRepository, UserSourceVisitEntity } from '@app/database';
+import { getGeoByIp, GetSourceParamsService, GetUserRefLinkService, SourceRegisterService } from '../../source';
+import { UserEntity, UserLastAuthRepository, UserRepository, UserSourceVisitEntity } from '@app/database';
 import { TelegramAuthParams, UserRefLink } from '../../type';
 
 // Mock the getGeoByIp utility

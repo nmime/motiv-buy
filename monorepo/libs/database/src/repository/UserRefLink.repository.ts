@@ -106,6 +106,15 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
     return this.mapUsersToRefLinks(users, linkMap);
   }
 
+  async findActiveByUserId(userId: string): Promise<UserRefLinkEntity[]> {
+    return this.find({ user: userId, isDeleted: false });
+  }
+
+  async softDelete(id: string, entityManager?: EntityManager): Promise<void> {
+    const em = entityManager || this.em;
+    await em.nativeUpdate(UserRefLinkEntity, { id }, { isDeleted: true });
+  }
+
   private collectAllRefLinkIds(users: UserEntity[]): Set<string> {
     const allRefLinkIds = new Set<string>();
 
@@ -164,15 +173,6 @@ export class UserRefLinkRepository extends EntityRepository<UserRefLinkEntity> {
 
   private getRefLinkFromMap(linkMap: Map<string, UserRefLinkEntity>, refLinkId?: string): UserRefLinkEntity | null {
     return refLinkId ? (linkMap.get(refLinkId) ?? null) : null;
-  }
-
-  async findActiveByUserId(userId: string): Promise<UserRefLinkEntity[]> {
-    return this.find({ user: userId, isDeleted: false });
-  }
-
-  async softDelete(id: string, entityManager?: EntityManager): Promise<void> {
-    const em = entityManager || this.em;
-    await em.nativeUpdate(UserRefLinkEntity, { id }, { isDeleted: true });
   }
 
   private generateRefCode(length = 10): string {

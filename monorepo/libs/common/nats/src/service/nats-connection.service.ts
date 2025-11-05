@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { connect, NatsConnection, ConnectionOptions } from 'nats';
+import { connect, ConnectionOptions, NatsConnection } from 'nats';
 import type { NatsConfig } from '../interface';
 
 /**
@@ -42,6 +42,28 @@ export class NatsConnectionService implements OnModuleInit, OnModuleDestroy {
     }
 
     return this.connect();
+  }
+
+  /**
+   * Check if connected to NATS
+   */
+  isConnected(): boolean {
+    return this.connection !== null && !this.connection.isClosed();
+  }
+
+  /**
+   * Get connection stats
+   */
+  getStats() {
+    if (!this.connection) {
+      return null;
+    }
+
+    return {
+      connected: this.isConnected(),
+      server: this.connection.getServer(),
+      stats: this.connection.stats(),
+    };
   }
 
   /**
@@ -146,27 +168,5 @@ export class NatsConnectionService implements OnModuleInit, OnModuleDestroy {
       this.connection = null;
       this.connectionPromise = null;
     }
-  }
-
-  /**
-   * Check if connected to NATS
-   */
-  isConnected(): boolean {
-    return this.connection !== null && !this.connection.isClosed();
-  }
-
-  /**
-   * Get connection stats
-   */
-  getStats() {
-    if (!this.connection) {
-      return null;
-    }
-
-    return {
-      connected: this.isConnected(),
-      server: this.connection.getServer(),
-      stats: this.connection.stats(),
-    };
   }
 }

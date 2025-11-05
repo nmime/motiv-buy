@@ -2,7 +2,10 @@
 
 ## Purpose and Responsibilities
 
-The `exception` library provides a comprehensive, standardized exception handling system for the xRocket platform. It defines custom exception types, HTTP status code mappings, validation errors, and provides consistent error responses across all services. The library ensures type-safe error handling with structured error data and proper HTTP status code mapping.
+The `exception` library provides a comprehensive, standardized exception handling system for the xRocket platform. It
+defines custom exception types, HTTP status code mappings, validation errors, and provides consistent error responses
+across all services. The library ensures type-safe error handling with structured error data and proper HTTP status code
+mapping.
 
 ## Key Components
 

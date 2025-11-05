@@ -21,32 +21,32 @@ Before deploying to production, ensure all environment variables are configured 
 ### Critical Security Variables (MUST BE SET)
 
 | Variable           | Description            | How to Generate                               | Required |
-| ------------------ | ---------------------- | --------------------------------------------- | -------- |
-| `BOT_TOKEN`        | Telegram Bot Token     | Get from [@BotFather](https://t.me/BotFather) | ✅ YES   |
-| `JWT_SECRET`       | JWT signing secret     | `openssl rand -base64 32`                     | ✅ YES   |
-| `DB_PASSWORD`      | PostgreSQL password    | `openssl rand -base64 24`                     | ✅ YES   |
-| `REDIS_PASSWORD`   | Redis password         | `openssl rand -base64 24`                     | ✅ YES   |
-| `GRAFANA_PASSWORD` | Grafana admin password | Choose secure password                        | ✅ YES   |
+|--------------------|------------------------|-----------------------------------------------|----------|
+| `BOT_TOKEN`        | Telegram Bot Token     | Get from [@BotFather](https://t.me/BotFather) | ✅ YES    |
+| `JWT_SECRET`       | JWT signing secret     | `openssl rand -base64 32`                     | ✅ YES    |
+| `DB_PASSWORD`      | PostgreSQL password    | `openssl rand -base64 24`                     | ✅ YES    |
+| `REDIS_PASSWORD`   | Redis password         | `openssl rand -base64 24`                     | ✅ YES    |
+| `GRAFANA_PASSWORD` | Grafana admin password | Choose secure password                        | ✅ YES    |
 
 ### Production Configuration Variables
 
 | Variable       | Default     | Production Value       | Required |
-| -------------- | ----------- | ---------------------- | -------- |
-| `NODE_ENV`     | development | `production`           | ✅ YES   |
-| `PROJECT_NAME` | motiv-buy   | `motiv-buy`            | ✅ YES   |
-| `DB_HOST`      | localhost   | Database hostname      | ✅ YES   |
-| `DB_PORT`      | 5432        | `5432`                 | ✅ YES   |
-| `DB_USERNAME`  | postgres    | `motiv_user`           | ✅ YES   |
-| `DB_DATABASE`  | motiv_buy   | `motiv_buy_production` | ✅ YES   |
-| `REDIS_HOST`   | localhost   | Redis hostname         | ✅ YES   |
-| `REDIS_PORT`   | 6379        | `6379`                 | ✅ YES   |
-| `PORT`         | 3000        | `3000`                 | ✅ YES   |
-| `LOG_LEVEL`    | debug       | `warn` or `error`      | ✅ YES   |
+|----------------|-------------|------------------------|----------|
+| `NODE_ENV`     | development | `production`           | ✅ YES    |
+| `PROJECT_NAME` | motiv-buy   | `motiv-buy`            | ✅ YES    |
+| `DB_HOST`      | localhost   | Database hostname      | ✅ YES    |
+| `DB_PORT`      | 5432        | `5432`                 | ✅ YES    |
+| `DB_USERNAME`  | postgres    | `motiv_user`           | ✅ YES    |
+| `DB_DATABASE`  | motiv_buy   | `motiv_buy_production` | ✅ YES    |
+| `REDIS_HOST`   | localhost   | Redis hostname         | ✅ YES    |
+| `REDIS_PORT`   | 6379        | `6379`                 | ✅ YES    |
+| `PORT`         | 3000        | `3000`                 | ✅ YES    |
+| `LOG_LEVEL`    | debug       | `warn` or `error`      | ✅ YES    |
 
 ### Optional Production Variables
 
 | Variable        | Description          | Required    |
-| --------------- | -------------------- | ----------- |
+|-----------------|----------------------|-------------|
 | `SENTRY_DSN`    | Error tracking DSN   | Recommended |
 | `SSL_CERT_PATH` | SSL certificate path | For HTTPS   |
 | `SSL_KEY_PATH`  | SSL private key path | For HTTPS   |
@@ -283,33 +283,33 @@ crontab -e
 ### Access Monitoring Tools
 
 | Tool       | URL                   | Default Credentials         |
-| ---------- | --------------------- | --------------------------- |
+|------------|-----------------------|-----------------------------|
 | Grafana    | http://localhost:3002 | admin / `$GRAFANA_PASSWORD` |
 | Prometheus | http://localhost:9090 | No auth                     |
 
 ### Key Metrics to Monitor
 
 1. **Application Metrics**
-   - Request rate (requests/second)
-   - Response time (p50, p95, p99)
-   - Error rate (4xx, 5xx)
-   - Active connections
+    - Request rate (requests/second)
+    - Response time (p50, p95, p99)
+    - Error rate (4xx, 5xx)
+    - Active connections
 
 2. **System Metrics**
-   - CPU usage
-   - Memory usage
-   - Disk I/O
-   - Network throughput
+    - CPU usage
+    - Memory usage
+    - Disk I/O
+    - Network throughput
 
 3. **Database Metrics**
-   - Connection pool usage
-   - Query performance
-   - Replication lag (if applicable)
+    - Connection pool usage
+    - Query performance
+    - Replication lag (if applicable)
 
 4. **Redis Metrics**
-   - Memory usage
-   - Hit rate
-   - Connected clients
+    - Memory usage
+    - Hit rate
+    - Connected clients
 
 ---
 

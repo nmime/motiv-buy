@@ -1,7 +1,7 @@
-import { Entity, PrimaryKey, ManyToOne, Property, Index, Unique, Enum, Ref } from '@mikro-orm/core';
+import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Ref, Unique } from '@mikro-orm/core';
 import { UserEntity } from '../User.entity';
 import { TrafficSourceEntity } from '../TrafficSource.entity';
-import { EntityConstructorData, UserTrafficPermissions, assignEntityData } from '../../type';
+import { assignEntityData, EntityConstructorData, UserTrafficPermissions } from '../../type';
 
 export enum UserTrafficSourceRole {
   Manager = 'manager',

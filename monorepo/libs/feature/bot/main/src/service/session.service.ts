@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SessionInterface, SessionData } from '@app/feature-bot-shared';
+import { SessionData, SessionInterface } from '@app/feature-bot-shared';
 import { RedisCacheService } from '@app/common-redis';
 import { unknownToError } from '@app/common-shared';
 

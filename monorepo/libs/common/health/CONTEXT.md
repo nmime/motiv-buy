@@ -2,13 +2,16 @@
 
 ## Purpose and Responsibilities
 
-The `health` library provides comprehensive health check functionality for xRocket microservices, implementing standard health check endpoints for monitoring, orchestration, and operational visibility. It provides a base health controller and shutdown service that can be extended by individual microservices to include service-specific health indicators.
+The `health` library provides comprehensive health check functionality for xRocket microservices, implementing standard
+health check endpoints for monitoring, orchestration, and operational visibility. It provides a base health controller
+and shutdown service that can be extended by individual microservices to include service-specific health indicators.
 
 ## Key Components
 
 ### BaseHealthController
 
-- **Standard Endpoints**: Implements `/health`, `/health/liveness`, `/health/readiness`, `/health/business`, `/health/external`
+- **Standard Endpoints**: Implements `/health`, `/health/liveness`, `/health/readiness`, `/health/business`,
+  `/health/external`
 - **Kubernetes Integration**: Provides endpoints compatible with Kubernetes liveness and readiness probes
 - **Extensible Design**: Abstract base class that services can extend with custom health checks
 - **Swagger Documentation**: Automatic API documentation for health endpoints
@@ -88,6 +91,7 @@ Each microservice extends `BaseHealthController`:
 ### Basic Health Controller Extension
 
 ```typescript
+
 @Controller('health')
 export class ServiceHealthController extends BaseHealthController {
   constructor(
@@ -112,6 +116,7 @@ export class ServiceHealthController extends BaseHealthController {
 ### Custom Business Health Checks
 
 ```typescript
+
 @Controller('health')
 export class PaymentServiceHealthController extends BaseHealthController {
   constructor(
@@ -173,9 +178,11 @@ private async checkBlockchainRPC(): Promise<HealthIndicatorResult> {
 ### Shutdown Service Integration
 
 ```typescript
+
 @Injectable()
 export class AppService implements OnApplicationShutdown {
-  constructor(private readonly shutdownService: ShutdownService) {}
+  constructor(private readonly shutdownService: ShutdownService) {
+  }
 
   async onApplicationShutdown(signal?: string) {
     this.logger.log(`Received shutdown signal: ${signal}`);

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional, IsUUID, IsNumber, Min, Max } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export enum TrafficTargetType {
   Channel = 'channel',

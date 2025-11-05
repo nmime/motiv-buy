@@ -2,7 +2,9 @@
 
 ## Overview
 
-A comprehensive Result type system has been implemented in `/Users/nmi/IT/Projects/motiv-buy/monorepo/libs/common/shared/src/types/result.type.ts` that provides type-safe error handling throughout the monorepo.
+A comprehensive Result type system has been implemented in
+`/Users/nmi/IT/Projects/motiv-buy/monorepo/libs/common/shared/src/types/result.type.ts` that provides type-safe error
+handling throughout the monorepo.
 
 ## What Was Created
 
@@ -128,7 +130,8 @@ match(result, {
 ## Files Created
 
 1. `/Users/nmi/IT/Projects/motiv-buy/monorepo/libs/common/shared/src/types/result.type.ts` - Main implementation
-2. `/Users/nmi/IT/Projects/motiv-buy/monorepo/libs/common/shared/src/types/__tests__/result.type.spec.ts` - Comprehensive tests
+2. `/Users/nmi/IT/Projects/motiv-buy/monorepo/libs/common/shared/src/types/__tests__/result.type.spec.ts` -
+   Comprehensive tests
 3. `/Users/nmi/IT/Projects/motiv-buy/monorepo/docs/result-type-usage.md` - Complete usage documentation
 4. `/Users/nmi/IT/Projects/motiv-buy/monorepo/docs/result-type-quickstart.md` - Quick reference guide
 

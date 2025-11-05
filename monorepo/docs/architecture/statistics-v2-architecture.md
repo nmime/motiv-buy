@@ -2,7 +2,9 @@
 
 ## Overview
 
-The Statistics Service V2 represents a complete architectural redesign focused on performance, security, and proper resource filtering. This redesign addresses the shortcomings of the original implementation with database-level optimizations and strict ownership-based filtering.
+The Statistics Service V2 represents a complete architectural redesign focused on performance, security, and proper
+resource filtering. This redesign addresses the shortcomings of the original implementation with database-level
+optimizations and strict ownership-based filtering.
 
 ## Key Improvements
 
@@ -257,6 +259,9 @@ interface ShareTokenData {
 
 ## Conclusion
 
-The Statistics Service V2 redesign provides a robust, secure, and performant foundation for analytics functionality. With proper resource filtering, database optimizations, and comprehensive testing, it addresses all shortcomings of the original implementation while providing a clear migration path for existing systems.
+The Statistics Service V2 redesign provides a robust, secure, and performant foundation for analytics functionality.
+With proper resource filtering, database optimizations, and comprehensive testing, it addresses all shortcomings of the
+original implementation while providing a clear migration path for existing systems.
 
-The architecture supports both current requirements and future growth, with extensible patterns for additional statistic types and enhanced functionality.
+The architecture supports both current requirements and future growth, with extensible patterns for additional statistic
+types and enhanced functionality.

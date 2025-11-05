@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { I18nService } from 'nestjs-i18n';
 import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
 import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared/util';
 import { PaymentProviderFactory } from './payment-provider.factory';
@@ -59,6 +60,7 @@ export class PaymentService {
     private readonly userBalanceRepository: UserBalanceRepository,
     private readonly routingService: ProviderRoutingService,
     private readonly em: EntityManager,
+    private readonly i18n: I18nService,
   ) {}
 
   /**

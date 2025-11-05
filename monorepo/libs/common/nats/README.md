@@ -60,12 +60,13 @@ NatsModule.forRootAsync({
 ### Job Queue
 
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { NatsQueueService, Subject } from '@app/common-nats';
+import {Injectable} from '@nestjs/common';
+import {NatsQueueService, Subject} from '@app/common-nats';
 
 @Injectable()
 export class EmailService {
-  constructor(private readonly queueService: NatsQueueService) {}
+  constructor(private readonly queueService: NatsQueueService) {
+  }
 
   async sendEmail(to: string, subject: string, body: string) {
     await this.queueService.addJob(
@@ -102,12 +103,13 @@ export class EmailService {
 ### Event Streaming
 
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { NatsEventService, Subject } from '@app/common-nats';
+import {Injectable} from '@nestjs/common';
+import {NatsEventService, Subject} from '@app/common-nats';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly eventService: NatsEventService) {}
+  constructor(private readonly eventService: NatsEventService) {
+  }
 
   async createUser(userData: any) {
     // Create user logic...
@@ -132,15 +134,16 @@ export class UserService {
 ### Message Broker (Request-Reply)
 
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { NatsMessageService } from '@app/common-nats';
+import {Injectable} from '@nestjs/common';
+import {NatsMessageService} from '@app/common-nats';
 
 @Injectable()
 export class PaymentService {
-  constructor(private readonly messageService: NatsMessageService) {}
+  constructor(private readonly messageService: NatsMessageService) {
+  }
 
   async processPayment(amount: number) {
-    const result = await this.messageService.send('payment.process', { amount }, { timeout: 10000 });
+    const result = await this.messageService.send('payment.process', {amount}, {timeout: 10000});
 
     return result;
   }
@@ -148,7 +151,7 @@ export class PaymentService {
   async setupPaymentHandler() {
     await this.messageService.handleMessages('payment.process', async (data) => {
       // Process payment logic
-      return { success: true, transactionId: '123' };
+      return {success: true, transactionId: '123'};
     });
   }
 }

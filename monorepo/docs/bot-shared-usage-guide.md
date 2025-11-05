@@ -2,7 +2,8 @@
 
 ## Overview
 
-The `@app/feature-bot-shared` library provides essential services and utilities for Telegram bot development in the monorepo. This guide covers the newly implemented bot instance management and subscription validation features.
+The `@app/feature-bot-shared` library provides essential services and utilities for Telegram bot development in the
+monorepo. This guide covers the newly implemented bot instance management and subscription validation features.
 
 ## Table of Contents
 
@@ -44,16 +45,17 @@ export class YourModule {}
 #### 1. Create Bot with Token from Config
 
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { BotFactoryService } from '@app/feature-bot-shared';
+import {Injectable} from '@nestjs/common';
+import {ConfigService} from '@nestjs/config';
+import {BotFactoryService} from '@app/feature-bot-shared';
 
 @Injectable()
 export class YourService {
   constructor(
     private readonly botFactory: BotFactoryService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+  }
 
   async createBot() {
     // Get token from environment configuration
@@ -141,12 +143,13 @@ The `BotSubscriptionService` checks user subscriptions to Telegram groups, super
 #### 1. Check Single Subscription
 
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { BotSubscriptionService } from '@app/feature-bot-shared';
+import {Injectable} from '@nestjs/common';
+import {BotSubscriptionService} from '@app/feature-bot-shared';
 
 @Injectable()
 export class SubscriptionGuard {
-  constructor(private readonly subscriptionService: BotSubscriptionService) {}
+  constructor(private readonly subscriptionService: BotSubscriptionService) {
+  }
 
   async checkUserSubscription(botToken: string, chatId: string, userId: number) {
     const result = await this.subscriptionService.checkSubscription(
@@ -247,9 +250,9 @@ async getChatDetails(botToken: string, chatId: string) {
 ### Example 1: Subscription-Gated Feature
 
 ```typescript
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { BotSubscriptionService } from '@app/feature-bot-shared';
+import {Injectable, UnauthorizedException} from '@nestjs/common';
+import {ConfigService} from '@nestjs/config';
+import {BotSubscriptionService} from '@app/feature-bot-shared';
 
 @Injectable()
 export class PremiumFeatureService {
@@ -258,7 +261,8 @@ export class PremiumFeatureService {
   constructor(
     private readonly subscriptionService: BotSubscriptionService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+  }
 
   async checkAccess(userId: number): Promise<boolean> {
     const botToken = this.configService.get<string>('BOT_TOKEN');
@@ -292,9 +296,9 @@ export class PremiumFeatureService {
 ### Example 2: Bot Initialization with Validation
 
 ```typescript
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { BotFactoryService } from '@app/feature-bot-shared';
+import {Injectable, OnModuleInit, Logger} from '@nestjs/common';
+import {ConfigService} from '@nestjs/config';
+import {BotFactoryService} from '@app/feature-bot-shared';
 
 @Injectable()
 export class BotInitService implements OnModuleInit {
@@ -303,7 +307,8 @@ export class BotInitService implements OnModuleInit {
   constructor(
     private readonly botFactory: BotFactoryService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+  }
 
   async onModuleInit() {
     await this.initializeBot();
@@ -347,17 +352,18 @@ export class BotInitService implements OnModuleInit {
 ### Example 3: Middleware for Subscription Check
 
 ```typescript
-import { Injectable, NestMiddleware, ForbiddenException } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
-import { BotSubscriptionService } from '@app/feature-bot-shared';
-import { ConfigService } from '@nestjs/config';
+import {Injectable, NestMiddleware, ForbiddenException} from '@nestjs/common';
+import {Request, Response, NextFunction} from 'express';
+import {BotSubscriptionService} from '@app/feature-bot-shared';
+import {ConfigService} from '@nestjs/config';
 
 @Injectable()
 export class SubscriptionMiddleware implements NestMiddleware {
   constructor(
     private readonly subscriptionService: BotSubscriptionService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+  }
 
   async use(req: Request, res: Response, next: NextFunction) {
     const userId = req.user?.id; // Assumes authentication middleware ran first
@@ -496,22 +502,22 @@ describe('Subscription Integration Test', () => {
 
 ### BotFactoryService
 
-| Method                  | Parameters                                    | Returns                        | Description                       |
-| ----------------------- | --------------------------------------------- | ------------------------------ | --------------------------------- |
-| `createBot`             | `token: string, options?: BotInstanceOptions` | `Bot<BotSessionContext>`       | Create authenticated bot instance |
-| `createUnauthenticatedBot` | `options?: BotInstanceOptions`             | `Bot<BotSessionContext>`       | Create unauthenticated bot        |
-| `validateBotToken`      | `token: string`                               | `Promise<BotValidationResult>` | Validate token using getMe API    |
-| `getBotInfo`            | `bot: Bot<BotSessionContext>`                 | `Promise<BotInstanceInfo>`     | Retrieve bot information          |
+| Method                     | Parameters                                    | Returns                        | Description                       |
+|----------------------------|-----------------------------------------------|--------------------------------|-----------------------------------|
+| `createBot`                | `token: string, options?: BotInstanceOptions` | `Bot<BotSessionContext>`       | Create authenticated bot instance |
+| `createUnauthenticatedBot` | `options?: BotInstanceOptions`                | `Bot<BotSessionContext>`       | Create unauthenticated bot        |
+| `validateBotToken`         | `token: string`                               | `Promise<BotValidationResult>` | Validate token using getMe API    |
+| `getBotInfo`               | `bot: Bot<BotSessionContext>`                 | `Promise<BotInstanceInfo>`     | Retrieve bot information          |
 
 ### BotSubscriptionService
 
-| Method                      | Parameters                                                   | Returns                                | Description                      |
-| --------------------------- | ------------------------------------------------------------ | -------------------------------------- | -------------------------------- |
-| `checkSubscription`         | `botToken, chatId, userId`                                   | `Promise<SubscriptionCheckResult>`     | Check single subscription        |
-| `checkMultipleSubscriptions` | `botToken, chatIds[], userId`                               | `Promise<BulkSubscriptionCheckResult>` | Check multiple subscriptions     |
-| `isUserAdmin`               | `botToken, chatId, userId`                                   | `Promise<boolean>`                     | Check if user is admin           |
-| `getChatInfo`               | `botToken, chatId`                                           | `Promise<ChatInformation>`             | Get chat details                 |
-| `getChatMemberCount`        | `botToken, chatId`                                           | `Promise<number>`                      | Get chat member count            |
+| Method                       | Parameters                    | Returns                                | Description                  |
+|------------------------------|-------------------------------|----------------------------------------|------------------------------|
+| `checkSubscription`          | `botToken, chatId, userId`    | `Promise<SubscriptionCheckResult>`     | Check single subscription    |
+| `checkMultipleSubscriptions` | `botToken, chatIds[], userId` | `Promise<BulkSubscriptionCheckResult>` | Check multiple subscriptions |
+| `isUserAdmin`                | `botToken, chatId, userId`    | `Promise<boolean>`                     | Check if user is admin       |
+| `getChatInfo`                | `botToken, chatId`            | `Promise<ChatInformation>`             | Get chat details             |
+| `getChatMemberCount`         | `botToken, chatId`            | `Promise<number>`                      | Get chat member count        |
 
 ---
 
@@ -528,6 +534,7 @@ describe('Subscription Integration Test', () => {
 ## Support
 
 For issues or questions, contact the development team or refer to:
+
 - [Telegram Bot API Documentation](https://core.telegram.org/bots/api)
 - [Grammy Framework Documentation](https://grammy.dev/)
 

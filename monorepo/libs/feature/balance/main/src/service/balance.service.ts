@@ -1,17 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IBalanceService } from '../interfaces/balance.service.interface';
 import {
-  UserBalanceRepository,
-  UserBalanceHistoryRepository,
   CurrencyCode,
-  TransactionType as DbTransactionType,
   TransactionStatus,
+  TransactionType as DbTransactionType,
+  UserBalanceHistoryRepository,
+  UserBalanceRepository,
 } from '@app/database';
 import { PaymentService } from '@app/feature-payment-main';
 import { CreateInvoiceDto, CreateTransferDto } from '@app/feature-payment-shared';
 import { CurrencyRateService } from './currency-rate.service';
-import { Result, Ok, Err } from '@app/common-shared';
-import { decimal, sum, subtract, ensureNonNegative, toNumber } from '@app/common-shared/util';
+import { decimal, ensureNonNegative, Err, Ok, Result, subtract, sum, toNumber } from '@app/common-shared';
 import { BalanceDto, TransactionDto, TransactionFilterDto, TransactionType } from '../dto';
 import { TopUpRequestDto } from '../dto/topup-request.dto';
 import { WithdrawRequestDto } from '../dto/withdraw-request.dto';
@@ -62,9 +61,7 @@ export class BalanceService implements IBalanceService {
     );
 
     const pendingAmountDecimal = sum(
-      pendingWithdrawals
-        .filter((t) => t.status === TransactionStatus.Pending)
-        .map((t) => t.amount)
+      pendingWithdrawals.filter((t) => t.status === TransactionStatus.Pending).map((t) => t.amount),
     );
 
     // Get all completed income transactions for total earned
@@ -82,7 +79,7 @@ export class BalanceService implements IBalanceService {
             t.status === TransactionStatus.Completed &&
             (t.type === DbTransactionType.Deposit || t.type === DbTransactionType.ReferralBonus),
         )
-        .map((t) => t.amount)
+        .map((t) => t.amount),
     );
 
     // Get last transaction date

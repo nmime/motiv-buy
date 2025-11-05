@@ -1,4 +1,4 @@
-import { BalanceDto, TransactionDto, TransactionFilterDto, DepositRequestDto, WithdrawalRequestDto } from '../dto';
+import { BalanceDto, DepositRequestDto, TransactionDto, TransactionFilterDto, WithdrawalRequestDto } from '../dto';
 
 export interface IBalanceService {
   /**

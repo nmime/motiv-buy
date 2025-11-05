@@ -1,11 +1,11 @@
-import { Global, Module, DynamicModule, Provider, Type } from '@nestjs/common';
+import { DynamicModule, Global, Module, Provider, Type } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import {
-  NatsConnectionService,
   JetStreamService,
-  NatsQueueService,
+  NatsConnectionService,
   NatsEventService,
   NatsMessageService,
+  NatsQueueService,
 } from './service';
 import type { NatsConfig } from './interface';
 

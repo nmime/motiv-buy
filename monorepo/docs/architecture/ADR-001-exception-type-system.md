@@ -6,11 +6,13 @@
 
 ## Context
 
-The TypeScript compilation was failing due to type incompatibilities between the `@ApiProblemExceptions` decorator and exception classes with specific constructor signatures.
+The TypeScript compilation was failing due to type incompatibilities between the `@ApiProblemExceptions` decorator and
+exception classes with specific constructor signatures.
 
 ### Root Causes
 
-1. **Strict Constructor Typing**: The `ExceptionClass` type required exact constructor signature matching `new (...args: unknown[])`, but exception classes had specific parameter types
+1. **Strict Constructor Typing**: The `ExceptionClass` type required exact constructor signature matching
+   `new (...args: unknown[])`, but exception classes had specific parameter types
 2. **Missing Type Flexibility**: No default generic parameter for `ExceptionClass`, causing type inference issues
 3. **Immutability Requirements**: Exception static properties needed `readonly` modifiers
 

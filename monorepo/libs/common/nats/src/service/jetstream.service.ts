@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
+  ConsumerConfig as NatsConsumerConfig,
   JetStreamClient,
   JetStreamManager,
   StreamConfig as NatsStreamConfig,
-  ConsumerConfig as NatsConsumerConfig,
 } from 'nats';
 import { NatsConnectionService } from './nats-connection.service';
-import type { StreamConfig, ConsumerConfig } from '../interface';
+import type { ConsumerConfig, StreamConfig } from '../interface';
 
 /**
  * JetStream Service

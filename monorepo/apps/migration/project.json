@@ -1,12 +1,14 @@
 {
-  "name": "migration-cli",
+  "name": "migration",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/migration/src",
   "projectType": "application",
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/apps/migration",
@@ -20,7 +22,9 @@
           },
           {
             "name": "typescript-transform-paths/nx-transformer",
-            "options": { "afterDeclarations": true }
+            "options": {
+              "afterDeclarations": true
+            }
           }
         ]
       },
@@ -40,35 +44,46 @@
     "serve": {
       "executor": "@nx/js:node",
       "defaultConfiguration": "development",
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "options": {
-        "buildTarget": "migration-cli:build",
+        "buildTarget": "migration:build",
         "runBuildTargetDependencies": true
       },
       "configurations": {
         "development": {
-          "buildTarget": "migration-cli:build"
+          "buildTarget": "migration:build"
         },
         "production": {
-          "buildTarget": "migration-cli:build:production"
+          "buildTarget": "migration:build:production"
         }
       }
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"],
+      "outputs": [
+        "{options.outputFile}"
+      ],
       "options": {
-        "lintFilePatterns": ["apps/migration/**/*.ts"]
+        "lintFilePatterns": [
+          "apps/migration/**/*.ts"
+        ]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "outputs": [
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
       "options": {
         "jestConfig": "apps/migration/jest.config.ts",
         "passWithNoTests": true
       }
     }
   },
-  "tags": ["type:app", "scope:migration"]
+  "tags": [
+    "type:app",
+    "scope:migration"
+  ]
 }
