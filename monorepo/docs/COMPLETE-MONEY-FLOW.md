@@ -1,106 +1,111 @@
 # Complete Money Flow - Single Diagram
 
-## Full System Flow: STARS Origin → Deposit → Lock → Spend → Settle → Withdraw
+## STARS are EXTERNAL - Flow from Telegram through Our System
 
 ```mermaid
 graph TB
-    subgraph "EXTERNAL WORLD"
-        TG[⭐ Telegram Stars<br/>Payment API]
-        CB[💳 Crypto Bot API<br/>Payment Gateway]
+    subgraph "EXTERNAL - NOT OUR SYSTEM"
+        User[👤 Real User<br/>Telegram Account]
+        TG[⭐ Telegram Stars<br/>User buys from Telegram]
+        CB[💳 Crypto Bot<br/>Payment Gateway API]
     end
 
-    subgraph "BUYER FLOW"
-        BD[💰 Buyer Deposits<br/>+1000 STARS]
-        BBal[💰 Buyer UserBalance<br/>1000 → 500 → 750 → 50]
-        BW[💸 Buyer Withdraws<br/>-700 STARS]
+    subgraph "OUR SYSTEM - Internal Balance Tracking"
+        subgraph "BUYER"
+            BBal[💰 UserBalance<br/>balance: 1000→500→750→50]
+        end
+
+        subgraph "ORDER"
+            Reserve[🔒 TrafficOrderBalance<br/>locked:500 spent:250 refund:250]
+            Order[📋 TrafficOrder<br/>100 tasks × 5 STARS]
+        end
+
+        subgraph "TRAFFIC"
+            Source[📱 TrafficSource<br/>Seller's Bot]
+            Users[🤖 Bot Users]
+            Actions[✅ 50 completed]
+        end
+
+        subgraph "SELLER"
+            SBal[💰 UserBalance<br/>balance: 0→250→0]
+        end
+
+        subgraph "AUDIT"
+            History[📊 All transactions logged]
+        end
     end
 
-    subgraph "ORDER SYSTEM"
-        Lock[🔒 Lock Funds<br/>-500 STARS]
-        Reserve[📦 TrafficOrderBalance<br/>locked: 500<br/>spent: 250<br/>refund: 250]
-        Refund[🔄 Refund Unused<br/>+250 STARS]
-    end
+    %% External: User buys STARS from Telegram
+    User -->|Buys STARS| TG
+    TG -->|STARS exist in Telegram| CB
 
-    subgraph "TRAFFIC SYSTEM"
-        Order[📋 TrafficOrder<br/>100 tasks × 5 STARS<br/>Status: Cancelled at 50]
-        Source[📱 Traffic Source<br/>Seller's Bot]
-        Users[🤖 Bot Users<br/>Complete Tasks]
-        Actions[✅ Traffic Actions<br/>50 tasks completed]
-    end
+    %% DEPOSIT: External → Our System
+    CB ==>|DEPOSIT +1000| BBal
 
-    subgraph "SELLER FLOW"
-        Pay[💵 Pay per Task<br/>5 STARS × 50 = 250]
-        SBal[💰 Seller UserBalance<br/>0 → 250 → 0]
-        SW[💸 Seller Withdraws<br/>-250 STARS]
-    end
-
-    subgraph "AUDIT"
-        History[📊 UserBalanceHistory<br/>All Transactions Logged]
-    end
-
-    %% STARS Origin
-    TG -->|Payment| CB
-    CB -->|Deposit| BD
-
-    %% Buyer Deposit
-    BD -->|+1000| BBal
-
-    %% Lock Flow
-    BBal -->|Create Order| Lock
-    Lock -->|500 STARS| Reserve
+    %% Lock Flow (Internal)
+    BBal -->|Lock -500| Reserve
     Reserve -.manages.-> Order
 
-    %% Traffic Flow
+    %% Traffic Flow (Internal)
     Order -.connects.-> Source
     Source -.has.-> Users
     Users -->|Complete| Actions
-    Actions -.records.-> Order
 
-    %% Spend Flow
-    Reserve -->|Per Task| Pay
-    Pay -->|+250| SBal
+    %% Spend Flow (Internal)
+    Reserve -->|Pay -250| SBal
 
-    %% Refund Flow
-    Reserve -->|Cancel Order| Refund
-    Refund -->|+250| BBal
+    %% Refund Flow (Internal)
+    Reserve -->|Refund +250| BBal
 
-    %% Withdraw Flow
-    BBal -->|Withdraw| BW
-    BW -->|Payout| CB
-    SBal -->|Withdraw| SW
-    SW -->|Payout| CB
+    %% WITHDRAW: Our System → External
+    BBal ==>|WITHDRAW -700| CB
+    SBal ==>|WITHDRAW -250| CB
 
-    %% Audit
+    %% External: Crypto Bot pays out to Telegram
+    CB -->|Payout STARS| TG
+    TG -->|STARS back to user| User
+
+    %% Audit (Internal)
     BBal -.logs.-> History
     SBal -.logs.-> History
     Reserve -.logs.-> History
 
-    %% Back to external
-    CB -->|Cashout| TG
-
     style TG fill:#ffd700,stroke:#ff8c00,stroke-width:4px
-    style CB fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
+    style CB fill:#e1f5ff,stroke:#0288d1,stroke-width:4px
     style Reserve fill:#fff9c4,stroke:#f57f17,stroke-width:4px
-    style BBal fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    style SBal fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style BBal fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
+    style SBal fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
     style History fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 ```
 
+## Critical Understanding
+
+### STARS are EXTERNAL CURRENCY (like USD/EUR)
+- **Owned by**: Telegram
+- **Purchased from**: Telegram Stars API (user pays real money)
+- **Managed by**: Crypto Bot payment gateway (handles deposits/withdrawals)
+
+### Our System TRACKS Balances (like a bank)
+- **UserBalance**: Internal ledger tracking how many STARS each user deposited
+- **TrafficOrderBalance**: Internal ledger for locked funds per order
+- **UserBalanceHistory**: Audit log of all balance changes
+- **We don't create STARS** - we only track deposits/withdrawals via Crypto Bot API
+
 ## Flow Summary
 
-| # | From | To | Amount | Description |
-|---|------|-----|--------|-------------|
-| 0 | Telegram Stars API | Crypto Bot | - | Payment gateway |
-| 1 | Crypto Bot | Buyer UserBalance | +1000 | Deposit |
-| 2 | Buyer UserBalance | TrafficOrderBalance | -500 | Lock funds for order |
-| 3 | TrafficOrderBalance | Seller UserBalance | -250 | Pay for 50 completed tasks |
-| 4 | TrafficOrderBalance | Buyer UserBalance | +250 | Refund unused (order cancelled) |
-| 5 | Buyer UserBalance | Crypto Bot | -700 | Buyer withdraws |
-| 6 | Seller UserBalance | Crypto Bot | -250 | Seller withdraws |
-| 7 | Crypto Bot | Telegram Stars API | - | Process payouts |
+| # | Layer | From | To | Amount | Description |
+|---|-------|------|-----|--------|-------------|
+| 0 | External | User | Telegram | Real $ | User buys STARS from Telegram |
+| 1 | **Deposit** | Crypto Bot API | Our UserBalance | +1000 | Track deposit in our system |
+| 2 | Internal | UserBalance | TrafficOrderBalance | -500 | Lock funds for order |
+| 3 | Internal | TrafficOrderBalance | Seller UserBalance | -250 | Pay for 50 tasks |
+| 4 | Internal | TrafficOrderBalance | Buyer UserBalance | +250 | Refund unused |
+| 5 | **Withdraw** | Our UserBalance | Crypto Bot API | -700 | Process buyer withdrawal |
+| 6 | **Withdraw** | Our UserBalance | Crypto Bot API | -250 | Process seller withdrawal |
+| 7 | External | Crypto Bot | Telegram | STARS | Payout to user's Telegram |
 
-## Balance Tracking
+## Balance Tracking Formula
 
-**Formula**: `lockedAmount = spentAmount + availableAmount + refundedAmount`
+**TrafficOrderBalance invariant**: `lockedAmount = spentAmount + availableAmount + refundedAmount`
 
 **Example**: `500 = 250 + 0 + 250 ✅`
