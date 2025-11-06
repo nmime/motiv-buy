@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { TrafficService, SourceBotService } from './service';
-import { SourceBotController } from './controller';
+import { SourceManagementService, SourceTaskService, TrafficService } from './service';
+import { TrafficSourceManagementController, TrafficSourcePublicController } from './controller';
 import {
   TrafficActionsEntity,
   TrafficActionsRepository,
@@ -29,10 +29,11 @@ import { TrafficSharedModule } from '@app/feature-traffic-shared';
       UserEntity,
     ]),
   ],
-  controllers: [SourceBotController],
+  controllers: [TrafficSourcePublicController, TrafficSourceManagementController],
   providers: [
     TrafficService,
-    SourceBotService,
+    SourceTaskService,
+    SourceManagementService,
     TrafficTargetMapper,
     TrafficSourceMapper,
     TrafficOrderMapper,
@@ -41,6 +42,6 @@ import { TrafficSharedModule } from '@app/feature-traffic-shared';
     TrafficOrderRepository,
     TrafficActionsRepository,
   ],
-  exports: [TrafficService, SourceBotService],
+  exports: [TrafficService, SourceTaskService, SourceManagementService],
 })
 export class TrafficMainModule {}
