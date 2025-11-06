@@ -1,3 +1,3 @@
 export * from './traffic.service';
-export * from './source-task.service';
+export * from './source-public-api.service';
 export * from './source-management.service';
