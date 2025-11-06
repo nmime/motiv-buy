@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { getErrorMessage, add, subtract, toDbString, decimal, toNumber } from '@app/common-shared';
+import type { Decimal } from 'decimal.js';
 import { BotFactoryService } from '@app/feature-bot-shared';
+import { TARGETING_FILTERS } from '../config/targeting-filters.config';
 import {
   CheckSubscriptionRequestDto,
   CheckSubscriptionResponseDto,
@@ -64,40 +66,13 @@ export class SourcePublicApiService {
   async getFilters(): Promise<GetFiltersResponseDto> {
     this.logger.log('Getting available filters');
 
-    // Return hardcoded filter options
-    // TODO: Make these configurable from database/config
+    // Filters are loaded from configuration file
+    // TODO: Move to database for dynamic management via admin panel
     return {
-      genders: ['male', 'female'],
-      ageRanges: [
-        { label: '13-17', min: 13, max: 17 },
-        { label: '18-24', min: 18, max: 24 },
-        { label: '25-34', min: 25, max: 34 },
-        { label: '35-44', min: 35, max: 44 },
-        { label: '45-54', min: 45, max: 54 },
-        { label: '55+', min: 55, max: 100 },
-      ],
-      countries: [
-        { code: 'US', name: 'United States' },
-        { code: 'GB', name: 'United Kingdom' },
-        { code: 'CA', name: 'Canada' },
-        { code: 'AU', name: 'Australia' },
-        { code: 'DE', name: 'Germany' },
-        { code: 'FR', name: 'France' },
-        { code: 'RU', name: 'Russia' },
-        { code: 'UA', name: 'Ukraine' },
-        { code: 'BR', name: 'Brazil' },
-        { code: 'IN', name: 'India' },
-      ],
-      languages: [
-        { code: 'en', name: 'English' },
-        { code: 'ru', name: 'Russian' },
-        { code: 'uk', name: 'Ukrainian' },
-        { code: 'es', name: 'Spanish' },
-        { code: 'pt', name: 'Portuguese' },
-        { code: 'de', name: 'German' },
-        { code: 'fr', name: 'French' },
-        { code: 'it', name: 'Italian' },
-      ],
+      genders: [...TARGETING_FILTERS.genders],
+      ageRanges: TARGETING_FILTERS.ageRanges,
+      countries: TARGETING_FILTERS.countries,
+      languages: TARGETING_FILTERS.languages,
       actions: [
         { action: 'subscribe', displayName: 'Channel Subscribe', basePrice: 0.1 },
         { action: 'join', displayName: 'Group Join', basePrice: 0.08 },
@@ -343,8 +318,14 @@ export class SourcePublicApiService {
   }
 
   /**
-   * Complete task with BALANCE FLOW
-   * This is the critical method that handles all balance transactions
+   * Complete a task and process payment
+   * Refactored for better readability and maintainability
+   *
+   * This is the critical method that handles all balance transactions:
+   * - Validates task completion prerequisites
+   * - Creates action record
+   * - Processes balance flow (deduct from locked, credit seller)
+   * - Updates order progress and user stats
    */
   async completeTask(dto: CompleteTaskRequestDto): Promise<CompleteTaskResponseDto> {
     this.logger.log(`Completing task ${dto.taskId} for user ${dto.userId}`);
@@ -354,126 +335,34 @@ export class SourcePublicApiService {
         // 1. Validate API key
         const source = await this.validateApiKey(dto.apiKey);
 
-        // 2. Parse taskId
-        const { orderId } = this.parseTaskId(dto.taskId);
+        // 2. Validate task completion prerequisites
+        const { order } = await this.validateTaskCompletion(dto, source);
 
-        // 3. Find order
-        const order = await this.trafficOrderRepository.findOne(
-          {
-            orderId,
-            trafficSource: source.id,
-          },
-          {
-            populate: ['creator', 'trafficSource', 'trafficTarget'],
-          },
-        );
-
-        if (!order) {
-          return {
-            success: false,
-            error: 'Task not found',
-          };
-        }
-
-        // 4. Check if order is active
-        if (order.status !== TrafficOrderStatus.Active && order.status !== TrafficOrderStatus.InProgress) {
-          return {
-            success: false,
-            error: 'Task is not active',
-          };
-        }
-
-        // 5. Check if already completed
-        const existingAction = await this.trafficActionsRepository.findOne({
-          trafficOrder: order.id,
-          actionData: {
-            userId: dto.userId,
-          },
-        });
-
-        if (existingAction && existingAction.status === TrafficActionStatus.Completed) {
-          return {
-            success: false,
-            error: 'Task already completed',
-          };
-        }
-
-        // 6. Find or create traffic user
+        // 3. Find or create traffic user
         const trafficUser = await this.findOrCreateTrafficUser(dto.userId, dto.username, source.id);
 
-        // 7. Create action
-        const actionId = `ACT-${Date.now()}-${dto.userId}`;
-        const action = new TrafficActionsEntity({
-          actionId,
-          type: order.type,
-          status: TrafficActionStatus.Completed,
-          reward: order.pricePerAction,
-          completedAt: dto.completedAt ? new Date(dto.completedAt) : new Date(),
-          trafficOrderId: order.id,
-          trafficSourceId: source.id,
-          actionData: {
-            userId: dto.userId,
-            username: dto.username,
-            proof: dto.proof,
-          },
-        });
+        // 4. Create action record
+        const action = this.createTaskAction(dto, order, source);
 
-        this.em.persist(action);
-
-        // 8. GUARANTEED LOCKED BALANCE FLOW
+        // 5. Process balance flow (deduct from locked, credit seller)
         const reward = decimal(order.pricePerAction);
-        const sellerUserId = source.managedBy?.getEntity().id;
-
-        if (!sellerUserId) {
-          throw new BadRequestException('Traffic source has no manager');
-        }
-
-        // Get locked balance reserve for this order
-        const reserve = await this.trafficOrderBalanceRepository.findByOrder(order);
-        if (!reserve) {
-          throw new BadRequestException('Order balance reserve not found - order may not have been funded');
-        }
-
-        // Lock the reserve row for update (prevents concurrent modifications)
-        await this.em.lock(reserve, 'pessimistic_write');
-
-        // Check if reserve has sufficient funds
-        const availableAmount = decimal(reserve.availableAmount);
-        if (availableAmount.lessThan(reward)) {
-          throw new BadRequestException('Insufficient locked balance for this order');
-        }
-
-        // Deduct from locked balance
         const rewardAmount = toDbString(reward, 8);
-        await this.trafficOrderBalanceRepository.deductFromLocked(reserve.id, rewardAmount);
+        await this.processBalanceFlow(order, source, rewardAmount);
 
-        // Credit to seller's UserBalance
-        await this.creditBalance(sellerUserId, rewardAmount, order.orderId, 'Traffic order seller payment');
+        // 6. Update order progress
+        this.updateOrderProgress(order, reward);
 
-        // 9. Update order progress
-        order.currentCount += 1;
-        order.spentAmount = toDbString(add(order.spentAmount, reward), 8);
+        // 7. Update traffic user stats
+        this.updateTrafficUserStats(trafficUser, reward);
 
-        if (order.currentCount >= order.targetCount) {
-          order.status = TrafficOrderStatus.Completed;
-          order.completedAt = new Date();
-        } else {
-          order.status = TrafficOrderStatus.InProgress;
-        }
-
-        // 10. Update traffic user stats
-        // Track reward in user's total earnings (seller will pay them separately)
-        trafficUser.totalOrdersParticipated += 1;
-        trafficUser.totalEarnings = toDbString(add(trafficUser.totalEarnings, reward), 8);
-        trafficUser.lastSeenAt = new Date();
-
+        // 8. Persist all changes
         await this.em.flush();
 
         this.logger.log(`Task completed: ${dto.taskId}, reward: ${reward.toString()}`);
 
         return {
           success: true,
-          actionId,
+          actionId: action.actionId,
           status: 'verified',
           reward: toNumber(reward),
           totalEarnings: toNumber(decimal(trafficUser.totalEarnings)),
@@ -565,15 +454,23 @@ export class SourcePublicApiService {
   // =====================================
 
   /**
-   * Validate API key and return source entity
-   * TODO: Use dedicated apiKey field instead of botToken
+   * Validate API key using bcrypt hash comparison
+   * Securely validates the provided API key against stored hash
    */
   private async validateApiKey(apiKey: string): Promise<TrafficSourceEntity> {
-    // Currently using botToken as API key (temporary)
-    const source = await this.trafficSourceRepository.findOne({ botToken: apiKey }, { populate: ['managedBy'] });
+    const source = await this.trafficSourceRepository.findByApiKey(apiKey);
 
-    if (!source || !source.isActive) {
-      throw new UnauthorizedException('Invalid or inactive API key');
+    if (!source) {
+      throw new UnauthorizedException('Invalid API key');
+    }
+
+    if (!source.isActive) {
+      throw new UnauthorizedException('API key belongs to inactive source');
+    }
+
+    // Populate managedBy relation if needed
+    if (source.managedBy && !source.managedBy.isInitialized()) {
+      await this.em.populate(source, ['managedBy']);
     }
 
     return source;
@@ -791,6 +688,160 @@ export class SourcePublicApiService {
       referenceId,
       status: TransactionStatus.Completed,
     });
+  }
+
+  /**
+   * Validate task completion prerequisites
+   * Checks order exists, is active, and not already completed
+   */
+  private async validateTaskCompletion(
+    dto: CompleteTaskRequestDto,
+    source: TrafficSourceEntity,
+  ): Promise<{ order: TrafficOrderEntity; existsAlready: boolean }> {
+    const { orderId } = this.parseTaskId(dto.taskId);
+
+    const order = await this.trafficOrderRepository.findOne(
+      {
+        orderId,
+        trafficSource: source.id,
+      },
+      {
+        populate: ['creator', 'trafficSource', 'trafficTarget'],
+      },
+    );
+
+    if (!order) {
+      throw new BadRequestException('Task not found');
+    }
+
+    if (order.status !== TrafficOrderStatus.Active && order.status !== TrafficOrderStatus.InProgress) {
+      throw new BadRequestException('Task is not active');
+    }
+
+    const existingAction = await this.trafficActionsRepository.findOne({
+      trafficOrder: order.id,
+      actionData: {
+        userId: dto.userId,
+      },
+    });
+
+    if (existingAction && existingAction.status === TrafficActionStatus.Completed) {
+      throw new BadRequestException('Task already completed');
+    }
+
+    return { order, existsAlready: false };
+  }
+
+  /**
+   * Create traffic action record
+   */
+  private createTaskAction(
+    dto: CompleteTaskRequestDto,
+    order: TrafficOrderEntity,
+    source: TrafficSourceEntity,
+  ): TrafficActionsEntity {
+    const actionId = `ACT-${Date.now()}-${dto.userId}`;
+
+    const action = new TrafficActionsEntity({
+      actionId,
+      type: order.type,
+      status: TrafficActionStatus.Completed,
+      reward: order.pricePerAction,
+      completedAt: dto.completedAt ? new Date(dto.completedAt) : new Date(),
+      trafficOrderId: order.id,
+      trafficSourceId: source.id,
+      actionData: {
+        userId: dto.userId,
+        username: dto.username,
+        proof: dto.proof,
+      },
+    });
+
+    this.em.persist(action);
+    return action;
+  }
+
+  /**
+   * Process balance flow: deduct from locked balance and credit seller
+   * Uses pessimistic locking to prevent race conditions
+   */
+  private async processBalanceFlow(
+    order: TrafficOrderEntity,
+    source: TrafficSourceEntity,
+    rewardAmount: string,
+  ): Promise<void> {
+    const sellerUserId = source.managedBy?.getEntity().id;
+
+    if (!sellerUserId) {
+      this.logger.error(`Traffic source ${source.id} has no manager - cannot process payment`);
+      throw new BadRequestException('Traffic source has no manager');
+    }
+
+    // Get locked balance reserve for this order
+    const reserve = await this.trafficOrderBalanceRepository.findByOrder(order);
+    if (!reserve) {
+      this.logger.error(`Order balance reserve not found for order ${order.orderId}`);
+      throw new BadRequestException('Order balance reserve not found - order may not have been funded');
+    }
+
+    // Lock the reserve row for update (prevents concurrent modifications)
+    this.logger.debug(`Acquiring pessimistic lock on reserve ${reserve.id}`);
+    await this.em.lock(reserve, 'pessimistic_write');
+
+    // Check if reserve has sufficient funds
+    const availableAmount = decimal(reserve.availableAmount);
+    const reward = decimal(rewardAmount);
+
+    if (availableAmount.lessThan(reward)) {
+      this.logger.warn(
+        `Insufficient locked balance for order ${order.orderId}: ` +
+          `available ${reserve.availableAmount}, required ${rewardAmount}`,
+      );
+      throw new BadRequestException('Insufficient locked balance for this order');
+    }
+
+    // Deduct from locked balance
+    try {
+      this.logger.debug(`Deducting ${rewardAmount} from reserve ${reserve.id}`);
+      await this.trafficOrderBalanceRepository.deductFromLocked(reserve.id, rewardAmount);
+    } catch (err: unknown) {
+      this.logger.error(`Failed to deduct from locked balance: ${getErrorMessage(err)}`);
+      throw new BadRequestException('Failed to deduct from locked balance');
+    }
+
+    // Credit to seller's UserBalance
+    try {
+      this.logger.debug(`Crediting ${rewardAmount} to seller ${sellerUserId}`);
+      await this.creditBalance(sellerUserId, rewardAmount, order.orderId, 'Traffic order seller payment');
+    } catch (err: unknown) {
+      this.logger.error(`Failed to credit seller balance: ${getErrorMessage(err)}`);
+      // Transaction will rollback automatically, restoring the deducted amount
+      throw new BadRequestException('Failed to credit seller balance');
+    }
+  }
+
+  /**
+   * Update order progress counters and status
+   */
+  private updateOrderProgress(order: TrafficOrderEntity, reward: Decimal): void {
+    order.currentCount += 1;
+    order.spentAmount = toDbString(add(order.spentAmount, reward), 8);
+
+    if (order.currentCount >= order.targetCount) {
+      order.status = TrafficOrderStatus.Completed;
+      order.completedAt = new Date();
+    } else {
+      order.status = TrafficOrderStatus.InProgress;
+    }
+  }
+
+  /**
+   * Update traffic user statistics
+   */
+  private updateTrafficUserStats(trafficUser: TrafficUserEntity, reward: Decimal): void {
+    trafficUser.totalOrdersParticipated += 1;
+    trafficUser.totalEarnings = toDbString(add(trafficUser.totalEarnings, reward), 8);
+    trafficUser.lastSeenAt = new Date();
   }
 
   /**
