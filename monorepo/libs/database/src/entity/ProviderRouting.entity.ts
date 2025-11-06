@@ -64,13 +64,13 @@ export class ProviderRoutingEntity {
   /**
    * Provider relationship (which provider this rule routes to)
    */
-  @ManyToOne(() => PaymentProviderEntity, { nullable: true, onDelete: 'cascade' })
+  @ManyToOne(() => PaymentProviderEntity, { nullable: true })
   provider!: PaymentProviderEntity | null;
 
   /**
    * Currency filter (null = applies to all currencies)
    */
-  @ManyToOne(() => CurrencyEntity, { nullable: true, onDelete: 'cascade' })
+  @ManyToOne(() => CurrencyEntity, { nullable: true })
   currency!: CurrencyEntity | null;
 
   /**
@@ -107,7 +107,7 @@ export class ProviderRoutingEntity {
   @Property({ type: 'time', fieldName: 'active_to_time', nullable: true })
   activeToTime!: string | null; // e.g., '18:00:00'
 
-  @Property({ type: 'varchar', length: 7, array: true, fieldName: 'active_days_of_week', nullable: true })
+  @Property({ type: 'text[]', fieldName: 'active_days_of_week', nullable: true })
   activeDaysOfWeek!: string[] | null; // e.g., ['MON', 'TUE', 'WED']
 
   @Property({ type: 'date', fieldName: 'active_from_date', nullable: true })
@@ -128,16 +128,16 @@ export class ProviderRoutingEntity {
   /**
    * Geographic conditions
    */
-  @Property({ type: 'varchar', length: 2, array: true, fieldName: 'allowed_countries', nullable: true })
+  @Property({ type: 'text[]', fieldName: 'allowed_countries', nullable: true })
   allowedCountries!: string[] | null; // ISO 3166-1 alpha-2 codes
 
-  @Property({ type: 'varchar', length: 2, array: true, fieldName: 'blocked_countries', nullable: true })
+  @Property({ type: 'text[]', fieldName: 'blocked_countries', nullable: true })
   blockedCountries!: string[] | null;
 
   /**
    * Platform/source conditions
    */
-  @Property({ type: 'varchar', length: 20, array: true, fieldName: 'allowed_platforms', nullable: true })
+  @Property({ type: 'text[]', fieldName: 'allowed_platforms', nullable: true })
   allowedPlatforms!: string[] | null; // e.g., ['telegram', 'web', 'mobile']
 
   /**
@@ -196,7 +196,7 @@ export class ProviderRoutingEntity {
    */
   constructor(data?: EntityConstructorData<ProviderRoutingEntity, 'id' | 'createdAt' | 'updatedAt'>) {
     if (data) {
-      assignEntityData(this, data);
+      assignEntityData(this as Record<string, unknown>, data, {});
     }
   }
 

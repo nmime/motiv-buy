@@ -94,7 +94,7 @@ export class ProviderRoutingRepository {
 
     // Filter by currency if specified (or rules that apply to all currencies)
     if (params.currencyCode) {
-      conditions.$or = [{ currency: { code: params.currencyCode } }, { currency: null }];
+      conditions['$or'] = [{ currency: { code: params.currencyCode } }, { currency: null }];
     }
 
     const rules = await this.em.find(ProviderRoutingEntity, conditions, {
@@ -207,7 +207,7 @@ export class ProviderRoutingRepository {
       return entity;
     } else {
       // Create new
-      const entity = this.em.create(ProviderRoutingEntity, data);
+      const entity = this.em.create(ProviderRoutingEntity, data as never);
       this.em.persist(entity);
       await this.em.flush();
 

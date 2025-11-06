@@ -46,13 +46,13 @@ export class ProviderCurrencyEntity {
   /**
    * Provider relationship
    */
-  @ManyToOne(() => PaymentProviderEntity, { onDelete: 'cascade' })
+  @ManyToOne(() => PaymentProviderEntity)
   provider!: PaymentProviderEntity;
 
   /**
    * Currency relationship
    */
-  @ManyToOne(() => CurrencyEntity, { onDelete: 'cascade' })
+  @ManyToOne(() => CurrencyEntity)
   currency!: CurrencyEntity;
 
   /**
@@ -148,7 +148,7 @@ export class ProviderCurrencyEntity {
    */
   constructor(data?: EntityConstructorData<ProviderCurrencyEntity, 'id' | 'createdAt' | 'updatedAt'>) {
     if (data) {
-      assignEntityData(this, data);
+      assignEntityData(this as Record<string, unknown>, data, {});
     }
   }
 }

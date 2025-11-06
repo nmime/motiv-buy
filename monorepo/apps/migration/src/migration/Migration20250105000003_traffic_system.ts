@@ -26,6 +26,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
         description text,
         type varchar(20) NOT NULL,
         bot_token text,
+        api_key_hash text,
         bot_username varchar(32),
         telegram_id bigint,
         is_active boolean NOT NULL DEFAULT true,
@@ -42,6 +43,8 @@ export class Migration20250105000003TrafficSystem extends Migration {
     this.addSql('CREATE INDEX ix__traffic_sources__type ON traffic_sources (type);');
     this.addSql('CREATE INDEX ix__traffic_sources__is_active ON traffic_sources (is_active);');
     this.addSql('CREATE INDEX ix__traffic_sources__bot_username ON traffic_sources (bot_username);');
+    this.addSql('CREATE INDEX ix__traffic_sources__api_key_hash ON traffic_sources (api_key_hash);');
+    this.addSql(`COMMENT ON COLUMN traffic_sources.api_key_hash IS 'Bcrypt-hashed API key for secure authentication';`);
 
     // 2. Create traffic_source_categories table
     this.addSql(`
@@ -409,6 +412,52 @@ export class Migration20250105000003TrafficSystem extends Migration {
         ON traffic_actions_users (traffic_action_id, traffic_user_id);
     `);
 
+    // 14. Create traffic_order_balances table (locked funds for guaranteed payments)
+    this.addSql(`
+      CREATE TABLE traffic_order_balances (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        traffic_order_id uuid NOT NULL UNIQUE,
+        currency_id uuid NOT NULL,
+        locked_amount decimal(20,8) NOT NULL,
+        spent_amount decimal(20,8) NOT NULL DEFAULT '0',
+        available_amount decimal(20,8) NOT NULL,
+        refunded_amount decimal(20,8) NOT NULL DEFAULT '0',
+        is_settled boolean NOT NULL DEFAULT false,
+        settled_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__traffic_order_balances__traffic_order_id
+          FOREIGN KEY (traffic_order_id)
+          REFERENCES traffic_orders(id)
+          ON DELETE CASCADE,
+        CONSTRAINT fk__traffic_order_balances__currency_id
+          FOREIGN KEY (currency_id)
+          REFERENCES currencies(id)
+          ON DELETE RESTRICT,
+        CONSTRAINT chk__traffic_order_balances__positive_amounts
+          CHECK (
+            locked_amount >= 0 AND
+            spent_amount >= 0 AND
+            available_amount >= 0 AND
+            refunded_amount >= 0
+          ),
+        CONSTRAINT chk__traffic_order_balances__balance_invariant
+          CHECK (
+            locked_amount = spent_amount + available_amount + refunded_amount
+          )
+      );
+    `);
+
+    this.addSql('CREATE INDEX ix__traffic_order_balances__traffic_order_id ON traffic_order_balances (traffic_order_id);');
+    this.addSql('CREATE INDEX ix__traffic_order_balances__currency_id ON traffic_order_balances (currency_id);');
+    this.addSql('CREATE INDEX ix__traffic_order_balances__is_settled ON traffic_order_balances (is_settled);');
+
+    this.addSql(`COMMENT ON TABLE traffic_order_balances IS 'Locked funds for traffic orders. Ensures guaranteed payment.';`);
+    this.addSql(`COMMENT ON COLUMN traffic_order_balances.locked_amount IS 'Total budget locked for order.';`);
+    this.addSql(`COMMENT ON COLUMN traffic_order_balances.spent_amount IS 'Amount paid to sellers for completed tasks.';`);
+    this.addSql(`COMMENT ON COLUMN traffic_order_balances.available_amount IS 'Remaining funds available for tasks.';`);
+    this.addSql(`COMMENT ON COLUMN traffic_order_balances.refunded_amount IS 'Amount refunded to buyer on cancellation.';`);
+
     // ========================================
     // PART 3: UPDATE TRIGGERS
     // ========================================
@@ -419,6 +468,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
       'traffic_targets',
       'traffic_users',
       'traffic_orders',
+      'traffic_order_balances',
       'traffic_actions',
       'traffic_target_sources',
       'traffic_target_users',
@@ -449,6 +499,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     this.addSql('DROP TABLE IF EXISTS traffic_target_users CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_target_sources CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_source_categories_junction CASCADE;');
+    this.addSql('DROP TABLE IF EXISTS traffic_order_balances CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_actions CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_orders CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_users CASCADE;');

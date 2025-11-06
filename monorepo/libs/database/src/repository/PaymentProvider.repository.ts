@@ -137,7 +137,7 @@ export class PaymentProviderRepository {
       this.em.assign(entity, data);
     } else {
       // Create new
-      entity = this.em.create(PaymentProviderEntity, data);
+      entity = this.em.create(PaymentProviderEntity, data as never);
       this.em.persist(entity);
     }
 

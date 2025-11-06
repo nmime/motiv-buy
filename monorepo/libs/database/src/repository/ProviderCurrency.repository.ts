@@ -60,7 +60,7 @@ export class ProviderCurrencyRepository {
     };
 
     if (network) {
-      conditions.network = network;
+      conditions['network'] = network;
     }
 
     return this.em.findOne(ProviderCurrencyEntity, conditions, {
@@ -136,13 +136,13 @@ export class ProviderCurrencyRepository {
 
     switch (criteria) {
       case 'lowest_fee':
-        orderBy.networkFeeEstimate = 'ASC';
+        orderBy['networkFeeEstimate'] = 'ASC';
         break;
       case 'fastest':
-        orderBy.avgConfirmationTimeSeconds = 'ASC';
+        orderBy['avgConfirmationTimeSeconds'] = 'ASC';
         break;
       case 'most_reliable':
-        orderBy.reliabilityScore = 'DESC';
+        orderBy['reliabilityScore'] = 'DESC';
         break;
     }
 
@@ -199,7 +199,7 @@ export class ProviderCurrencyRepository {
       entity = this.em.create(ProviderCurrencyEntity, {
         ...data,
         network,
-      });
+      } as never);
       this.em.persist(entity);
     }
 

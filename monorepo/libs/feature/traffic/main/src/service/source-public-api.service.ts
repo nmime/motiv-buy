@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { EntityManager, EntityRepository } from '@mikro-orm/core';
+import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { getErrorMessage, add, subtract, toDbString, decimal, toNumber } from '@app/common-shared';
 import type { Decimal } from 'decimal.js';
 import { BotFactoryService } from '@app/feature-bot-shared';
@@ -24,6 +24,7 @@ import {
 import {
   CurrencyCode,
   TrafficActionStatus,
+  TrafficActionType,
   TrafficActionsEntity,
   TrafficActionsRepository,
   TrafficOrderEntity,
@@ -526,46 +527,49 @@ export class SourcePublicApiService {
     );
   }
 
-  private matchesGender(requirements: { gender?: string }, dto: { gender?: string }): boolean {
-    if (!requirements.gender || !dto.gender) {
+  private matchesGender(requirements: Record<string, unknown>, dto: { gender?: string }): boolean {
+    const gender = requirements.gender;
+    if (!gender || !dto.gender) {
       return true;
     }
 
-    return requirements.gender === dto.gender;
+    return gender === dto.gender;
   }
 
-  private matchesAge(requirements: { ageMin?: number; ageMax?: number }, dto: { age?: number }): boolean {
+  private matchesAge(requirements: Record<string, unknown>, dto: { age?: number }): boolean {
+    const ageMin = requirements.ageMin as number | undefined;
+    const ageMax = requirements.ageMax as number | undefined;
     if (dto.age === undefined) {
       return true;
     }
 
-    if (requirements.ageMin !== undefined && dto.age < requirements.ageMin) {
+    if (ageMin !== undefined && dto.age < ageMin) {
       return false;
     }
 
-    if (requirements.ageMax !== undefined && dto.age > requirements.ageMax) {
+    if (ageMax !== undefined && dto.age > ageMax) {
       return false;
     }
 
     return true;
   }
 
-  private matchesCountry(requirements: { countries?: string | string[] }, dto: { country?: string }): boolean {
+  private matchesCountry(requirements: Record<string, unknown>, dto: { country?: string }): boolean {
     if (!requirements.countries || !dto.country) {
       return true;
     }
 
-    const countries = Array.isArray(requirements.countries) ? requirements.countries : [requirements.countries];
+    const countries = Array.isArray(requirements.countries) ? requirements.countries as string[] : [requirements.countries as string];
 
     return countries.includes(dto.country);
   }
 
-  private matchesLanguage(requirements: { languages?: string | string[] }, dto: { languageCode?: string }): boolean {
+  private matchesLanguage(requirements: Record<string, unknown>, dto: { languageCode?: string }): boolean {
     if (!requirements.languages || !dto.languageCode) {
       return true;
     }
 
-    const languages = Array.isArray(requirements.languages) ? requirements.languages : [requirements.languages];
+    const languages = Array.isArray(requirements.languages) ? requirements.languages as string[] : [requirements.languages as string];
 
     return languages.includes(dto.languageCode);
   }
@@ -624,50 +628,14 @@ export class SourcePublicApiService {
   }
 
   /**
-   * Debit balance from user
-   */
-  private async debitBalance(userId: string, amount: string, referenceId: string, description: string): Promise<void> {
-    // Get or create balance
-    let balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyCode.STARS);
-
-    if (!balance) {
-      balance = await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyCode.STARS, '0');
-    }
-
-    const balanceBefore = balance.balance;
-    const newBalance = toDbString(subtract(balanceBefore, amount), 8);
-
-    // Check sufficient balance
-    if (decimal(newBalance).lessThan('0')) {
-      throw new BadRequestException('Insufficient balance');
-    }
-
-    // Update balance
-    balance.balance = newBalance;
-
-    // Create history record
-    await this.userBalanceHistoryRepository.createTransaction({
-      userId,
-      currency: CurrencyCode.STARS,
-      type: TransactionType.Reward,
-      amount: `-${amount}`,
-      balanceBefore,
-      balanceAfter: newBalance,
-      description,
-      referenceId,
-      status: TransactionStatus.Completed,
-    });
-  }
-
-  /**
-   * Credit balance to user
+   * Credit balance to user (USDT)
    */
   private async creditBalance(userId: string, amount: string, referenceId: string, description: string): Promise<void> {
     // Get or create balance
-    let balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyCode.STARS);
+    let balance = await this.userBalanceRepository.findByUserAndCurrency(userId, CurrencyCode.Usdt);
 
     if (!balance) {
-      balance = await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyCode.STARS, '0');
+      balance = await this.userBalanceRepository.createOrUpdateBalance(userId, CurrencyCode.Usdt, '0');
     }
 
     const balanceBefore = balance.balance;
@@ -679,7 +647,7 @@ export class SourcePublicApiService {
     // Create history record
     await this.userBalanceHistoryRepository.createTransaction({
       userId,
-      currency: CurrencyCode.STARS,
+      currency: CurrencyCode.Usdt,
       type: TransactionType.Reward,
       amount,
       balanceBefore,
@@ -744,7 +712,7 @@ export class SourcePublicApiService {
 
     const action = new TrafficActionsEntity({
       actionId,
-      type: order.type,
+      type: order.type as unknown as TrafficActionType,
       status: TrafficActionStatus.Completed,
       reward: order.pricePerAction,
       completedAt: dto.completedAt ? new Date(dto.completedAt) : new Date(),
@@ -786,7 +754,7 @@ export class SourcePublicApiService {
 
     // Lock the reserve row for update (prevents concurrent modifications)
     this.logger.debug(`Acquiring pessimistic lock on reserve ${reserve.id}`);
-    await this.em.lock(reserve, 'pessimistic_write');
+    await this.em.lock(reserve, LockMode.PESSIMISTIC_WRITE);
 
     // Check if reserve has sufficient funds
     const availableAmount = decimal(reserve.availableAmount);

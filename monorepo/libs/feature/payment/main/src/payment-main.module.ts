@@ -4,9 +4,9 @@ import { PaymentSharedModule } from '@app/feature-payment-shared';
 import {
   DatabaseModule,
   PaymentTransactionEntity,
-  PaymentProviderConfigRepository,
-  ProviderCurrencySupportRepository,
-  ProviderRoutingRuleRepository,
+  PaymentProviderRepository,
+  ProviderCurrencyRepository,
+  ProviderRoutingRepository,
 } from '@app/database';
 import { CurrencySharedModule } from '@app/feature-currency-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
@@ -59,9 +59,9 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
     ProviderRoutingService,
     PaymentPollingService,
     // Repositories for routing
-    PaymentProviderConfigRepository,
-    ProviderCurrencySupportRepository,
-    ProviderRoutingRuleRepository,
+    PaymentProviderRepository,
+    ProviderCurrencyRepository,
+    ProviderRoutingRepository,
   ],
   exports: [
     PaymentService,
