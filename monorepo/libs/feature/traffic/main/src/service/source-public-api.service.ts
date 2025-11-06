@@ -55,6 +55,7 @@ export class SourcePublicApiService {
     private readonly trafficUserRepository: EntityRepository<TrafficUserEntity>,
     private readonly userBalanceRepository: UserBalanceRepository,
     private readonly userBalanceHistoryRepository: UserBalanceHistoryRepository,
+    private readonly botFactoryService: BotFactoryService,
   ) {}
 
   /**
@@ -579,31 +580,26 @@ export class SourcePublicApiService {
   }
 
   /**
-   * Validate bot with Telegram API
-   * Real implementation - calls actual Telegram API
+   * Validate bot with Telegram API using BotFactoryService
+   * Uses shared bot utilities from @app/feature-bot-shared
    */
   private async validateBotWithTelegram(
     token: string,
   ): Promise<{ isValid: boolean; botId?: number; username?: string; error?: string }> {
     try {
-      const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
-      const data = (await response.json()) as {
-        ok: boolean;
-        result?: { id: number; username: string };
-        description?: string;
-      };
+      const validationResult = await this.botFactoryService.validateBotToken(token);
 
-      if (!data.ok) {
+      if (!validationResult.isValid) {
         return {
           isValid: false,
-          error: data.description || 'Invalid bot token',
+          error: validationResult.error || 'Invalid bot token',
         };
       }
 
       return {
         isValid: true,
-        botId: data.result?.id,
-        username: data.result?.username,
+        botId: validationResult.botInfo?.id,
+        username: validationResult.botInfo?.username,
       };
     } catch (err: unknown) {
       this.logger.error(`Telegram validation failed: ${getErrorMessage(err)}`);

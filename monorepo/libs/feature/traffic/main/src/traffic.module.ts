@@ -22,10 +22,12 @@ import {
 } from '@app/database';
 import { TrafficOrderMapper, TrafficSourceMapper, TrafficTargetMapper } from './mapper';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
+import { BotSharedModule } from '@app/feature-bot-shared';
 
 @Module({
   imports: [
     TrafficSharedModule,
+    BotSharedModule,
     MikroOrmModule.forFeature([
       TrafficTargetEntity,
       TrafficOrderEntity,
