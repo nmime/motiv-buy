@@ -6,10 +6,10 @@ import { CurrencyEntity } from './Currency.entity';
 /**
  * Traffic Order Balance Entity
  *
- * Escrow balance for traffic orders.
+ * Holds locked funds for traffic orders (guaranteed payment pattern).
  * When an order is created, funds are transferred from buyer's UserBalance
- * to this escrow balance. As tasks are completed, funds are distributed
- * from this escrow to sellers.
+ * to this locked balance. As tasks are completed, funds are distributed
+ * from this locked balance to sellers.
  *
  * This prevents:
  * - Orders running out of funds mid-execution
@@ -42,7 +42,7 @@ export class TrafficOrderBalanceEntity {
   currency!: Ref<CurrencyEntity>;
 
   /**
-   * Total budget locked for this order (escrow)
+   * Total budget locked for this order (reserved funds)
    * Transferred from buyer's UserBalance when order is created
    */
   @Property({ type: 'decimal', precision: 20, scale: 8, fieldName: 'locked_amount' })
@@ -56,7 +56,7 @@ export class TrafficOrderBalanceEntity {
   spentAmount = '0';
 
   /**
-   * Available amount remaining in escrow
+   * Available amount remaining in locked balance
    * lockedAmount - spentAmount
    */
   @Property({ type: 'decimal', precision: 20, scale: 8, fieldName: 'available_amount' })
@@ -69,7 +69,7 @@ export class TrafficOrderBalanceEntity {
   refundedAmount = '0';
 
   /**
-   * Whether the escrow has been fully settled (all funds distributed or refunded)
+   * Whether the balance has been fully settled (all funds distributed or refunded)
    */
   @Property({ type: 'boolean', default: false, fieldName: 'is_settled' })
   isSettled = false;

@@ -420,7 +420,7 @@ export class SourcePublicApiService {
 
         this.em.persist(action);
 
-        // 8. GUARANTEED ESCROW BALANCE FLOW
+        // 8. GUARANTEED LOCKED BALANCE FLOW
         const reward = decimal(order.pricePerAction);
         const sellerUserId = source.managedBy?.getEntity().id;
 
@@ -428,24 +428,24 @@ export class SourcePublicApiService {
           throw new BadRequestException('Traffic source has no manager');
         }
 
-        // Get escrow balance (locked funds for this order)
-        const escrow = await this.trafficOrderBalanceRepository.findByOrder(order);
-        if (!escrow) {
-          throw new BadRequestException('Order escrow not found - order may not have been funded');
+        // Get locked balance reserve for this order
+        const reserve = await this.trafficOrderBalanceRepository.findByOrder(order);
+        if (!reserve) {
+          throw new BadRequestException('Order balance reserve not found - order may not have been funded');
         }
 
-        // Lock the escrow row for update (prevents concurrent modifications)
-        await this.em.lock(escrow, 'pessimistic_write');
+        // Lock the reserve row for update (prevents concurrent modifications)
+        await this.em.lock(reserve, 'pessimistic_write');
 
-        // Check if escrow has sufficient funds
-        const availableAmount = decimal(escrow.availableAmount);
+        // Check if reserve has sufficient funds
+        const availableAmount = decimal(reserve.availableAmount);
         if (availableAmount.lessThan(reward)) {
-          throw new BadRequestException('Insufficient escrow balance for this order');
+          throw new BadRequestException('Insufficient locked balance for this order');
         }
 
-        // Deduct from escrow
+        // Deduct from locked balance
         const rewardAmount = toDbString(reward, 8);
-        await this.trafficOrderBalanceRepository.deductFromEscrow(escrow.id, rewardAmount);
+        await this.trafficOrderBalanceRepository.deductFromLocked(reserve.id, rewardAmount);
 
         // Credit to seller's UserBalance
         await this.creditBalance(sellerUserId, rewardAmount, order.orderId, 'Traffic order seller payment');
