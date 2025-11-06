@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { getErrorMessage, add, subtract, toDbString, decimal, toNumber } from '@app/common-shared';
+import { BotFactoryService } from '@app/feature-bot-shared';
 import {
   CheckSubscriptionRequestDto,
   CheckSubscriptionResponseDto,
@@ -25,6 +26,7 @@ import {
   TrafficActionsRepository,
   TrafficOrderEntity,
   TrafficOrderRepository,
+  TrafficOrderBalanceRepository,
   TrafficOrderStatus,
   TrafficSourceEntity,
   TrafficSourceRepository,
@@ -48,6 +50,7 @@ export class SourcePublicApiService {
     private readonly em: EntityManager,
     private readonly trafficSourceRepository: TrafficSourceRepository,
     private readonly trafficOrderRepository: TrafficOrderRepository,
+    private readonly trafficOrderBalanceRepository: TrafficOrderBalanceRepository,
     private readonly trafficActionsRepository: TrafficActionsRepository,
     private readonly trafficUserRepository: EntityRepository<TrafficUserEntity>,
     private readonly userBalanceRepository: UserBalanceRepository,
@@ -416,24 +419,34 @@ export class SourcePublicApiService {
 
         this.em.persist(action);
 
-        // 8. BALANCE FLOW
+        // 8. GUARANTEED ESCROW BALANCE FLOW
         const reward = decimal(order.pricePerAction);
-        const buyerUserId = order.creator.getEntity().id;
         const sellerUserId = source.managedBy?.getEntity().id;
 
         if (!sellerUserId) {
           throw new BadRequestException('Traffic source has no manager');
         }
 
-        // Simple flow: Buyer pays full amount to seller
-        // Seller is responsible for distributing rewards to their bot users
-        // We just track user earnings in TrafficUser.totalEarnings
+        // Get escrow balance (locked funds for this order)
+        const escrow = await this.trafficOrderBalanceRepository.findByOrder(order);
+        if (!escrow) {
+          throw new BadRequestException('Order escrow not found - order may not have been funded');
+        }
+
+        // Lock the escrow row for update (prevents concurrent modifications)
+        await this.em.lock(escrow, 'pessimistic_write');
+
+        // Check if escrow has sufficient funds
+        const availableAmount = decimal(escrow.availableAmount);
+        if (availableAmount.lessThan(reward)) {
+          throw new BadRequestException('Insufficient escrow balance for this order');
+        }
+
+        // Deduct from escrow
         const rewardAmount = toDbString(reward, 8);
+        await this.trafficOrderBalanceRepository.deductFromEscrow(escrow.id, rewardAmount);
 
-        // Deduct from buyer
-        await this.debitBalance(buyerUserId, rewardAmount, order.orderId, 'Traffic order payment');
-
-        // Credit to seller (full amount - seller distributes to bot users separately)
+        // Credit to seller's UserBalance
         await this.creditBalance(sellerUserId, rewardAmount, order.orderId, 'Traffic order seller payment');
 
         // 9. Update order progress
