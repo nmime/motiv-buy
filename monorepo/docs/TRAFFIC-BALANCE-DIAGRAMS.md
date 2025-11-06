@@ -2,7 +2,237 @@
 
 > These diagrams use Mermaid format and can be visualized in GitHub, VS Code, GitLab, and most modern documentation tools.
 
-## 1. Entity Relationship Diagram (ERD)
+## 1. Complete Money Lifecycle Flow
+
+### Full System Flow: Deposit → Lock → Spend → Settle → Withdraw
+
+This comprehensive diagram shows the complete money flow through the entire system from initial deposit to final withdrawal.
+
+```mermaid
+sequenceDiagram
+    participant External as 💳 External Payment<br/>(Crypto Bot)
+    participant BuyerBal as 💰 Buyer UserBalance
+    participant Reserve as 🔒 TrafficOrderBalance
+    participant SellerBal as 💰 Seller UserBalance
+    participant BuyerExt as 💸 Buyer Withdrawal
+    participant SellerExt as 💸 Seller Withdrawal
+    participant History as 📊 UserBalanceHistory
+
+    rect rgb(220, 255, 220)
+        note right of External: STAGE 0: DEPOSIT
+        External->>BuyerBal: Deposit 1000 STARS
+        BuyerBal->>BuyerBal: balance: 0 → 1000
+        BuyerBal->>History: Log: +1000 (Deposit)
+        note over BuyerBal: Buyer Balance: 1000 STARS
+    end
+
+    rect rgb(255, 250, 205)
+        note right of BuyerBal: STAGE 1: LOCK FUNDS (Order Creation)
+        BuyerBal->>BuyerBal: Check balance >= 500
+        BuyerBal->>Reserve: Lock 500 STARS
+        BuyerBal->>BuyerBal: balance: 1000 → 500
+        Reserve->>Reserve: lockedAmount: 500<br/>availableAmount: 500<br/>spentAmount: 0
+        BuyerBal->>History: Log: -500 (Order Lock)
+        note over BuyerBal,Reserve: Buyer: 500 free<br/>Order: 500 locked
+    end
+
+    rect rgb(230, 240, 255)
+        note right of Reserve: STAGE 2: SPEND (Task Completions)
+
+        note over Reserve,SellerBal: Task #1
+        Reserve->>Reserve: 🔒 Pessimistic Lock
+        Reserve->>Reserve: Deduct 5 STARS
+        Reserve->>Reserve: availableAmount: 500 → 495<br/>spentAmount: 0 → 5
+        Reserve->>SellerBal: Credit 5 STARS
+        SellerBal->>SellerBal: balance: 0 → 5
+        SellerBal->>History: Log: +5 (Task Reward)
+
+        note over Reserve,SellerBal: Tasks #2-#50 (245 STARS)
+        Reserve->>Reserve: Deduct 245 STARS
+        Reserve->>Reserve: availableAmount: 495 → 250<br/>spentAmount: 5 → 250
+        Reserve->>SellerBal: Credit 245 STARS
+        SellerBal->>SellerBal: balance: 5 → 250
+        SellerBal->>History: Log: +245 (Task Rewards)
+
+        note over Reserve,SellerBal: Locked: 250 available, 250 spent<br/>Seller: 250 STARS earned
+    end
+
+    rect rgb(255, 230, 230)
+        note right of Reserve: STAGE 3: SETTLE (Order Cancelled)
+        Reserve->>Reserve: Order Cancelled at 50/100<br/>Calculate refund: 250 STARS
+        Reserve->>BuyerBal: Refund 250 STARS
+        BuyerBal->>BuyerBal: balance: 500 → 750
+        Reserve->>Reserve: availableAmount: 250 → 0<br/>refundedAmount: 0 → 250<br/>isSettled: true
+        BuyerBal->>History: Log: +250 (Refund)
+        note over Reserve: Formula: 500 = 250 (spent) + 0 (avail) + 250 (refund) ✅
+    end
+
+    rect rgb(245, 220, 255)
+        note right of BuyerBal: STAGE 4: WITHDRAW (Cash Out)
+
+        note over BuyerBal,BuyerExt: Buyer Withdraws
+        BuyerBal->>BuyerBal: Check balance >= 700
+        BuyerBal->>BuyerExt: Withdraw 700 STARS
+        BuyerBal->>BuyerBal: balance: 750 → 50
+        BuyerBal->>History: Log: -700 (Withdrawal)
+        BuyerExt-->>External: Process to Crypto Bot
+
+        note over SellerBal,SellerExt: Seller Withdraws
+        SellerBal->>SellerBal: Check balance >= 250
+        SellerBal->>SellerExt: Withdraw 250 STARS
+        SellerBal->>SellerBal: balance: 250 → 0
+        SellerBal->>History: Log: -250 (Withdrawal)
+        SellerExt-->>External: Process to Crypto Bot
+    end
+
+    rect rgb(240, 240, 240)
+        note over BuyerBal,SellerBal: FINAL STATE
+        note over BuyerBal: Buyer: 50 STARS remaining
+        note over SellerBal: Seller: 0 STARS (withdrawn)
+        note over History: All transactions logged<br/>Full audit trail maintained
+    end
+```
+
+### Money Flow Summary
+
+| Stage | From | To | Amount | Balance Changes |
+|-------|------|-----|--------|----------------|
+| **0. Deposit** | External | Buyer UserBalance | +1000 STARS | Buyer: 0 → 1000 |
+| **1. Lock** | Buyer UserBalance | TrafficOrderBalance | 500 STARS | Buyer: 1000 → 500<br/>Reserve: 0 → 500 (locked) |
+| **2. Spend** | TrafficOrderBalance | Seller UserBalance | 250 STARS | Reserve: 500 → 250 (available)<br/>Seller: 0 → 250 |
+| **3. Refund** | TrafficOrderBalance | Buyer UserBalance | 250 STARS | Reserve: 250 → 0 (settled)<br/>Buyer: 500 → 750 |
+| **4. Withdraw** | Buyer UserBalance | External | 700 STARS | Buyer: 750 → 50 |
+| **4. Withdraw** | Seller UserBalance | External | 250 STARS | Seller: 250 → 0 |
+
+### Key Guarantees
+
+1. **Atomic Transactions**: All balance updates wrapped in database transactions
+2. **Pessimistic Locking**: TrafficOrderBalance locked during spend operations
+3. **Balance Invariant**: `lockedAmount = spentAmount + availableAmount + refundedAmount`
+4. **Audit Trail**: Every transaction logged in UserBalanceHistory
+5. **No Negative Balances**: All deductions validate sufficient funds first
+
+## 2. Complete Flow with All Entities
+
+This diagram shows all entities and their interactions in the money flow.
+
+```mermaid
+graph TB
+    subgraph "External World"
+        CB[💳 Crypto Bot<br/>External Payment Gateway]
+    end
+
+    subgraph "User Balances"
+        BuyerBal[💰 Buyer UserBalance<br/>Available Funds]
+        SellerBal[💰 Seller UserBalance<br/>Earnings]
+    end
+
+    subgraph "Order System"
+        Order[📋 TrafficOrder<br/>Order Details]
+        Reserve[🔒 TrafficOrderBalance<br/>Locked Funds]
+    end
+
+    subgraph "Traffic System"
+        Source[📱 TrafficSource<br/>Seller's Bot]
+        Target[🎯 TrafficTarget<br/>Buyer's Channel]
+        Actions[✅ TrafficActions<br/>Completed Tasks]
+        Users[🤖 Bot Users<br/>Task Performers]
+    end
+
+    subgraph "Audit System"
+        History[📊 UserBalanceHistory<br/>Transaction Log]
+    end
+
+    subgraph "Currency System"
+        Currency[💱 CurrencyEntity<br/>STARS / TON / USDT]
+    end
+
+    %% Deposit Flow
+    CB -->|"① Deposit<br/>+1000 STARS"| BuyerBal
+
+    %% Lock Flow
+    BuyerBal -->|"② Lock Funds<br/>-500 STARS"| Reserve
+    Order -.manages.-> Reserve
+    Reserve -.stored in.-> Currency
+
+    %% Order Configuration
+    Order -.connects.-> Source
+    Order -.promotes.-> Target
+    Source -.has.-> Users
+
+    %% Spend Flow
+    Users -->|"③ Complete Tasks"| Actions
+    Actions -.records.-> Order
+    Reserve -->|"④ Pay per Task<br/>5 STARS × 50"| SellerBal
+
+    %% Refund Flow
+    Reserve -->|"⑤ Refund Unused<br/>+250 STARS"| BuyerBal
+
+    %% Withdraw Flow
+    BuyerBal -->|"⑥ Withdraw<br/>-700 STARS"| CB
+    SellerBal -->|"⑥ Withdraw<br/>-250 STARS"| CB
+
+    %% Audit Trail
+    BuyerBal -.logs all changes.-> History
+    SellerBal -.logs all changes.-> History
+    Reserve -.logs all changes.-> History
+
+    style CB fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
+    style Reserve fill:#fff9c4,stroke:#f57f17,stroke-width:4px
+    style BuyerBal fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style SellerBal fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style History fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style Order fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+```
+
+### Flow Stages Explained
+
+#### Stage 0: Deposit (External → UserBalance)
+```
+User deposits STARS via Crypto Bot payment gateway
+→ UserBalance.balance increases
+→ UserBalanceHistory records deposit
+```
+
+#### Stage 1: Lock (UserBalance → TrafficOrderBalance)
+```
+Buyer creates order with 500 STARS budget
+→ UserBalance.balance decreases by 500
+→ TrafficOrderBalance.lockedAmount = 500
+→ TrafficOrderBalance.availableAmount = 500
+→ UserBalanceHistory records lock transaction
+```
+
+#### Stage 2: Spend (TrafficOrderBalance → Seller UserBalance)
+```
+For each completed task (50 tasks × 5 STARS):
+→ TrafficOrderBalance.availableAmount decreases by 5
+→ TrafficOrderBalance.spentAmount increases by 5
+→ Seller UserBalance.balance increases by 5
+→ UserBalanceHistory records reward
+→ TrafficActions records completion
+```
+
+#### Stage 3: Settle (TrafficOrderBalance → Buyer UserBalance)
+```
+Order cancelled after 50/100 tasks:
+→ Remaining 250 STARS refunded to buyer
+→ TrafficOrderBalance.availableAmount → 0
+→ TrafficOrderBalance.refundedAmount = 250
+→ TrafficOrderBalance.isSettled = true
+→ Buyer UserBalance.balance increases by 250
+→ UserBalanceHistory records refund
+```
+
+#### Stage 4: Withdraw (UserBalance → External)
+```
+Users withdraw their balances:
+→ UserBalance.balance decreases
+→ Crypto Bot processes payout
+→ UserBalanceHistory records withdrawal
+```
+
+## 3. Entity Relationship Diagram (ERD)
 
 ```mermaid
 erDiagram
@@ -122,7 +352,7 @@ erDiagram
     }
 ```
 
-## 2. Money Flow - Sequence Diagram
+## 4. Money Flow - Individual Stage Diagrams
 
 ### Stage 1: Order Creation (Lock Funds)
 
@@ -256,7 +486,7 @@ sequenceDiagram
     Note over Reserve,BuyerBal: Formula Check:<br/>500 = 250 (spent) + 0 (avail) + 250 (refund) ✅
 ```
 
-## 3. Component Architecture
+## 5. Component Architecture
 
 ```mermaid
 graph TB
@@ -322,7 +552,7 @@ graph TB
     style SourceSvc fill:#9f9,stroke:#6f6,stroke-width:3px
 ```
 
-## 4. State Machine - TrafficOrder
+## 6. State Machine - TrafficOrder
 
 ```mermaid
 stateDiagram-v2
@@ -374,7 +604,7 @@ stateDiagram-v2
     end note
 ```
 
-## 5. State Machine - TrafficOrderBalance
+## 7. State Machine - TrafficOrderBalance
 
 ```mermaid
 stateDiagram-v2
@@ -425,7 +655,7 @@ stateDiagram-v2
     end note
 ```
 
-## 6. Data Flow - Complete Task
+## 8. Data Flow - Complete Task
 
 ```mermaid
 flowchart TD
@@ -477,7 +707,7 @@ flowchart TD
     style Success fill:#9f9,stroke:#6f6,stroke-width:2px
 ```
 
-## 7. Balance Formula Visualization
+## 9. Balance Formula Visualization
 
 ```mermaid
 graph LR
@@ -500,7 +730,7 @@ graph LR
     style Error fill:#f99,stroke:#f66,stroke-width:3px
 ```
 
-## 8. Actor Interaction Overview
+## 10. Actor Interaction Overview
 
 ```mermaid
 graph TB
