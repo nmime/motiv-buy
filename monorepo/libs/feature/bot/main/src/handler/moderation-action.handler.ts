@@ -12,16 +12,26 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { ModerationEntityType } from '@app/database';
-import { IModerationService, MODERATION_SERVICE } from '@app/feature-traffic-shared';
 import { TelegramModerationNotifier } from '../service';
 import { getErrorMessage } from '@app/common-shared';
+
+// Forward declaration to avoid circular dependency
+// Actual service will be injected at runtime by app layer
+interface ModerationServiceInterface {
+  approveSource(requestId: string, reviewedByUserId: string): Promise<void>;
+  declineSource(requestId: string, reviewedByUserId: string, reviewNote?: string): Promise<void>;
+  approveOrder(requestId: string, reviewedByUserId: string): Promise<void>;
+  declineOrder(requestId: string, reviewedByUserId: string, reviewNote?: string): Promise<void>;
+}
+
+export const ModerationServiceToken = 'ModerationService';
 
 @Injectable()
 export class ModerationActionHandler {
   private readonly logger = new Logger(ModerationActionHandler.name);
 
   constructor(
-    @Inject(MODERATION_SERVICE) private readonly moderationService: IModerationService,
+    @Inject(ModerationServiceToken) private readonly moderationService: ModerationServiceInterface,
     private readonly telegramModerationNotifier: TelegramModerationNotifier,
   ) {}
 

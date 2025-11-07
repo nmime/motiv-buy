@@ -5,7 +5,7 @@
  */
 
 import { InlineKeyboard } from 'grammy';
-import { AVAILABLE_TOPICS, Order, OrderDisplayLocation, OrderStatus, UserGender } from './order.types';
+import { availableTopics, Order, OrderDisplayLocation, OrderStatus, UserGender } from './order.types';
 
 /**
  * Pagination configuration
@@ -246,7 +246,7 @@ export function createGenderKeyboard(orderId: string): InlineKeyboard {
 export function createTopicsKeyboard(orderId: string, selectedTopics: string[]): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
-  AVAILABLE_TOPICS.forEach((topic) => {
+  availableTopics.forEach((topic) => {
     const isSelected = selectedTopics.includes(topic.id);
     const prefix = isSelected ? '☑' : '☐';
     keyboard.text(`${prefix} ${topic.name}`, `order:topic:${topic.id}:${orderId}`).row();

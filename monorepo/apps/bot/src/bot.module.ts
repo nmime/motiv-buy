@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { BotMainModule } from '@app/feature-bot-main';
+import { BotMainModule, ModerationServiceToken } from '@app/feature-bot-main';
 import { TrafficMainModule, ModerationService } from '@app/feature-traffic-main';
-import { MODERATION_SERVICE } from '@app/feature-traffic-shared';
 import { BotService } from './service';
 
 /**
@@ -30,9 +29,9 @@ import { BotService } from './service';
     // Thin wrapper service
     BotService,
 
-    // Provide ModerationService for IModerationService interface injection
+    // Provide ModerationService for dependency injection across circular boundaries
     {
-      provide: MODERATION_SERVICE,
+      provide: ModerationServiceToken,
       useExisting: ModerationService,
     },
   ],

@@ -23,7 +23,7 @@ export interface Language {
   name: string;
 }
 
-export const TARGETING_FILTERS = {
+export const targetingFilters = {
   genders: ['male', 'female'] as const,
 
   ageRanges: [
@@ -78,4 +78,4 @@ export const TARGETING_FILTERS = {
   ] as Language[],
 } as const;
 
-export type TargetingFilters = typeof TARGETING_FILTERS;
+export type TargetingFilters = typeof targetingFilters;

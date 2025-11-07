@@ -3,7 +3,7 @@ import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { getErrorMessage, add, subtract, toDbString, decimal, toNumber } from '@app/common-shared';
 import type { Decimal } from 'decimal.js';
 import { BotFactoryService } from '@app/feature-bot-shared';
-import { TARGETING_FILTERS } from '../config/targeting-filters.config';
+import { targetingFilters } from '../config/targeting-filters.config';
 import {
   CheckSubscriptionRequestDto,
   CheckSubscriptionResponseDto,
@@ -86,10 +86,10 @@ export class SourcePublicApiService {
     // Filters are loaded from configuration file
     // TODO: Move to database for dynamic management via admin panel
     return {
-      genders: [...TARGETING_FILTERS.genders],
-      ageRanges: TARGETING_FILTERS.ageRanges,
-      countries: TARGETING_FILTERS.countries,
-      languages: TARGETING_FILTERS.languages,
+      genders: [...targetingFilters.genders],
+      ageRanges: targetingFilters.ageRanges,
+      countries: targetingFilters.countries,
+      languages: targetingFilters.languages,
       actions: [
         { action: 'subscribe', displayName: 'Channel Subscribe', basePrice: 0.1 },
         { action: 'join', displayName: 'Group Join', basePrice: 0.08 },
