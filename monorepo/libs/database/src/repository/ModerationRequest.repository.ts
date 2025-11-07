@@ -1,7 +1,10 @@
 import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
+import { Logger } from '@nestjs/common';
 import { ModerationRequestEntity, ModerationEntityType, ModerationStatus, UserEntity } from '../entity';
 
 export class ModerationRequestRepository extends EntityRepository<ModerationRequestEntity> {
+  private readonly logger = new Logger(ModerationRequestRepository.name);
+
   constructor(em: EntityManager) {
     super(em, ModerationRequestEntity);
   }
@@ -116,7 +119,17 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
 
   /**
    * Update Telegram message ID after sending notification
-   * @param messageId - Telegram message ID (number from API, stored as string)
+   *
+   * @param requestId - Moderation request ID
+   * @param chatId - Telegram chat ID
+   * @param messageId - Telegram message ID (number from Telegram API)
+   *
+   * Note on type conversion (messageId: number → string):
+   * - Telegram API returns message_id as number (JavaScript safe integer)
+   * - Stored as TEXT in database to avoid integer overflow issues
+   * - Telegram IDs can exceed PostgreSQL INTEGER range (2^31-1)
+   * - Converting number → string at storage boundary maintains type safety
+   * - This is the correct place for conversion (at the database layer)
    */
   async updateTelegramMessage(requestId: string, chatId: string, messageId: number): Promise<void> {
     const request = await this.findOne({ id: requestId });
@@ -124,11 +137,12 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
     if (!request) {
       // Log warning but don't throw - this is not a critical error
       // The moderation request may have been deleted or already processed
-      console.warn(`Moderation request not found for Telegram message update: ${requestId}`);
+      this.logger.warn(`Moderation request not found for Telegram message update: ${requestId}`);
       return;
     }
 
     request.telegramChatId = chatId;
+    // Convert number to string for database storage (see method docs for rationale)
     request.telegramMessageId = messageId.toString();
     await this.em.flush();
   }

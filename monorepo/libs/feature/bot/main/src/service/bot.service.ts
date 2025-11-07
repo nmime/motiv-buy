@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
 import { BotCommand, BotContext } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
-import { getErrorMessage, unknownToError } from '@app/common-shared';
+import { getErrorMessage, unknownToError, toError } from '@app/common-shared';
 import { OrderHandler } from '../features/order/order.handler';
 import { I18nService } from 'nestjs-i18n';
 import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl';
@@ -100,8 +100,8 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       // Install error handling middleware
       this.bot.catch(async (err) => {
         const { ctx } = err;
-        // Grammy's BotError.error is typed as unknown, use proper error handling
-        const error = unknownToError(err.error);
+        // Grammy's BotError.error is typed as unknown, convert to Error instance
+        const error = toError(err.error);
         this.logger.error('Bot error occurred', {
           error: error.message,
           stack: error.stack,
@@ -351,9 +351,10 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Register Order feature handlers
-    // Cast to Grammy middleware type - required for composed handlers
+    // Double cast required: Composer<BotContext> -> unknown -> Middleware<BotSessionContext>
+    // BotContext and BotSessionContext are runtime-compatible but TypeScript can't verify this
     const orderComposer = this.orderHandler.getComposer();
-    this.bot.use(orderComposer as Middleware<BotSessionContext>);
+    this.bot.use(orderComposer as unknown as Middleware<BotSessionContext>);
 
     this.logger.log('Feature handlers registered successfully');
   }
