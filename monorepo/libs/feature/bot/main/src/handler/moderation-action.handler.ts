@@ -30,6 +30,32 @@ export const ModerationServiceToken = 'ModerationService';
 export class ModerationActionHandler {
   private readonly logger = new Logger(ModerationActionHandler.name);
 
+  // Map entity types to their approval handlers for O(1) lookup
+  private readonly approveHandlers: Record<
+    ModerationEntityType,
+    (requestId: string, userId: string) => Promise<void>
+  > = {
+    [ModerationEntityType.TrafficSource]: (requestId, userId) => this.moderationService.approveSource(requestId, userId),
+    [ModerationEntityType.TrafficOrder]: (requestId, userId) => this.moderationService.approveOrder(requestId, userId),
+  };
+
+  // Map entity types to their decline handlers for O(1) lookup
+  private readonly declineHandlers: Record<
+    ModerationEntityType,
+    (requestId: string, userId: string, reviewNote?: string) => Promise<void>
+  > = {
+    [ModerationEntityType.TrafficSource]: (requestId, userId, reviewNote) =>
+      this.moderationService.declineSource(requestId, userId, reviewNote),
+    [ModerationEntityType.TrafficOrder]: (requestId, userId, reviewNote) =>
+      this.moderationService.declineOrder(requestId, userId, reviewNote),
+  };
+
+  // Map entity types to display names
+  private readonly entityDisplayNames: Record<ModerationEntityType, string> = {
+    [ModerationEntityType.TrafficSource]: 'Source',
+    [ModerationEntityType.TrafficOrder]: 'Order',
+  };
+
   constructor(
     @Inject(ModerationServiceToken) private readonly moderationService: ModerationServiceInterface,
     private readonly telegramModerationNotifier: TelegramModerationNotifier,
@@ -51,14 +77,18 @@ export class ModerationActionHandler {
         return;
       }
 
-      // Approve based on entity type
-      if (entityType === ModerationEntityType.TrafficSource) {
-        await this.moderationService.approveSource(requestId, userId);
-        this.logger.log(`Source approved by ${username}: ${requestId}`);
-      } else if (entityType === ModerationEntityType.TrafficOrder) {
-        await this.moderationService.approveOrder(requestId, userId);
-        this.logger.log(`Order approved by ${username}: ${requestId}`);
+      // Approve using handler map (O(1) lookup)
+      const approveHandler = this.approveHandlers[entityType];
+
+      if (!approveHandler) {
+        throw new Error(`Unknown entity type: ${entityType}`);
       }
+
+      await approveHandler(requestId, userId);
+
+      const entityName = this.entityDisplayNames[entityType];
+
+      this.logger.log(`${entityName} approved by ${username}: ${requestId}`);
 
       // Update Telegram message to show approval
       const chatId = ctx.chat?.id.toString();
@@ -68,7 +98,7 @@ export class ModerationActionHandler {
         await this.telegramModerationNotifier.updateApproved(chatId, messageId, entityType, username);
       }
 
-      await ctx.answerCallbackQuery(`✅ ${entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order'} approved!`);
+      await ctx.answerCallbackQuery(`✅ ${entityName} approved!`);
     } catch (error) {
       this.logger.error(`Failed to approve moderation request: ${getErrorMessage(error)}`, { requestId, entityType, error });
       await ctx.answerCallbackQuery('❌ Failed to approve. Please try again.');
@@ -94,14 +124,18 @@ export class ModerationActionHandler {
       // Optional: Could add a review note in the future
       const reviewNote = undefined;
 
-      // Decline based on entity type
-      if (entityType === ModerationEntityType.TrafficSource) {
-        await this.moderationService.declineSource(requestId, userId, reviewNote);
-        this.logger.log(`Source declined by ${username}: ${requestId}`);
-      } else if (entityType === ModerationEntityType.TrafficOrder) {
-        await this.moderationService.declineOrder(requestId, userId, reviewNote);
-        this.logger.log(`Order declined by ${username}: ${requestId}`);
+      // Decline using handler map (O(1) lookup)
+      const declineHandler = this.declineHandlers[entityType];
+
+      if (!declineHandler) {
+        throw new Error(`Unknown entity type: ${entityType}`);
       }
+
+      await declineHandler(requestId, userId, reviewNote);
+
+      const entityName = this.entityDisplayNames[entityType];
+
+      this.logger.log(`${entityName} declined by ${username}: ${requestId}`);
 
       // Update Telegram message to show decline
       const chatId = ctx.chat?.id.toString();
@@ -111,7 +145,7 @@ export class ModerationActionHandler {
         await this.telegramModerationNotifier.updateDeclined(chatId, messageId, entityType, username, reviewNote);
       }
 
-      await ctx.answerCallbackQuery(`❌ ${entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order'} declined!`);
+      await ctx.answerCallbackQuery(`❌ ${entityName} declined!`);
     } catch (error) {
       this.logger.error(`Failed to decline moderation request: ${getErrorMessage(error)}`, { requestId, entityType, error });
       await ctx.answerCallbackQuery('❌ Failed to decline. Please try again.');

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BotMainModule, ModerationServiceToken } from '@app/feature-bot-main';
+// ModerationService imported directly from traffic-main for DI wiring
+// This is the app layer resolving circular dependency between bot-main and traffic-main
 import { TrafficMainModule, ModerationService } from '@app/feature-traffic-main';
 import { BotService } from './service';
 
