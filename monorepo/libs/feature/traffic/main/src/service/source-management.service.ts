@@ -57,7 +57,7 @@ export class SourceManagementService {
         }
 
         // Create traffic source (initially inactive, pending moderation)
-        const source = await this.trafficSourceRepository.create({
+        const source = new TrafficSourceEntity({
           name: dto.name,
           description: dto.description,
           type: TrafficSourceType.BotWithToken,
@@ -68,7 +68,7 @@ export class SourceManagementService {
           managedById: userId,
         });
 
-        await this.em.flush();
+        await this.em.persistAndFlush(source);
 
         // Generate and securely store API key
         const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
@@ -244,7 +244,7 @@ export class SourceManagementService {
     try {
       const sources = await this.trafficSourceRepository.findByManager(userId);
 
-      return sources.map((source) => this.mapSourceToResponseDto(source));
+      return sources.map((source: TrafficSourceEntity) => this.mapSourceToResponseDto(source));
     } catch (err: unknown) {
       this.logger.error(`List sources failed: ${getErrorMessage(err)}`);
       throw new BadRequestException('Failed to list traffic sources');
