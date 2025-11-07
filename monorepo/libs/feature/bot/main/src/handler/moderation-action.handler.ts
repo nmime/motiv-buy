@@ -9,10 +9,10 @@
  * NestJS will inject the concrete ModerationService implementation from traffic-main.
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { ModerationEntityType } from '@app/database';
-import { IModerationService } from '@app/feature-traffic-shared';
+import { IModerationService, MODERATION_SERVICE } from '@app/feature-traffic-shared';
 import { TelegramModerationNotifier } from '../service';
 import { getErrorMessage } from '@app/common-shared';
 
@@ -21,7 +21,7 @@ export class ModerationActionHandler {
   private readonly logger = new Logger(ModerationActionHandler.name);
 
   constructor(
-    private readonly moderationService: IModerationService,
+    @Inject(MODERATION_SERVICE) private readonly moderationService: IModerationService,
     private readonly telegramModerationNotifier: TelegramModerationNotifier,
   ) {}
 

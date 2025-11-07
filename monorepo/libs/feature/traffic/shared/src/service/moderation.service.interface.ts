@@ -1,4 +1,10 @@
 /**
+ * Injection token for IModerationService
+ * Use this token with @Inject() decorator to inject the moderation service
+ */
+export const MODERATION_SERVICE = Symbol('MODERATION_SERVICE');
+
+/**
  * Moderation Service Interface
  *
  * Defines the contract for moderation approval/decline operations.
@@ -8,6 +14,7 @@
  * - Interface lives in traffic-shared (libs/feature/traffic/shared)
  * - Implementation lives in traffic-main (libs/feature/traffic/main)
  * - Bot handlers depend on interface, NestJS injects implementation
+ * - Use MODERATION_SERVICE token for dependency injection
  */
 export interface IModerationService {
   /**

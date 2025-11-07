@@ -56,7 +56,8 @@ const redisFactory = ({ config }: RedisConfigService) => {
     {
       provide: Redlock,
       useFactory: (redis: IORedis | Cluster) => {
-        return new Redlock([redis], {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return new Redlock([redis as any], {
           driftFactor: 0.01,
           retryCount: 0,
         });
