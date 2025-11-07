@@ -9,6 +9,7 @@ import {
   ModerationEntityType,
 } from '@app/database';
 import { InlineKeyboard } from 'grammy';
+import { getErrorMessage } from '@app/common-shared';
 
 /**
  * Telegram Moderation Notifier
@@ -57,8 +58,8 @@ export class TelegramModerationNotifier {
         chatId: sentMessage.chat.id.toString(),
         messageId: sentMessage.message_id,
       };
-    } catch (error) {
-      this.logger.error('Failed to send source moderation notification', error);
+    } catch (error: unknown) {
+      this.logger.error(`Failed to send source moderation notification: ${getErrorMessage(error)}`, { sourceId: source.id, error });
       return null;
     }
   }
@@ -90,8 +91,8 @@ export class TelegramModerationNotifier {
         chatId: sentMessage.chat.id.toString(),
         messageId: sentMessage.message_id,
       };
-    } catch (error) {
-      this.logger.error('Failed to send order moderation notification', error);
+    } catch (error: unknown) {
+      this.logger.error(`Failed to send order moderation notification: ${getErrorMessage(error)}`, { orderId: order.id, error });
       return null;
     }
   }
@@ -114,8 +115,8 @@ export class TelegramModerationNotifier {
       });
 
       this.logger.log(`Moderation message updated: approved by ${reviewerUsername}`);
-    } catch (error) {
-      this.logger.error('Failed to update approval message', error);
+    } catch (error: unknown) {
+      this.logger.error(`Failed to update approval message: ${getErrorMessage(error)}`, { chatId, messageId, error });
     }
   }
 
@@ -139,8 +140,8 @@ export class TelegramModerationNotifier {
       });
 
       this.logger.log(`Moderation message updated: declined by ${reviewerUsername}`);
-    } catch (error) {
-      this.logger.error('Failed to update decline message', error);
+    } catch (error: unknown) {
+      this.logger.error(`Failed to update decline message: ${getErrorMessage(error)}`, { chatId, messageId, error });
     }
   }
 

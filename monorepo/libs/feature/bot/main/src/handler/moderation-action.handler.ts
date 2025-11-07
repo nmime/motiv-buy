@@ -7,7 +7,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
-import { UserEntity, UserRole, ModerationEntityType } from '@app/database';
+import { ModerationEntityType } from '@app/database';
 import { ModerationService } from '@app/feature-traffic-main';
 import { TelegramModerationNotifier } from '../service';
 import { getErrorMessage } from '@app/common-shared';
@@ -102,12 +102,5 @@ export class ModerationActionHandler {
       this.logger.error(`Failed to decline moderation request: ${getErrorMessage(error)}`, { requestId, entityType, error });
       await ctx.answerCallbackQuery('❌ Failed to decline. Please try again.');
     }
-  }
-
-  /**
-   * Check if user has admin privileges
-   */
-  async isAdmin(user: UserEntity): Promise<boolean> {
-    return user.role === UserRole.Admin || user.role === UserRole.SuperAdmin;
   }
 }

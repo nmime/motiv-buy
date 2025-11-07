@@ -1,5 +1,5 @@
-import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { ModerationRequestEntity, ModerationEntityType, ModerationStatus } from '../entity';
+import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
+import { ModerationRequestEntity, ModerationEntityType, ModerationStatus, UserEntity } from '../entity';
 
 export class ModerationRequestRepository extends EntityRepository<ModerationRequestEntity> {
   constructor(em: EntityManager) {
@@ -81,7 +81,7 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
     request.reviewNote = reviewNote;
 
     // Set reviewer reference using the same EM
-    request.reviewedBy = this.em.getReference('UserEntity', reviewedByUserId);
+    request.reviewedBy = ref(this.em.getReference(UserEntity, reviewedByUserId));
 
     await this.em.flush();
 
@@ -107,7 +107,7 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
     request.reviewNote = reviewNote;
 
     // Set reviewer reference using the same EM
-    request.reviewedBy = this.em.getReference('UserEntity', reviewedByUserId);
+    request.reviewedBy = ref(this.em.getReference(UserEntity, reviewedByUserId));
 
     await this.em.flush();
 
@@ -121,11 +121,16 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
   async updateTelegramMessage(requestId: string, chatId: string, messageId: number): Promise<void> {
     const request = await this.findOne({ id: requestId });
 
-    if (request) {
-      request.telegramChatId = chatId;
-      request.telegramMessageId = messageId.toString();
-      await this.em.flush();
+    if (!request) {
+      // Log warning but don't throw - this is not a critical error
+      // The moderation request may have been deleted or already processed
+      console.warn(`Moderation request not found for Telegram message update: ${requestId}`);
+      return;
     }
+
+    request.telegramChatId = chatId;
+    request.telegramMessageId = messageId.toString();
+    await this.em.flush();
   }
 
   /**

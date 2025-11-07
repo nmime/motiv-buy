@@ -10,8 +10,7 @@ import {
 } from '@app/feature-traffic-shared';
 import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType } from '@app/database';
 import { ModerationService } from './moderation.service';
-// Direct import to avoid circular dependency through barrel exports
-import { TelegramModerationNotifier } from '@app/feature-bot-main/src/service/telegram-moderation.notifier';
+import { TelegramModerationNotifier } from '@app/feature-bot-main';
 import * as crypto from 'crypto';
 
 /**
