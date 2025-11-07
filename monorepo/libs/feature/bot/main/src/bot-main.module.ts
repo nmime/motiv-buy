@@ -7,7 +7,6 @@ import { UserSharedModule } from '@app/feature-user-shared';
 import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
-import { TrafficMainModule } from '@app/feature-traffic-main';
 import { AppCommonIntlModule } from '@app/common-intl';
 import { BotService, MenuService, MessageService, SessionService, TelegramModerationNotifier } from './service';
 import { BotConfigService } from './config';
@@ -54,7 +53,8 @@ import { RateLimitMiddleware } from './middleware';
     BalanceSharedModule,
     StatisticSharedModule,
     TrafficSharedModule,
-    TrafficMainModule,
+    // Note: TrafficMainModule removed to prevent circular dependency
+    // Traffic services are injected by the app layer
     AppCommonIntlModule,
     OrderModule,
   ],

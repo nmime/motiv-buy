@@ -37,7 +37,7 @@ export class ApiKeyThrottlerGuard extends ThrottlerGuard {
   protected override async getTracker(req: FastifyRequest): Promise<string> {
     // Extract API key from request body (for POST endpoints)
     const body = req.body as Record<string, unknown> | undefined;
-    const apiKey = body?.apiKey as string | undefined;
+    const apiKey = body?.['apiKey'] as string | undefined;
 
     if (apiKey && typeof apiKey === 'string' && apiKey.length > 0) {
       // Use API key as primary tracker for authenticated requests
@@ -62,10 +62,10 @@ export class ApiKeyThrottlerGuard extends ThrottlerGuard {
    *
    * @param context - Execution context
    */
-  protected override throwThrottlingException(context: ExecutionContext): void {
+  protected override async throwThrottlingException(context: ExecutionContext): Promise<void> {
     const request = context.switchToHttp().getRequest<FastifyRequest>();
     const body = request.body as Record<string, unknown> | undefined;
-    const hasApiKey = body?.apiKey && typeof body.apiKey === 'string';
+    const hasApiKey = body?.['apiKey'] && typeof body['apiKey'] === 'string';
 
     const message = hasApiKey
       ? 'Rate limit exceeded for this API key. Please try again later.'

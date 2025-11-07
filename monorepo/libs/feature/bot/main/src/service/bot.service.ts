@@ -1,8 +1,8 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Bot, Context, session, SessionFlavor } from 'grammy';
+import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
 import { BotCommand, BotContext } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
-import { unknownToError } from '@app/common-shared';
+import { getErrorMessage, unknownToError } from '@app/common-shared';
 import { OrderHandler } from '../features/order/order.handler';
 import { I18nService } from 'nestjs-i18n';
 import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl';
@@ -92,18 +92,19 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
       // Install authentication middleware
       // This middleware loads user from database and adds to context
-      // Type assertion is safe: Grammy middleware system requires flexible typing
-      // The middleware properly extends BotSessionContext with user data
       const authMiddleware = BotAuthMiddleware.create(this.botUserService, this.botSessionService);
-      this.bot.use(authMiddleware as any);
+      // Cast to Grammy middleware type - required because our BotContext extends Context
+      // but Grammy's type system doesn't automatically recognize this compatibility
+      this.bot.use(authMiddleware as Middleware<BotSessionContext>);
 
       // Install error handling middleware
       this.bot.catch(async (err) => {
         const { ctx } = err;
-        const error = err.error as Error;
+        // Grammy's BotError.error is typed as unknown, use proper error handling
+        const error = unknownToError(err.error);
         this.logger.error('Bot error occurred', {
           error: error.message,
-          stack: err.stack,
+          stack: error.stack,
           userId: ctx.userId,
           messageText: ctx.message?.text,
         });
@@ -350,10 +351,9 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Register Order feature handlers
-    // Type assertion is safe: OrderHandler composer properly handles BotSessionContext
-    // Grammy's type system requires this flexibility for composed handlers
+    // Cast to Grammy middleware type - required for composed handlers
     const orderComposer = this.orderHandler.getComposer();
-    this.bot.use(orderComposer as any);
+    this.bot.use(orderComposer as Middleware<BotSessionContext>);
 
     this.logger.log('Feature handlers registered successfully');
   }
@@ -366,6 +366,8 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
    */
   private mapContextToBotContext(ctx: BotSessionContext): BotContext {
     // Construct BotContext-compatible object
+    // We construct an object with all required properties and return it typed as BotContext
+    // TypeScript satisfies operator would be ideal here but as is cleaner for this complex structure
     const botContext = {
       message: ctx.message
         ? {

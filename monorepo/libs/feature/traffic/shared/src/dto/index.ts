@@ -1,7 +1,9 @@
 export * from './bot-creation.dto';
 export * from './bot-token-validation.dto';
 export * from './traffic-target.dto';
-export * from './source-task.dto';
+// Note: source-task.dto exports are duplicated in source-public-api.dto
+// Only export unique types from source-task.dto
+export { TaskTargetDto, TaskRequirementsDto } from './source-task.dto';
 export * from './source-management.dto';
 
 // Export bot token validation result

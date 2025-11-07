@@ -35,7 +35,8 @@ import {
   UserEntity,
 } from '@app/database';
 import { ModerationService } from './moderation.service';
-import { TelegramModerationNotifier } from '@app/feature-bot-main';
+// Direct import to avoid circular dependency through barrel exports
+import { TelegramModerationNotifier } from '@app/feature-bot-main/src/service/telegram-moderation.notifier';
 
 /**
  * Service for managing traffic bots and traffic purchase orders
