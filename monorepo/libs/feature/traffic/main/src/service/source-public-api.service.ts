@@ -351,8 +351,9 @@ export class SourcePublicApiService {
         // 1. Validate API key
         const source = await this.validateApiKey(dto.apiKey);
 
-        // 2. Validate task completion prerequisites
-        const { order } = await this.validateTaskCompletion(dto, source);
+        // 2. Validate task completion prerequisites AND acquire pessimistic lock early
+        // This prevents race conditions by locking BEFORE duplicate check
+        const { order, reserve } = await this.validateTaskCompletion(dto, source);
 
         // 3. Find or create traffic user
         const trafficUser = await this.findOrCreateTrafficUser(dto.userId, dto.username, source.id);
@@ -360,10 +361,10 @@ export class SourcePublicApiService {
         // 4. Create action record
         const action = this.createTaskAction(dto, order, source);
 
-        // 5. Process balance flow (deduct from locked, credit seller)
+        // 5. Process balance flow (reserve already locked from step 2)
         const reward = decimal(order.pricePerAction);
         const rewardAmount = toDbString(reward, 8);
-        await this.processBalanceFlow(order, source, rewardAmount);
+        await this.processBalanceFlow(order, source, rewardAmount, reserve);
 
         // 6. Update order progress
         this.updateOrderProgress(order, reward);
@@ -676,11 +677,17 @@ export class SourcePublicApiService {
   /**
    * Validate task completion prerequisites
    * Checks order exists, is active, and not already completed
+   * ACQUIRES PESSIMISTIC LOCK EARLY to prevent race conditions
+   *
+   * Lock acquisition order (critical for preventing deadlocks):
+   * 1. Get order balance reserve
+   * 2. Acquire pessimistic lock on reserve
+   * 3. Check for duplicate actions (under lock protection)
    */
   private async validateTaskCompletion(
     dto: CompleteTaskRequestDto,
     source: TrafficSourceEntity,
-  ): Promise<{ order: TrafficOrderEntity; existsAlready: boolean }> {
+  ): Promise<{ order: TrafficOrderEntity; reserve: TrafficOrderBalanceEntity; existsAlready: boolean }> {
     const { orderId } = this.parseTaskId(dto.taskId);
 
     const order = await this.trafficOrderRepository.findOne(
@@ -701,6 +708,19 @@ export class SourcePublicApiService {
       throw new BadRequestException('Task is not active');
     }
 
+    // CRITICAL: Acquire pessimistic lock BEFORE checking duplicates
+    // This prevents race condition where two requests pass duplicate check simultaneously
+    const reserve = await this.trafficOrderBalanceRepository.findByOrder(order);
+    if (!reserve) {
+      this.logger.error(`Order balance reserve not found for order ${order.orderId}`);
+      throw new BadRequestException('Order balance reserve not found - order may not have been funded');
+    }
+
+    // Lock the reserve row for update (prevents concurrent task completions)
+    this.logger.debug(`Acquiring pessimistic lock on reserve ${reserve.id} (early, before duplicate check)`);
+    await this.em.lock(reserve, LockMode.PESSIMISTIC_WRITE);
+
+    // NOW check for duplicates (protected by pessimistic lock)
     const existingAction = await this.trafficActionsRepository.findOne({
       trafficOrder: order.id,
       actionData: {
@@ -712,7 +732,7 @@ export class SourcePublicApiService {
       throw new BadRequestException('Task already completed');
     }
 
-    return { order, existsAlready: false };
+    return { order, reserve, existsAlready: false };
   }
 
   /**
@@ -746,12 +766,18 @@ export class SourcePublicApiService {
 
   /**
    * Process balance flow: deduct from locked balance and credit seller
-   * Uses pessimistic locking to prevent race conditions
+   * Reserve is already locked by validateTaskCompletion (prevents race conditions)
+   *
+   * @param order - Traffic order
+   * @param source - Traffic source (contains seller info)
+   * @param rewardAmount - Amount to pay seller (string for Decimal precision)
+   * @param reserve - Already locked balance reserve (locked in validateTaskCompletion)
    */
   private async processBalanceFlow(
     order: TrafficOrderEntity,
     source: TrafficSourceEntity,
     rewardAmount: string,
+    reserve: TrafficOrderBalanceEntity,
   ): Promise<void> {
     const sellerUserId = source.managedBy?.getEntity().id;
 
@@ -760,16 +786,8 @@ export class SourcePublicApiService {
       throw new BadRequestException('Traffic source has no manager');
     }
 
-    // Get locked balance reserve for this order
-    const reserve = await this.trafficOrderBalanceRepository.findByOrder(order);
-    if (!reserve) {
-      this.logger.error(`Order balance reserve not found for order ${order.orderId}`);
-      throw new BadRequestException('Order balance reserve not found - order may not have been funded');
-    }
-
-    // Lock the reserve row for update (prevents concurrent modifications)
-    this.logger.debug(`Acquiring pessimistic lock on reserve ${reserve.id}`);
-    await this.em.lock(reserve, LockMode.PESSIMISTIC_WRITE);
+    // Reserve is already pessimistically locked from validateTaskCompletion
+    // No need to lock again - just validate sufficient funds
 
     // Check if reserve has sufficient funds
     const availableAmount = decimal(reserve.availableAmount);

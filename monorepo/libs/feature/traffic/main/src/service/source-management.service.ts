@@ -298,15 +298,6 @@ export class SourceManagementService {
   }
 
   /**
-   * Generate API key
-   */
-  private generateApiKey(): string {
-    const randomBytes = crypto.randomBytes(32).toString('hex');
-
-    return `sk_live_${randomBytes}`;
-  }
-
-  /**
    * Map source entity to response DTO
    * Note: API key is NEVER included in regular responses (security)
    * Only returned once during creation/regeneration

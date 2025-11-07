@@ -62,7 +62,10 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
 
   /**
    * Deduct amount from locked balance (when task is completed)
+   * Validates balance invariant before and after update
    * Returns updated balance
+   *
+   * Invariant: lockedAmount = spentAmount + availableAmount + refundedAmount
    */
   async deductFromLocked(reserveId: string, amount: string): Promise<TrafficOrderBalanceEntity> {
     const reserve = await this.findOne({ id: reserveId });
@@ -77,9 +80,25 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
       throw new Error('Insufficient locked balance');
     }
 
-    // Update amounts
-    reserve.availableAmount = toDbString(subtract(reserve.availableAmount, amount), 8);
-    reserve.spentAmount = toDbString(add(reserve.spentAmount, amount), 8);
+    // Calculate new amounts
+    const newAvailable = subtract(reserve.availableAmount, amount);
+    const newSpent = add(reserve.spentAmount, amount);
+
+    // Application-level invariant validation BEFORE database update
+    // This catches bugs before database constraint violation
+    const invariantSum = add(add(newAvailable, newSpent), reserve.refundedAmount);
+    if (!decimal(invariantSum).equals(reserve.lockedAmount)) {
+      throw new Error(
+        `Balance invariant violation: locked=${reserve.lockedAmount}, ` +
+          `available=${toDbString(newAvailable, 8)}, ` +
+          `spent=${toDbString(newSpent, 8)}, ` +
+          `refunded=${reserve.refundedAmount}`,
+      );
+    }
+
+    // Update amounts (database constraint will also verify)
+    reserve.availableAmount = toDbString(newAvailable, 8);
+    reserve.spentAmount = toDbString(newSpent, 8);
 
     await this.em.flush();
 
