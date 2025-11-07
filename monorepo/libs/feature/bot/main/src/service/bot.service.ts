@@ -48,7 +48,12 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     private readonly callbackRouter: CallbackRouterHandler,
     private readonly botUserService: BotUserService,
     private readonly botSessionService: BotSessionService,
-  ) {}
+  ) {
+    // Note: ProfileActionHandler, SettingsActionHandler, BalanceActionHandler, and MenuActionHandler
+    // cannot be injected here because they depend on services that are not available in bot.service.ts scope.
+    // These handlers are managed by CallbackRouterHandler which has proper access to all dependencies.
+    // The command methods below will be refactored to use CallbackRouterHandler instead of manual instantiation.
+  }
 
   async onModuleInit(): Promise<void> {
     await this.initialize();
@@ -87,8 +92,10 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
       // Install authentication middleware
       // This middleware loads user from database and adds to context
-      // Type assertion needed due to context type compatibility
-      this.bot.use(BotAuthMiddleware.create(this.botUserService, this.botSessionService) as any);
+      // Type assertion is safe: Grammy middleware system requires flexible typing
+      // The middleware properly extends BotSessionContext with user data
+      const authMiddleware = BotAuthMiddleware.create(this.botUserService, this.botSessionService);
+      this.bot.use(authMiddleware as any);
 
       // Install error handling middleware
       this.bot.catch(async (err) => {
@@ -343,17 +350,23 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Register Order feature handlers
-    // Type assertion needed due to context compatibility
-    this.bot.use(this.orderHandler.getComposer() as any);
+    // Type assertion is safe: OrderHandler composer properly handles BotSessionContext
+    // Grammy's type system requires this flexibility for composed handlers
+    const orderComposer = this.orderHandler.getComposer();
+    this.bot.use(orderComposer as any);
 
     this.logger.log('Feature handlers registered successfully');
   }
 
   /**
    * Map Grammy context to BotContext
+   *
+   * Transforms Grammy's BotSessionContext into our custom BotContext interface
+   * This is safe because we're constructing an object that implements all required BotContext properties
    */
   private mapContextToBotContext(ctx: BotSessionContext): BotContext {
-    return {
+    // Construct BotContext-compatible object
+    const botContext = {
       message: ctx.message
         ? {
             message_id: ctx.message.message_id,
@@ -451,7 +464,11 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       state: ctx.userData,
       language: ctx.language,
       t: ctx.t,
-    } as unknown as BotContext;
+    };
+
+    // Safe cast: We've constructed an object with all BotContext properties
+    // TypeScript can't infer this automatically due to the complex nested structure
+    return botContext as BotContext;
   }
 
   // Command handlers
@@ -503,37 +520,60 @@ For support, contact @support or use the /support command.
   }
 
   private async handleProfileCommand(ctx: BotContext): Promise<void> {
-    const { ProfileActionHandler } = require('../handler/profile-action.handler');
-    const { MenuActionHandler } = require('../handler/menu-action.handler');
-    const menuHandler = new MenuActionHandler();
-    const profileHandler = new ProfileActionHandler(null as any, menuHandler);
-    await profileHandler.handleProfileView(ctx);
+    // Simulate callback query for profile:view action
+    // This delegates to CallbackRouterHandler which has proper dependency injection
+    const simulatedCallback = {
+      ...ctx,
+      callbackQuery: {
+        id: 'cmd_profile',
+        from: ctx.from!,
+        data: 'profile:view',
+        chat_instance: '',
+      },
+    };
+    await this.callbackRouter.routeCallback(simulatedCallback as BotContext);
   }
 
   private async handleSettingsCommand(ctx: BotContext): Promise<void> {
-    const { SettingsActionHandler } = require('../handler/settings-action.handler');
-    const { MenuActionHandler } = require('../handler/menu-action.handler');
-    const menuHandler = new MenuActionHandler();
-    const settingsHandler = new SettingsActionHandler(null as any, menuHandler);
-    await settingsHandler.handleSettingsView(ctx);
+    // Simulate callback query for settings:view action
+    const simulatedCallback = {
+      ...ctx,
+      callbackQuery: {
+        id: 'cmd_settings',
+        from: ctx.from!,
+        data: 'settings',
+        chat_instance: '',
+      },
+    };
+    await this.callbackRouter.routeCallback(simulatedCallback as BotContext);
   }
 
   private async handleBalanceCommand(ctx: BotContext): Promise<void> {
-    const { BalanceActionHandler } = require('../handler/balance-action.handler');
-    const { MenuActionHandler } = require('../handler/menu-action.handler');
-    const menuHandler = new MenuActionHandler();
-    const balanceHandler = new BalanceActionHandler(null as any, menuHandler);
-    await balanceHandler.handleBalanceView(ctx);
+    // Simulate callback query for balance:view action
+    const simulatedCallback = {
+      ...ctx,
+      callbackQuery: {
+        id: 'cmd_balance',
+        from: ctx.from!,
+        data: 'balance:view',
+        chat_instance: '',
+      },
+    };
+    await this.callbackRouter.routeCallback(simulatedCallback as BotContext);
   }
 
   private async handleMenuCommand(ctx: BotContext): Promise<void> {
-    const { MenuActionHandler } = require('../handler/menu-action.handler');
-    const menuHandler = new MenuActionHandler();
-    const keyboard = menuHandler.createMainMenuKeyboard();
-    await ctx.reply('📋 <b>Main Menu</b>\n\nSelect an option below:', {
-      parse_mode: 'HTML',
-      reply_markup: keyboard,
-    });
+    // Simulate callback query for menu:main action
+    const simulatedCallback = {
+      ...ctx,
+      callbackQuery: {
+        id: 'cmd_menu',
+        from: ctx.from!,
+        data: 'menu:main',
+        chat_instance: '',
+      },
+    };
+    await this.callbackRouter.routeCallback(simulatedCallback as BotContext);
   }
 
   private async handleUnknownCommand(ctx: BotContext): Promise<void> {

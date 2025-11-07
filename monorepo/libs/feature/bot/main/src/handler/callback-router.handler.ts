@@ -1042,9 +1042,9 @@ export class CallbackRouterHandler {
         return;
       }
 
-      // Check if user is admin (you should have an isAdmin field or role check)
-      // For now, checking if user is verified as a simple permission check
-      if (!user.isVerified) {
+      // Check if user has admin or super admin role
+      const { UserRole } = await import('@app/database');
+      if (user.role !== UserRole.Admin && user.role !== UserRole.SuperAdmin) {
         await ctx.reply('⛔️ Access denied. Admin privileges required.');
         return;
       }
