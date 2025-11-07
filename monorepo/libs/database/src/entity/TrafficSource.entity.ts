@@ -16,7 +16,7 @@ export enum TrafficSourceType {
 @Index({ name: 'ix__traffic_sources__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_sources__is_active', properties: ['isActive'] })
 @Index({ name: 'ix__traffic_sources__bot_username', properties: ['botUsername'] })
-@Index({ name: 'ix__traffic_sources__api_key_hash', properties: ['apiKeyHash'] })
+@Index({ name: 'ix__traffic_sources__api_key_prefix', properties: ['apiKeyPrefix'] })
 export class TrafficSourceEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
@@ -41,6 +41,14 @@ export class TrafficSourceEntity {
    */
   @Property({ type: 'text', nullable: true, fieldName: 'api_key_hash' })
   apiKeyHash?: string;
+
+  /**
+   * First 8 characters of API key for fast lookup
+   * Used to narrow down bcrypt comparisons (security + performance)
+   * Indexed for O(1) lookup instead of O(n) full table scan
+   */
+  @Property({ type: 'varchar', length: 8, nullable: true, fieldName: 'api_key_prefix' })
+  apiKeyPrefix?: string;
 
   @Property({ type: 'varchar', length: 32, nullable: true, fieldName: 'bot_username' })
   botUsername?: string;

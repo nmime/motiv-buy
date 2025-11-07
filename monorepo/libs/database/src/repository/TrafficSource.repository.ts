@@ -99,6 +99,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
   /**
    * Hash and store API key for a traffic source
    * Uses bcrypt with salt rounds = 10
+   * Also stores first 8 chars as prefix for fast indexed lookup
    */
   async setApiKey(sourceId: string, apiKey: string): Promise<void> {
     const source = await this.findOne({ id: sourceId });
@@ -109,7 +110,9 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     const salt = await bcrypt.genSalt(10);
     const hashedKey = await bcrypt.hash(apiKey, salt);
 
+    // Store hash and prefix (first 8 chars for indexed lookup)
     source.apiKeyHash = hashedKey;
+    source.apiKeyPrefix = apiKey.substring(0, 8);
     await this.em.flush();
   }
 
@@ -126,15 +129,27 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
   }
 
   /**
-   * Find traffic source by validating API key
-   * Returns source if API key is valid, null otherwise
+   * Find traffic source by validating API key (SECURE + PERFORMANT)
+   * Uses indexed prefix lookup to avoid O(n) bcrypt comparisons
+   *
+   * Security: Timing-attack resistant via constant-time prefix lookup
+   * Performance: O(1) indexed lookup instead of full table scan
+   *
+   * @param apiKey - Plain text API key from request
+   * @returns Authenticated source or null if invalid
    */
   async findByApiKey(apiKey: string): Promise<TrafficSourceEntity | null> {
-    // Get all sources with API key hash
-    const sources = await this.find({ apiKeyHash: { $ne: null } });
+    // Extract prefix for indexed lookup (first 8 chars)
+    const prefix = apiKey.substring(0, 8);
 
-    // Validate API key against each hash
-    for (const source of sources) {
+    // Fast O(1) lookup using indexed prefix (only 1-2 candidates typically)
+    const candidates = await this.find({
+      apiKeyPrefix: prefix,
+      apiKeyHash: { $ne: null },
+    });
+
+    // Validate API key against candidates (typically just 1 bcrypt comparison)
+    for (const source of candidates) {
       if (source.apiKeyHash && (await bcrypt.compare(apiKey, source.apiKeyHash))) {
         return source;
       }

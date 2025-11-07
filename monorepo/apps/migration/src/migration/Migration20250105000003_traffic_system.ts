@@ -27,6 +27,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
         type varchar(20) NOT NULL,
         bot_token text,
         api_key_hash text,
+        api_key_prefix varchar(8),
         bot_username varchar(32),
         telegram_id bigint,
         is_active boolean NOT NULL DEFAULT true,
@@ -43,8 +44,9 @@ export class Migration20250105000003TrafficSystem extends Migration {
     this.addSql('CREATE INDEX ix__traffic_sources__type ON traffic_sources (type);');
     this.addSql('CREATE INDEX ix__traffic_sources__is_active ON traffic_sources (is_active);');
     this.addSql('CREATE INDEX ix__traffic_sources__bot_username ON traffic_sources (bot_username);');
-    this.addSql('CREATE INDEX ix__traffic_sources__api_key_hash ON traffic_sources (api_key_hash);');
+    this.addSql('CREATE INDEX ix__traffic_sources__api_key_prefix ON traffic_sources (api_key_prefix);');
     this.addSql(`COMMENT ON COLUMN traffic_sources.api_key_hash IS 'Bcrypt-hashed API key for secure authentication';`);
+    this.addSql(`COMMENT ON COLUMN traffic_sources.api_key_prefix IS 'First 8 chars of API key for fast lookup (security + performance)';`);
 
     // 2. Create traffic_source_categories table
     this.addSql(`

@@ -65,9 +65,16 @@ export class SourceManagementService {
 
         await this.em.flush();
 
+        // Generate and securely store API key
+        const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
+
         this.logger.log(`Traffic source created: ${source.id}`);
 
-        return this.mapSourceToResponseDto(source);
+        // Return response with plain text API key (ONLY time it's visible)
+        return {
+          ...this.mapSourceToResponseDto(source),
+          apiKey, // Override with real API key
+        };
       });
     } catch (err: unknown) {
       this.logger.error(`Create source failed: ${getErrorMessage(err)}`);
@@ -227,13 +234,14 @@ export class SourceManagementService {
   /**
    * Regenerate API key for source
    * PRIVATE API with JWT auth
+   * Uses repository's secure method to generate, hash, and store API key
    */
   async regenerateApiKey(sourceId: string, userId: string): Promise<RegenerateApiKeyResponseDto> {
     this.logger.log(`Regenerating API key for source: ${sourceId}`);
 
     try {
       return await this.em.transactional(async () => {
-        const source = await this.trafficSourceRepository.findById(sourceId);
+        const source = await this.trafficSourceRepository.findOne({ id: sourceId });
 
         if (!source) {
           throw new NotFoundException('Traffic source not found');
@@ -242,15 +250,9 @@ export class SourceManagementService {
         // Check access
         await this.validateSourceAccess(source, userId);
 
-        // Generate new API key
-        const newApiKey = this.generateApiKey();
-
-        // Update source
-        // For now, we use botToken as API key
-        // TODO: Add dedicated apiKey field to TrafficSourceEntity
-        source.botToken = newApiKey;
-
-        await this.em.flush();
+        // Generate and securely store new API key using repository method
+        // This automatically hashes the key and stores the prefix for fast lookup
+        const newApiKey = await this.trafficSourceRepository.regenerateApiKey(sourceId);
 
         this.logger.log(`API key regenerated for source: ${sourceId}`);
 
@@ -306,6 +308,8 @@ export class SourceManagementService {
 
   /**
    * Map source entity to response DTO
+   * Note: API key is NEVER included in regular responses (security)
+   * Only returned once during creation/regeneration
    */
   private mapSourceToResponseDto(source: TrafficSourceEntity): SourceResponseDto {
     return {
@@ -316,7 +320,7 @@ export class SourceManagementService {
       botUsername: source.botUsername,
       telegramId: source.telegramId,
       isActive: source.isActive,
-      apiKey: source.botToken || '', // Use botToken as API key for now
+      apiKey: '***HIDDEN***', // Never expose API key after creation
       createdAt: source.createdAt.toISOString(),
       updatedAt: source.updatedAt.toISOString(),
     };

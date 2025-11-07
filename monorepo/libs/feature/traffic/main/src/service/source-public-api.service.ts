@@ -31,6 +31,7 @@ import {
   TrafficOrderRepository,
   TrafficOrderBalanceRepository,
   TrafficOrderStatus,
+  TrafficOrderType,
   TrafficSourceEntity,
   TrafficSourceRepository,
   TrafficUserEntity,
@@ -39,6 +40,20 @@ import {
   UserBalanceHistoryRepository,
   UserBalanceRepository,
 } from '@app/database';
+
+/**
+ * Type-safe mapper from TrafficOrderType to TrafficActionType
+ * All order types map 1:1 to corresponding action types
+ */
+const ORDER_TYPE_TO_ACTION_TYPE: Record<TrafficOrderType, TrafficActionType> = {
+  [TrafficOrderType.Join]: TrafficActionType.Join,
+  [TrafficOrderType.Leave]: TrafficActionType.Leave,
+  [TrafficOrderType.View]: TrafficActionType.View,
+  [TrafficOrderType.Subscribe]: TrafficActionType.Subscribe,
+  [TrafficOrderType.Unsubscribe]: TrafficActionType.Unsubscribe,
+  [TrafficOrderType.React]: TrafficActionType.React,
+  [TrafficOrderType.Comment]: TrafficActionType.Comment,
+} as const;
 
 /**
  * Service for Public Traffic Source API
@@ -712,7 +727,7 @@ export class SourcePublicApiService {
 
     const action = new TrafficActionsEntity({
       actionId,
-      type: order.type as unknown as TrafficActionType,
+      type: ORDER_TYPE_TO_ACTION_TYPE[order.type],
       status: TrafficActionStatus.Completed,
       reward: order.pricePerAction,
       completedAt: dto.completedAt ? new Date(dto.completedAt) : new Date(),
