@@ -429,7 +429,7 @@ export class TrafficService {
         await this.moderationService.updateTelegramMessage(
           moderationRequest.id,
           notification.chatId,
-          notification.messageId.toString(),
+          notification.messageId,
         );
       }
 

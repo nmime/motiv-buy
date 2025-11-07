@@ -222,8 +222,9 @@ export class ModerationService {
 
   /**
    * Update Telegram message info after notification sent
+   * @param messageId - Telegram message ID (number from API)
    */
-  async updateTelegramMessage(requestId: string, chatId: string, messageId: string): Promise<void> {
+  async updateTelegramMessage(requestId: string, chatId: string, messageId: number): Promise<void> {
     await this.moderationRequestRepository.updateTelegramMessage(requestId, chatId, messageId);
   }
 

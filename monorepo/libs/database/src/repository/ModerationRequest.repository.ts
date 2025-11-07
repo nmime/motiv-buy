@@ -80,13 +80,8 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
     request.reviewedAt = new Date();
     request.reviewNote = reviewNote;
 
-    // Load and set the reviewer
-    const em = this.em.fork();
-    const reviewer = await em.findOne('UserEntity', { id: reviewedByUserId });
-
-    if (reviewer) {
-      request.reviewedBy = em.getReference('UserEntity', reviewedByUserId);
-    }
+    // Set reviewer reference using the same EM
+    request.reviewedBy = this.em.getReference('UserEntity', reviewedByUserId);
 
     await this.em.flush();
 
@@ -111,13 +106,8 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
     request.reviewedAt = new Date();
     request.reviewNote = reviewNote;
 
-    // Load and set the reviewer
-    const em = this.em.fork();
-    const reviewer = await em.findOne('UserEntity', { id: reviewedByUserId });
-
-    if (reviewer) {
-      request.reviewedBy = em.getReference('UserEntity', reviewedByUserId);
-    }
+    // Set reviewer reference using the same EM
+    request.reviewedBy = this.em.getReference('UserEntity', reviewedByUserId);
 
     await this.em.flush();
 
@@ -126,13 +116,14 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
 
   /**
    * Update Telegram message ID after sending notification
+   * @param messageId - Telegram message ID (number from API, stored as string)
    */
-  async updateTelegramMessage(requestId: string, chatId: string, messageId: string): Promise<void> {
+  async updateTelegramMessage(requestId: string, chatId: string, messageId: number): Promise<void> {
     const request = await this.findOne({ id: requestId });
 
     if (request) {
       request.telegramChatId = chatId;
-      request.telegramMessageId = messageId;
+      request.telegramMessageId = messageId.toString();
       await this.em.flush();
     }
   }

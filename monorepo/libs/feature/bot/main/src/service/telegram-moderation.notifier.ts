@@ -168,10 +168,12 @@ export class TelegramModerationNotifier {
    * Format traffic order message for moderation
    */
   private async formatOrderMessage(order: TrafficOrderEntity): Promise<string> {
-    // Load relations
-    const creator = await order.creator?.load();
-    const trafficSource = await order.trafficSource?.load();
-    const trafficTarget = await order.trafficTarget?.load();
+    // Load relations in parallel to avoid N+1 queries
+    const [creator, trafficSource, trafficTarget] = await Promise.all([
+      order.creator?.load(),
+      order.trafficSource?.load(),
+      order.trafficTarget?.load(),
+    ]);
 
     const lines = [
       '📋 <b>New Traffic Order - Awaiting Moderation</b>',

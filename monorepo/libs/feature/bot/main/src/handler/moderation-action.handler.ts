@@ -10,6 +10,7 @@ import { BotContext } from '@app/feature-bot-shared';
 import { UserEntity, UserRole, ModerationEntityType } from '@app/database';
 import { ModerationService } from '@app/feature-traffic-main';
 import { TelegramModerationNotifier } from '../service';
+import { getErrorMessage } from '@app/common-shared';
 
 @Injectable()
 export class ModerationActionHandler {
@@ -55,7 +56,7 @@ export class ModerationActionHandler {
 
       await ctx.answerCallbackQuery(`✅ ${entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order'} approved!`);
     } catch (error) {
-      this.logger.error('Failed to approve moderation request', error);
+      this.logger.error(`Failed to approve moderation request: ${getErrorMessage(error)}`, { requestId, entityType, error });
       await ctx.answerCallbackQuery('❌ Failed to approve. Please try again.');
     }
   }
@@ -98,7 +99,7 @@ export class ModerationActionHandler {
 
       await ctx.answerCallbackQuery(`❌ ${entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order'} declined!`);
     } catch (error) {
-      this.logger.error('Failed to decline moderation request', error);
+      this.logger.error(`Failed to decline moderation request: ${getErrorMessage(error)}`, { requestId, entityType, error });
       await ctx.answerCallbackQuery('❌ Failed to decline. Please try again.');
     }
   }
