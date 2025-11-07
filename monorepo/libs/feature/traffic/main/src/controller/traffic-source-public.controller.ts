@@ -26,16 +26,17 @@ import { SourcePublicApiService } from '../service/source-public-api.service';
 /**
  * PUBLIC Traffic Source API Controller
  * For traffic sources to interact with the platform
- * All endpoints use POST with apiKey in request body (SubGram/FlyerService pattern)
+ * All endpoints use POST with apiKey in request body
  *
  * Rate Limiting:
- * - 100 requests per minute per API key
+ * - 6000 requests per minute per API key (100 req/sec sustained)
+ * - Supports high-volume traffic sources (up to 1k RPS burst)
  * - Fallback to IP-based limiting if no API key provided
  */
 @ApiTags('Traffic Source - Public API')
 @Controller('source')
 @UseGuards(ApiKeyThrottlerGuard)
-@Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 req/min per API key
+@Throttle({ default: { limit: 6000, ttl: 60000 } }) // 6000 req/min = 100 req/sec per API key
 @ApiProblemExceptions([
   [InternalException, { description: 'Internal server error occurred' }],
   [ClientDataProblemValidationException, { description: 'Request validation failed' }],
