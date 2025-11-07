@@ -168,11 +168,13 @@ export class TelegramModerationNotifier {
    * Format traffic order message for moderation
    */
   private async formatOrderMessage(order: TrafficOrderEntity): Promise<string> {
-    // Load relations in parallel to avoid N+1 queries
+    // Load required relations in parallel to avoid N+1 queries
+    // Note: These are required relations (nullable: false), so we use .load() without ?.
+    // The fallback values (?? 'Unknown') handle display if relations fail to load
     const [creator, trafficSource, trafficTarget] = await Promise.all([
-      order.creator?.load(),
-      order.trafficSource?.load(),
-      order.trafficTarget?.load(),
+      order.creator.load(),
+      order.trafficSource.load(),
+      order.trafficTarget.load(),
     ]);
 
     const lines = [
