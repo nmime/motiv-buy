@@ -9,6 +9,8 @@ import {
   UpdateSourceDto,
 } from '@app/feature-traffic-shared';
 import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType } from '@app/database';
+import { ModerationService } from './moderation.service';
+import { TelegramModerationNotifier } from '@app/feature-bot-main';
 import * as crypto from 'crypto';
 
 /**
@@ -22,6 +24,8 @@ export class SourceManagementService {
   constructor(
     private readonly em: EntityManager,
     private readonly trafficSourceRepository: TrafficSourceRepository,
+    private readonly moderationService: ModerationService,
+    private readonly telegramModerationNotifier: TelegramModerationNotifier,
   ) {}
 
   /**
@@ -52,7 +56,7 @@ export class SourceManagementService {
           throw new BadRequestException('Bot already registered');
         }
 
-        // Create traffic source
+        // Create traffic source (initially inactive, pending moderation)
         const source = await this.trafficSourceRepository.create({
           name: dto.name,
           description: dto.description,
@@ -60,6 +64,7 @@ export class SourceManagementService {
           botToken: dto.botToken,
           botUsername: dto.botUsername,
           telegramId: botId,
+          isActive: false, // Inactive until approved
           managedById: userId,
         });
 
@@ -69,6 +74,21 @@ export class SourceManagementService {
         const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
 
         this.logger.log(`Traffic source created: ${source.id}`);
+
+        // Create moderation request
+        const moderationRequest = await this.moderationService.createSourceModerationRequest(source.id);
+
+        // Send notification to Telegram moderation channel
+        const notification = await this.telegramModerationNotifier.notifySourceCreated(source, moderationRequest);
+
+        // Update moderation request with Telegram message info
+        if (notification) {
+          await this.moderationService.updateTelegramMessage(
+            moderationRequest.id,
+            notification.chatId,
+            notification.messageId.toString(),
+          );
+        }
 
         // Return response with plain text API key (ONLY time it's visible)
         return {

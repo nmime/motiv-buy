@@ -7,8 +7,9 @@ import { UserSharedModule } from '@app/feature-user-shared';
 import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
+import { TrafficMainModule } from '@app/feature-traffic-main';
 import { AppCommonIntlModule } from '@app/common-intl';
-import { BotService, MenuService, MessageService, SessionService } from './service';
+import { BotService, MenuService, MessageService, SessionService, TelegramModerationNotifier } from './service';
 import { BotConfigService } from './config';
 import { OrderModule } from './features/order/order.module';
 import {
@@ -19,6 +20,7 @@ import {
   StatisticsActionHandler,
   OrderActionHandler,
   SettingsActionHandler,
+  ModerationActionHandler,
 } from './handler';
 import { RateLimitMiddleware } from './middleware';
 
@@ -52,6 +54,7 @@ import { RateLimitMiddleware } from './middleware';
     BalanceSharedModule,
     StatisticSharedModule,
     TrafficSharedModule,
+    TrafficMainModule,
     AppCommonIntlModule,
     OrderModule,
   ],
@@ -61,6 +64,7 @@ import { RateLimitMiddleware } from './middleware';
     MenuService,
     SessionService,
     MessageService,
+    TelegramModerationNotifier,
     CallbackRouterHandler,
     MenuActionHandler,
     ProfileActionHandler,
@@ -68,8 +72,9 @@ import { RateLimitMiddleware } from './middleware';
     StatisticsActionHandler,
     OrderActionHandler,
     SettingsActionHandler,
+    ModerationActionHandler,
     RateLimitMiddleware,
   ],
-  exports: [BotConfigService, BotService, MenuService, SessionService, MessageService],
+  exports: [BotConfigService, BotService, MenuService, SessionService, MessageService, TelegramModerationNotifier],
 })
 export class BotMainModule {}

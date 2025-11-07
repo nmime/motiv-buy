@@ -14,7 +14,8 @@ import {
   UserBalanceHistoryEntity,
   TrafficSourceEntity,
   TrafficOrderEntity,
-  TrafficOrderStatus
+  TrafficOrderStatus,
+  ModerationEntityType,
 } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { ProfileActionHandler } from './profile-action.handler';
@@ -22,6 +23,7 @@ import { BalanceActionHandler } from './balance-action.handler';
 import { StatisticsActionHandler } from './statistics-action.handler';
 import { OrderActionHandler } from './order-action.handler';
 import { SettingsActionHandler } from './settings-action.handler';
+import { ModerationActionHandler } from './moderation-action.handler';
 import { RateLimitMiddleware } from '../middleware/rate-limit.middleware';
 import { MessageService } from '../service/message.service';
 
@@ -46,6 +48,7 @@ export class CallbackRouterHandler {
     private readonly statisticsHandler: StatisticsActionHandler,
     private readonly orderHandler: OrderActionHandler,
     private readonly settingsHandler: SettingsActionHandler,
+    private readonly moderationHandler: ModerationActionHandler,
     private readonly rateLimitMiddleware: RateLimitMiddleware,
     private readonly messageService: MessageService,
   ) {
@@ -67,6 +70,7 @@ export class CallbackRouterHandler {
       ['withdraw', this.routeWithdrawalAction.bind(this)],
       ['withdrawal', this.routeWithdrawalAction.bind(this)],
       ['traffic', this.routeTrafficAction.bind(this)],
+      ['moderation', this.routeModerationAction.bind(this)],
       ['support', this.routeSupportAction.bind(this)],
       ['help', this.routeHelpAction.bind(this)],
       ['campaign', this.routeCampaignAction.bind(this)],
@@ -415,6 +419,45 @@ export class CallbackRouterHandler {
       await handler(ctx, params);
     } else {
       await this.settingsHandler.handleSettingsView(ctx);
+    }
+  }
+
+  /**
+   * Route moderation actions
+   * Format: moderation:approve:traffic_source:requestId
+   * or: moderation:decline:traffic_order:requestId
+   */
+  private async routeModerationAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+    // Verify admin access (action should be 'approve' or 'decline')
+    // params[0] should be entity type, params[1] should be requestId
+    if (params.length < 2) {
+      await ctx.answerCallbackQuery('❌ Invalid moderation request');
+      return;
+    }
+
+    const entityTypeStr = params[0];
+    const requestId = params[1];
+
+    // Map string to ModerationEntityType
+    const entityType =
+      entityTypeStr === 'traffic_source'
+        ? ModerationEntityType.TrafficSource
+        : entityTypeStr === 'traffic_order'
+          ? ModerationEntityType.TrafficOrder
+          : null;
+
+    if (!entityType) {
+      await ctx.answerCallbackQuery('❌ Invalid entity type');
+      return;
+    }
+
+    // Route to appropriate handler
+    if (action === 'approve') {
+      await this.moderationHandler.handleApprove(ctx, entityType, requestId);
+    } else if (action === 'decline') {
+      await this.moderationHandler.handleDecline(ctx, entityType, requestId);
+    } else {
+      await ctx.answerCallbackQuery('❌ Unknown moderation action');
     }
   }
 

@@ -34,6 +34,8 @@ import {
   TrafficTargetType,
   UserEntity,
 } from '@app/database';
+import { ModerationService } from './moderation.service';
+import { TelegramModerationNotifier } from '@app/feature-bot-main';
 
 /**
  * Service for managing traffic bots and traffic purchase orders
@@ -51,6 +53,8 @@ export class TrafficService {
     @InjectRepository(UserEntity)
     private readonly userRepository: EntityRepository<UserEntity>,
     private readonly botTokenValidationService: BotTokenValidationService,
+    private readonly moderationService: ModerationService,
+    private readonly telegramModerationNotifier: TelegramModerationNotifier,
   ) {}
 
   // =====================================================
@@ -392,11 +396,11 @@ export class TrafficService {
       // Calculate total cost using Decimal.js for precision
       const totalCost = toDbString(multiply(dto.amount, dto.pricePerUnit), 4);
 
-      // Create traffic order
+      // Create traffic order (initially pending moderation)
       const order = await this.createOrderEntity({
         orderId,
         type: this.mapTrafficTypeToOrderType(dto.trafficType),
-        status: TrafficOrderStatus.Pending,
+        status: TrafficOrderStatus.Pending, // Pending moderation
         targetCount: dto.amount,
         pricePerAction: dto.pricePerUnit.toString(),
         totalBudget: totalCost,
@@ -413,6 +417,21 @@ export class TrafficService {
       });
 
       this.logger.log(`Traffic order created: ${order.orderId}`);
+
+      // Create moderation request
+      const moderationRequest = await this.moderationService.createOrderModerationRequest(order.id);
+
+      // Send notification to Telegram moderation channel
+      const notification = await this.telegramModerationNotifier.notifyOrderCreated(order, moderationRequest);
+
+      // Update moderation request with Telegram message info
+      if (notification) {
+        await this.moderationService.updateTelegramMessage(
+          moderationRequest.id,
+          notification.chatId,
+          notification.messageId.toString(),
+        );
+      }
 
       return this.mapOrderToResponseDto(order, trafficTarget, trafficSource);
     });
