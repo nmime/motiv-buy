@@ -21,6 +21,14 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     return this.findOne({ botUsername });
   }
 
+  async findById(id: string): Promise<TrafficSourceEntity | null> {
+    return this.findOne({ id });
+  }
+
+  async findByManager(managerId: string): Promise<TrafficSourceEntity[]> {
+    return this.find({ managedBy: managerId });
+  }
+
   async findActiveByType(type: TrafficSourceType): Promise<TrafficSourceEntity[]> {
     return this.find({ type, isActive: true });
   }
@@ -62,6 +70,10 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
       source.isActive = false;
       await this.em.flush();
     }
+  }
+
+  async deactivate(id: string): Promise<void> {
+    return this.deactivateSource(id);
   }
 
   async activateSource(id: string): Promise<void> {

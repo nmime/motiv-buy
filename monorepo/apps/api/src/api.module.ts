@@ -15,6 +15,7 @@ import {
   TrafficSourceController,
   TrafficTargetController,
 } from '@app/feature-traffic-main';
+import { BotMainModule } from '@app/feature-bot-main';
 
 @Module({
   imports: [
@@ -34,6 +35,8 @@ import {
     BalanceMainModule,
     PaymentMainModule,
     StatisticMainModule,
+    // Bot module imported to provide TelegramModerationNotifier for traffic features
+    BotMainModule,
     TrafficMainModule,
   ],
   controllers: [

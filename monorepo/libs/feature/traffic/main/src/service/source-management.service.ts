@@ -9,6 +9,8 @@ import {
   UpdateSourceDto,
 } from '@app/feature-traffic-shared';
 import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType } from '@app/database';
+import { ModerationService } from './moderation.service';
+import { TelegramModerationNotifier } from '@app/feature-bot-main';
 import * as crypto from 'crypto';
 
 /**
@@ -22,6 +24,8 @@ export class SourceManagementService {
   constructor(
     private readonly em: EntityManager,
     private readonly trafficSourceRepository: TrafficSourceRepository,
+    private readonly moderationService: ModerationService,
+    private readonly telegramModerationNotifier: TelegramModerationNotifier,
   ) {}
 
   /**
@@ -52,23 +56,39 @@ export class SourceManagementService {
           throw new BadRequestException('Bot already registered');
         }
 
-        // Create traffic source
-        const source = await this.trafficSourceRepository.create({
+        // Create traffic source (initially inactive, pending moderation)
+        const source = new TrafficSourceEntity({
           name: dto.name,
           description: dto.description,
           type: TrafficSourceType.BotWithToken,
           botToken: dto.botToken,
           botUsername: dto.botUsername,
           telegramId: botId,
+          isActive: false, // Inactive until approved
           managedById: userId,
         });
 
-        await this.em.flush();
+        await this.em.persistAndFlush(source);
 
         // Generate and securely store API key
         const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
 
         this.logger.log(`Traffic source created: ${source.id}`);
+
+        // Create moderation request
+        const moderationRequest = await this.moderationService.createSourceModerationRequest(source.id);
+
+        // Send notification to Telegram moderation channel
+        const notification = await this.telegramModerationNotifier.notifySourceCreated(source, moderationRequest);
+
+        // Update moderation request with Telegram message info
+        if (notification) {
+          await this.moderationService.updateTelegramMessage(
+            moderationRequest.id,
+            notification.chatId,
+            notification.messageId,
+          );
+        }
 
         // Return response with plain text API key (ONLY time it's visible)
         return {
@@ -224,7 +244,7 @@ export class SourceManagementService {
     try {
       const sources = await this.trafficSourceRepository.findByManager(userId);
 
-      return sources.map((source) => this.mapSourceToResponseDto(source));
+      return sources.map((source: TrafficSourceEntity) => this.mapSourceToResponseDto(source));
     } catch (err: unknown) {
       this.logger.error(`List sources failed: ${getErrorMessage(err)}`);
       throw new BadRequestException('Failed to list traffic sources');

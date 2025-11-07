@@ -10,6 +10,7 @@ import type { TrafficOrderEntity } from './TrafficOrder.entity';
 export enum UserRole {
   User = 'user',
   Admin = 'admin',
+  SuperAdmin = 'super_admin',
   Developer = 'developer',
 }
 

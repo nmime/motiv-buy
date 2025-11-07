@@ -24,5 +24,8 @@ export * from './TrafficSource.entity';
 export * from './TrafficSourceCategory.entity';
 export * from './TrafficUser.entity';
 
+// Moderation entities
+export * from './ModerationRequest.entity';
+
 // Junction entities
 export * from './junction';

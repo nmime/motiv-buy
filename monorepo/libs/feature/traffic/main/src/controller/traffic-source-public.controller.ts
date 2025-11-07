@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
 import { AsyncResult } from '@app/common-shared';
@@ -18,16 +19,24 @@ import {
   GetSourceInfoResponseDto,
   GetTasksRequestDto,
   GetTasksResponseDto,
+  ApiKeyThrottlerGuard,
 } from '@app/feature-traffic-shared';
 import { SourcePublicApiService } from '../service/source-public-api.service';
 
 /**
  * PUBLIC Traffic Source API Controller
  * For traffic sources to interact with the platform
- * All endpoints use POST with apiKey in request body (SubGram/FlyerService pattern)
+ * All endpoints use POST with apiKey in request body
+ *
+ * Rate Limiting:
+ * - 10000 requests per minute per API key (166 req/sec sustained)
+ * - Supports high-volume traffic sources (up to 1k RPS burst)
+ * - Fallback to IP-based limiting if no API key provided
  */
 @ApiTags('Traffic Source - Public API')
 @Controller('source')
+@UseGuards(ApiKeyThrottlerGuard)
+@Throttle({ default: { limit: 10000, ttl: 60000 } }) // 10000 req/min = 166 req/sec per API key
 @ApiProblemExceptions([
   [InternalException, { description: 'Internal server error occurred' }],
   [ClientDataProblemValidationException, { description: 'Request validation failed' }],

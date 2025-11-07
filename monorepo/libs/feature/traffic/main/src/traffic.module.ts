@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { SourceManagementService, SourcePublicApiService, TrafficService } from './service';
+import { ModerationService, SourceManagementService, SourcePublicApiService, TrafficService } from './service';
 import { TrafficSourceManagementController, TrafficSourcePublicController } from './controller';
 import {
+  ModerationRequestEntity,
+  ModerationRequestRepository,
   TrafficActionsEntity,
   TrafficActionsRepository,
   TrafficOrderEntity,
@@ -28,7 +30,10 @@ import { BotSharedModule } from '@app/feature-bot-shared';
   imports: [
     TrafficSharedModule,
     BotSharedModule,
+    // Note: BotMainModule removed to prevent circular dependency
+    // TelegramModerationNotifier is injected by the app layer
     MikroOrmModule.forFeature([
+      ModerationRequestEntity,
       TrafficTargetEntity,
       TrafficOrderEntity,
       TrafficOrderBalanceEntity,
@@ -42,12 +47,14 @@ import { BotSharedModule } from '@app/feature-bot-shared';
   ],
   controllers: [TrafficSourcePublicController, TrafficSourceManagementController],
   providers: [
+    ModerationService,
     TrafficService,
     SourcePublicApiService,
     SourceManagementService,
     TrafficTargetMapper,
     TrafficSourceMapper,
     TrafficOrderMapper,
+    ModerationRequestRepository,
     TrafficTargetRepository,
     TrafficSourceRepository,
     TrafficOrderRepository,
@@ -56,6 +63,6 @@ import { BotSharedModule } from '@app/feature-bot-shared';
     UserBalanceRepository,
     UserBalanceHistoryRepository,
   ],
-  exports: [TrafficService, SourcePublicApiService, SourceManagementService],
+  exports: [ModerationService, TrafficService, SourcePublicApiService, SourceManagementService],
 })
 export class TrafficMainModule {}

@@ -29,6 +29,7 @@ import {
   TrafficActionsRepository,
   TrafficOrderEntity,
   TrafficOrderRepository,
+  TrafficOrderBalanceEntity,
   TrafficOrderBalanceRepository,
   TrafficOrderStatus,
   TrafficOrderType,
@@ -209,7 +210,7 @@ export class SourcePublicApiService {
           break;
         }
 
-        const taskId = this.generateTaskId(order.orderId, dto.userId);
+        const taskId = this.generateTaskId(order.orderId, dto.userId.toString());
 
         // Skip if already completed
         if (completedTaskIds.has(taskId)) {
@@ -229,11 +230,11 @@ export class SourcePublicApiService {
           orderId: order.orderId,
           action: order.type,
           price: toNumber(decimal(order.pricePerAction)),
-          link: target.targetUrl || '',
-          links: target.additionalUrls,
+          link: target.inviteLink || '',
+          links: undefined,
           name: target.name,
           username: target.username,
-          photo: target.photoUrl,
+          photo: undefined,
           description: order.description,
           remainingSlots,
         });
@@ -544,7 +545,7 @@ export class SourcePublicApiService {
   }
 
   private matchesGender(requirements: Record<string, unknown>, dto: { gender?: string }): boolean {
-    const gender = requirements.gender;
+    const gender = requirements['gender'];
     if (!gender || !dto.gender) {
       return true;
     }
@@ -553,8 +554,8 @@ export class SourcePublicApiService {
   }
 
   private matchesAge(requirements: Record<string, unknown>, dto: { age?: number }): boolean {
-    const ageMin = requirements.ageMin as number | undefined;
-    const ageMax = requirements.ageMax as number | undefined;
+    const ageMin = requirements['ageMin'] as number | undefined;
+    const ageMax = requirements['ageMax'] as number | undefined;
     if (dto.age === undefined) {
       return true;
     }
@@ -571,21 +572,21 @@ export class SourcePublicApiService {
   }
 
   private matchesCountry(requirements: Record<string, unknown>, dto: { country?: string }): boolean {
-    if (!requirements.countries || !dto.country) {
+    if (!requirements['countries'] || !dto.country) {
       return true;
     }
 
-    const countries = Array.isArray(requirements.countries) ? requirements.countries as string[] : [requirements.countries as string];
+    const countries = Array.isArray(requirements['countries']) ? requirements['countries'] as string[] : [requirements['countries'] as string];
 
     return countries.includes(dto.country);
   }
 
   private matchesLanguage(requirements: Record<string, unknown>, dto: { languageCode?: string }): boolean {
-    if (!requirements.languages || !dto.languageCode) {
+    if (!requirements['languages'] || !dto.languageCode) {
       return true;
     }
 
-    const languages = Array.isArray(requirements.languages) ? requirements.languages as string[] : [requirements.languages as string];
+    const languages = Array.isArray(requirements['languages']) ? requirements['languages'] as string[] : [requirements['languages'] as string];
 
     return languages.includes(dto.languageCode);
   }

@@ -46,24 +46,14 @@ export class ProviderCurrencyEntity {
   /**
    * Provider relationship
    */
-<<<<<<< HEAD
-  @ManyToOne(() => PaymentProviderEntity)
-  provider!: PaymentProviderEntity;
-=======
   @ManyToOne('PaymentProviderEntity', { nullable: false, joinColumn: 'provider_id', referenceColumnName: 'id', ref: true })
   provider!: Ref<PaymentProviderEntity>;
->>>>>>> origin/master
 
   /**
    * Currency relationship
    */
-<<<<<<< HEAD
-  @ManyToOne(() => CurrencyEntity)
-  currency!: CurrencyEntity;
-=======
   @ManyToOne('CurrencyEntity', { nullable: false, joinColumn: 'currency_id', referenceColumnName: 'id', ref: true })
   currency!: Ref<CurrencyEntity>;
->>>>>>> origin/master
 
   /**
    * Network support for multi-chain assets

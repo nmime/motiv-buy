@@ -10,6 +10,7 @@ import { Migration } from '@mikro-orm/migrations';
  * - traffic_users: Users participating in traffic system
  * - traffic_orders: Orders connecting sources to targets
  * - traffic_actions: Individual actions within orders
+ * - moderation_requests: Approval workflow for sources and orders via Telegram
  * - Junction tables for many-to-many relationships
  */
 export class Migration20250105000003TrafficSystem extends Migration {
@@ -195,6 +196,37 @@ export class Migration20250105000003TrafficSystem extends Migration {
     this.addSql('CREATE INDEX ix__traffic_actions__performed_by_id ON traffic_actions (performed_by_id);');
     this.addSql('CREATE INDEX ix__traffic_actions__performed_at ON traffic_actions (performed_at);');
     this.addSql('CREATE INDEX ix__traffic_actions__created_at ON traffic_actions (created_at);');
+
+    // 7. Create moderation_requests table
+    this.addSql(`
+      CREATE TABLE moderation_requests (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        entity_type varchar(20) NOT NULL,
+        entity_id uuid NOT NULL,
+        status varchar(20) NOT NULL,
+        telegram_message_id text,
+        telegram_chat_id text,
+        reviewed_by_id uuid,
+        reviewed_at timestamptz,
+        review_note text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT fk__moderation_requests__reviewed_by_id
+          FOREIGN KEY (reviewed_by_id) REFERENCES users(id) ON DELETE SET NULL
+      );
+    `);
+
+    this.addSql('CREATE INDEX ix__moderation_requests__status ON moderation_requests (status);');
+    this.addSql('CREATE INDEX ix__moderation_requests__entity_type_id ON moderation_requests (entity_type, entity_id);');
+    this.addSql(`
+      CREATE INDEX ix__moderation_requests__telegram_message
+        ON moderation_requests (telegram_chat_id, telegram_message_id);
+    `);
+    this.addSql('CREATE INDEX ix__moderation_requests__created_at ON moderation_requests (created_at);');
+
+    this.addSql(`COMMENT ON TABLE moderation_requests IS 'Approval workflow for traffic sources and orders via Telegram channel';`);
+    this.addSql(`COMMENT ON COLUMN moderation_requests.entity_type IS 'Type: traffic_source or traffic_order';`);
+    this.addSql(`COMMENT ON COLUMN moderation_requests.status IS 'Status: pending, approved, or declined';`);
 
     // ========================================
     // PART 2: JUNCTION TABLES
@@ -472,6 +504,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
       'traffic_orders',
       'traffic_order_balances',
       'traffic_actions',
+      'moderation_requests',
       'traffic_target_sources',
       'traffic_target_users',
       'user_traffic_targets',
@@ -503,6 +536,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     this.addSql('DROP TABLE IF EXISTS traffic_source_categories_junction CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_order_balances CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_actions CASCADE;');
+    this.addSql('DROP TABLE IF EXISTS moderation_requests CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_orders CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_users CASCADE;');
     this.addSql('DROP TABLE IF EXISTS traffic_targets CASCADE;');
