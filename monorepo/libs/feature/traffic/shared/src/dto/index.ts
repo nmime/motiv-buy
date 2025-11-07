@@ -1,6 +1,8 @@
 export * from './bot-creation.dto';
 export * from './bot-token-validation.dto';
 export * from './traffic-target.dto';
+export * from './source-task.dto';
+export * from './source-management.dto';
 
 // Export bot token validation result
 export { BotTokenValidationResponseDto as BotTokenValidationResultDto } from './bot-token-validation.dto';
@@ -27,3 +29,6 @@ export {
   TrafficOrderStatus,
   type OrderStatus,
 } from './traffic-purchase.dto';
+
+// Export Public API DTOs
+export * from './source-public-api.dto';

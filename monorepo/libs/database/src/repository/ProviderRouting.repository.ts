@@ -97,7 +97,7 @@ export class ProviderRoutingRepository {
 
     // Filter by currency if specified (or rules that apply to all currencies)
     if (params.currencyCode) {
-      conditions.$or = [{ currency: { code: params.currencyCode } }, { currency: null }];
+      conditions['$or'] = [{ currency: { code: params.currencyCode } }, { currency: null }];
     }
 
     const rules = await this.em.find(ProviderRoutingEntity, conditions, {

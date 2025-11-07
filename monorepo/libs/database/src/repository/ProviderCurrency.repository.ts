@@ -64,7 +64,7 @@ export class ProviderCurrencyRepository {
     };
 
     if (network) {
-      conditions.network = network;
+      conditions['network'] = network;
     }
 
     return this.em.findOne(ProviderCurrencyEntity, conditions, {

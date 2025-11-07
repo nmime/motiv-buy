@@ -19,6 +19,7 @@ export * from './ProviderRouting.entity';
 export * from './TrafficActions.entity';
 export * from './TrafficTarget.entity';
 export * from './TrafficOrder.entity';
+export * from './TrafficOrderBalance.entity';
 export * from './TrafficSource.entity';
 export * from './TrafficSourceCategory.entity';
 export * from './TrafficUser.entity';
