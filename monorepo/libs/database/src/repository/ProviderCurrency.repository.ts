@@ -54,7 +54,11 @@ export class ProviderCurrencyRepository {
     currencyCode: CurrencyCode,
     network?: NetworkType,
   ): Promise<ProviderCurrencyEntity | null> {
-    const conditions: Record<string, unknown> = {
+    const conditions: {
+      provider: { provider: PaymentProvider };
+      currency: { code: CurrencyCode };
+      network?: NetworkType;
+    } = {
       provider: { provider },
       currency: { code: currencyCode },
     };
@@ -132,19 +136,13 @@ export class ProviderCurrencyRepository {
     currencyCode: CurrencyCode,
     criteria: 'lowest_fee' | 'fastest' | 'most_reliable',
   ): Promise<ProviderCurrencyEntity | null> {
-    const orderBy: Record<string, 'ASC' | 'DESC'> = {};
+    const orderByMap: Record<typeof criteria, Partial<Record<keyof ProviderCurrencyEntity, 'ASC' | 'DESC'>>> = {
+      lowest_fee: { networkFeeEstimate: 'ASC' },
+      fastest: { avgConfirmationTimeSeconds: 'ASC' },
+      most_reliable: { reliabilityScore: 'DESC' },
+    };
 
-    switch (criteria) {
-      case 'lowest_fee':
-        orderBy['networkFeeEstimate'] = 'ASC';
-        break;
-      case 'fastest':
-        orderBy['avgConfirmationTimeSeconds'] = 'ASC';
-        break;
-      case 'most_reliable':
-        orderBy['reliabilityScore'] = 'DESC';
-        break;
-    }
+    const orderBy = orderByMap[criteria];
 
     const results = await this.em.find(
       ProviderCurrencyEntity,
@@ -178,11 +176,10 @@ export class ProviderCurrencyRepository {
   /**
    * Create or update provider-currency support
    */
-  async upsert(data: Partial<ProviderCurrencyEntity>): Promise<ProviderCurrencyEntity> {
-    if (!data.provider || !data.currency) {
-      throw new Error('Provider and currency are required');
-    }
-
+  async upsert(
+    data: Required<Pick<ProviderCurrencyEntity, 'provider' | 'currency'>> &
+      Partial<Omit<ProviderCurrencyEntity, 'provider' | 'currency'>>,
+  ): Promise<ProviderCurrencyEntity> {
     const network = data.network || NetworkType.Native;
 
     let entity = await this.em.findOne(ProviderCurrencyEntity, {
@@ -195,11 +192,11 @@ export class ProviderCurrencyRepository {
       // Update existing
       this.em.assign(entity, data);
     } else {
-      // Create new
-      entity = this.em.create(ProviderCurrencyEntity, {
+      // Create new using entity constructor which properly handles defaults and relations
+      entity = new ProviderCurrencyEntity({
         ...data,
         network,
-      } as never);
+      } as ConstructorParameters<typeof ProviderCurrencyEntity>[0]);
       this.em.persist(entity);
     }
 

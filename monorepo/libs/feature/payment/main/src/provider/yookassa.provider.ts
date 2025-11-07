@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
-import { decimal, toDbString } from '@app/common-shared/util';
+import { decimal, toDbString } from '@app/common-shared';
 import { CurrencyCode } from '@app/database';
 import { CurrencyRateService } from '@app/feature-currency-shared';
 import {
@@ -532,6 +532,10 @@ export class YooKassaProvider implements IPaymentProvider {
       [Cryptocurrency.Bch]: CurrencyCode.Bch,
       [Cryptocurrency.Sol]: CurrencyCode.Sol,
       [Cryptocurrency.Jet]: CurrencyCode.Usdt, // JET maps to USDT as fallback
+      // Fiat currencies
+      [Cryptocurrency.Rub]: CurrencyCode.Rub,
+      [Cryptocurrency.Usd]: CurrencyCode.Usd,
+      [Cryptocurrency.Eur]: CurrencyCode.Eur,
     };
 
     const currencyCode = CURRENCY_MAP[cryptocurrency];

@@ -3,7 +3,7 @@ import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { I18nService } from 'nestjs-i18n';
 import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
-import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared/util';
+import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared';
 import { PaymentProviderFactory } from './payment-provider.factory';
 import { ProviderRoutingService, RoutingContext } from './provider-routing.service';
 import {
@@ -386,7 +386,7 @@ export class PaymentService {
         status: result.status,
         comment: dto.comment,
         createdAt: result.createdAt?.toISOString() || new Date().toISOString(),
-        completedAt: transfer.completedAt?.toISOString(),
+        completedAt: (transfer as PaymentTransfer | null)?.completedAt?.toISOString(),
       };
 
       return Ok(response);

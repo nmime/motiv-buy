@@ -11,7 +11,7 @@ import {
 import { CurrencySharedModule } from '@app/feature-currency-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
 import { CryptoBotProvider } from './provider/crypto-bot.provider';
-import { HelekeProvider } from './provider/heleket.provider';
+import { HeleketProvider } from './provider/heleket.provider';
 import { YooKassaProvider } from './provider/yookassa.provider';
 import { PaymentProviderFactory } from './service/payment-provider.factory';
 import { PaymentService } from './service/payment.service';
@@ -51,7 +51,7 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
   providers: [
     // Payment providers
     CryptoBotProvider,
-    HelekeProvider,
+    HeleketProvider,
     YooKassaProvider,
     // Services
     PaymentProviderFactory,
@@ -68,7 +68,7 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
     PaymentProviderFactory,
     PaymentPollingService,
     CryptoBotProvider,
-    HelekeProvider,
+    HeleketProvider,
     YooKassaProvider,
   ],
 })

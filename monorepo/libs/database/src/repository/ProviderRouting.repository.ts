@@ -88,7 +88,10 @@ export class ProviderRoutingRepository {
     platform?: string;
     amount?: string;
   }): Promise<ProviderRoutingEntity[]> {
-    const conditions: Record<string, unknown> = {
+    const conditions: {
+      isEnabled: boolean;
+      $or?: Array<{ currency: { code: CurrencyCode } } | { currency: null }>;
+    } = {
       isEnabled: true,
     };
 
@@ -192,8 +195,11 @@ export class ProviderRoutingRepository {
   /**
    * Create or update routing rule
    */
-  async upsert(data: Partial<ProviderRoutingEntity>): Promise<ProviderRoutingEntity> {
-    if (data.id) {
+  async upsert(
+    data: (Required<Pick<ProviderRoutingEntity, 'name' | 'ruleType'>> &
+      Partial<Omit<ProviderRoutingEntity, 'name' | 'ruleType'>>) | (Required<Pick<ProviderRoutingEntity, 'id'>> & Partial<ProviderRoutingEntity>),
+  ): Promise<ProviderRoutingEntity> {
+    if ('id' in data && data.id) {
       // Update existing
       const entity = await this.em.findOne(ProviderRoutingEntity, { id: data.id });
 
@@ -206,8 +212,8 @@ export class ProviderRoutingRepository {
 
       return entity;
     } else {
-      // Create new
-      const entity = this.em.create(ProviderRoutingEntity, data as never);
+      // Create new using entity constructor which properly handles defaults and relations
+      const entity = new ProviderRoutingEntity(data as ConstructorParameters<typeof ProviderRoutingEntity>[0]);
       this.em.persist(entity);
       await this.em.flush();
 

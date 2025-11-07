@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Enum, Index, Unique } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne, Enum, Index, Unique, Ref } from '@mikro-orm/core';
 import { EntityConstructorData, assignEntityData } from '../type';
 import { PaymentProviderEntity } from './PaymentProvider.entity';
 import { CurrencyEntity } from './Currency.entity';
@@ -46,14 +46,24 @@ export class ProviderCurrencyEntity {
   /**
    * Provider relationship
    */
+<<<<<<< HEAD
   @ManyToOne(() => PaymentProviderEntity)
   provider!: PaymentProviderEntity;
+=======
+  @ManyToOne('PaymentProviderEntity', { nullable: false, joinColumn: 'provider_id', referenceColumnName: 'id', ref: true })
+  provider!: Ref<PaymentProviderEntity>;
+>>>>>>> origin/master
 
   /**
    * Currency relationship
    */
+<<<<<<< HEAD
   @ManyToOne(() => CurrencyEntity)
   currency!: CurrencyEntity;
+=======
+  @ManyToOne('CurrencyEntity', { nullable: false, joinColumn: 'currency_id', referenceColumnName: 'id', ref: true })
+  currency!: Ref<CurrencyEntity>;
+>>>>>>> origin/master
 
   /**
    * Network support for multi-chain assets
@@ -146,9 +156,27 @@ export class ProviderCurrencyEntity {
   /**
    * Constructor with optional initialization data
    */
-  constructor(data?: EntityConstructorData<ProviderCurrencyEntity, 'id' | 'createdAt' | 'updatedAt'>) {
+  constructor(
+    data?: EntityConstructorData<
+      ProviderCurrencyEntity,
+      'id' | 'createdAt' | 'updatedAt',
+      never,
+      'provider' | 'currency'
+    >,
+  ) {
     if (data) {
-      assignEntityData(this as Record<string, unknown>, data, {});
+      assignEntityData(this, data, {
+        providerId: {
+          field: 'provider',
+          entityClass: PaymentProviderEntity,
+          required: true,
+        },
+        currencyId: {
+          field: 'currency',
+          entityClass: CurrencyEntity,
+          required: true,
+        },
+      });
     }
   }
 }

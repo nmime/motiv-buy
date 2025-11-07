@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PaymentProvider } from '@app/database';
 import { IPaymentProvider } from '@app/feature-payment-shared';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';
-import { HelekeProvider } from '../provider/heleket.provider';
+import { HeleketProvider } from '../provider/heleket.provider';
 import { YooKassaProvider } from '../provider/yookassa.provider';
 
 /**
@@ -29,13 +29,13 @@ export class PaymentProviderFactory {
 
   constructor(
     private readonly cryptoBotProvider: CryptoBotProvider,
-    private readonly helekeProvider: HelekeProvider,
+    private readonly heleketProvider: HeleketProvider,
     private readonly yooKassaProvider: YooKassaProvider,
   ) {
     // Initialize provider map with all available providers
     this.providers = new Map<PaymentProvider, IPaymentProvider>([
       [PaymentProvider.CryptoBot, this.cryptoBotProvider],
-      [PaymentProvider.Heleket, this.helekeProvider],
+      [PaymentProvider.Heleket, this.heleketProvider],
       [PaymentProvider.YooKassa, this.yooKassaProvider],
     ]);
 

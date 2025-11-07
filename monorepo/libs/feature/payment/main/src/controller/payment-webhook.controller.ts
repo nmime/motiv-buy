@@ -13,7 +13,7 @@ import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';
-import { HelekeProvider } from '../provider/heleket.provider';
+import { HeleketProvider } from '../provider/heleket.provider';
 import { YooKassaProvider } from '../provider/yookassa.provider';
 import { PaymentService } from '../service/payment.service';
 import { WebhookUpdateDto, PaymentConfigService } from '@app/feature-payment-shared';
@@ -64,7 +64,7 @@ export class PaymentWebhookController {
 
   constructor(
     private readonly cryptoBotProvider: CryptoBotProvider,
-    private readonly helekeProvider: HelekeProvider,
+    private readonly heleketProvider: HeleketProvider,
     private readonly yooKassaProvider: YooKassaProvider,
     private readonly paymentService: PaymentService,
     private readonly paymentConfig: PaymentConfigService,
@@ -275,7 +275,7 @@ export class PaymentWebhookController {
       const bodyString = this.sanitizeBody(rawBody);
 
       // Verify webhook signature
-      const isValid = this.helekeProvider.verifyWebhook(signature, bodyString);
+      const isValid = this.heleketProvider.verifyWebhook(signature, bodyString);
 
       if (!isValid) {
         this.logger.warn('Webhook rejected: Invalid signature', {
