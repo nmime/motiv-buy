@@ -1,72 +1,62 @@
-# Nestjs specific
-dist
-node_modules
-build
-tmp
-temp
+# Compiled output
+/dist
+/build
+*.tsbuildinfo
 
-# Logs
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+# TypeScript compiled files (should not be in source)
+**/*.js
+**/*.d.ts
+**/*.js.map
 
-# dotenv environment variable files
-.env
-.env.development
-.env.test
-.env.production
+# But allow config files
+!*.config.js
+!**/webpack.config.js
+!jest.config.js
+!eslint.config.js
 
-# temp directory
-.temp
-.tmp
+# Dependencies
+node_modules/
 
+# IDE
+.vscode/
+.idea/
 
-# WebStorm/JetBrains IDE settings
-# Ignore most .idea files but keep shareable configurations
-.idea/*
-!.idea/codeStyles/
-!.idea/runConfigurations/
-!.idea/inspectionProfiles/
-!.idea/jsLinters/
-!.idea/prettier.xml
-!.idea/eslintrc.xml
-
-# WebStorm specific files
-*.iml
-*.iws
-*.ipr
-
-# OS files
+# OS
 .DS_Store
 Thumbs.db
-Desktop.ini
 
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pino-*.log
+lerna-debug.log*
+
+# PM2
+.pm2/
+pm2-*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
 
 # Nx
-**/.nx/cache
-**/.nx/installation
-**/.nx/workspace-data
-
-# Nx compiled output in cache
-**/.nx/cache/**/*.js
-**/.nx/cache/**/*.d.ts
-**/.nx/cache/**/*.js.map
-
-# Claude Flow
-**/.claude-flow
-
-
-
-# Removed Windows wrapper files per user request
-hive-mind-prompt-*.txt
-
-
-# Removed Windows wrapper files per user request
-hive-mind-prompt-*.txt
+.nx/cache
 
 # Claude Flow generated files
 .claude/settings.local.json
@@ -74,9 +64,6 @@ hive-mind-prompt-*.txt
 claude-flow.config.json
 .swarm/
 .hive-mind/
-.claude-flow/
-memory/
-coordination/
 memory/claude-flow-data.json
 memory/sessions/*
 !memory/sessions/README.md
@@ -92,5 +79,29 @@ coordination/orchestration/*
 *.sqlite-journal
 *.sqlite-wal
 claude-flow
-# Removed Windows wrapper files per user request
+claude-flow.bat
+claude-flow.ps1
 hive-mind-prompt-*.txt
+
+# SSL Certificates (never commit)
+*.pem
+*.key
+*.crt
+config/nginx/ssl/*.pem
+config/nginx/ssl/*.key
+config/nginx/ssl/*.crt
+
+# Redis
+dump.rdb
+appendonly.aof
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+
+
+.nx/workspace-data
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
