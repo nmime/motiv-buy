@@ -21,10 +21,7 @@ export enum NotificationContentType {
 }
 
 export enum NotificationTemplateEngine {
-  StringFormat = 'string_format',
-  Mustache = 'mustache',
-  Handlebars = 'handlebars',
-  Ejs = 'ejs',
+  Eta = 'eta',
 }
 
 export interface NotificationButton {
@@ -117,10 +114,10 @@ export class NotificationTemplateEntity {
     type: 'varchar',
     length: 32,
     fieldName: 'template_engine',
-    default: NotificationTemplateEngine.Mustache,
+    default: NotificationTemplateEngine.Eta,
   })
   @Enum(() => NotificationTemplateEngine)
-  templateEngine: NotificationTemplateEngine = NotificationTemplateEngine.Mustache;
+  templateEngine: NotificationTemplateEngine = NotificationTemplateEngine.Eta;
 
   @Property({ type: 'jsonb', nullable: true, fieldName: 'text' })
   text?: Record<string, string | string[]>;

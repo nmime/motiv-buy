@@ -4,10 +4,9 @@ import {
   NotificationButton,
   NotificationMedia,
 } from '@app/database';
+import { defaultLanguage } from '@app/common-shared';
 import { NotificationResult, BuildNotificationOptions } from '../type';
 import { renderTemplate, renderButtons } from './template-renderer.util';
-
-const DEFAULT_LOCALE = 'en';
 
 interface LocalizedContent {
   text?: string | string[];
@@ -16,11 +15,11 @@ interface LocalizedContent {
 }
 
 function getLocalizedContent(template: NotificationTemplateEntity, locale: string): LocalizedContent {
-  const normalizedLocale = locale || template.defaultLocale || DEFAULT_LOCALE;
+  const normalizedLocale = locale || template.defaultLocale || defaultLanguage;
 
-  const textContent = template.text?.[normalizedLocale] ?? template.text?.[DEFAULT_LOCALE];
-  const mediaContent = template.media?.[normalizedLocale] ?? template.media?.[DEFAULT_LOCALE];
-  const buttonsContent = template.buttons?.[normalizedLocale] ?? template.buttons?.[DEFAULT_LOCALE];
+  const textContent = template.text?.[normalizedLocale] ?? template.text?.[defaultLanguage];
+  const mediaContent = template.media?.[normalizedLocale] ?? template.media?.[defaultLanguage];
+  const buttonsContent = template.buttons?.[normalizedLocale] ?? template.buttons?.[defaultLanguage];
 
   return {
     text: textContent,
@@ -98,41 +97,37 @@ export function buildNotificationFromTemplate(
   };
 
   if (selectedText) {
-    result.text = renderTemplate(selectedText, allVariables, template.templateEngine);
+    result.text = renderTemplate(selectedText, allVariables);
   }
 
   if (content.media) {
     if (Array.isArray(content.media)) {
       result.media = content.media.map((m) => ({
         ...m,
-        caption: m.caption ? renderTemplate(m.caption, allVariables, template.templateEngine) : undefined,
+        caption: m.caption ? renderTemplate(m.caption, allVariables) : undefined,
       }));
     } else {
       result.media = {
         ...content.media,
-        caption: content.media.caption
-          ? renderTemplate(content.media.caption, allVariables, template.templateEngine)
-          : undefined,
+        caption: content.media.caption ? renderTemplate(content.media.caption, allVariables) : undefined,
       };
     }
   }
 
   if (selectedButtons.length > 0) {
-    result.buttons = renderButtons(selectedButtons, allVariables, template.templateEngine) as NotificationButton[][];
+    result.buttons = renderButtons(selectedButtons, allVariables) as NotificationButton[][];
   }
 
   switch (template.contentType) {
     case NotificationContentType.Poll:
       if (template.pollConfig) {
-        const pollData = template.pollConfig[locale] ?? template.pollConfig[DEFAULT_LOCALE];
+        const pollData = template.pollConfig[locale] ?? template.pollConfig[defaultLanguage];
         if (pollData) {
           result.pollConfig = {
             ...pollData,
-            question: renderTemplate(pollData.question, allVariables, template.templateEngine),
-            options: pollData.options.map((opt) => renderTemplate(opt, allVariables, template.templateEngine)),
-            explanation: pollData.explanation
-              ? renderTemplate(pollData.explanation, allVariables, template.templateEngine)
-              : undefined,
+            question: renderTemplate(pollData.question, allVariables),
+            options: pollData.options.map((opt) => renderTemplate(opt, allVariables)),
+            explanation: pollData.explanation ? renderTemplate(pollData.explanation, allVariables) : undefined,
           };
         }
       }
@@ -140,21 +135,19 @@ export function buildNotificationFromTemplate(
 
     case NotificationContentType.Location:
       if (template.locationConfig) {
-        result.locationConfig = template.locationConfig[locale] ?? template.locationConfig[DEFAULT_LOCALE];
+        result.locationConfig = template.locationConfig[locale] ?? template.locationConfig[defaultLanguage];
       }
       break;
 
     case NotificationContentType.Contact:
       if (template.contactConfig) {
-        const contactData = template.contactConfig[locale] ?? template.contactConfig[DEFAULT_LOCALE];
+        const contactData = template.contactConfig[locale] ?? template.contactConfig[defaultLanguage];
         if (contactData) {
           result.contactConfig = {
             ...contactData,
-            phoneNumber: renderTemplate(contactData.phoneNumber, allVariables, template.templateEngine),
-            firstName: renderTemplate(contactData.firstName, allVariables, template.templateEngine),
-            lastName: contactData.lastName
-              ? renderTemplate(contactData.lastName, allVariables, template.templateEngine)
-              : undefined,
+            phoneNumber: renderTemplate(contactData.phoneNumber, allVariables),
+            firstName: renderTemplate(contactData.firstName, allVariables),
+            lastName: contactData.lastName ? renderTemplate(contactData.lastName, allVariables) : undefined,
           };
         }
       }
@@ -162,12 +155,12 @@ export function buildNotificationFromTemplate(
 
     case NotificationContentType.Venue:
       if (template.venueConfig) {
-        const venueData = template.venueConfig[locale] ?? template.venueConfig[DEFAULT_LOCALE];
+        const venueData = template.venueConfig[locale] ?? template.venueConfig[defaultLanguage];
         if (venueData) {
           result.venueConfig = {
             ...venueData,
-            title: renderTemplate(venueData.title, allVariables, template.templateEngine),
-            address: renderTemplate(venueData.address, allVariables, template.templateEngine),
+            title: renderTemplate(venueData.title, allVariables),
+            address: renderTemplate(venueData.address, allVariables),
           };
         }
       }

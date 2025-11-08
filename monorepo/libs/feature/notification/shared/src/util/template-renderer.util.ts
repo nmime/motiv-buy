@@ -1,45 +1,10 @@
-import { NotificationTemplateEngine } from '@app/database';
+import * as eta from 'eta';
 
-export function renderTemplate(
-  template: string,
-  variables: Record<string, string | number>,
-  engine: NotificationTemplateEngine = NotificationTemplateEngine.Mustache,
-): string {
-  let result = template;
-
-  for (const [key, value] of Object.entries(variables)) {
-    const stringValue = String(value);
-
-    switch (engine) {
-      case NotificationTemplateEngine.Mustache:
-        result = result.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), stringValue);
-        break;
-
-      case NotificationTemplateEngine.StringFormat:
-        result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), stringValue);
-        break;
-
-      case NotificationTemplateEngine.Ejs:
-        result = result.replace(new RegExp(`<%=\\s*${key}\\s*%>`, 'g'), stringValue);
-        break;
-
-      case NotificationTemplateEngine.Handlebars:
-        result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), stringValue);
-        break;
-
-      default:
-        result = result.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), stringValue);
-    }
-  }
-
-  return result;
+export function renderTemplate(template: string, variables: Record<string, string | number>): string {
+  return eta.render(template, variables) as string;
 }
 
-export function renderButtons(
-  buttons: unknown[][],
-  variables: Record<string, string | number>,
-  engine: NotificationTemplateEngine = NotificationTemplateEngine.Mustache,
-): unknown[][] {
+export function renderButtons(buttons: unknown[][], variables: Record<string, string | number>): unknown[][] {
   if (!buttons || buttons.length === 0) {
     return [];
   }
@@ -55,7 +20,7 @@ export function renderButtons(
 
       for (const [key, value] of Object.entries(btn)) {
         if (typeof value === 'string') {
-          rendered[key] = renderTemplate(value, variables, engine);
+          rendered[key] = renderTemplate(value, variables);
         } else {
           rendered[key] = value;
         }
