@@ -110,10 +110,8 @@ module.exports = [
         {
           selector: 'variable',
           format: ['camelCase', 'PascalCase'],
-          custom: {
-            regex: '^[^A-Z_]+$|^[A-Z][a-z]',
-            match: true,
-          },
+          leadingUnderscore: 'allow',
+          trailingUnderscore: 'allow',
         },
         {
           selector: 'typeLike',

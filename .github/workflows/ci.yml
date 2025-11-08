@@ -48,15 +48,12 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        working-directory: ./
         run: pnpm install --frozen-lockfile
 
       - name: Run ESLint
-        working-directory: ./
         run: pnpm run lint
 
       - name: Check code formatting
-        working-directory: ./
         run: pnpm run format:check
 
   # ==============================================
@@ -100,18 +97,16 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        working-directory: ./
         run: pnpm install --frozen-lockfile
 
       - name: Build ${{ matrix.app }}
-        working-directory: ./
         run: pnpm run build:${{ matrix.app }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.app }}
-          path: /dist/apps/${{ matrix.app }}
+          path: dist/apps/${{ matrix.app }}
           retention-days: 1
 
   # ==============================================
@@ -151,15 +146,12 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        working-directory: ./
         run: pnpm install --frozen-lockfile
 
       - name: Run tests
-        working-directory: ./
         run: pnpm run test
 
       - name: Generate coverage report
-        working-directory: ./
         run: pnpm run test:coverage || true
 
       - name: Upload coverage to Codecov
@@ -194,8 +186,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./
-          file: .//Dockerfile
+          context: .
+          file: ./Dockerfile
           push: false
           build-args: |
             APP_NAME=${{ matrix.app }}
@@ -226,11 +218,9 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        working-directory: ./
         run: pnpm install --frozen-lockfile
 
       - name: Run security audit
-        working-directory: ./
         run: pnpm audit --audit-level=moderate
         continue-on-error: true
 
@@ -238,7 +228,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: './'
+          scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
