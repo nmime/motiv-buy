@@ -16,6 +16,7 @@ import {
   TrafficTargetController,
 } from '@app/feature-traffic-main';
 import { BotMainModule } from '@app/feature-bot-main';
+import { NotificationSharedModule } from '@app/feature-notification-shared';
 
 @Module({
   imports: [
@@ -35,9 +36,11 @@ import { BotMainModule } from '@app/feature-bot-main';
     BalanceMainModule,
     PaymentMainModule,
     StatisticMainModule,
-    // Bot module imported to provide TelegramModerationNotifier for traffic features
+    // Bot module provides Telegram integration for traffic features
     BotMainModule,
     TrafficMainModule,
+    // Notification shared module provides service to create notifications (no scheduler)
+    NotificationSharedModule,
   ],
   controllers: [
     HealthController,

@@ -9,6 +9,7 @@
       "outputs": [
         "{options.outputPath}"
       ],
+      "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/apps/bot",
         "main": "apps/bot/src/main.ts",
@@ -26,6 +27,18 @@
             }
           }
         ]
+      },
+      "configurations": {
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "inspect": false
+        },
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false
+        }
       }
     },
     "serve": {

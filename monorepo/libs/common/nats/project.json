@@ -19,6 +19,18 @@
         "tsConfig": "libs/common/nats/tsconfig.lib.json",
         "assets": [
           "libs/common/nats/*.md"
+        ],
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {
+              "afterDeclarations": true
+            }
+          }
         ]
       }
     },
@@ -26,7 +38,12 @@
       "executor": "@nx/eslint:lint",
       "outputs": [
         "{options.outputFile}"
-      ]
+      ],
+      "options": {
+        "lintFilePatterns": [
+          "libs/common/nats/**/*.ts"
+        ]
+      }
     },
     "test": {
       "executor": "@nx/jest:jest",
@@ -34,7 +51,8 @@
         "{workspaceRoot}/coverage/{projectRoot}"
       ],
       "options": {
-        "jestConfig": "libs/common/nats/jest.config.ts"
+        "jestConfig": "libs/common/nats/jest.config.ts",
+        "passWithNoTests": true
       }
     }
   }

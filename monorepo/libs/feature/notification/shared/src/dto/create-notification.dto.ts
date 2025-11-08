@@ -16,7 +16,7 @@ import {
   NotificationExtra,
 } from '@app/database';
 
-export class CreateNotificationDto<T = Record<string, unknown>> {
+export class CreateNotificationDto<T = Record<string, string | number>> {
   @IsEnum(NotificationChannel)
   @IsNotEmpty()
   channel!: NotificationChannel;
