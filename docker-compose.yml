@@ -44,7 +44,7 @@ services:
   # API Application
   api:
     build:
-      context: .
+      context: ./monorepo
       dockerfile: Dockerfile
       target: production
       args:
@@ -82,8 +82,8 @@ services:
       - "${API_PORT:-3000}:3000"
     volumes:
       # Mount source code for development (hot reload)
-      - ./apps/api:/app/apps/api
-      - ./libs:/app/libs
+      - ./monorepo/apps/api:/app/apps/api
+      - ./monorepo/libs:/app/libs
       - /app/node_modules
       - /app/dist
     networks:
@@ -98,7 +98,7 @@ services:
   # Bot Application
   bot:
     build:
-      context: .
+      context: ./monorepo
       dockerfile: Dockerfile
       target: production
       args:
@@ -132,8 +132,8 @@ services:
 
     volumes:
       # Mount source code for development (hot reload)
-      - ./apps/bot:/app/apps/bot
-      - ./libs:/app/libs
+      - ./monorepo/apps/bot:/app/apps/bot
+      - ./monorepo/libs:/app/libs
       - /app/node_modules
       - /app/dist
     networks:

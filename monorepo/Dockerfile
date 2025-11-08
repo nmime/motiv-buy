@@ -8,10 +8,11 @@ RUN npm install -g pnpm@8
 
 WORKDIR /app
 
-# Copy all package.json files for dependency installation
+# Copy workspace configuration and all source
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/**/package.json ./apps/
-COPY libs/**/package.json ./libs/
+COPY apps ./apps
+COPY libs ./libs
+COPY packages ./packages
 
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
@@ -32,13 +33,12 @@ WORKDIR /app
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/pnpm-lock.yaml ./
 
 # Copy all source code
 COPY . .
 
 # Build the specified application
-RUN pnpm run build ${APP_NAME}
+RUN pnpm run build:${APP_NAME}
 
 # ============================================
 # Stage 3: Production
@@ -58,25 +58,23 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-# Copy package files
+# Copy workspace configuration and structure
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/**/package.json ./apps/
-COPY libs/**/package.json ./libs/
+COPY apps ./apps
+COPY libs ./libs
+COPY packages ./packages
 
 # Install production dependencies only
 RUN pnpm install --prod --frozen-lockfile
 
-# Copy built application and config from builder
+# Copy built application from builder
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/tsconfig.json ./
-COPY --from=builder --chown=nodejs:nodejs /app/nest-cli.json ./
-COPY --from=builder --chown=nodejs:nodejs /app/apps/${APP_NAME}/tsconfig.json ./apps/${APP_NAME}/
 
 # Switch to non-root user
 USER nodejs
 
-# Expose port (will be overridden by docker-compose if needed)
+# Expose port
 EXPOSE 3000
 
 # Set the command based on the app
-CMD node dist/apps/${APP_NAME}/main.js
+CMD ["sh", "-c", "node dist/apps/${APP_NAME}/main.js"]

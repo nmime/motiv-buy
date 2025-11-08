@@ -48,12 +48,15 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        working-directory: ./monorepo
         run: pnpm install --frozen-lockfile
 
       - name: Run ESLint
+        working-directory: ./monorepo
         run: pnpm run lint
 
       - name: Check code formatting
+        working-directory: ./monorepo
         run: pnpm run format:check
 
   # ==============================================
@@ -97,16 +100,18 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        working-directory: ./monorepo
         run: pnpm install --frozen-lockfile
 
       - name: Build ${{ matrix.app }}
-        run: pnpm run build ${{ matrix.app }}
+        working-directory: ./monorepo
+        run: pnpm run build:${{ matrix.app }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.app }}
-          path: dist/apps/${{ matrix.app }}
+          path: monorepo/dist/apps/${{ matrix.app }}
           retention-days: 1
 
   # ==============================================
@@ -146,19 +151,22 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        working-directory: ./monorepo
         run: pnpm install --frozen-lockfile
 
       - name: Run tests
+        working-directory: ./monorepo
         run: pnpm run test
 
       - name: Generate coverage report
-        run: pnpm run test:cov || true
+        working-directory: ./monorepo
+        run: pnpm run test:coverage || true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: always()
         with:
-          files: ./coverage/lcov.info
+          files: ./monorepo/coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -186,7 +194,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./monorepo
           file: ./Dockerfile
           push: false
           build-args: |
@@ -218,9 +226,11 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
+        working-directory: ./monorepo
         run: pnpm install --frozen-lockfile
 
       - name: Run security audit
+        working-directory: ./monorepo
         run: pnpm audit --audit-level=moderate
         continue-on-error: true
 
@@ -228,7 +238,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: './monorepo'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'

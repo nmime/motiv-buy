@@ -122,9 +122,28 @@ docker compose logs -f bot
 
 ### 1. Run Initial Setup Script
 
-SSH into your VPS and run:
+**For private repositories:**
 
 ```bash
+# On your local machine, copy setup script to VPS
+scp scripts/setup-vps.sh root@YOUR_VPS_IP:~/
+
+# SSH into VPS
+ssh root@YOUR_VPS_IP
+
+# Make executable
+chmod +x setup-vps.sh
+
+# Run as root
+sudo bash setup-vps.sh
+```
+
+**For public repositories (alternative):**
+
+```bash
+# SSH into your VPS
+ssh root@YOUR_VPS_IP
+
 # Download setup script
 wget https://raw.githubusercontent.com/your-username/motiv-buy/main/scripts/setup-vps.sh
 
