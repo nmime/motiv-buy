@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
-import { toDbString } from '@app/common-shared';
 import { CurrencyCode } from '@app/database';
 import { CurrencyRateService } from '@app/feature-currency-shared';
 import {
@@ -17,23 +16,6 @@ import {
 /**
  * YooKassa API Response
  */
-interface YooKassaResponse<T> {
-  id?: string;
-  status?: string;
-  amount?: YooKassaAmount;
-  confirmation?: {
-    type: string;
-    confirmation_url?: string;
-  };
-  created_at?: string;
-  paid?: boolean;
-  refundable?: boolean;
-  metadata?: Record<string, unknown>;
-  error?: {
-    code: string;
-    description: string;
-  };
-}
 
 /**
  * YooKassa Amount
@@ -175,14 +157,12 @@ export class YooKassaProvider implements IPaymentProvider {
         if (params && (method === 'POST' || method === 'PATCH')) {
           options.body = JSON.stringify(params);
         }
-        // eslint-disable-next-line no-await-in-loop
-        // eslint-disable-next-line no-await-in-loop
 
+        // eslint-disable-next-line no-await-in-loop
         const response = await fetch(url, options);
-          // eslint-disable-next-line no-await-in-loop
-          // eslint-disable-next-line no-await-in-loop
 
         if (!response.ok) {
+          // eslint-disable-next-line no-await-in-loop
           const errorBody = await response.json();
           throw new Error(
             `YooKassa API error: ${errorBody.error?.description || response.statusText} (${response.status})`,
@@ -195,12 +175,11 @@ export class YooKassaProvider implements IPaymentProvider {
         this.logger.warn(`Request attempt ${attempt + 1} failed: ${method} ${endpoint}`, {
           error: lastError.message,
         });
-      // eslint-disable-next-line no-await-in-loop
 
-      // eslint-disable-next-line no-await-in-loop
         if (attempt < this.maxRetries) {
           // Exponential backoff: 1s, 2s, 4s
           const delay = Math.pow(2, attempt) * 1000;
+          // eslint-disable-next-line no-await-in-loop
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
@@ -483,12 +462,11 @@ export class YooKassaProvider implements IPaymentProvider {
     return Ok([]);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   /**
    * Verify webhook signature
    * YooKassa doesn't use HMAC signatures, but we can implement IP whitelist check
    */
-  verifyWebhook(signature: string, body: string): boolean {
+  verifyWebhook(_signature: string, _body: string): boolean {
     // YooKassa webhooks are verified by IP whitelist
     // In production, check the request IP against YooKassa's IP ranges
     // For now, accept all webhooks (security warning)
@@ -525,27 +503,6 @@ export class YooKassaProvider implements IPaymentProvider {
    * Map Cryptocurrency enum to CurrencyCode enum
    */
   private mapCryptocurrencyToCurrencyCode(cryptocurrency: Cryptocurrency): CurrencyCode {
-    const currencyMap: Record<Cryptocurrency, CurrencyCode> = {
-      [Cryptocurrency.Usdt]: CurrencyCode.Usdt,
-      [Cryptocurrency.Ton]: CurrencyCode.Ton,
-      [Cryptocurrency.Btc]: CurrencyCode.Btc,
-      [Cryptocurrency.Eth]: CurrencyCode.Eth,
-      [Cryptocurrency.Bnb]: CurrencyCode.Bnb,
-      [Cryptocurrency.Trx]: CurrencyCode.Trx,
-      [Cryptocurrency.Usdc]: CurrencyCode.Usdc,
-      [Cryptocurrency.Ltc]: CurrencyCode.Ltc,
-      [Cryptocurrency.Doge]: CurrencyCode.Doge,
-      [Cryptocurrency.Dai]: CurrencyCode.Dai,
-      [Cryptocurrency.Dash]: CurrencyCode.Dash,
-      [Cryptocurrency.Bch]: CurrencyCode.Bch,
-      [Cryptocurrency.Sol]: CurrencyCode.Sol,
-      [Cryptocurrency.Jet]: CurrencyCode.Usdt, // JET maps to USDT as fallback
-      // Fiat currencies
-      [Cryptocurrency.Rub]: CurrencyCode.Rub,
-      [Cryptocurrency.Usd]: CurrencyCode.Usd,
-      [Cryptocurrency.Eur]: CurrencyCode.Eur,
-    };
-
     const currencyCode = CURRENCY_MAP[cryptocurrency];
     if (!currencyCode) {
       throw new Error(`Unsupported cryptocurrency for conversion: ${cryptocurrency}`);
@@ -558,13 +515,6 @@ export class YooKassaProvider implements IPaymentProvider {
    * Map YooKassa payment status to PaymentStatus enum
    */
   private mapYooKassaStatus(status: string): PaymentStatus {
-    const statusMap: Record<string, PaymentStatus> = {
-      pending: PaymentStatus.Pending,
-      waiting_for_capture: PaymentStatus.Processing,
-      succeeded: PaymentStatus.Completed,
-      canceled: PaymentStatus.Cancelled,
-    };
-
     return STATUS_MAP[status] ?? PaymentStatus.Pending;
   }
 
@@ -572,12 +522,6 @@ export class YooKassaProvider implements IPaymentProvider {
    * Map YooKassa payout status to PaymentStatus enum
    */
   private mapYooKassaPayoutStatus(status: string): PaymentStatus {
-    const statusMap: Record<string, PaymentStatus> = {
-      pending: PaymentStatus.Processing,
-      succeeded: PaymentStatus.Completed,
-      canceled: PaymentStatus.Failed,
-    };
-
     return STATUS_MAP[status] ?? PaymentStatus.Pending;
   }
 
@@ -585,15 +529,6 @@ export class YooKassaProvider implements IPaymentProvider {
    * Map PaymentStatus to YooKassa status
    */
   private mapStatusToYooKassa(status: PaymentStatus): string {
-    const statusMap: Record<PaymentStatus, string> = {
-      [PaymentStatus.Pending]: 'pending',
-      [PaymentStatus.Processing]: 'waiting_for_capture',
-      [PaymentStatus.Completed]: 'succeeded',
-      [PaymentStatus.Failed]: 'canceled',
-      [PaymentStatus.Expired]: 'canceled',
-      [PaymentStatus.Cancelled]: 'canceled',
-    };
-
     return STATUS_MAP[status] ?? 'pending';
   }
 

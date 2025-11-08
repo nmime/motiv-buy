@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/prefer-single-boolean-return */
 /**
  * Menu Action Handler
  *
@@ -360,14 +361,34 @@ export class MenuActionHandler {
       return false;
     }
 
-    // Add role-based access control if needed
-    if (requiredRole) {
-      // Check user role from database
-      // For now, return true for basic menus
+    // If no specific role required, allow access
+    if (!requiredRole) {
       return true;
     }
 
-    return true;
+    // Check user role from context if available
+    // Context augmented with user data by authentication middleware
+    const user = (ctx as { user?: { role?: string; isAdmin?: boolean } }).user;
+
+    if (!user) {
+      await ctx.reply('Please authenticate first using /start');
+
+      return false;
+    }
+
+    // Admin users have access to all menus
+    if (user.isAdmin) {
+      return true;
+    }
+
+    // Check if user has the required role
+    const hasRequiredRole = user.role === requiredRole;
+
+    if (!hasRequiredRole) {
+      await ctx.reply('You do not have permission to access this menu.');
+    }
+
+    return hasRequiredRole;
   }
 
   /**

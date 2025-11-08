@@ -46,6 +46,7 @@ export class NotificationSchedulerService implements OnModuleInit {
           continue;
         }
 
+        // eslint-disable-next-line no-await-in-loop
         await this.notificationSenderService.sendNotification(notification);
       }
 
@@ -69,6 +70,7 @@ export class NotificationSchedulerService implements OnModuleInit {
       this.logger.log(`Retrying ${retryableNotifications.length} failed notifications`);
 
       for (const notification of retryableNotifications) {
+        // eslint-disable-next-line no-await-in-loop
         await this.notificationSenderService.sendNotification(notification);
       }
     } catch (error) {

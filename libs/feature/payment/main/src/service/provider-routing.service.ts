@@ -7,7 +7,6 @@ import {
   ProviderCurrencyRepository,
   ProviderRoutingRepository,
 } from '@app/database';
-import { RoutingRuleType } from '@app/database';
 
 /**
  * Context for routing decisions
@@ -150,33 +149,29 @@ export class ProviderRoutingService {
         if (rule.provider) {
           const { provider } = rule.provider.unwrap();
 
-        // eslint-disable-next-line no-await-in-loop
-        // eslint-disable-next-line no-await-in-loop
           // Validate provider supports this operation
+          // eslint-disable-next-line no-await-in-loop
           const isValid = await this.validateProvider(provider, context.currency, context.operation);
 
-      // eslint-disable-next-line no-await-in-loop
-      // eslint-disable-next-line no-await-in-loop
           if (isValid) {
             // Record rule usage
+            // eslint-disable-next-line no-await-in-loop
             await this.routingRuleRepo.recordUsage(rule.id, true);
 
             this.logger.log(`Provider ${provider} selected via rule: ${rule.name} (${rule.ruleType})`);
 
             return Ok(provider);
           }
-        // eslint-disable-next-line no-await-in-loop
         }
-        // eslint-disable-next-line no-await-in-loop
 
-        // eslint-disable-next-line no-await-in-loop
         // Try fallback if available
         if (rule.fallbackRuleId) {
-        // eslint-disable-next-line no-await-in-loop
+          // eslint-disable-next-line no-await-in-loop
           const fallbackRule = await this.routingRuleRepo.findFallbackRule(rule.id);
 
           if (fallbackRule && fallbackRule.provider) {
             const { provider } = fallbackRule.provider.unwrap();
+            // eslint-disable-next-line no-await-in-loop
             const isValid = await this.validateProvider(provider, context.currency, context.operation);
 
             if (isValid) {
@@ -221,13 +216,12 @@ export class ProviderRoutingService {
 
       return Err(error instanceof Error ? error : new Error('Failed to select by currency'));
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   }
 
   /**
    * Get default provider as final fallback
    */
-  private async getDefaultProvider(context: RoutingContext): Promise<Result<PaymentProvider, Error>> {
+  private async getDefaultProvider(_context: RoutingContext): Promise<Result<PaymentProvider, Error>> {
     try {
       // Try to find default routing rule
       const defaultRule = await this.routingRuleRepo.findDefaultRule();

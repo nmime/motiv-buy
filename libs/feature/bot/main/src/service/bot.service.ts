@@ -530,6 +530,7 @@ For support, contact @support or use the /support command.
       ...ctx,
       callbackQuery: {
         id: 'cmd_profile',
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         from: ctx.from!,
         data: 'profile:view',
         chat_instance: '',
@@ -546,6 +547,7 @@ For support, contact @support or use the /support command.
 
       callbackQuery: {
         id: 'cmd_settings',
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         from: ctx.from!,
         data: 'settings',
         chat_instance: '',
@@ -561,6 +563,7 @@ For support, contact @support or use the /support command.
       ...ctx,
       callbackQuery: {
         id: 'cmd_balance',
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         from: ctx.from!,
         data: 'balance:view',
         chat_instance: '',
@@ -577,6 +580,7 @@ For support, contact @support or use the /support command.
       ...ctx,
       callbackQuery: {
         id: 'cmd_menu',
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         from: ctx.from!,
         data: 'menu:main',
         chat_instance: '',

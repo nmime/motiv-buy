@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { I18nService } from 'nestjs-i18n';
-import { Ok, Err, AsynctoError } from '@app/common-shared';
+import { Ok, Err } from '@app/common-shared';
 import { decimal, add, subtract, toDbString, lessThan } from '@app/common-shared';
 import { PaymentProviderFactory } from './payment-provider.factory';
 import { ProviderRoutingService, RoutingContext } from './provider-routing.service';

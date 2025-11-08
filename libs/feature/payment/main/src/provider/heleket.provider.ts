@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
-import { toDbString } from '@app/common-shared';
-import {
   Cryptocurrency,
   IPaymentProvider,
   PaymentBalance,
@@ -149,9 +147,8 @@ export class HeleketProvider implements IPaymentProvider {
             ),
           ).toString();
 
-        // eslint-disable-next-line no-await-in-loop
-        // eslint-disable-next-line no-await-in-loop
           const fullUrl = queryString ? `${url}?${queryString}` : url;
+          // eslint-disable-next-line no-await-in-loop
           const response = await fetch(fullUrl, options);
 
           if (!response.ok) {
@@ -159,10 +156,9 @@ export class HeleketProvider implements IPaymentProvider {
           }
 
           return response.json();
-        // eslint-disable-next-line no-await-in-loop
-        // eslint-disable-next-line no-await-in-loop
         }
 
+        // eslint-disable-next-line no-await-in-loop
         const response = await fetch(url, options);
 
         if (!response.ok) {
@@ -175,12 +171,11 @@ export class HeleketProvider implements IPaymentProvider {
         this.logger.warn(`Request attempt ${attempt + 1} failed: ${method} ${endpoint}`, {
           error: lastError.message,
         });
-      // eslint-disable-next-line no-await-in-loop
 
-      // eslint-disable-next-line no-await-in-loop
         if (attempt < this.maxRetries) {
           // Exponential backoff: 1s, 2s, 4s
           const delay = Math.pow(2, attempt) * 1000;
+          // eslint-disable-next-line no-await-in-loop
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
@@ -494,24 +489,6 @@ export class HeleketProvider implements IPaymentProvider {
    * Heleket supports multiple networks for multi-chain assets like USDT and USDC
    */
   private selectNetwork(currency: Cryptocurrency): string {
-    // Network mapping for cryptocurrencies
-    // Prefer networks with lower fees and faster confirmation
-    const networkMap: Record<string, string> = {
-      USDT: 'tron', // TRC-20 (lowest fees)
-      USDC: 'ethereum', // ERC-20
-      BTC: 'bitcoin',
-      ETH: 'ethereum',
-      BNB: 'bsc', // BSC (BEP-20)
-      TRX: 'tron',
-      TON: 'ton',
-      LTC: 'litecoin',
-      DOGE: 'dogecoin',
-      DAI: 'ethereum',
-      DASH: 'dash',
-      BCH: 'bitcoin-cash',
-      SOL: 'solana',
-    };
-
     return NETWORK_MAP[currency] || currency.toLowerCase();
   }
 
@@ -519,14 +496,6 @@ export class HeleketProvider implements IPaymentProvider {
    * Map Heleket payment status to PaymentStatus enum
    */
   private mapHelekeStatus(status: string): PaymentStatus {
-    const statusMap: Record<string, PaymentStatus> = {
-      pending: PaymentStatus.Pending,
-      success: PaymentStatus.Completed,
-      failed: PaymentStatus.Failed,
-      expired: PaymentStatus.Expired,
-      cancelled: PaymentStatus.Cancelled,
-    };
-
     return STATUS_MAP[status] ?? PaymentStatus.Pending;
   }
 
@@ -534,13 +503,6 @@ export class HeleketProvider implements IPaymentProvider {
    * Map Heleket payout status to PaymentStatus enum
    */
   private mapHelekePayoutStatus(status: string): PaymentStatus {
-    const statusMap: Record<string, PaymentStatus> = {
-      pending: PaymentStatus.Pending,
-      processing: PaymentStatus.Processing,
-      completed: PaymentStatus.Completed,
-      failed: PaymentStatus.Failed,
-    };
-
     return STATUS_MAP[status] ?? PaymentStatus.Pending;
   }
 
@@ -548,15 +510,6 @@ export class HeleketProvider implements IPaymentProvider {
    * Map PaymentStatus to Heleket status
    */
   private mapStatusToHeleke(status: PaymentStatus): string {
-    const statusMap: Record<PaymentStatus, string> = {
-      [PaymentStatus.Pending]: 'pending',
-      [PaymentStatus.Processing]: 'processing',
-      [PaymentStatus.Completed]: 'success',
-      [PaymentStatus.Failed]: 'failed',
-      [PaymentStatus.Expired]: 'expired',
-      [PaymentStatus.Cancelled]: 'cancelled',
-    };
-
     return STATUS_MAP[status] ?? 'pending';
   }
 
@@ -565,22 +518,6 @@ export class HeleketProvider implements IPaymentProvider {
    * Heleket is crypto-native and returns actual cryptocurrency codes
    */
   private mapCurrencyToCryptocurrency(currency: string): Cryptocurrency {
-    const currencyMap: Record<string, Cryptocurrency> = {
-      USDT: Cryptocurrency.Usdt,
-      BTC: Cryptocurrency.Btc,
-      ETH: Cryptocurrency.Eth,
-      USDC: Cryptocurrency.Usdc,
-      BNB: Cryptocurrency.Bnb,
-      TRX: Cryptocurrency.Trx,
-      TON: Cryptocurrency.Ton,
-      LTC: Cryptocurrency.Ltc,
-      DOGE: Cryptocurrency.Doge,
-      DAI: Cryptocurrency.Dai,
-      DASH: Cryptocurrency.Dash,
-      BCH: Cryptocurrency.Bch,
-      SOL: Cryptocurrency.Sol,
-    };
-
     return CURRENCY_MAP[currency.toUpperCase()] || Cryptocurrency.Usdt;
   }
 }

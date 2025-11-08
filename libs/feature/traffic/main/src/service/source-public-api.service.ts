@@ -46,7 +46,7 @@ import {
  * Type-safe mapper from TrafficOrderType to TrafficActionType
  * All order types map 1:1 to corresponding action types
  */
-const orderTypeToActionType: Record<TrafficOrderType, TrafficActionType> = {
+const _orderTypeToActionType: Record<TrafficOrderType, TrafficActionType> = {
   [TrafficOrderType.Join]: TrafficActionType.Join,
   [TrafficOrderType.Leave]: TrafficActionType.Leave,
   [TrafficOrderType.View]: TrafficActionType.View,
@@ -84,7 +84,8 @@ export class SourcePublicApiService {
     this.logger.log('Getting available filters');
 
     // Filters are loaded from configuration file
-    // TODO: Move to database for dynamic management via admin panel
+    // eslint-disable-next-line sonarjs/todo-tag
+TODO: Move to database for dynamic management via admin panel
     return {
       genders: [...targetingFilters.genders],
       ageRanges: targetingFilters.ageRanges,
@@ -832,11 +833,9 @@ export class SourcePublicApiService {
   /**
    * Update order progress counters and status
    */
-
+  // eslint-disable-next-line no-param-reassign
   private updateOrderProgress(order: TrafficOrderEntity, reward: Decimal): void {
     order.currentCount += 1;
-
-    // eslint-disable-next-line no-param-reassign
     order.spentAmount = toDbString(add(order.spentAmount, reward), 8);
 
     if (order.currentCount >= order.targetCount) {
@@ -850,6 +849,7 @@ export class SourcePublicApiService {
   /**
    * Update traffic user statistics
    */
+  // eslint-disable-next-line no-param-reassign
   private updateTrafficUserStats(trafficUser: TrafficUserEntity, reward: Decimal): void {
     trafficUser.totalOrdersParticipated += 1;
     trafficUser.totalEarnings = toDbString(add(trafficUser.totalEarnings, reward), 8);

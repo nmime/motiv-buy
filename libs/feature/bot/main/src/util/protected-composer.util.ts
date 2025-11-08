@@ -7,7 +7,6 @@
  */
 
 import { Composer } from 'grammy';
-import { BotContext, AuthenticatedBotContext } from '@app/feature-bot-shared';
 
 /**
  * Create a protected composer that requires authentication
@@ -56,7 +55,6 @@ export function createProtectedComposer(
  * Blocks unauthenticated users before handler executes.
  *
  * After this middleware runs, ctx.user is guaranteed to exist.
- * Use AuthenticatedBotContext type in your handlers for type safety.
  *
  * @param handler - The handler function to protect
  * @param errorMessage - Message to send to unauthenticated users
@@ -64,8 +62,6 @@ export function createProtectedComposer(
  *
  * @example
  * ```typescript
- * // Handler accepts AuthenticatedBotContext for type safety
- * async function handleProfile(ctx: AuthenticatedBotContext) {
  *   // ctx.user is guaranteed - no ! needed
  *   await showProfile(ctx.user);
  * }
@@ -88,7 +84,6 @@ export function protectHandler<T>(
     }
 
     // At this point, user is guaranteed to exist
-    // Handler should use AuthenticatedBotContext type to reflect this
     await handler(ctx);
   };
 }

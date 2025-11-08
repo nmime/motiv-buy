@@ -58,7 +58,8 @@ export class NotificationSenderService {
           };
         }
 
-        notification.template = template;
+      // eslint-disable-next-line no-param-reassign
+      notification.template = template;
       }
 
       const content = buildNotificationFromTemplate(notification.template, {
@@ -143,18 +144,6 @@ export class NotificationSenderService {
     }
 
     const message = error.message.toLowerCase();
-
-    const errorPatterns: Record<string, NotificationErrorReason> = {
-      'bot was blocked': NotificationErrorReason.BotBlocked,
-      'user is deactivated': NotificationErrorReason.UserDeactivated,
-      'chat not found': NotificationErrorReason.ChatNotFound,
-      'not enough rights': NotificationErrorReason.ChatRestricted,
-      'user_not_found': NotificationErrorReason.InvalidTarget,
-      'invalid user': NotificationErrorReason.InvalidTarget,
-      'rate limit': NotificationErrorReason.RateLimitExceeded,
-      'network': NotificationErrorReason.NetworkError,
-      'timeout': NotificationErrorReason.NetworkError,
-    };
 
     for (const [pattern, reason] of Object.entries(ERROR_PATTERNS)) {
       if (message.includes(pattern)) {

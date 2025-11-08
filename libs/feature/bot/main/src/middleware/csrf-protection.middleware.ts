@@ -19,7 +19,7 @@ interface CsrfToken {
 @Injectable()
 export class CsrfProtectionMiddleware {
   private readonly logger = new Logger(CsrfProtectionMiddleware.name);
-  private readonly TOKEN_LIFETIME = 30 * 60 * 1000; // 30 minutes
+  private readonly tokenLifetime = 30 * 60 * 1000; // 30 minutes
 
   /**
    * Generate CSRF token for action
@@ -36,7 +36,7 @@ export class CsrfProtectionMiddleware {
       token,
       action,
       createdAt: now,
-      expiresAt: now + this.TOKEN_LIFETIME,
+      expiresAt: now + this.tokenLifetime,
     };
 
     // Store token in session

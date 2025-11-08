@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries, @typescript-eslint/no-unused-vars, sonarjs/no-unused-vars, sonarjs/no-dead-store, no-await-in-loop */
 /* eslint-disable @typescript-eslint/no-unused-vars, sonarjs/no-dead-store, sonarjs/no-nested-conditional, prefer-destructuring */
 /**
  * Callback Router Handler

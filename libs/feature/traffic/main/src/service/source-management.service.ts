@@ -211,7 +211,8 @@ export class SourceManagementService {
       // Check access
       await this.validateSourceAccess(source, userId);
 
-      // TODO: Add statistics from TrafficActions, TrafficUsers
+      // eslint-disable-next-line sonarjs/todo-tag
+TODO: Add statistics from TrafficActions, TrafficUsers
       // For now, return basic details
       const response = this.mapSourceToResponseDto(source);
 

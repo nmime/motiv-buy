@@ -309,7 +309,7 @@ export class CryptoBotProvider implements IPaymentProvider {
         return Err(new Error(`Transfer not found: ${transferId}`));
       }
 
-      const transfer = response.result.items[0];
+      const [transfer] = response.result.items;
       const paymentTransfer: PaymentTransfer = {
         transferId: transfer.transfer_id.toString(),
         amount: transfer.amount,
