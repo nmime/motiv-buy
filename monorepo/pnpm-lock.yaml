@@ -256,7 +256,7 @@ importers:
         specifier: 2.6.1
         version: 2.6.1
       nx:
-        specifier: ^22.0.2
+        specifier: 22.0.2
         version: 22.0.2(@swc-node/register@1.9.2(@swc/core@1.5.29(@swc/helpers@0.5.17))(@swc/types@0.1.25)(typescript@5.9.3))(@swc/core@1.5.29(@swc/helpers@0.5.17))
       prettier:
         specifier: ^3.6.2
