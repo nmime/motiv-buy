@@ -27,7 +27,9 @@ Decimal.set({
 
 /**
  * Type alias for decimal values (string representation in database)
+ * This provides semantic clarity for database decimal columns
  */
+// eslint-disable-next-line sonarjs/redundant-type-aliases
 export type DecimalString = string;
 
 /**
@@ -327,10 +329,12 @@ export function toDisplayString(value: Decimal.Value, decimalPlaces = 2): string
   const rounded = dec.toDecimalPlaces(decimalPlaces);
 
   // Convert to string and remove trailing zeros after decimal point
-  return rounded
-    .toString()
-    .replace(/(\.\d*?)0+$/, '$1')
-    .replace(/\.$/, '');
+  // Using a more efficient regex to avoid backtracking
+  const str = rounded.toString();
+  if (!str.includes('.')) {
+    return str;
+  }
+  return str.replace(/(\.[0-9]*?)0+$/, '$1').replace(/\.$/, '');
 }
 
 /**

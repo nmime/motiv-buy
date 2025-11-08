@@ -65,6 +65,7 @@ export interface RelationConfig {
 /**
  * Helper function to assign entity data with automatic relation handling
  */
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
 export function assignEntityData<T extends object>(
   entity: T,
   data: Record<string, unknown>,

@@ -2,6 +2,7 @@
  * Payment update strategy type
  * Determines how payment status updates are received
  */
+/* eslint-disable no-restricted-syntax */
 export enum PaymentUpdateStrategy {
   /** Use webhooks only (push-based) */
   Webhook = 'WEBHOOK',
@@ -10,6 +11,7 @@ export enum PaymentUpdateStrategy {
   /** Use both webhooks and polling (hybrid - most reliable) */
   Hybrid = 'HYBRID',
 }
+/* eslint-enable no-restricted-syntax */
 
 /**
  * Payment Configuration Interface

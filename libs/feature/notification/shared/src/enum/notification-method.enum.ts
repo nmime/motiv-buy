@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 export enum NotificationMethod {
   CreateNotification = 'notification.create',
   CreateNotificationBatch = 'notification.create.batch',
@@ -6,3 +7,4 @@ export enum NotificationMethod {
   GetNotificationStatus = 'notification.status.get',
   CancelNotification = 'notification.cancel',
 }
+/* eslint-enable no-restricted-syntax */

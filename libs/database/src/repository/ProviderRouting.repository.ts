@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { ProviderRoutingEntity, RoutingRuleType, ConditionOperator } from '../entity/ProviderRouting.entity';
+import { ProviderRoutingEntity, RoutingRuleType } from '../entity/ProviderRouting.entity';
 import { CurrencyCode } from '../entity/Currency.entity';
 import { PaymentProvider } from '../enum';
 
