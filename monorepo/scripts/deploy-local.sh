@@ -8,7 +8,7 @@
 
 set -e
 
-COMPOSE_FILE="docker-compose.yml"
+COMPOSE_FILE="docker-compose-dev.yml"
 PROJECT_NAME="motiv-buy"
 
 # Colors for output

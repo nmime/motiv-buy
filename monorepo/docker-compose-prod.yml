@@ -132,8 +132,10 @@ services:
   api-prod:
     build:
       context: .
-      dockerfile: ./apps/api/Dockerfile.prod
-      target: ${NODE_ENV:-production}
+      dockerfile: Dockerfile
+      target: production
+      args:
+        APP_NAME: api
     container_name: ${PROJECT_NAME}-api-prod
     <<: *common-defaults
     environment:
@@ -162,8 +164,10 @@ services:
   bot-prod:
     build:
       context: .
-      dockerfile: ./apps/bot/Dockerfile.prod
-      target: ${NODE_ENV:-production}
+      dockerfile: Dockerfile
+      target: production
+      args:
+        APP_NAME: bot
     container_name: ${PROJECT_NAME}-bot-prod
     <<: *common-defaults
     environment:

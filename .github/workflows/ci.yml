@@ -195,7 +195,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./monorepo
-          file: ./Dockerfile
+          file: ./monorepo/Dockerfile
           push: false
           build-args: |
             APP_NAME=${{ matrix.app }}

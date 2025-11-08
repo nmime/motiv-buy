@@ -1,10 +1,12 @@
 name: Deploy to Staging
 
 on:
-  push:
-    branches:
-      - '**'
-      - '!main'  # Exclude main branch
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Staging environment'
+        required: false
+        default: 'staging'
 
 env:
   PNPM_VERSION: 9
