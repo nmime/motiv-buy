@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BotMainModule } from '@app/feature-bot-main';
-import { TrafficMainModule } from '@app/feature-traffic-main';
+import { TrafficMainModule, ModerationService } from '@app/feature-traffic-main';
+import { IModerationService } from '@app/feature-traffic-shared';
 import { BotService } from './service';
 
 /**
@@ -28,6 +29,14 @@ import { BotService } from './service';
   providers: [
     // Thin wrapper service
     BotService,
+
+    // Wire interface to implementation (breaks circular dependency)
+    // bot-main depends on IModerationService interface from traffic-shared
+    // We provide the concrete ModerationService from traffic-main here
+    {
+      provide: IModerationService,
+      useExisting: ModerationService,
+    },
   ],
   exports: [BotService],
 })

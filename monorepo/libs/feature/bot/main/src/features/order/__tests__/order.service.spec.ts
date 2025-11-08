@@ -4,7 +4,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderService } from '../order.service';
-import { DEFAULT_ORDER_CONFIG, OrderFlowStep, OrderStatus } from '../order.types';
+import { defaultOrderConfig, OrderFlowStep, OrderStatus } from '../order.types';
 
 describe('OrderService', () => {
   let service: OrderService;
@@ -31,7 +31,7 @@ describe('OrderService', () => {
         botIsAdmin: false,
       };
 
-      const order = await service.createOrder(userId, DEFAULT_ORDER_CONFIG, channelInfo);
+      const order = await service.createOrder(userId, defaultOrderConfig, channelInfo);
 
       expect(order).toBeDefined();
       expect(order.userId).toBe(userId);
@@ -48,7 +48,7 @@ describe('OrderService', () => {
         botIsAdmin: false,
       };
 
-      await service.createOrder(userId, DEFAULT_ORDER_CONFIG, channelInfo);
+      await service.createOrder(userId, defaultOrderConfig, channelInfo);
       const orders = await service.getUserOrders(userId);
 
       expect(orders).toHaveLength(1);
@@ -64,7 +64,7 @@ describe('OrderService', () => {
         botIsAdmin: false,
       };
 
-      const order = await service.createOrder(userId, DEFAULT_ORDER_CONFIG, channelInfo);
+      const order = await service.createOrder(userId, defaultOrderConfig, channelInfo);
       const updated = await service.updateOrderStatus(order.id, OrderStatus.Active);
 
       expect(updated?.status).toBe(OrderStatus.Active);
@@ -80,7 +80,7 @@ describe('OrderService', () => {
         botIsAdmin: false,
       };
 
-      const order = await service.createOrder(userId, DEFAULT_ORDER_CONFIG, channelInfo);
+      const order = await service.createOrder(userId, defaultOrderConfig, channelInfo);
       const deleted = await service.deleteOrder(order.id);
 
       expect(deleted).toBe(true);
@@ -98,7 +98,7 @@ describe('OrderService', () => {
         botIsAdmin: false,
       };
 
-      const original = await service.createOrder(userId, DEFAULT_ORDER_CONFIG, channelInfo);
+      const original = await service.createOrder(userId, defaultOrderConfig, channelInfo);
       const duplicate = await service.duplicateOrder(original.id, userId);
 
       expect(duplicate).toBeDefined();

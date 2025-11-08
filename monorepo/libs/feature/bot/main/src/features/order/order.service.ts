@@ -10,7 +10,7 @@ import { BotContext, BotSubscriptionService } from '@app/feature-bot-shared';
 import { BotConfigService } from '../../config';
 import {
   ChannelInfo,
-  DEFAULT_ORDER_CONFIG,
+  defaultOrderConfig,
   Order,
   OrderConfiguration,
   OrderFlowStep,
@@ -64,7 +64,7 @@ export class OrderService {
     const orderId = this.generateOrderId();
 
     const fullConfig: OrderConfiguration = {
-      ...DEFAULT_ORDER_CONFIG,
+      ...defaultOrderConfig,
       ...config,
     } as OrderConfiguration;
 
@@ -352,7 +352,7 @@ export class OrderService {
   initOrderCreation(ctx: BotContext): OrderSessionState {
     const state: OrderSessionState = {
       currentStep: OrderFlowStep.EnterChannelLink,
-      config: { ...DEFAULT_ORDER_CONFIG },
+      config: { ...defaultOrderConfig },
       startedAt: new Date(),
     };
 

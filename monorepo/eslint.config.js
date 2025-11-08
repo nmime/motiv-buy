@@ -110,6 +110,10 @@ module.exports = [
         {
           selector: 'variable',
           format: ['camelCase', 'PascalCase'],
+          custom: {
+            regex: '^[^A-Z_]+$|^[A-Z][a-z]',
+            match: true,
+          },
         },
         {
           selector: 'typeLike',
@@ -117,7 +121,7 @@ module.exports = [
         },
         {
           selector: 'enumMember',
-          format: ['StrictPascalCase', 'UPPER_CASE'],
+          format: ['StrictPascalCase'],
           leadingUnderscore: 'forbid',
           trailingUnderscore: 'forbid',
         },

@@ -239,7 +239,7 @@ export interface OrderSessionState {
 /**
  * Available Topics/Categories for Exclusion
  */
-export const AVAILABLE_TOPICS = [
+export const availableTopics = [
   { id: 'games', name: '🎮 Игры', emoji: '🎮' },
   { id: 'casino', name: '💰 Казино и ставки', emoji: '💰' },
   { id: 'adult', name: '🔞 18+', emoji: '🔞' },
@@ -253,7 +253,7 @@ export const AVAILABLE_TOPICS = [
 /**
  * Default Order Configuration
  */
-export const DEFAULT_ORDER_CONFIG: Partial<OrderConfiguration> = {
+export const defaultOrderConfig: Partial<OrderConfiguration> = {
   name: 'Без названия',
   usersPerDay: 100,
   totalUsers: 100,

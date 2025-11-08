@@ -18,8 +18,7 @@ import {
  * Moderation Service
  * Handles approval workflow for traffic sources and orders via Telegram channel
  *
- * Implements IModerationService from traffic-shared to enable bot handlers
- * to depend on the interface without circular dependency.
+ * Implements IModerationService interface to allow bot-main to use it without circular dependency.
  */
 @Injectable()
 export class ModerationService implements IModerationService {
