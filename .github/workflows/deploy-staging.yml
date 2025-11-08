@@ -54,8 +54,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./monorepo
-          file: ./monorepo/Dockerfile
+          context: ./
+          file: .//Dockerfile
           push: true
           build-args: |
             APP_NAME=${{ matrix.app }}

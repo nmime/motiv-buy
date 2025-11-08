@@ -1,0 +1,128 @@
+# Development Docker Compose Configuration
+# Uses common prefixes and YAML anchors for maintainability (matching production)
+
+# ==========================================
+# YAML ANCHORS - Common Configuration
+# ==========================================
+
+# Common service defaults
+x-common-defaults: &common-defaults
+  restart: unless-stopped
+  networks:
+    - ${PROJECT_NAME}-network-dev
+
+# Common healthcheck configurations
+x-healthcheck-fast: &healthcheck-fast
+  interval: 10s
+  timeout: 3s
+  retries: 5
+
+x-healthcheck-standard: &healthcheck-standard
+  interval: 30s
+  timeout: 10s
+  retries: 3
+
+# Common environment variables
+x-common-env: &common-env
+  NODE_ENV: ${NODE_ENV:-development}
+  PROJECT_NAME: ${PROJECT_NAME}
+  ENV: ${ENV:-dev}
+
+x-db-env: &db-env
+  DB_HOST: postgres-dev
+  DB_PORT: 5432
+  DB_NAME: ${PROJECT_NAME}_${NODE_ENV:-development}
+  DB_USER: ${DB_USER:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD:-postgres}
+
+x-redis-env: &redis-env
+  REDIS_HOST: redis-dev
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+
+x-nats-env: &nats-env
+  NATS_URL: nats://nats-dev:4222
+  NATS_CLIENT_NAME: ${PROJECT_NAME}-app
+  NATS_USER: ${NATS_USER:-}
+  NATS_PASSWORD: ${NATS_PASSWORD:-}
+
+# ==========================================
+# SERVICES
+# ==========================================
+
+services:
+  # PostgreSQL Database
+  postgres-dev:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME}-postgres-dev
+    <<: *common-defaults
+    environment:
+      POSTGRES_DB: ${PROJECT_NAME}_${NODE_ENV:-development}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_HOST_AUTH_METHOD: md5
+    ports:
+      - '${DB_PORT_EXTERNAL:-5433}:5432'
+    volumes:
+      - ${PROJECT_NAME}_postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${PROJECT_NAME}_${NODE_ENV:-development}' ]
+      <<: *healthcheck-fast
+
+  # Redis Cache
+  redis-dev:
+    image: redis:7-alpine
+    container_name: ${PROJECT_NAME}-redis-dev
+    <<: *common-defaults
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    command: ${REDIS_PASSWORD:+redis-server --requirepass ${REDIS_PASSWORD}}${REDIS_PASSWORD:-redis-server}
+    ports:
+      - '${REDIS_PORT_EXTERNAL:-6381}:6379'
+    volumes:
+      - ${PROJECT_NAME}_redis_dev_data:/data
+    healthcheck:
+      test: [ 'CMD', 'redis-cli', 'ping' ]
+      <<: *healthcheck-fast
+
+  # NATS JetStream
+  nats-dev:
+    image: nats:latest
+    container_name: ${PROJECT_NAME}-nats-dev
+    <<: *common-defaults
+    command: >
+      --jetstream
+      --store_dir=/data
+      --http_port=8222
+      ${NATS_USER:+--user=${NATS_USER}}
+      ${NATS_PASSWORD:+--pass=${NATS_PASSWORD}}
+    ports:
+      - '${NATS_PORT_EXTERNAL:-4222}:4222'
+      - '${NATS_MONITOR_PORT:-8222}:8222'
+      - '${NATS_CLUSTER_PORT:-6222}:6222'
+    volumes:
+      - ${PROJECT_NAME}_nats_dev_data:/data
+    healthcheck:
+      test: [ 'CMD', 'wget', '--spider', '-q', 'http://localhost:8222/healthz' ]
+      <<: *healthcheck-fast
+
+# ==========================================
+# NETWORKS
+# ==========================================
+
+networks:
+  ${PROJECT_NAME}-network-dev:
+    driver: bridge
+    name: ${PROJECT_NAME}-${NODE_ENV:-development}
+
+# ==========================================
+# VOLUMES
+# ==========================================
+
+volumes:
+  ${PROJECT_NAME}_postgres_dev_data:
+    name: ${PROJECT_NAME}-postgres-dev-data
+  ${PROJECT_NAME}_redis_dev_data:
+    name: ${PROJECT_NAME}-redis-dev-data
+  ${PROJECT_NAME}_nats_dev_data:
+    name: ${PROJECT_NAME}-nats-dev-data
