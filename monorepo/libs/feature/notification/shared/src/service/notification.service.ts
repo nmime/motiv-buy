@@ -17,7 +17,7 @@ export class NotificationService {
     private readonly notificationTemplateRepository: NotificationTemplateRepository,
   ) {}
 
-  async createNotification<T = Record<string, unknown>>(
+  async createNotification<T extends Record<string, unknown> = Record<string, unknown>>(
     dto: CreateNotificationDto<T>,
   ): Promise<NotificationResponseDto> {
     const template = await this.notificationTemplateRepository.findByCode(dto.templateCode);
@@ -53,13 +53,13 @@ export class NotificationService {
     };
   }
 
-  async createTemplateNotification<T = Record<string, unknown>>(
+  async createTemplateNotification<T extends Record<string, unknown> = Record<string, unknown>>(
     dto: CreateTemplateNotificationDto<T>,
   ): Promise<NotificationResponseDto> {
     return await this.createNotification(dto);
   }
 
-  async createNotificationBatch<T = Record<string, unknown>>(
+  async createNotificationBatch<T extends Record<string, unknown> = Record<string, unknown>>(
     notifications: CreateTemplateNotificationDto<T>[],
   ): Promise<NotificationResponseDto[]> {
     const templateCodes = [...new Set(notifications.map((n) => n.templateCode))];

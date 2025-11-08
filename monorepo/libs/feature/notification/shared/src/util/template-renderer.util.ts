@@ -1,7 +1,9 @@
-import * as eta from 'eta';
+import { Eta } from 'eta';
+
+const etaInstance = new Eta();
 
 export function renderTemplate(template: string, variables: Record<string, string | number>): string {
-  return eta.render(template, variables) as string;
+  return etaInstance.renderString(template, variables);
 }
 
 export function renderButtons(buttons: unknown[][], variables: Record<string, string | number>): unknown[][] {

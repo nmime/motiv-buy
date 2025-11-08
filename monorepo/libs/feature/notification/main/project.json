@@ -1,0 +1,31 @@
+{
+  "name": "@app/feature-notification-main",
+  "$schema": "../../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/feature/notification/main/src",
+  "projectType": "library",
+  "tags": ["scope:feature", "type:main"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/feature/notification/main",
+        "tsConfig": "libs/feature/notification/main/tsconfig.lib.json",
+        "main": "libs/feature/notification/main/src/index.ts",
+        "assets": [],
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {
+              "afterDeclarations": true
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -7,7 +7,7 @@ import {
   NotificationErrorReason,
   NotificationContentType,
 } from '@app/database';
-import { buildNotificationFromTemplate } from '@app/feature-notification-shared';
+import { buildNotificationFromTemplate, NotificationResult } from '@app/feature-notification-shared';
 
 export interface SendNotificationResult {
   success: boolean;
@@ -88,7 +88,7 @@ export class NotificationSenderService {
 
   private async sendToChannel(
     notification: NotificationEntity,
-    content: Record<string, unknown>,
+    content: NotificationResult,
   ): Promise<string | undefined> {
     this.logger.log(`Would send notification to ${notification.channel}: ${JSON.stringify(content)}`);
     return `msg_${Date.now()}`;

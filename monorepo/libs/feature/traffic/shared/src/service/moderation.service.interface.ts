@@ -1,4 +1,10 @@
 /**
+ * Injection token for IModerationService
+ * Use this token instead of the interface for dependency injection
+ */
+export const MODERATION_SERVICE = 'MODERATION_SERVICE';
+
+/**
  * Moderation Service Interface
  *
  * Defines contract for moderation approval/decline operations.
