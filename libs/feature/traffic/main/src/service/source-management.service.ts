@@ -11,7 +11,7 @@ import {
 import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType } from '@app/database';
 import { ITelegramModerationNotifier } from '@app/feature-bot-shared';
 import { ModerationService } from './moderation.service';
-import * as crypto from 'crypto';
+
 
 /**
  * Service for Private Traffic Source Management API

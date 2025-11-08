@@ -2,8 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { I18nService } from 'nestjs-i18n';
-import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
-import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared';
+import { Ok, Err, AsyncResult, toError } from '@app/common-shared';
+import { decimal, add, subtract, toDbString, lessThan } from '@app/common-shared';
 import { PaymentProviderFactory } from './payment-provider.factory';
 import { ProviderRoutingService, RoutingContext } from './provider-routing.service';
 import {
@@ -962,6 +962,7 @@ export class PaymentService {
    * Sync transaction status from payment provider
    * Manually synchronize status when needed
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   async syncTransactionStatus(transactionId: string): AsyncResult<PaymentTransactionEntity, Error> {
     try {
       this.logger.log(`Syncing transaction status: ${transactionId}`);

@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
-import { getErrorMessage, add, subtract, toDbString, decimal, toNumber } from '@app/common-shared';
+import { getErrorMessage, add, toDbString, decimal, toNumber } from '@app/common-shared';
 import type { Decimal } from 'decimal.js';
 import { BotFactoryService } from '@app/feature-bot-shared';
 import { targetingFilters } from '../config/targeting-filters.config';

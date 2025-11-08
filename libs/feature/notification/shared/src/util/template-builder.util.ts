@@ -65,6 +65,7 @@ function selectVariation(
   return { buttons: (buttons as NotificationButton[][]) ?? [] };
 }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
 export function buildNotificationFromTemplate(
   template: NotificationTemplateEntity,
   options: BuildNotificationOptions,

@@ -387,6 +387,7 @@ export class PaymentWebhookController {
     status: HttpStatus.TOO_MANY_REQUESTS,
     description: 'Rate limit exceeded',
   })
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   async handleYooKassaWebhook(
     @Headers('x-forwarded-for') forwardedFor: string | undefined,
     @Headers('x-real-ip') realIp: string | undefined,

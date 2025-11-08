@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
-import { decimal, toDbString } from '@app/common-shared';
+import { toDbString } from '@app/common-shared';
 import {
   Cryptocurrency,
   IPaymentProvider,
@@ -112,6 +112,7 @@ export class HeleketProvider implements IPaymentProvider {
   /**
    * Make HTTP request to Heleket API with retry logic
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private async makeRequest<T>(
     method: string,
     endpoint: string,

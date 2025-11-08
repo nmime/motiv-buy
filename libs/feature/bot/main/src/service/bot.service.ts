@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
 import { BotCommand, BotContext } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
-import { getErrorMessage, unknownToError, toError } from '@app/common-shared';
+import { unknownToError, toError } from '@app/common-shared';
 import { OrderHandler } from '../features/order/order.handler';
 import { I18nService } from 'nestjs-i18n';
 import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl';

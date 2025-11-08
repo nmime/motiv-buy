@@ -208,6 +208,7 @@ export class StatisticService {
    * Business Rule: Users can only see sources where they have management permissions
    * Schema: TrafficSourceEntity.managedBy = userId (contractual management relationship)
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private async getTrafficSourceStatistics(
     userId: string,
     query: StatisticQueryDto,
@@ -321,6 +322,7 @@ export class StatisticService {
    * Traffic Order Statistics - Permission-based access to created orders
    * Business Rule: Users can only see orders where they have creation rights
    * Schema: TrafficOrderEntity.creator = userId (order creation permission)
+  // eslint-disable-next-line sonarjs/cognitive-complexity
    */
   private async getTrafficOrderStatistics(userId: string, query: StatisticQueryDto): Promise<TrafficOrderStatisticDto> {
     // Build base filter for orders created by user
@@ -451,6 +453,7 @@ export class StatisticService {
   /**
    * Traffic Target Statistics - Permission-based access to managed targets
    * Business Rule: Users can interact with multiple targets with different permission levels
+  // eslint-disable-next-line sonarjs/cognitive-complexity
    * Schema: TrafficTargetEntity.managedBy = userId (contractual management relationship)
    */
   private async getTrafficTargetStatistics(

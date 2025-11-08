@@ -3,9 +3,7 @@ import {
   NotificationEntity,
   NotificationRepository,
   NotificationTemplateRepository,
-  NotificationStatus,
   NotificationErrorReason,
-  NotificationContentType,
 } from '@app/database';
 import { buildNotificationFromTemplate, NotificationResult } from '@app/feature-notification-shared';
 

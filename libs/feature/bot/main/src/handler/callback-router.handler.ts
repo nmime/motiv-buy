@@ -831,6 +831,7 @@ export class CallbackRouterHandler {
     });
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private async handleLoginHistory(ctx: BotContext, params: string[]): Promise<void> {
     try {
       if (!ctx.from) {

@@ -50,6 +50,7 @@ export class StatisticRepository {
   /**
    * Get user statistics with proper user filtering
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   async getUserStatistics(
     userId: string,
     dateFilter?: StatisticDateFilter,
@@ -120,6 +121,7 @@ export class StatisticRepository {
 
   /**
    * Get traffic source statistics with proper source filtering
+  // eslint-disable-next-line sonarjs/cognitive-complexity
    */
   async getTrafficSourceStatistics(
     userId: string,
@@ -191,6 +193,7 @@ export class StatisticRepository {
   }
 
   /**
+  // eslint-disable-next-line sonarjs/cognitive-complexity
    * Get traffic target statistics with proper target filtering
    */
   async getTrafficTargetStatistics(

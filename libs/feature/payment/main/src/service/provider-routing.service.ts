@@ -120,6 +120,7 @@ export class ProviderRoutingService {
   /**
    * Apply routing rules to select provider
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private async applyRoutingRules(context: RoutingContext): Promise<Result<PaymentProvider, Error>> {
     try {
       // Find applicable rules

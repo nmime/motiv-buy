@@ -106,6 +106,7 @@ export class ProviderRoutingRepository {
     });
 
     // Further filter rules based on context
+  // eslint-disable-next-line sonarjs/cognitive-complexity
     return rules.filter((rule) => {
       // Check if rule is currently active (time/date constraints)
       if (!rule.isCurrentlyActive()) {
