@@ -1,38 +1,33 @@
 /**
- * Injection token for IModerationService
- * Use this token instead of the interface for dependency injection
- */
-export const MODERATION_SERVICE = 'MODERATION_SERVICE';
-
-/**
- * Moderation Service Interface
+ * Moderation Service Abstract Class
  *
  * Defines contract for moderation approval/decline operations.
  * Used by bot-main to avoid circular dependency with traffic-main.
  *
  * Architecture:
- * - Interface lives in traffic-shared (libs/feature/traffic/shared)
+ * - Abstract class lives in traffic-shared (libs/feature/traffic/shared)
  * - Implementation lives in traffic-main (libs/feature/traffic/main)
- * - Bot-main depends on interface, NestJS injects implementation
+ * - Bot-main depends on abstract class, NestJS injects implementation
+ * - Uses abstract class (not interface + string token) for proper type-safe DI
  */
-export interface IModerationService {
+export abstract class IModerationService {
   /**
    * Approve a traffic source moderation request
    */
-  approveSource(requestId: string, reviewedByUserId: string): Promise<void>;
+  abstract approveSource(requestId: string, reviewedByUserId: string): Promise<void>;
 
   /**
    * Decline a traffic source moderation request
    */
-  declineSource(requestId: string, reviewedByUserId: string, reviewNote?: string): Promise<void>;
+  abstract declineSource(requestId: string, reviewedByUserId: string, reviewNote?: string): Promise<void>;
 
   /**
    * Approve a traffic order moderation request
    */
-  approveOrder(requestId: string, reviewedByUserId: string): Promise<void>;
+  abstract approveOrder(requestId: string, reviewedByUserId: string): Promise<void>;
 
   /**
    * Decline a traffic order moderation request
    */
-  declineOrder(requestId: string, reviewedByUserId: string, reviewNote?: string): Promise<void>;
+  abstract declineOrder(requestId: string, reviewedByUserId: string, reviewNote?: string): Promise<void>;
 }
