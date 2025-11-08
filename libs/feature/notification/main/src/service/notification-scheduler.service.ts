@@ -39,11 +39,13 @@ export class NotificationSchedulerService implements OnModuleInit {
       this.logger.log(`Processing ${pendingNotifications.length} pending user notifications`);
 
       for (const notification of pendingNotifications) {
+      // eslint-disable-next-line no-await-in-loop
         const canProcess = await this.notificationRepository.markAsProcessing(notification.id);
 
         if (!canProcess) {
           continue;
         }
+      // eslint-disable-next-line no-await-in-loop
 
         await this.notificationSenderService.sendNotification(notification);
       }
@@ -66,6 +68,7 @@ export class NotificationSchedulerService implements OnModuleInit {
       }
 
       this.logger.log(`Retrying ${retryableNotifications.length} failed notifications`);
+      // eslint-disable-next-line no-await-in-loop
 
       for (const notification of retryableNotifications) {
         await this.notificationSenderService.sendNotification(notification);

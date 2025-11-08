@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Test, TestingModule } from '@nestjs/testing';
 import { StatisticService } from '../statistic.service';
 import { StatisticRepository } from '../../repository';

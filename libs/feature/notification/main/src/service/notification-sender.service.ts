@@ -60,6 +60,7 @@ export class NotificationSenderService {
 
         notification.template = template;
       }
+    // eslint-disable-next-line no-param-reassign
 
       const content = buildNotificationFromTemplate(notification.template, {
         templateCode: notification.templateCode ?? '',
@@ -144,7 +145,7 @@ export class NotificationSenderService {
 
     const message = error.message.toLowerCase();
 
-    const ERROR_PATTERNS: Record<string, NotificationErrorReason> = {
+    const errorPatterns: Record<string, NotificationErrorReason> = {
       'bot was blocked': NotificationErrorReason.BotBlocked,
       'user is deactivated': NotificationErrorReason.UserDeactivated,
       'chat not found': NotificationErrorReason.ChatNotFound,

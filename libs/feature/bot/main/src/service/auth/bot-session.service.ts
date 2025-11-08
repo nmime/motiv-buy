@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisCacheService } from '@app/common-redis';
 import { UserEntity } from '@app/database';

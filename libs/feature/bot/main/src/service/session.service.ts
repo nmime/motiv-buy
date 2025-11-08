@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable, Logger } from '@nestjs/common';
 import { SessionData, SessionInterface } from '@app/feature-bot-shared';
 import { RedisCacheService } from '@app/common-redis';

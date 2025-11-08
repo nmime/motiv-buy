@@ -307,6 +307,7 @@ export class MenuActionHandler {
   /**
    * Create pagination keyboard
    */
+  // eslint-disable-next-line sonarjs/no-invariant-returns
   createPaginationKeyboard(currentPage: number, totalPages: number, actionPrefix: string): InlineKeyboard {
     const keyboard = new InlineKeyboard();
 
@@ -359,6 +360,7 @@ export class MenuActionHandler {
       return false;
     }
 
+    // eslint-disable-next-line sonarjs/prefer-single-boolean-return
     // Add role-based access control if needed
     if (requiredRole) {
       // Check user role from database

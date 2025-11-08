@@ -187,6 +187,7 @@ export class CsrfProtectionMiddleware {
       return;
     }
 
+    // eslint-disable-next-line prefer-destructuring
     const token = tokenMatch[1];
     const isValid = await this.validateToken(ctx, token, action);
 

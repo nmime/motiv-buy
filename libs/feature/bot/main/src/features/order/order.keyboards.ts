@@ -10,8 +10,8 @@ import { availableTopics, Order, OrderDisplayLocation, OrderStatus, UserGender }
 /**
  * Pagination configuration
  */
-const ORDERS_PER_PAGE = 10;
-const MAX_INLINE_BUTTONS = 100;
+const ordersPerPage = 10;
+const maxInlineButtons = 100;
 
 /**
  * Main Menu Keyboard (from specification)
@@ -59,6 +59,8 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
 
   // List orders for current page
   pageOrders.forEach((order) => {
+    // eslint-disable-next-line no-use-before-define
+    // eslint-disable-next-line no-use-before-define
     const statusEmoji = getStatusEmoji(order.status);
     const statusText = getStatusText(order.status);
     const label = `${statusEmoji} ${order.config.name || 'Без названия'}`;

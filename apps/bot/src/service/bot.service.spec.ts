@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 /* eslint-disable sonarjs/no-nested-functions */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';

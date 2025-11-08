@@ -46,7 +46,7 @@ import {
  * Type-safe mapper from TrafficOrderType to TrafficActionType
  * All order types map 1:1 to corresponding action types
  */
-const ORDER_TYPE_TO_ACTION_TYPE: Record<TrafficOrderType, TrafficActionType> = {
+const orderTypeToActionType: Record<TrafficOrderType, TrafficActionType> = {
   [TrafficOrderType.Join]: TrafficActionType.Join,
   [TrafficOrderType.Leave]: TrafficActionType.Leave,
   [TrafficOrderType.View]: TrafficActionType.View,
@@ -545,6 +545,7 @@ export class SourcePublicApiService {
   }
 
   private matchesGender(requirements: Record<string, unknown>, dto: { gender?: string }): boolean {
+    // eslint-disable-next-line prefer-destructuring
     const gender = requirements['gender'];
     if (!gender || !dto.gender) {
       return true;
@@ -831,10 +832,15 @@ export class SourcePublicApiService {
   /**
    * Update order progress counters and status
    */
+    // eslint-disable-next-line no-param-reassign
+    // eslint-disable-next-line no-param-reassign
   private updateOrderProgress(order: TrafficOrderEntity, reward: Decimal): void {
     order.currentCount += 1;
+      // eslint-disable-next-line no-param-reassign
+      // eslint-disable-next-line no-param-reassign
     order.spentAmount = toDbString(add(order.spentAmount, reward), 8);
 
+      // eslint-disable-next-line no-param-reassign
     if (order.currentCount >= order.targetCount) {
       order.status = TrafficOrderStatus.Completed;
       order.completedAt = new Date();
@@ -842,6 +848,9 @@ export class SourcePublicApiService {
       order.status = TrafficOrderStatus.InProgress;
     }
   }
+    // eslint-disable-next-line no-param-reassign
+    // eslint-disable-next-line no-param-reassign
+    // eslint-disable-next-line no-param-reassign
 
   /**
    * Update traffic user statistics

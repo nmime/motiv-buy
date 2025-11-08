@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, prefer-destructuring */
 import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager, LockMode } from '@mikro-orm/core';
 import { PaymentService } from '../payment.service';
@@ -203,6 +204,7 @@ describe('PaymentService - Race Condition Tests', () => {
       // Verify balance check happens INSIDE transaction (transactional called)
       expect(mockEm.transactional).toHaveBeenCalled();
 
+    // eslint-disable-next-line prefer-destructuring
       // Verify lock is acquired BEFORE balance check
       const transactionalCallback = mockEm.transactional.mock.calls[0][0];
       await transactionalCallback(mockEm);

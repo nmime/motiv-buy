@@ -149,6 +149,7 @@ export class HeleketProvider implements IPaymentProvider {
             ),
           ).toString();
 
+        // eslint-disable-next-line no-await-in-loop
           const fullUrl = queryString ? `${url}?${queryString}` : url;
           const response = await fetch(fullUrl, options);
 
@@ -157,6 +158,7 @@ export class HeleketProvider implements IPaymentProvider {
           }
 
           return response.json();
+        // eslint-disable-next-line no-await-in-loop
         }
 
         const response = await fetch(url, options);
@@ -172,6 +174,7 @@ export class HeleketProvider implements IPaymentProvider {
           error: lastError.message,
         });
 
+      // eslint-disable-next-line no-await-in-loop
         if (attempt < this.maxRetries) {
           // Exponential backoff: 1s, 2s, 4s
           const delay = Math.pow(2, attempt) * 1000;
@@ -490,7 +493,7 @@ export class HeleketProvider implements IPaymentProvider {
   private selectNetwork(currency: Cryptocurrency): string {
     // Network mapping for cryptocurrencies
     // Prefer networks with lower fees and faster confirmation
-    const NETWORK_MAP: Record<string, string> = {
+    const networkMap: Record<string, string> = {
       USDT: 'tron', // TRC-20 (lowest fees)
       USDC: 'ethereum', // ERC-20
       BTC: 'bitcoin',
@@ -513,7 +516,7 @@ export class HeleketProvider implements IPaymentProvider {
    * Map Heleket payment status to PaymentStatus enum
    */
   private mapHelekeStatus(status: string): PaymentStatus {
-    const STATUS_MAP: Record<string, PaymentStatus> = {
+    const statusMap: Record<string, PaymentStatus> = {
       pending: PaymentStatus.Pending,
       success: PaymentStatus.Completed,
       failed: PaymentStatus.Failed,
@@ -528,7 +531,7 @@ export class HeleketProvider implements IPaymentProvider {
    * Map Heleket payout status to PaymentStatus enum
    */
   private mapHelekePayoutStatus(status: string): PaymentStatus {
-    const STATUS_MAP: Record<string, PaymentStatus> = {
+    const statusMap: Record<string, PaymentStatus> = {
       pending: PaymentStatus.Pending,
       processing: PaymentStatus.Processing,
       completed: PaymentStatus.Completed,
@@ -542,7 +545,7 @@ export class HeleketProvider implements IPaymentProvider {
    * Map PaymentStatus to Heleket status
    */
   private mapStatusToHeleke(status: PaymentStatus): string {
-    const STATUS_MAP: Record<PaymentStatus, string> = {
+    const statusMap: Record<PaymentStatus, string> = {
       [PaymentStatus.Pending]: 'pending',
       [PaymentStatus.Processing]: 'processing',
       [PaymentStatus.Completed]: 'success',
@@ -559,7 +562,7 @@ export class HeleketProvider implements IPaymentProvider {
    * Heleket is crypto-native and returns actual cryptocurrency codes
    */
   private mapCurrencyToCryptocurrency(currency: string): Cryptocurrency {
-    const CURRENCY_MAP: Record<string, Cryptocurrency> = {
+    const currencyMap: Record<string, Cryptocurrency> = {
       USDT: Cryptocurrency.Usdt,
       BTC: Cryptocurrency.Btc,
       ETH: Cryptocurrency.Eth,

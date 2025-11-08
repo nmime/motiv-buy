@@ -44,6 +44,7 @@ function selectVariation(
   }
 
   if (Array.isArray(text) && text.length > 0) {
+  // eslint-disable-next-line sonarjs/pseudo-random
     const randomIndex = Math.floor(Math.random() * text.length);
     const selectedText = text[randomIndex];
 

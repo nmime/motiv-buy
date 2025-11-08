@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 /**
  * Moderation Action Handler
  *

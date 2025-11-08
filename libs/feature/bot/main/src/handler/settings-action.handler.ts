@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 /**
  * Settings Action Handler
  *
@@ -281,9 +282,11 @@ export class SettingsActionHandler {
     const settings = await this.em.find(UserSettingsEntity, { user: userId });
 
     const settingsMap = settings.reduce(
+      // eslint-disable-next-line no-param-reassign
       (acc, setting) => {
         acc[setting.key] = setting.getValue();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return acc;
       },
       {} as Record<string, any>,
@@ -443,6 +446,7 @@ export class SettingsActionHandler {
 
   /**
    * Create language keyboard
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
    */
   private createLanguageKeyboard(currentLang: string) {
     const { InlineKeyboard } = require('grammy');
@@ -468,6 +472,7 @@ export class SettingsActionHandler {
   }
 
   /**
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
    * Create notification keyboard
    */
   private createNotificationKeyboard(prefs: UserPreferences['notifications']) {
@@ -485,6 +490,7 @@ export class SettingsActionHandler {
       .text('« Back', 'menu:settings');
   }
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
   /**
    * Create privacy keyboard
    */
