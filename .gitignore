@@ -63,6 +63,7 @@ coverage/
 .mcp.json
 claude-flow.config.json
 .swarm/
+.claude-flow/
 .hive-mind/
 memory/claude-flow-data.json
 memory/sessions/*
