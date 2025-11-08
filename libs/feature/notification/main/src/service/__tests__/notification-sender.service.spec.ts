@@ -33,15 +33,15 @@ describe('NotificationSenderService', () => {
   let loggerSpy: jest.SpyInstance;
 
   // Test data constants
-  const TEST_NOTIFICATION_ID = 'notif-123';
-  const TEST_TEMPLATE_ID = 'template-456';
-  const TEST_TEMPLATE_CODE = 'order_confirmation';
-  const TEST_USER_ID = 'user-789';
+  const testNotificationId = 'notif-123';
+  const testTemplateId = 'template-456';
+  const testTemplateCode = 'order_confirmation';
+  const testUserId = 'user-789';
 
   const createMockTemplate = (overrides: Partial<NotificationTemplateEntity> = {}): NotificationTemplateEntity =>
     ({
-      id: TEST_TEMPLATE_ID,
-      code: TEST_TEMPLATE_CODE,
+      id: testTemplateId,
+      code: testTemplateCode,
       name: 'Order Confirmation',
       channel: NotificationChannel.Bot,
       contentType: NotificationContentType.Text,
@@ -55,12 +55,12 @@ describe('NotificationSenderService', () => {
 
   const createMockNotification = (overrides: Partial<NotificationEntity> = {}): NotificationEntity =>
     ({
-      id: TEST_NOTIFICATION_ID,
+      id: testNotificationId,
       channel: NotificationChannel.Bot,
       targetType: NotificationTargetType.User,
-      targetId: TEST_USER_ID,
-      templateId: TEST_TEMPLATE_ID,
-      templateCode: TEST_TEMPLATE_CODE,
+      targetId: testUserId,
+      templateId: testTemplateId,
+      templateCode: testTemplateCode,
       data: { orderId: 12345, amount: 99.99 },
       status: NotificationStatus.Pending,
       priority: NotificationPriority.Normal,
@@ -121,7 +121,7 @@ describe('NotificationSenderService', () => {
       expect(result.messageId).toBeDefined();
       expect(result.messageId).toMatch(/^msg_\d+$/);
       expect(mockNotificationRepository.markAsSent).toHaveBeenCalledWith(
-        TEST_NOTIFICATION_ID,
+        testNotificationId,
         expect.stringMatching(/^msg_\d+$/),
       );
 
@@ -137,7 +137,7 @@ describe('NotificationSenderService', () => {
 
       const result = await service.sendNotification(notification);
 
-      expect(mockTemplateRepository.findByCode).toHaveBeenCalledWith(TEST_TEMPLATE_CODE);
+      expect(mockTemplateRepository.findByCode).toHaveBeenCalledWith(testTemplateCode);
       expect(result.success).toBe(true);
       expect(result.messageId).toBeDefined();
     });
@@ -152,7 +152,7 @@ describe('NotificationSenderService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toEqual({
         reason: NotificationErrorReason.TemplateNotFound,
-        message: `Template not found: ${TEST_TEMPLATE_CODE}`,
+        message: `Template not found: ${testTemplateCode}`,
       });
 
       expect(mockNotificationRepository.markAsSent).not.toHaveBeenCalled();
@@ -209,7 +209,7 @@ describe('NotificationSenderService', () => {
         message: 'Network timeout',
       });
 
-      expect(mockNotificationRepository.markAsFailed).toHaveBeenCalledWith(TEST_NOTIFICATION_ID, {
+      expect(mockNotificationRepository.markAsFailed).toHaveBeenCalledWith(testNotificationId, {
         reason: NotificationErrorReason.NetworkError,
         message: 'Network timeout',
         timestamp: expect.any(Date),

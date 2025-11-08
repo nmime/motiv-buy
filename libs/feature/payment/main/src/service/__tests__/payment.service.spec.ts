@@ -40,27 +40,26 @@ describe('PaymentService', () => {
   let mockProvider: jest.Mocked<CryptoBotProvider>;
   let mockUserBalanceRepository: jest.Mocked<UserBalanceRepository>;
   let mockEntityManager: jest.Mocked<EntityManager>;
-  let loggerSpy: jest.SpyInstance;
 
   // Test data constants
-  const TEST_USER_ID = 'user-123';
-  const TEST_TRANSACTION_ID = 'tx-123';
-  const TEST_INVOICE_ID = '12345';
-  const TEST_TRANSFER_ID = '67890';
-  const TEST_AMOUNT = '100.50';
-  const TEST_CURRENCY = Cryptocurrency.Usdt;
+  const testUserId = 'user-123';
+  const testTransactionId = 'tx-123';
+  const testInvoiceId = '12345';
+  const testTransferId = '67890';
+  const testAmount = '100.50';
+  const testCurrency = Cryptocurrency.Usdt;
 
   /**
    * Create mock transaction entity
    */
   const createMockTransaction = (overrides: Partial<PaymentTransactionEntity> = {}): PaymentTransactionEntity => ({
-    id: TEST_TRANSACTION_ID,
-    userId: TEST_USER_ID,
+    id: testTransactionId,
+    userId: testUserId,
     type: PaymentType.TopUp,
     provider: PaymentProvider.CryptoBot,
-    providerTransactionId: TEST_INVOICE_ID,
-    amount: TEST_AMOUNT,
-    currency: TEST_CURRENCY,
+    providerTransactionId: testInvoiceId,
+    amount: testAmount,
+    currency: testCurrency,
     status: PaymentStatus.Pending,
     payUrl: 'https://pay.cryptopay.com/test',
     description: 'Test payment',
@@ -77,9 +76,9 @@ describe('PaymentService', () => {
    * Create mock payment invoice
    */
   const createMockInvoice = (overrides: Partial<PaymentInvoice> = {}): PaymentInvoice => ({
-    invoiceId: TEST_INVOICE_ID,
-    amount: TEST_AMOUNT,
-    currency: TEST_CURRENCY,
+    invoiceId: testInvoiceId,
+    amount: testAmount,
+    currency: testCurrency,
     payUrl: 'https://pay.cryptopay.com/test',
     expiresAt: new Date('2025-12-31T23:59:59Z'),
     description: 'Test payment',
@@ -90,9 +89,9 @@ describe('PaymentService', () => {
    * Create mock payment transfer
    */
   const createMockTransfer = (overrides: Partial<PaymentTransfer> = {}): PaymentTransfer => ({
-    transferId: TEST_TRANSFER_ID,
-    amount: TEST_AMOUNT,
-    currency: TEST_CURRENCY,
+    transferId: testTransferId,
+    amount: testAmount,
+    currency: testCurrency,
     status: PaymentStatus.Processing,
     completedAt: undefined,
     fee: '0.50',
@@ -164,7 +163,7 @@ describe('PaymentService', () => {
     service = module.get<PaymentService>(PaymentService);
 
     // Mock logger methods
-    loggerSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    jest.spyOn(Logger.prototype, 'log').mockImplementation();
     jest.spyOn(Logger.prototype, 'error').mockImplementation();
     jest.spyOn(Logger.prototype, 'warn').mockImplementation();
   });

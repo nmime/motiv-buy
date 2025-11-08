@@ -33,15 +33,15 @@ describe('NotificationService', () => {
   let mockTemplateRepository: jest.Mocked<NotificationTemplateRepository>;
 
   // Test data constants
-  const TEST_TEMPLATE_ID = 'template-123';
-  const TEST_TEMPLATE_CODE = 'welcome_message';
-  const TEST_NOTIFICATION_ID = 'notif-456';
-  const TEST_USER_ID = 'user-789';
+  const testTemplateId = 'template-123';
+  const testTemplateCode = 'welcome_message';
+  const testNotificationId = 'notif-456';
+  const testUserId = 'user-789';
 
   const createMockTemplate = (overrides: Partial<NotificationTemplateEntity> = {}): NotificationTemplateEntity =>
     ({
-      id: TEST_TEMPLATE_ID,
-      code: TEST_TEMPLATE_CODE,
+      id: testTemplateId,
+      code: testTemplateCode,
       name: 'Welcome Message',
       channel: NotificationChannel.Bot,
       contentType: 'text',
@@ -55,12 +55,12 @@ describe('NotificationService', () => {
 
   const createMockNotification = (overrides: Partial<NotificationEntity> = {}): NotificationEntity =>
     ({
-      id: TEST_NOTIFICATION_ID,
+      id: testNotificationId,
       channel: NotificationChannel.Bot,
       targetType: NotificationTargetType.User,
-      targetId: TEST_USER_ID,
-      templateId: TEST_TEMPLATE_ID,
-      templateCode: TEST_TEMPLATE_CODE,
+      targetId: testUserId,
+      templateId: testTemplateId,
+      templateCode: testTemplateCode,
       status: NotificationStatus.Pending,
       priority: NotificationPriority.Normal,
       retryCount: 0,
@@ -117,8 +117,8 @@ describe('NotificationService', () => {
       const dto: CreateNotificationDto = {
         channel: NotificationChannel.Bot,
         targetType: NotificationTargetType.User,
-        targetId: TEST_USER_ID,
-        templateCode: TEST_TEMPLATE_CODE,
+        targetId: testUserId,
+        templateCode: testTemplateCode,
         data: { name: 'John', amount: 100 },
         priority: NotificationPriority.High,
       };
@@ -128,7 +128,7 @@ describe('NotificationService', () => {
 
       const result = await service.createNotification(dto);
 
-      expect(mockTemplateRepository.findByCode).toHaveBeenCalledWith(TEST_TEMPLATE_CODE);
+      expect(mockTemplateRepository.findByCode).toHaveBeenCalledWith(testTemplateCode);
       expect(mockEntityManager.persistAndFlush).toHaveBeenCalled();
       expect(result).toMatchObject({
         status: NotificationStatus.Pending,
@@ -144,8 +144,8 @@ describe('NotificationService', () => {
       const dto: CreateNotificationDto = {
         channel: NotificationChannel.Bot,
         targetType: NotificationTargetType.User,
-        targetId: TEST_USER_ID,
-        templateCode: TEST_TEMPLATE_CODE,
+        targetId: testUserId,
+        templateCode: testTemplateCode,
         data: { name: 'Alice' },
         extra: { buttons: [[{ text: 'Click me', callback_data: 'action' }]] },
         priority: NotificationPriority.Urgent,
@@ -173,7 +173,7 @@ describe('NotificationService', () => {
       const dto: CreateNotificationDto = {
         channel: NotificationChannel.Bot,
         targetType: NotificationTargetType.User,
-        targetId: TEST_USER_ID,
+        targetId: testUserId,
         templateCode: 'non_existent',
       };
 
@@ -188,8 +188,8 @@ describe('NotificationService', () => {
       const dto: CreateNotificationDto = {
         channel: NotificationChannel.Bot,
         targetType: NotificationTargetType.User,
-        targetId: TEST_USER_ID,
-        templateCode: TEST_TEMPLATE_CODE,
+        targetId: testUserId,
+        templateCode: testTemplateCode,
       };
 
       mockTemplateRepository.findByCode.mockResolvedValue(template);
@@ -209,8 +209,8 @@ describe('NotificationService', () => {
       const dto: CreateTemplateNotificationDto = {
         channel: NotificationChannel.Bot,
         targetType: NotificationTargetType.User,
-        targetId: TEST_USER_ID,
-        templateCode: TEST_TEMPLATE_CODE,
+        targetId: testUserId,
+        templateCode: testTemplateCode,
         data: { name: 'Bob' },
         variables: { name: 'Bob', count: 5 },
       };
@@ -220,7 +220,7 @@ describe('NotificationService', () => {
 
       const result = await service.createTemplateNotification(dto);
 
-      expect(mockTemplateRepository.findByCode).toHaveBeenCalledWith(TEST_TEMPLATE_CODE);
+      expect(mockTemplateRepository.findByCode).toHaveBeenCalledWith(testTemplateCode);
       expect(result).toMatchObject({
         status: NotificationStatus.Pending,
       });
@@ -349,9 +349,9 @@ describe('NotificationService', () => {
 
       mockNotificationRepository.findOne.mockResolvedValue(notification);
 
-      const result = await service.getNotificationStatus(TEST_NOTIFICATION_ID);
+      const result = await service.getNotificationStatus(testNotificationId);
 
-      expect(mockNotificationRepository.findOne).toHaveBeenCalledWith({ id: TEST_NOTIFICATION_ID });
+      expect(mockNotificationRepository.findOne).toHaveBeenCalledWith({ id: testNotificationId });
       expect(result).toEqual(notification);
     });
 
@@ -371,10 +371,10 @@ describe('NotificationService', () => {
       mockNotificationRepository.findOne.mockResolvedValue(notification);
       mockNotificationRepository.markAsCancelled.mockResolvedValue(undefined);
 
-      const result = await service.cancelNotification(TEST_NOTIFICATION_ID);
+      const result = await service.cancelNotification(testNotificationId);
 
-      expect(mockNotificationRepository.findOne).toHaveBeenCalledWith({ id: TEST_NOTIFICATION_ID });
-      expect(mockNotificationRepository.markAsCancelled).toHaveBeenCalledWith(TEST_NOTIFICATION_ID);
+      expect(mockNotificationRepository.findOne).toHaveBeenCalledWith({ id: testNotificationId });
+      expect(mockNotificationRepository.markAsCancelled).toHaveBeenCalledWith(testNotificationId);
       expect(result).toBe(true);
     });
 
@@ -383,7 +383,7 @@ describe('NotificationService', () => {
 
       mockNotificationRepository.findOne.mockResolvedValue(notification);
 
-      const result = await service.cancelNotification(TEST_NOTIFICATION_ID);
+      const result = await service.cancelNotification(testNotificationId);
 
       expect(mockNotificationRepository.markAsCancelled).not.toHaveBeenCalled();
       expect(result).toBe(false);
@@ -403,7 +403,7 @@ describe('NotificationService', () => {
 
       mockNotificationRepository.findOne.mockResolvedValue(notification);
 
-      const result = await service.cancelNotification(TEST_NOTIFICATION_ID);
+      const result = await service.cancelNotification(testNotificationId);
 
       expect(mockNotificationRepository.markAsCancelled).not.toHaveBeenCalled();
       expect(result).toBe(false);
@@ -414,7 +414,7 @@ describe('NotificationService', () => {
 
       mockNotificationRepository.findOne.mockResolvedValue(notification);
 
-      const result = await service.cancelNotification(TEST_NOTIFICATION_ID);
+      const result = await service.cancelNotification(testNotificationId);
 
       expect(mockNotificationRepository.markAsCancelled).not.toHaveBeenCalled();
       expect(result).toBe(false);

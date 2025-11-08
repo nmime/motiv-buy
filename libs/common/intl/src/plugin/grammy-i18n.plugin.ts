@@ -38,6 +38,70 @@ export interface I18nContextFlavor {
 }
 
 /**
+ * Normalize language code to supported language
+ *
+ * Maps language codes to supported languages:
+ * - ru, ru-RU -> ru
+ * - en, en-US, en-GB -> en
+ * - etc.
+ *
+ * @param langCode - Raw language code
+ * @returns Normalized language code
+ */
+function normalizeLanguageCode(langCode: string): string {
+  if (!langCode) {
+    return defaultLanguage;
+  }
+
+  // Extract primary language code (before dash)
+  const [primaryLang] = langCode.toLowerCase().split('-');
+
+  // Check if supported
+  const supportedLanguages = Object.values(Language) as string[];
+  if (supportedLanguages.includes(primaryLang)) {
+    return primaryLang;
+  }
+
+  // Return default if not supported
+  return defaultLanguage;
+}
+
+/**
+ * Detect user language from context
+ *
+ * Priority:
+ * 1. Session language (if user explicitly set it)
+ * 2. Telegram user language_code
+ * 3. Default language (from config)
+ *
+ * @param ctx - Grammy context
+ * @returns Language code (e.g., 'ru', 'en')
+ */
+function detectUserLanguage<C extends Context & I18nSessionFlavor>(ctx: C): string {
+  // 1. Check session language
+  if (ctx.session?.language) {
+    return normalizeLanguageCode(ctx.session.language);
+  }
+
+  // 2. Check Telegram user language
+  if (ctx.from?.language_code) {
+    const lang = normalizeLanguageCode(ctx.from.language_code);
+
+    return lang;
+  }
+
+  // 3. Return default language
+  return defaultLanguage;
+}
+
+/**
+ * Type guard: Check if context has language property
+ */
+function hasLanguageProperty(ctx: Context): ctx is Context & { language: string } {
+  return 'language' in ctx;
+}
+
+/**
  * Create Grammy i18n middleware
  *
  * This middleware:
@@ -88,70 +152,6 @@ export function createGrammyI18nMiddleware<C extends Context & I18nSessionFlavor
     // Continue to next middleware
     await next();
   };
-}
-
-/**
- * Detect user language from context
- *
- * Priority:
- * 1. Session language (if user explicitly set it)
- * 2. Telegram user language_code
- * 3. Default language (from config)
- *
- * @param ctx - Grammy context
- * @returns Language code (e.g., 'ru', 'en')
- */
-function detectUserLanguage<C extends Context & I18nSessionFlavor>(ctx: C): string {
-  // 1. Check session language
-  if (ctx.session?.language) {
-    return normalizeLanguageCode(ctx.session.language);
-  }
-
-  // 2. Check Telegram user language
-  if (ctx.from?.language_code) {
-    const lang = normalizeLanguageCode(ctx.from.language_code);
-
-    return lang;
-  }
-
-  // 3. Return default language
-  return defaultLanguage;
-}
-
-/**
- * Normalize language code to supported language
- *
- * Maps language codes to supported languages:
- * - ru, ru-RU -> ru
- * - en, en-US, en-GB -> en
- * - etc.
- *
- * @param langCode - Raw language code
- * @returns Normalized language code
- */
-function normalizeLanguageCode(langCode: string): string {
-  if (!langCode) {
-    return defaultLanguage;
-  }
-
-  // Extract primary language code (before dash)
-  const primaryLang = langCode.toLowerCase().split('-')[0];
-
-  // Check if supported
-  const supportedLanguages = Object.values(Language) as string[];
-  if (supportedLanguages.includes(primaryLang)) {
-    return primaryLang;
-  }
-
-  // Return default if not supported
-  return defaultLanguage;
-}
-
-/**
- * Type guard: Check if context has language property
- */
-function hasLanguageProperty(ctx: Context): ctx is Context & { language: string } {
-  return 'language' in ctx;
 }
 
 /**
