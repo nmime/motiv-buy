@@ -7,7 +7,7 @@ on:
       - '!main'  # Exclude main branch
 
 env:
-  PNPM_VERSION: 8
+  PNPM_VERSION: 9
   DOCKER_REGISTRY: ghcr.io
 
 jobs:

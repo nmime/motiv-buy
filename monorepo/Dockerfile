@@ -4,7 +4,7 @@
 FROM node:20-alpine AS deps
 
 # Install pnpm
-RUN npm install -g pnpm@8
+RUN npm install -g pnpm@9
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ ARG APP_NAME
 RUN test -n "$APP_NAME" || (echo "APP_NAME build argument is required" && false)
 
 # Install pnpm
-RUN npm install -g pnpm@8
+RUN npm install -g pnpm@9
 
 WORKDIR /app
 
@@ -50,7 +50,7 @@ ARG APP_NAME
 RUN test -n "$APP_NAME" || (echo "APP_NAME build argument is required" && false)
 
 # Install pnpm
-RUN npm install -g pnpm@8
+RUN npm install -g pnpm@9
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
