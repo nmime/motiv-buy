@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { BotMainModule, ModerationServiceToken } from '@app/feature-bot-main';
-// ModerationService imported directly from traffic-main for DI wiring
-// This is the app layer resolving circular dependency between bot-main and traffic-main
+import { BotMainModule } from '@app/feature-bot-main';
 import { TrafficMainModule, ModerationService } from '@app/feature-traffic-main';
+import { IModerationService } from '@app/feature-traffic-shared';
 import { BotService } from './service';
 
 /**
@@ -31,9 +30,11 @@ import { BotService } from './service';
     // Thin wrapper service
     BotService,
 
-    // Provide ModerationService for dependency injection across circular boundaries
+    // Wire interface to implementation (breaks circular dependency)
+    // bot-main depends on IModerationService interface from traffic-shared
+    // We provide the concrete ModerationService from traffic-main here
     {
-      provide: ModerationServiceToken,
+      provide: IModerationService,
       useExisting: ModerationService,
     },
   ],
