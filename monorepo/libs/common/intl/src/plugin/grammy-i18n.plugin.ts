@@ -148,6 +148,13 @@ function normalizeLanguageCode(langCode: string): string {
 }
 
 /**
+ * Type guard: Check if context has language property
+ */
+function hasLanguageProperty(ctx: Context): ctx is Context & { language: string } {
+  return 'language' in ctx;
+}
+
+/**
  * Helper: Change user language
  *
  * Updates session language and returns confirmation message
@@ -174,8 +181,8 @@ export function changeUserLanguage<C extends Context & I18nSessionFlavor>(ctx: C
   ctx.session.language = normalizedLang;
 
   // Update context language if available
-  if ('language' in ctx) {
-    (ctx as unknown as { language: string }).language = normalizedLang;
+  if (hasLanguageProperty(ctx)) {
+    ctx.language = normalizedLang;
   }
 
   return true;

@@ -87,6 +87,8 @@ export class Migration20250105000008NotificationSystem extends Migration {
     this.addSql('CREATE INDEX ix__notifications__priority_status ON notifications (priority, status);');
     this.addSql('CREATE INDEX ix__notifications__created_at ON notifications (created_at);');
     this.addSql('CREATE INDEX ix__notifications__send_at ON notifications (send_at);');
+    // Composite index for queue processing (find pending notifications ordered by send_at)
+    this.addSql('CREATE INDEX ix__notifications__status_send_at ON notifications (status, send_at);');
     this.addSql('CREATE INDEX ix__notifications__status_target_send_time ON notifications (status, target_type, send_time_from, send_time_to);');
 
     // Create trigger for notifications
@@ -96,17 +98,11 @@ export class Migration20250105000008NotificationSystem extends Migration {
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at_column();
     `);
-
-    // Ensure async compliance
-    await Promise.resolve();
   }
 
   async down(): Promise<void> {
     // Drop tables in reverse order (CASCADE will drop constraints and triggers)
     this.addSql('DROP TABLE IF EXISTS notifications CASCADE;');
     this.addSql('DROP TABLE IF EXISTS notification_templates CASCADE;');
-
-    // Ensure async compliance
-    await Promise.resolve();
   }
 }

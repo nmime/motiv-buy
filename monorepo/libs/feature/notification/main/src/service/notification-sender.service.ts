@@ -27,6 +27,25 @@ export class NotificationSenderService {
     private readonly notificationTemplateRepository: NotificationTemplateRepository,
   ) {}
 
+  /**
+   * Send a notification through its designated channel
+   *
+   * Builds notification content from template, sends via channel,
+   * and updates notification status (sent/failed).
+   *
+   * @param notification - The notification entity to send
+   * @returns Result object containing success status, messageId, or error details
+   *
+   * @example
+   * ```typescript
+   * const result = await sender.sendNotification(notification);
+   * if (result.success) {
+   *   console.log(`Sent with message ID: ${result.messageId}`);
+   * } else {
+   *   console.error(`Failed: ${result.error.message}`);
+   * }
+   * ```
+   */
   async sendNotification(notification: NotificationEntity): Promise<SendNotificationResult> {
     try {
       if (!notification.template) {
@@ -86,6 +105,18 @@ export class NotificationSenderService {
     }
   }
 
+  /**
+   * Send notification content to the specified channel
+   *
+   * Currently a stub implementation that logs the notification.
+   * Should be replaced with actual channel-specific sending logic
+   * (Telegram, email, SMS, etc.).
+   *
+   * @param notification - The notification entity containing channel info
+   * @param content - The rendered notification content (text/HTML/markdown)
+   * @returns Channel-specific message ID, or undefined if sending failed
+   * @private
+   */
   private async sendToChannel(
     notification: NotificationEntity,
     content: NotificationResult,
@@ -94,6 +125,17 @@ export class NotificationSenderService {
     return `msg_${Date.now()}`;
   }
 
+  /**
+   * Classify error into specific NotificationErrorReason category
+   *
+   * Analyzes error message to determine error type for better handling
+   * and retry logic. Uses pattern matching against common error messages
+   * from various notification channels.
+   *
+   * @param error - The error to classify
+   * @returns Categorized error reason enum value
+   * @private
+   */
   private classifyError(error: unknown): NotificationErrorReason {
     if (!(error instanceof Error)) {
       return NotificationErrorReason.UnknownError;

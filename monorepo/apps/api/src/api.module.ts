@@ -39,7 +39,7 @@ import { NotificationSharedModule } from '@app/feature-notification-shared';
     // Bot module provides Telegram integration for traffic features
     BotMainModule,
     TrafficMainModule,
-    // Notification module provides notification service for API features
+    // Notification shared module provides service to create notifications (no scheduler)
     NotificationSharedModule,
   ],
   controllers: [
