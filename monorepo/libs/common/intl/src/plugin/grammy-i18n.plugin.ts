@@ -16,7 +16,7 @@ import { defaultLanguage, Language } from '@app/common-shared';
 export interface I18nSessionFlavor {
   session?: {
     language?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -34,7 +34,7 @@ export interface I18nContextFlavor {
    * @param key - Translation key (e.g., 'order.main_menu.title')
    * @param options - Optional parameters for interpolation
    */
-  t(key: string, options?: Record<string, any>): string;
+  t(key: string, options?: Record<string, string | number>): string;
 }
 
 /**
@@ -78,7 +78,7 @@ export function createGrammyI18nMiddleware<C extends Context & I18nSessionFlavor
     ctx.language = userLanguage;
 
     // Add translation function to context
-    ctx.t = (key: string, options?: Record<string, any>) => {
+    ctx.t = (key: string, options?: Record<string, string | number>) => {
       return i18nService.t(key, {
         lang: ctx.language,
         args: options,
@@ -175,7 +175,7 @@ export function changeUserLanguage<C extends Context & I18nSessionFlavor>(ctx: C
 
   // Update context language if available
   if ('language' in ctx) {
-    (ctx as any).language = normalizedLang;
+    (ctx as unknown as { language: string }).language = normalizedLang;
   }
 
   return true;
