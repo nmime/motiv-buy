@@ -27,5 +27,9 @@ export * from './TrafficUser.entity';
 // Moderation entities
 export * from './ModerationRequest.entity';
 
+// Notification entities
+export * from './Notification.entity';
+export * from './NotificationTemplate.entity';
+
 // Junction entities
 export * from './junction';

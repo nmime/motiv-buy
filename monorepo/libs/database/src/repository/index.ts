@@ -17,3 +17,5 @@ export * from './CurrencyRatesHistory.repository';
 export * from './PaymentProvider.repository';
 export * from './ProviderCurrency.repository';
 export * from './ProviderRouting.repository';
+export * from './Notification.repository';
+export * from './NotificationTemplate.repository';

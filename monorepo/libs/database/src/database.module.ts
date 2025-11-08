@@ -22,6 +22,8 @@ import {
   UserSourceVisitEntity,
   CurrencyEntity,
   CurrencyRatesHistoryEntity,
+  NotificationEntity,
+  NotificationTemplateEntity,
 } from './entity';
 import { TrafficSourceCategoryEntity } from './entity/TrafficSourceCategory.entity';
 import { TrafficSourceCategoriesEntity } from './entity/junction/TrafficSourceCategories.entity';
@@ -57,6 +59,8 @@ const entityClasses = [
   UserTrafficOrderEntity,
   UserTrafficSourceEntity,
   TrafficSourceCategoriesEntity,
+  NotificationEntity,
+  NotificationTemplateEntity,
 ];
 
 @Global()
