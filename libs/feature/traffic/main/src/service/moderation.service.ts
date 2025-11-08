@@ -212,7 +212,10 @@ export class ModerationService implements IModerationService {
   /**
    * Get moderation request by entity
    */
-  async getModerationRequest(entityType: ModerationEntityType, entityId: string): Promise<ModerationRequestEntity | null> {
+  async getModerationRequest(
+    entityType: ModerationEntityType,
+    entityId: string,
+  ): Promise<ModerationRequestEntity | null> {
     return this.moderationRequestRepository.findByEntity(entityType, entityId);
   }
 

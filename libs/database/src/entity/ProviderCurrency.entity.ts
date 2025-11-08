@@ -46,7 +46,12 @@ export class ProviderCurrencyEntity {
   /**
    * Provider relationship
    */
-  @ManyToOne('PaymentProviderEntity', { nullable: false, joinColumn: 'provider_id', referenceColumnName: 'id', ref: true })
+  @ManyToOne('PaymentProviderEntity', {
+    nullable: false,
+    joinColumn: 'provider_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
   provider!: Ref<PaymentProviderEntity>;
 
   /**

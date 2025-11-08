@@ -59,6 +59,7 @@ export class NotificationSenderService {
             },
           };
         }
+
         notification.template = template;
       }
 
@@ -75,6 +76,7 @@ export class NotificationSenderService {
 
       if (messageId) {
         await this.notificationRepository.markAsSent(notification.id, messageId);
+
         return { success: true, messageId };
       }
 
@@ -122,6 +124,7 @@ export class NotificationSenderService {
     content: NotificationResult,
   ): Promise<string | undefined> {
     this.logger.log(`Would send notification to ${notification.channel}: ${JSON.stringify(content)}`);
+
     return `msg_${Date.now()}`;
   }
 

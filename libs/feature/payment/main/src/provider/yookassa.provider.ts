@@ -157,7 +157,7 @@ export class YooKassaProvider implements IPaymentProvider {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
         const headers: Record<string, string> = {
-          Authorization: this.getAuthHeader(),
+          'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         };
 

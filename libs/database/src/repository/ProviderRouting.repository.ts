@@ -196,8 +196,10 @@ export class ProviderRoutingRepository {
    * Create or update routing rule
    */
   async upsert(
-    data: (Required<Pick<ProviderRoutingEntity, 'name' | 'ruleType'>> &
-      Partial<Omit<ProviderRoutingEntity, 'name' | 'ruleType'>>) | (Required<Pick<ProviderRoutingEntity, 'id'>> & Partial<ProviderRoutingEntity>),
+    data:
+      | (Required<Pick<ProviderRoutingEntity, 'name' | 'ruleType'>> &
+          Partial<Omit<ProviderRoutingEntity, 'name' | 'ruleType'>>)
+      | (Required<Pick<ProviderRoutingEntity, 'id'>> & Partial<ProviderRoutingEntity>),
   ): Promise<ProviderRoutingEntity> {
     if ('id' in data && data.id) {
       // Update existing
@@ -295,13 +297,11 @@ export class ProviderRoutingRepository {
   /**
    * Get rules sorted by success rate
    */
-  async findBySuccessRate(limit: number = 10): Promise<ProviderRoutingEntity[]> {
+  async findBySuccessRate(limit = 10): Promise<ProviderRoutingEntity[]> {
     const rules = await this.findActiveRules();
 
     // Sort by success rate
-    return rules
-      .sort((a, b) => b.getSuccessRate() - a.getSuccessRate())
-      .slice(0, limit);
+    return rules.sort((a, b) => b.getSuccessRate() - a.getSuccessRate()).slice(0, limit);
   }
 
   /**

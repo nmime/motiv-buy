@@ -106,8 +106,8 @@ export class RateLimitMiddleware {
         });
 
         await ctx.reply(
-          ctx.t('common.errors.user_blocked', { 
-            minutes: Math.ceil((config.blockDurationMs || 0) / 1000 / 60) 
+          ctx.t('common.errors.user_blocked', {
+            minutes: Math.ceil((config.blockDurationMs || 0) / 1000 / 60),
           }),
         );
       } else {

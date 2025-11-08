@@ -39,6 +39,7 @@ export class BotAuthMiddleware {
     return async (ctx: BotContext, next: () => Promise<void>) => {
       if (!ctx.user || !ctx.isAuthenticated) {
         await ctx.reply(errorMessage);
+
         return;
       }
 

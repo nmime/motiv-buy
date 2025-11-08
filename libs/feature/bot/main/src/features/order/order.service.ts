@@ -216,6 +216,7 @@ export class OrderService {
       const botToken = this.botConfigService.getBotToken();
       if (!botToken) {
         this.logger.error('Bot token not configured');
+
         return null;
       }
 
@@ -245,6 +246,7 @@ export class OrderService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to get channel info for ${username}: ${errorMessage}`);
+
       return null;
     }
   }
@@ -257,6 +259,7 @@ export class OrderService {
       const botToken = this.botConfigService.getBotToken();
       if (!botToken) {
         this.logger.error('Bot token not configured');
+
         return false;
       }
 
@@ -275,6 +278,7 @@ export class OrderService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to check bot admin status for channel ${channelId}: ${errorMessage}`);
+
       return false;
     }
   }
@@ -449,10 +453,12 @@ Created: ${order.createdAt.toLocaleDateString()}
       const { Bot } = await import('grammy');
       const bot = new Bot(botToken);
       const botInfo = await bot.api.getMe();
+
       return botInfo.id;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to get bot user ID: ${errorMessage}`);
+
       return null;
     }
   }

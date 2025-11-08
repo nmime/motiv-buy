@@ -59,12 +59,7 @@ export class ModerationRequestEntity {
   updatedAt: Date = new Date();
 
   constructor(
-    data: EntityConstructorData<
-      ModerationRequestEntity,
-      'id' | 'createdAt' | 'updatedAt',
-      'status',
-      'reviewedBy'
-    >,
+    data: EntityConstructorData<ModerationRequestEntity, 'id' | 'createdAt' | 'updatedAt', 'status', 'reviewedBy'>,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
       reviewedById: {

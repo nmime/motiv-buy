@@ -110,6 +110,7 @@ describe('template-renderer.util', () => {
         [{ text: 'User <%= name %>', callback_data: 'user_<%= id %>' }],
         [{ text: 'Balance: $<%= balance %>', callback_data: 'balance' }],
       ];
+
       const variables = { name: 'John', id: 123, balance: 50 };
 
       const result = renderButtons(buttons, variables);
@@ -130,40 +131,42 @@ describe('template-renderer.util', () => {
     });
 
     it('should handle buttons without template variables', () => {
-      const buttons = [
-        [{ text: 'Static Button', callback_data: 'static' }],
-      ];
+      const buttons = [[{ text: 'Static Button', callback_data: 'static' }]];
+
       const variables = {};
 
       const result = renderButtons(buttons, variables);
 
-      expect(result).toEqual([
-        [{ text: 'Static Button', callback_data: 'static' }],
-      ]);
+      expect(result).toEqual([[{ text: 'Static Button', callback_data: 'static' }]]);
     });
 
     it('should preserve non-string button properties', () => {
       const buttons = [
-        [{
-          text: 'Button <%= name %>',
-          callback_data: 'data',
-          some_number: 42,
-          some_boolean: true,
-          some_object: { nested: 'value' },
-        }],
+        [
+          {
+            text: 'Button <%= name %>',
+            callback_data: 'data',
+            some_number: 42,
+            some_boolean: true,
+            some_object: { nested: 'value' },
+          },
+        ],
       ];
+
       const variables = { name: 'Test' };
 
       const result = renderButtons(buttons, variables);
 
       expect(result).toEqual([
-        [{
-          text: 'Button Test',
-          callback_data: 'data',
-          some_number: 42,
-          some_boolean: true,
-          some_object: { nested: 'value' },
-        }],
+        [
+          {
+            text: 'Button Test',
+            callback_data: 'data',
+            some_number: 42,
+            some_boolean: true,
+            some_object: { nested: 'value' },
+          },
+        ],
       ]);
     });
 
@@ -173,13 +176,10 @@ describe('template-renderer.util', () => {
           { text: 'Button 1', callback_data: 'btn1' },
           { text: 'Button 2', callback_data: 'btn2' },
         ],
-        [
-          { text: 'Row 2 Button', callback_data: 'row2' },
-        ],
-        [
-          { text: 'User <%= name %>', callback_data: 'user' },
-        ],
+        [{ text: 'Row 2 Button', callback_data: 'row2' }],
+        [{ text: 'User <%= name %>', callback_data: 'user' }],
       ];
+
       const variables = { name: 'Alice' };
 
       const result = renderButtons(buttons, variables);
@@ -189,12 +189,8 @@ describe('template-renderer.util', () => {
           { text: 'Button 1', callback_data: 'btn1' },
           { text: 'Button 2', callback_data: 'btn2' },
         ],
-        [
-          { text: 'Row 2 Button', callback_data: 'row2' },
-        ],
-        [
-          { text: 'User Alice', callback_data: 'user' },
-        ],
+        [{ text: 'Row 2 Button', callback_data: 'row2' }],
+        [{ text: 'User Alice', callback_data: 'user' }],
       ]);
     });
 
@@ -217,22 +213,17 @@ describe('template-renderer.util', () => {
     });
 
     it('should clone buttons without mutating original', () => {
-      const originalButtons = [
-        [{ text: 'User <%= name %>', callback_data: 'user' }],
-      ];
+      const originalButtons = [[{ text: 'User <%= name %>', callback_data: 'user' }]];
+
       const variables = { name: 'John' };
 
       const result = renderButtons(originalButtons, variables);
 
       // Original should remain unchanged
-      expect(originalButtons).toEqual([
-        [{ text: 'User <%= name %>', callback_data: 'user' }],
-      ]);
+      expect(originalButtons).toEqual([[{ text: 'User <%= name %>', callback_data: 'user' }]]);
 
       // Result should have rendered values
-      expect(result).toEqual([
-        [{ text: 'User John', callback_data: 'user' }],
-      ]);
+      expect(result).toEqual([[{ text: 'User John', callback_data: 'user' }]]);
     });
 
     it('should handle complex button structures', () => {
@@ -245,6 +236,7 @@ describe('template-renderer.util', () => {
           },
         ],
       ];
+
       const variables = { orderId: 12345 };
 
       const result = renderButtons(buttons, variables);

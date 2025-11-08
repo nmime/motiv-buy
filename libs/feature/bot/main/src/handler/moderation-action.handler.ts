@@ -21,13 +21,13 @@ export class ModerationActionHandler {
   private readonly logger = new Logger(ModerationActionHandler.name);
 
   // Map entity types to their approval handlers for O(1) lookup
-  private readonly approveHandlers: Record<
-    ModerationEntityType,
-    (requestId: string, userId: string) => Promise<void>
-  > = {
-    [ModerationEntityType.TrafficSource]: (requestId, userId) => this.moderationService.approveSource(requestId, userId),
-    [ModerationEntityType.TrafficOrder]: (requestId, userId) => this.moderationService.approveOrder(requestId, userId),
-  };
+  private readonly approveHandlers: Record<ModerationEntityType, (requestId: string, userId: string) => Promise<void>> =
+    {
+      [ModerationEntityType.TrafficSource]: (requestId, userId) =>
+        this.moderationService.approveSource(requestId, userId),
+      [ModerationEntityType.TrafficOrder]: (requestId, userId) =>
+        this.moderationService.approveOrder(requestId, userId),
+    };
 
   // Map entity types to their decline handlers for O(1) lookup
   private readonly declineHandlers: Record<
@@ -64,6 +64,7 @@ export class ModerationActionHandler {
 
       if (!userId) {
         await ctx.answerCallbackQuery('❌ User not authenticated');
+
         return;
       }
 
@@ -90,7 +91,12 @@ export class ModerationActionHandler {
 
       await ctx.answerCallbackQuery(`✅ ${entityName} approved!`);
     } catch (error) {
-      this.logger.error(`Failed to approve moderation request: ${getErrorMessage(error)}`, { requestId, entityType, error });
+      this.logger.error(`Failed to approve moderation request: ${getErrorMessage(error)}`, {
+        requestId,
+        entityType,
+        error,
+      });
+
       await ctx.answerCallbackQuery('❌ Failed to approve. Please try again.');
     }
   }
@@ -108,6 +114,7 @@ export class ModerationActionHandler {
 
       if (!userId) {
         await ctx.answerCallbackQuery('❌ User not authenticated');
+
         return;
       }
 
@@ -137,7 +144,12 @@ export class ModerationActionHandler {
 
       await ctx.answerCallbackQuery(`❌ ${entityName} declined!`);
     } catch (error) {
-      this.logger.error(`Failed to decline moderation request: ${getErrorMessage(error)}`, { requestId, entityType, error });
+      this.logger.error(`Failed to decline moderation request: ${getErrorMessage(error)}`, {
+        requestId,
+        entityType,
+        error,
+      });
+
       await ctx.answerCallbackQuery('❌ Failed to decline. Please try again.');
     }
   }

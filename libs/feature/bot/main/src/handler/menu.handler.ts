@@ -670,7 +670,7 @@ Customize your bot experience.
   /**
    * Handle balance-related actions
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   private async handleBalanceAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'current':
@@ -687,7 +687,7 @@ Customize your bot experience.
   /**
    * Handle profile-related actions
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   private async handleProfileAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'edit':
@@ -729,7 +729,7 @@ Customize your bot experience.
   /**
    * Handle statistics-related actions
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   private async handleStatsAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'overview':
@@ -748,7 +748,7 @@ Customize your bot experience.
   /**
    * Handle traffic-related actions
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   private async handleTrafficAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'live':
@@ -767,7 +767,7 @@ Customize your bot experience.
   /**
    * Handle help-related actions
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   private async handleHelpAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'faq':

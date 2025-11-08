@@ -147,7 +147,7 @@ export class ProviderRoutingService {
 
         // Rule matches, get the provider
         if (rule.provider) {
-          const provider = rule.provider.unwrap().provider;
+          const { provider } = rule.provider.unwrap();
 
           // Validate provider supports this operation
           const isValid = await this.validateProvider(provider, context.currency, context.operation);
@@ -167,7 +167,7 @@ export class ProviderRoutingService {
           const fallbackRule = await this.routingRuleRepo.findFallbackRule(rule.id);
 
           if (fallbackRule && fallbackRule.provider) {
-            const provider = fallbackRule.provider.unwrap().provider;
+            const { provider } = fallbackRule.provider.unwrap();
             const isValid = await this.validateProvider(provider, context.currency, context.operation);
 
             if (isValid) {
@@ -192,16 +192,17 @@ export class ProviderRoutingService {
    */
   private async selectByCurrency(context: RoutingContext): Promise<Result<PaymentProvider, Error>> {
     try {
-      const supports = context.operation === 'deposit'
-        ? await this.currencySupportRepo.findDepositProviders(context.currency)
-        : await this.currencySupportRepo.findWithdrawalProviders(context.currency);
+      const supports =
+        context.operation === 'deposit'
+          ? await this.currencySupportRepo.findDepositProviders(context.currency)
+          : await this.currencySupportRepo.findWithdrawalProviders(context.currency);
 
       if (supports.length === 0) {
         return Err(new Error(`No providers support ${context.operation} for ${context.currency}`));
       }
 
       // Get the first (highest priority) provider
-      const provider = supports[0].provider.unwrap().provider;
+      const { provider } = supports[0].provider.unwrap();
 
       this.logger.log(`Provider ${provider} selected by currency support (priority: ${supports[0].routingPriority})`);
 
@@ -222,7 +223,7 @@ export class ProviderRoutingService {
       const defaultRule = await this.routingRuleRepo.findDefaultRule();
 
       if (defaultRule && defaultRule.provider) {
-        const provider = defaultRule.provider.unwrap().provider;
+        const { provider } = defaultRule.provider.unwrap();
 
         this.logger.log(`Using default provider from rule: ${provider}`);
 
@@ -305,14 +306,12 @@ export class ProviderRoutingService {
   /**
    * Get all available providers for a currency
    */
-  async getAvailableProviders(
-    currency: CurrencyCode,
-    operation: 'deposit' | 'withdrawal',
-  ): Promise<PaymentProvider[]> {
+  async getAvailableProviders(currency: CurrencyCode, operation: 'deposit' | 'withdrawal'): Promise<PaymentProvider[]> {
     try {
-      const supports = operation === 'deposit'
-        ? await this.currencySupportRepo.findDepositProviders(currency)
-        : await this.currencySupportRepo.findWithdrawalProviders(currency);
+      const supports =
+        operation === 'deposit'
+          ? await this.currencySupportRepo.findDepositProviders(currency)
+          : await this.currencySupportRepo.findWithdrawalProviders(currency);
 
       return supports.map((s) => s.provider.unwrap().provider);
     } catch (error) {

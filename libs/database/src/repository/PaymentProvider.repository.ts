@@ -196,10 +196,7 @@ export class PaymentProviderRepository {
   /**
    * Update reliability score
    */
-  async updateReliabilityScore(
-    provider: PaymentProvider,
-    score: number,
-  ): Promise<PaymentProviderEntity | null> {
+  async updateReliabilityScore(provider: PaymentProvider, score: number): Promise<PaymentProviderEntity | null> {
     const entity = await this.em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {

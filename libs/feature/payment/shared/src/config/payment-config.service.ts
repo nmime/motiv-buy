@@ -103,15 +103,9 @@ export class PaymentConfigService {
     PAYMENT_POLLING_YOOKASSA: Joi.boolean().default(true),
 
     // Update Strategies
-    CRYPTO_BOT_UPDATE_STRATEGY: Joi.string()
-      .valid('WEBHOOK', 'POLLING', 'HYBRID')
-      .default('HYBRID'),
-    HELEKET_UPDATE_STRATEGY: Joi.string()
-      .valid('WEBHOOK', 'POLLING', 'HYBRID')
-      .default('HYBRID'),
-    YOOKASSA_UPDATE_STRATEGY: Joi.string()
-      .valid('WEBHOOK', 'POLLING', 'HYBRID')
-      .default('HYBRID'),
+    CRYPTO_BOT_UPDATE_STRATEGY: Joi.string().valid('WEBHOOK', 'POLLING', 'HYBRID').default('HYBRID'),
+    HELEKET_UPDATE_STRATEGY: Joi.string().valid('WEBHOOK', 'POLLING', 'HYBRID').default('HYBRID'),
+    YOOKASSA_UPDATE_STRATEGY: Joi.string().valid('WEBHOOK', 'POLLING', 'HYBRID').default('HYBRID'),
 
     // Webhook URLs
     HELEKET_WEBHOOK_URL: Joi.string().uri().optional(),
@@ -215,9 +209,7 @@ export class PaymentConfigService {
   getWebhookConfig(): PaymentWebhookConfig {
     // Parse comma-separated IP list
     const yooKassaIpString = this.configService.get<string>('YOOKASSA_WEBHOOK_IPS');
-    const yooKassaAllowedIps = yooKassaIpString
-      ? yooKassaIpString.split(',').map((ip) => ip.trim())
-      : undefined;
+    const yooKassaAllowedIps = yooKassaIpString ? yooKassaIpString.split(',').map((ip) => ip.trim()) : undefined;
 
     return {
       url: this.configService.get<string>('CRYPTO_BOT_WEBHOOK_URL'),

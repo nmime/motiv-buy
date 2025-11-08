@@ -3,12 +3,7 @@ import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { PaymentProviderFactory } from './payment-provider.factory';
 import { PaymentConfigService, PaymentUpdateStrategy } from '@app/feature-payment-shared';
-import {
-  PaymentTransactionEntity,
-  PaymentType,
-  PaymentStatus,
-  PaymentProvider,
-} from '@app/database';
+import { PaymentTransactionEntity, PaymentType, PaymentStatus, PaymentProvider } from '@app/database';
 import { toError } from '@app/common-shared';
 
 /**
@@ -169,8 +164,7 @@ export class PaymentPollingService implements OnModuleInit, OnModuleDestroy {
     const strategy = updateStrategy ?? PaymentUpdateStrategy.Hybrid;
 
     // Polling enabled for POLLING and HYBRID strategies
-    const pollingEnabled =
-      strategy === PaymentUpdateStrategy.Polling || strategy === PaymentUpdateStrategy.Hybrid;
+    const pollingEnabled = strategy === PaymentUpdateStrategy.Polling || strategy === PaymentUpdateStrategy.Hybrid;
 
     // Also check provider-specific config
     const providerEnabled = this.providerConfig[this.getProviderConfigKey(provider)];
@@ -254,17 +248,12 @@ export class PaymentPollingService implements OnModuleInit, OnModuleDestroy {
           }
         } catch (error) {
           failed++;
-          this.logger.error(
-            `Failed to poll transaction ${transaction.id}`,
-            toError(error),
-          );
+          this.logger.error(`Failed to poll transaction ${transaction.id}`, toError(error));
         }
       }
 
       const duration = Date.now() - startTime;
-      this.logger.log(
-        `Polling completed in ${duration}ms: ${updated} updated, ${failed} failed, ${skipped} skipped`,
-      );
+      this.logger.log(`Polling completed in ${duration}ms: ${updated} updated, ${failed} failed, ${skipped} skipped`);
     } catch (error) {
       this.logger.error('Error during polling cycle', toError(error));
     } finally {
@@ -276,17 +265,13 @@ export class PaymentPollingService implements OnModuleInit, OnModuleDestroy {
    * Poll a single transaction status from provider
    * Returns true if transaction was updated, false otherwise
    */
-  private async pollTransactionStatus(
-    transaction: PaymentTransactionEntity,
-  ): Promise<boolean> {
+  private async pollTransactionStatus(transaction: PaymentTransactionEntity): Promise<boolean> {
     try {
       // Get the appropriate provider
       const provider = this.providerFactory.getProvider(transaction.provider);
 
       if (!transaction.providerTransactionId) {
-        this.logger.warn(
-          `Transaction ${transaction.id} has no provider transaction ID, skipping`,
-        );
+        this.logger.warn(`Transaction ${transaction.id} has no provider transaction ID, skipping`);
 
         return false;
       }
@@ -311,9 +296,7 @@ export class PaymentPollingService implements OnModuleInit, OnModuleDestroy {
 
       // Check if status changed
       if (transaction.status === providerData.status) {
-        this.logger.debug(
-          `Transaction ${transaction.id} status unchanged (${transaction.status})`,
-        );
+        this.logger.debug(`Transaction ${transaction.id} status unchanged (${transaction.status})`);
 
         return false;
       }
@@ -333,9 +316,7 @@ export class PaymentPollingService implements OnModuleInit, OnModuleDestroy {
 
         // Double-check status hasn't been updated by webhook
         if (lockedTransaction.status === providerData.status) {
-          this.logger.debug(
-            `Transaction ${transaction.id} already updated by webhook, skipping`,
-          );
+          this.logger.debug(`Transaction ${transaction.id} already updated by webhook, skipping`);
 
           return;
         }
@@ -368,10 +349,8 @@ export class PaymentPollingService implements OnModuleInit, OnModuleDestroy {
 
       return true;
     } catch (error) {
-      this.logger.error(
-        `Error polling transaction ${transaction.id}`,
-        toError(error),
-      );
+      this.logger.error(`Error polling transaction ${transaction.id}`, toError(error));
+
       throw error;
     }
   }

@@ -47,7 +47,9 @@ export class Migration20250105000003TrafficSystem extends Migration {
     this.addSql('CREATE INDEX ix__traffic_sources__bot_username ON traffic_sources (bot_username);');
     this.addSql('CREATE INDEX ix__traffic_sources__api_key_prefix ON traffic_sources (api_key_prefix);');
     this.addSql(`COMMENT ON COLUMN traffic_sources.api_key_hash IS 'Bcrypt-hashed API key for secure authentication';`);
-    this.addSql(`COMMENT ON COLUMN traffic_sources.api_key_prefix IS 'First 8 chars of API key for fast lookup (security + performance)';`);
+    this.addSql(
+      `COMMENT ON COLUMN traffic_sources.api_key_prefix IS 'First 8 chars of API key for fast lookup (security + performance)';`,
+    );
 
     // 2. Create traffic_source_categories table
     this.addSql(`
@@ -166,7 +168,10 @@ export class Migration20250105000003TrafficSystem extends Migration {
     this.addSql('CREATE INDEX ix__traffic_orders__creator_id ON traffic_orders (creator_id);');
     this.addSql('CREATE INDEX ix__traffic_orders__traffic_source_id ON traffic_orders (traffic_source_id);');
     this.addSql('CREATE INDEX ix__traffic_orders__traffic_target_id ON traffic_orders (traffic_target_id);');
-    this.addSql('CREATE INDEX ix__traffic_orders__assigned_traffic_user_id ON traffic_orders (assigned_traffic_user_id);');
+    this.addSql(
+      'CREATE INDEX ix__traffic_orders__assigned_traffic_user_id ON traffic_orders (assigned_traffic_user_id);',
+    );
+
     this.addSql('CREATE INDEX ix__traffic_orders__created_by ON traffic_orders (created_by_id);');
 
     // 6. Create traffic_actions table
@@ -217,14 +222,21 @@ export class Migration20250105000003TrafficSystem extends Migration {
     `);
 
     this.addSql('CREATE INDEX ix__moderation_requests__status ON moderation_requests (status);');
-    this.addSql('CREATE INDEX ix__moderation_requests__entity_type_id ON moderation_requests (entity_type, entity_id);');
+    this.addSql(
+      'CREATE INDEX ix__moderation_requests__entity_type_id ON moderation_requests (entity_type, entity_id);',
+    );
+
     this.addSql(`
       CREATE INDEX ix__moderation_requests__telegram_message
         ON moderation_requests (telegram_chat_id, telegram_message_id);
     `);
+
     this.addSql('CREATE INDEX ix__moderation_requests__created_at ON moderation_requests (created_at);');
 
-    this.addSql(`COMMENT ON TABLE moderation_requests IS 'Approval workflow for traffic sources and orders via Telegram channel';`);
+    this.addSql(
+      `COMMENT ON TABLE moderation_requests IS 'Approval workflow for traffic sources and orders via Telegram channel';`,
+    );
+
     this.addSql(`COMMENT ON COLUMN moderation_requests.entity_type IS 'Type: traffic_source or traffic_order';`);
     this.addSql(`COMMENT ON COLUMN moderation_requests.status IS 'Status: pending, approved, or declined';`);
 
@@ -251,14 +263,17 @@ export class Migration20250105000003TrafficSystem extends Migration {
       CREATE INDEX ix__traffic_source_categories__source_id
         ON traffic_source_categories_junction (traffic_source_id);
     `);
+
     this.addSql(`
       CREATE INDEX ix__traffic_source_categories__category_id
         ON traffic_source_categories_junction (traffic_source_category_id);
     `);
+
     this.addSql(`
       CREATE INDEX ix__traffic_source_categories__is_primary
         ON traffic_source_categories_junction (is_primary);
     `);
+
     this.addSql(`
       CREATE UNIQUE INDEX uq__traffic_source_categories__source_category
         ON traffic_source_categories_junction (traffic_source_id, traffic_source_category_id);
@@ -482,15 +497,26 @@ export class Migration20250105000003TrafficSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX ix__traffic_order_balances__traffic_order_id ON traffic_order_balances (traffic_order_id);');
+    this.addSql(
+      'CREATE INDEX ix__traffic_order_balances__traffic_order_id ON traffic_order_balances (traffic_order_id);',
+    );
+
     this.addSql('CREATE INDEX ix__traffic_order_balances__currency_id ON traffic_order_balances (currency_id);');
     this.addSql('CREATE INDEX ix__traffic_order_balances__is_settled ON traffic_order_balances (is_settled);');
 
-    this.addSql(`COMMENT ON TABLE traffic_order_balances IS 'Locked funds for traffic orders. Ensures guaranteed payment.';`);
+    this.addSql(
+      `COMMENT ON TABLE traffic_order_balances IS 'Locked funds for traffic orders. Ensures guaranteed payment.';`,
+    );
+
     this.addSql(`COMMENT ON COLUMN traffic_order_balances.locked_amount IS 'Total budget locked for order.';`);
-    this.addSql(`COMMENT ON COLUMN traffic_order_balances.spent_amount IS 'Amount paid to sellers for completed tasks.';`);
+    this.addSql(
+      `COMMENT ON COLUMN traffic_order_balances.spent_amount IS 'Amount paid to sellers for completed tasks.';`,
+    );
+
     this.addSql(`COMMENT ON COLUMN traffic_order_balances.available_amount IS 'Remaining funds available for tasks.';`);
-    this.addSql(`COMMENT ON COLUMN traffic_order_balances.refunded_amount IS 'Amount refunded to buyer on cancellation.';`);
+    this.addSql(
+      `COMMENT ON COLUMN traffic_order_balances.refunded_amount IS 'Amount refunded to buyer on cancellation.';`,
+    );
 
     // ========================================
     // PART 3: UPDATE TRIGGERS

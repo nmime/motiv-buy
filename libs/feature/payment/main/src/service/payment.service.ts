@@ -70,10 +70,7 @@ export class PaymentService {
    * @param userId - User ID requesting top-up
    * @param dto - Invoice creation parameters (includes optional provider selection)
    */
-  async createTopUp(
-    userId: string,
-    dto: CreateInvoiceDto,
-  ): AsyncResult<InvoiceResponseDto, Error> {
+  async createTopUp(userId: string, dto: CreateInvoiceDto): AsyncResult<InvoiceResponseDto, Error> {
     try {
       // Select payment provider using routing service if not explicitly specified
       let providerType: PaymentProvider;
@@ -104,9 +101,7 @@ export class PaymentService {
         }
       }
 
-      this.logger.log(
-        `Creating top-up invoice for user ${userId}: ${dto.amount} ${dto.currency} via ${providerType}`,
-      );
+      this.logger.log(`Creating top-up invoice for user ${userId}: ${dto.amount} ${dto.currency} via ${providerType}`);
 
       // Get the appropriate payment provider
       const provider = this.providerFactory.getProvider(providerType);
@@ -151,7 +146,9 @@ export class PaymentService {
 
       await this.em.persistAndFlush(transaction);
 
-      this.logger.log(`Top-up invoice created: ${transaction.id} (provider: ${providerType}, invoiceId: ${invoice.invoiceId})`);
+      this.logger.log(
+        `Top-up invoice created: ${transaction.id} (provider: ${providerType}, invoiceId: ${invoice.invoiceId})`,
+      );
 
       // Return response DTO
       const response: InvoiceResponseDto = {
@@ -233,10 +230,7 @@ export class PaymentService {
    * @param userId - User ID requesting withdrawal
    * @param dto - Transfer creation parameters (includes optional provider and destination)
    */
-  async createWithdrawal(
-    userId: string,
-    dto: CreateTransferDto,
-  ): AsyncResult<TransferResponseDto, Error> {
+  async createWithdrawal(userId: string, dto: CreateTransferDto): AsyncResult<TransferResponseDto, Error> {
     // Store balance before transaction for potential rollback
     let balanceBeforeTransaction: string | null = null;
     let transferCreated = false;
@@ -371,7 +365,9 @@ export class PaymentService {
 
         await em.persist(transaction).flush();
 
-        this.logger.log(`Withdrawal created: ${transaction.id} (provider: ${providerType}, transferId: ${transfer.transferId})`);
+        this.logger.log(
+          `Withdrawal created: ${transaction.id} (provider: ${providerType}, transferId: ${transfer.transferId})`,
+        );
 
         // Return transaction to outer scope
         return transaction;
@@ -1080,13 +1076,12 @@ export class PaymentService {
         const currencyCode = this.mapCryptocurrencyToCurrencyCode(lockedTransaction.currency);
 
         // Get current balance in the correct currency
-        const balance = await this.userBalanceRepository.findByUserAndCurrency(
-          lockedTransaction.userId,
-          currencyCode,
-        );
+        const balance = await this.userBalanceRepository.findByUserAndCurrency(lockedTransaction.userId, currencyCode);
 
         if (!balance) {
-          throw new Error(`Balance not found for user ${lockedTransaction.userId} in currency ${lockedTransaction.currency}`);
+          throw new Error(
+            `Balance not found for user ${lockedTransaction.userId} in currency ${lockedTransaction.currency}`,
+          );
         }
 
         const creditAmount = decimal(lockedTransaction.amount);

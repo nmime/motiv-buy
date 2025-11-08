@@ -419,10 +419,7 @@ export class PaymentWebhookController {
 
         this.logger.debug('IP whitelist check passed', { ...logContext, clientIp });
       } else {
-        this.logger.warn(
-          'YooKassa webhook IP whitelist not configured - accepting all requests',
-          logContext,
-        );
+        this.logger.warn('YooKassa webhook IP whitelist not configured - accepting all requests', logContext);
       }
 
       // Parse and validate webhook data

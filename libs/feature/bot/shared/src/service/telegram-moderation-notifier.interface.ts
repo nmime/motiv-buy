@@ -37,7 +37,12 @@ export interface ITelegramModerationNotifier {
   /**
    * Update message after approval
    */
-  updateApproved(chatId: string, messageId: number, entityType: ModerationEntityType, reviewerUsername: string): Promise<void>;
+  updateApproved(
+    chatId: string,
+    messageId: number,
+    entityType: ModerationEntityType,
+    reviewerUsername: string,
+  ): Promise<void>;
 
   /**
    * Update message after decline

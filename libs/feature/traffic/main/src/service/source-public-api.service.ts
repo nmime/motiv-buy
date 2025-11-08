@@ -576,7 +576,9 @@ export class SourcePublicApiService {
       return true;
     }
 
-    const countries = Array.isArray(requirements['countries']) ? requirements['countries'] as string[] : [requirements['countries'] as string];
+    const countries = Array.isArray(requirements['countries'])
+      ? (requirements['countries'] as string[])
+      : [requirements['countries'] as string];
 
     return countries.includes(dto.country);
   }
@@ -586,7 +588,9 @@ export class SourcePublicApiService {
       return true;
     }
 
-    const languages = Array.isArray(requirements['languages']) ? requirements['languages'] as string[] : [requirements['languages'] as string];
+    const languages = Array.isArray(requirements['languages'])
+      ? (requirements['languages'] as string[])
+      : [requirements['languages'] as string];
 
     return languages.includes(dto.languageCode);
   }
@@ -762,6 +766,7 @@ export class SourcePublicApiService {
     });
 
     this.em.persist(action);
+
     return action;
   }
 
@@ -799,6 +804,7 @@ export class SourcePublicApiService {
         `Insufficient locked balance for order ${order.orderId}: ` +
           `available ${reserve.availableAmount}, required ${rewardAmount}`,
       );
+
       throw new BadRequestException('Insufficient locked balance for this order');
     }
 

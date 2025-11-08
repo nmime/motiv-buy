@@ -125,7 +125,7 @@ export class HeleketProvider implements IPaymentProvider {
         const options: RequestInit = {
           method,
           headers: {
-            Authorization: `Bearer ${this.apiToken}`,
+            'Authorization': `Bearer ${this.apiToken}`,
             'Content-Type': 'application/json',
             'X-Merchant-Id': this.merchantId,
           },

@@ -53,9 +53,7 @@ describe('NotificationService', () => {
       ...overrides,
     }) as NotificationTemplateEntity;
 
-  const createMockNotification = (
-    overrides: Partial<NotificationEntity> = {},
-  ): NotificationEntity =>
+  const createMockNotification = (overrides: Partial<NotificationEntity> = {}): NotificationEntity =>
     ({
       id: TEST_NOTIFICATION_ID,
       channel: NotificationChannel.Bot,
@@ -135,6 +133,7 @@ describe('NotificationService', () => {
       expect(result).toMatchObject({
         status: NotificationStatus.Pending,
       });
+
       expect(result.id).toBeDefined();
       expect(result.createdAt).toBeDefined();
     });
@@ -166,6 +165,7 @@ describe('NotificationService', () => {
       expect(result).toMatchObject({
         status: NotificationStatus.Pending,
       });
+
       expect(mockEntityManager.persistAndFlush).toHaveBeenCalled();
     });
 
@@ -268,6 +268,7 @@ describe('NotificationService', () => {
         expect(result).toMatchObject({
           status: NotificationStatus.Pending,
         });
+
         expect(result.id).toBeDefined();
         expect(result.createdAt).toBeDefined();
       });
@@ -295,9 +296,8 @@ describe('NotificationService', () => {
 
       mockTemplateRepository.findActiveByCodes.mockResolvedValue([template1]);
 
-      await expect(service.createNotificationBatch(notifications)).rejects.toThrow(
-        'Template not found: non_existent',
-      );
+      await expect(service.createNotificationBatch(notifications)).rejects.toThrow('Template not found: non_existent');
+
       expect(mockEntityManager.persistAndFlush).not.toHaveBeenCalled();
     });
 

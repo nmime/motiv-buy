@@ -73,6 +73,7 @@ export class ProfileActionHandler {
 
     if (!validation.isValid) {
       await ctx.reply(`❌ ${validation.error}\n\nPlease try again or use /cancel to abort.`);
+
       return;
     }
 
@@ -117,6 +118,7 @@ export class ProfileActionHandler {
   async handleVerification(ctx: AuthenticatedBotContext): Promise<void> {
     if (ctx.user.isVerified) {
       await ctx.reply(ctx.t('user.profile.already_verified'));
+
       return;
     }
 

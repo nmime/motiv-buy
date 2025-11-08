@@ -39,6 +39,7 @@ export function createProtectedComposer(
   composer.use(async (ctx, next) => {
     if (!ctx.user || !ctx.isAuthenticated) {
       await ctx.reply(errorMessage);
+
       return;
     }
 
@@ -82,6 +83,7 @@ export function protectHandler<T>(
 
     if (!botCtx.user || !botCtx.isAuthenticated) {
       await botCtx.reply(errorMessage);
+
       return;
     }
 

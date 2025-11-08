@@ -952,10 +952,24 @@ export class CurrencyRateService implements OnModuleInit {
       { code: CurrencyCode.Ton, name: 'Toncoin', type: CurrencyType.Crypto, rate: '2.5', symbol: 'TON', decimals: 8 },
       { code: CurrencyCode.Trx, name: 'Tron', type: CurrencyType.Crypto, rate: '0.10', symbol: 'TRX', decimals: 6 },
       { code: CurrencyCode.Ltc, name: 'Litecoin', type: CurrencyType.Crypto, rate: '70', symbol: 'LTC', decimals: 8 },
-      { code: CurrencyCode.Doge, name: 'Dogecoin', type: CurrencyType.Crypto, rate: '0.08', symbol: 'DOGE', decimals: 8 },
+      {
+        code: CurrencyCode.Doge,
+        name: 'Dogecoin',
+        type: CurrencyType.Crypto,
+        rate: '0.08',
+        symbol: 'DOGE',
+        decimals: 8,
+      },
       { code: CurrencyCode.Dai, name: 'DAI', type: CurrencyType.Crypto, rate: '1.0', symbol: 'DAI', decimals: 6 },
       { code: CurrencyCode.Dash, name: 'Dash', type: CurrencyType.Crypto, rate: '30', symbol: 'DASH', decimals: 8 },
-      { code: CurrencyCode.Bch, name: 'Bitcoin Cash', type: CurrencyType.Crypto, rate: '350', symbol: 'BCH', decimals: 8 },
+      {
+        code: CurrencyCode.Bch,
+        name: 'Bitcoin Cash',
+        type: CurrencyType.Crypto,
+        rate: '350',
+        symbol: 'BCH',
+        decimals: 8,
+      },
       { code: CurrencyCode.Sol, name: 'Solana', type: CurrencyType.Crypto, rate: '100', symbol: 'SOL', decimals: 9 },
     ];
 

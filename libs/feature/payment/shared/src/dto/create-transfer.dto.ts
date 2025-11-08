@@ -97,7 +97,8 @@ export class CreateTransferDto {
   provider?: PaymentProvider;
 
   @ApiPropertyOptional({
-    description: 'Optional destination for withdrawal (e.g., bank card number for YooKassa, wallet address for crypto providers)',
+    description:
+      'Optional destination for withdrawal (e.g., bank card number for YooKassa, wallet address for crypto providers)',
     example: '1234567890123456',
     maxLength: 256,
   })

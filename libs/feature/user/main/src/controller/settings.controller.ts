@@ -24,6 +24,7 @@ export class SettingsController {
   @ApiResponse({ status: 200, description: 'Settings retrieved successfully', type: UserSettingsResponseDto })
   async getSettings(@CurrentUserId() userId: string): AsyncResult<UserSettingsResponseDto, InternalException> {
     const result = await this.settingsService.getSettings(userId);
+
     return Ok(result);
   }
 
@@ -35,6 +36,7 @@ export class SettingsController {
     @Body() dto: UpdateSettingsDto,
   ): AsyncResult<UserSettingsResponseDto, InternalException> {
     const result = await this.settingsService.updateSettings(userId, dto);
+
     return Ok(result);
   }
 }

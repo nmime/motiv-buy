@@ -397,9 +397,11 @@ export class StatisticsActionHandler {
     if (stats.earningsLast30Days !== undefined) {
       text += `<b>Last 30 Days:</b> $${toDisplayString(stats.earningsLast30Days, 2)}\n`;
     }
+
     if (stats.totalEarnings !== undefined) {
       text += `<b>Total Earnings:</b> $${toDisplayString(stats.totalEarnings, 2)}\n`;
     }
+
     if (stats.totalTransactions !== undefined) {
       text += `<b>Total Transactions:</b> ${stats.totalTransactions}`;
     }

@@ -53,9 +53,7 @@ describe('NotificationSenderService', () => {
       ...overrides,
     }) as NotificationTemplateEntity;
 
-  const createMockNotification = (
-    overrides: Partial<NotificationEntity> = {},
-  ): NotificationEntity =>
+  const createMockNotification = (overrides: Partial<NotificationEntity> = {}): NotificationEntity =>
     ({
       id: TEST_NOTIFICATION_ID,
       channel: NotificationChannel.Bot,
@@ -126,6 +124,7 @@ describe('NotificationSenderService', () => {
         TEST_NOTIFICATION_ID,
         expect.stringMatching(/^msg_\d+$/),
       );
+
       expect(mockTemplateRepository.findByCode).not.toHaveBeenCalled();
     });
 
@@ -155,6 +154,7 @@ describe('NotificationSenderService', () => {
         reason: NotificationErrorReason.TemplateNotFound,
         message: `Template not found: ${TEST_TEMPLATE_CODE}`,
       });
+
       expect(mockNotificationRepository.markAsSent).not.toHaveBeenCalled();
     });
 
@@ -162,6 +162,7 @@ describe('NotificationSenderService', () => {
       const template = createMockTemplate({
         content: 'Hello <%= name %>, your balance is <%= balance %> USD',
       });
+
       const notification = createMockNotification({
         template,
         data: { name: 'John', balance: 150 },
@@ -207,6 +208,7 @@ describe('NotificationSenderService', () => {
         reason: NotificationErrorReason.NetworkError,
         message: 'Network timeout',
       });
+
       expect(mockNotificationRepository.markAsFailed).toHaveBeenCalledWith(TEST_NOTIFICATION_ID, {
         reason: NotificationErrorReason.NetworkError,
         message: 'Network timeout',
@@ -380,6 +382,7 @@ describe('NotificationSenderService', () => {
         contentType: NotificationContentType.Html,
         content: '<b>Order <%= orderId %></b>',
       });
+
       const notification = createMockNotification({
         template,
         data: { orderId: 999 },
@@ -397,6 +400,7 @@ describe('NotificationSenderService', () => {
         contentType: NotificationContentType.Markdown,
         content: '**Order <%= orderId %>**',
       });
+
       const notification = createMockNotification({
         template,
         data: { orderId: 888 },

@@ -131,12 +131,14 @@ export function buildNotificationFromTemplate(
           };
         }
       }
+
       break;
 
     case NotificationContentType.Location:
       if (template.locationConfig) {
         result.locationConfig = template.locationConfig[locale] ?? template.locationConfig[defaultLanguage];
       }
+
       break;
 
     case NotificationContentType.Contact:
@@ -151,6 +153,7 @@ export function buildNotificationFromTemplate(
           };
         }
       }
+
       break;
 
     case NotificationContentType.Venue:
@@ -164,12 +167,14 @@ export function buildNotificationFromTemplate(
           };
         }
       }
+
       break;
 
     case NotificationContentType.Forward:
       if (template.forwardConfig) {
         result.forwardConfig = template.forwardConfig;
       }
+
       break;
   }
 

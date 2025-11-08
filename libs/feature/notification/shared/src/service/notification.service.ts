@@ -116,6 +116,7 @@ export class NotificationService {
     }
 
     await this.notificationRepository.markAsCancelled(id);
+
     return true;
   }
 }

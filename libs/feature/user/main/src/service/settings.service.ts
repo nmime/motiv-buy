@@ -77,6 +77,7 @@ export class SettingsService {
           value: String(update.value),
           type: update.type,
         });
+
         newSetting.setValue(update.value);
         em.persist(newSetting);
       }

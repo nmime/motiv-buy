@@ -79,9 +79,11 @@ export class BalanceActionHandler {
       if (page > 1) {
         keyboard.text(ctx.t('common.previous'), `balance:history:${page - 1}`);
       }
+
       if (page < totalPages) {
         keyboard.text(ctx.t('common.next'), `balance:history:${page + 1}`);
       }
+
       keyboard.row();
       keyboard.text(ctx.t('common.back'), 'menu:balance');
 
@@ -142,8 +144,10 @@ export class BalanceActionHandler {
   async handleDepositStart(ctx: AuthenticatedBotContext): Promise<void> {
     try {
       const depositText =
-        ctx.t('balance.deposit_info_title') + '\n\n' +
-        ctx.t('balance.deposit_info_steps') + '\n\n' +
+        ctx.t('balance.deposit_info_title') +
+        '\n\n' +
+        ctx.t('balance.deposit_info_steps') +
+        '\n\n' +
         ctx.t('balance.deposit_info_min_deposit');
 
       const { InlineKeyboard } = require('grammy');

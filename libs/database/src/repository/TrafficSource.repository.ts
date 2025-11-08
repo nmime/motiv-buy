@@ -177,6 +177,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
   async regenerateApiKey(sourceId: string): Promise<string> {
     const apiKey = this.generateApiKey();
     await this.setApiKey(sourceId, apiKey);
+
     return apiKey;
   }
 }

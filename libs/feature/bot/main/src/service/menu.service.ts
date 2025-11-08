@@ -48,6 +48,7 @@ export class MenuService {
     });
 
     const generator = this.menuGenerators.get(menuType);
+
     return generator ? generator(ctx) : this.generateDefaultMenu(ctx, menuType);
   }
 

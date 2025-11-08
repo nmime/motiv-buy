@@ -197,6 +197,7 @@ export class ProviderCurrencyRepository {
         ...data,
         network,
       } as ConstructorParameters<typeof ProviderCurrencyEntity>[0]);
+
       this.em.persist(entity);
     }
 
@@ -302,11 +303,7 @@ export class ProviderCurrencyRepository {
   /**
    * Delete provider-currency support
    */
-  async delete(
-    provider: PaymentProvider,
-    currencyCode: CurrencyCode,
-    network: NetworkType,
-  ): Promise<boolean> {
+  async delete(provider: PaymentProvider, currencyCode: CurrencyCode, network: NetworkType): Promise<boolean> {
     const entity = await this.findByProviderAndCurrency(provider, currencyCode, network);
 
     if (!entity) {

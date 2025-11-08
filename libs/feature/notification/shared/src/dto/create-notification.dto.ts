@@ -9,12 +9,7 @@ import {
   IsDateString,
   Matches,
 } from 'class-validator';
-import {
-  NotificationChannel,
-  NotificationTargetType,
-  NotificationPriority,
-  NotificationExtra,
-} from '@app/database';
+import { NotificationChannel, NotificationTargetType, NotificationPriority, NotificationExtra } from '@app/database';
 
 export class CreateNotificationDto<T = Record<string, string | number>> {
   @IsEnum(NotificationChannel)

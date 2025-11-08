@@ -64,7 +64,12 @@ export class ProviderRoutingEntity {
   /**
    * Provider relationship (which provider this rule routes to)
    */
-  @ManyToOne('PaymentProviderEntity', { nullable: true, joinColumn: 'provider_id', referenceColumnName: 'id', ref: true })
+  @ManyToOne('PaymentProviderEntity', {
+    nullable: true,
+    joinColumn: 'provider_id',
+    referenceColumnName: 'id',
+    ref: true,
+  })
   provider!: Ref<PaymentProviderEntity> | null;
 
   /**

@@ -432,6 +432,7 @@ export class CallbackRouterHandler {
     // params[0] should be entity type, params[1] should be requestId
     if (params.length < 2) {
       await ctx.answerCallbackQuery('❌ Invalid moderation request');
+
       return;
     }
 
@@ -448,6 +449,7 @@ export class CallbackRouterHandler {
 
     if (!entityType) {
       await ctx.answerCallbackQuery('❌ Invalid entity type');
+
       return;
     }
 
@@ -535,7 +537,9 @@ export class CallbackRouterHandler {
    * Route auth actions
    */
   private async routeAuthAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
-    await ctx.reply(ctx.t('auth.feature_info', { default: '🔐 Authentication features are managed through your profile settings.' }));
+    await ctx.reply(
+      ctx.t('auth.feature_info', { default: '🔐 Authentication features are managed through your profile settings.' }),
+    );
   }
 
   /**
@@ -629,6 +633,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -637,6 +642,7 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
@@ -646,7 +652,7 @@ export class CallbackRouterHandler {
       // Get active traffic orders
       const activeOrders = await em.count(TrafficOrderEntity, {
         creator: user.id,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] }
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
       });
 
       const totalOrders = await em.count(TrafficOrderEntity, { creator: user.id });
@@ -659,10 +665,11 @@ export class CallbackRouterHandler {
 
       if (sources.length > 0) {
         text += '<b>Your Sources:</b>\n';
-        sources.slice(0, 5).forEach(source => {
+        sources.slice(0, 5).forEach((source) => {
           const statusEmoji = source.isActive ? '✅' : '❌';
           text += `${statusEmoji} ${source.name} (${source.type})\n`;
         });
+
         if (sources.length > 5) {
           text += `... and ${sources.length - 5} more\n`;
         }
@@ -685,6 +692,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -693,6 +701,7 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
@@ -700,20 +709,20 @@ export class CallbackRouterHandler {
       const [active, completed, total] = await Promise.all([
         em.count(TrafficOrderEntity, {
           creator: user.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] }
+          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
         }),
         em.count(TrafficOrderEntity, {
           creator: user.id,
-          status: TrafficOrderStatus.Completed
+          status: TrafficOrderStatus.Completed,
         }),
-        em.count(TrafficOrderEntity, { creator: user.id })
+        em.count(TrafficOrderEntity, { creator: user.id }),
       ]);
 
       // Get recent campaigns
       const recentCampaigns = await em.find(
         TrafficOrderEntity,
         { creator: user.id },
-        { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['trafficTarget'] }
+        { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['trafficTarget'] },
       );
 
       const { decimal, toDisplayString } = await import('@app/common-shared');
@@ -731,14 +740,15 @@ export class CallbackRouterHandler {
       if (recentCampaigns.length > 0) {
         text += '<b>Recent Campaigns:</b>\n';
         for (const campaign of recentCampaigns) {
-          const statusEmoji = {
-            [TrafficOrderStatus.Active]: '✅',
-            [TrafficOrderStatus.InProgress]: '🔄',
-            [TrafficOrderStatus.Completed]: '✔️',
-            [TrafficOrderStatus.Pending]: '⏳',
-            [TrafficOrderStatus.Cancelled]: '❌',
-            [TrafficOrderStatus.Failed]: '⚠️'
-          }[campaign.status] || '❓';
+          const statusEmoji =
+            {
+              [TrafficOrderStatus.Active]: '✅',
+              [TrafficOrderStatus.InProgress]: '🔄',
+              [TrafficOrderStatus.Completed]: '✔️',
+              [TrafficOrderStatus.Pending]: '⏳',
+              [TrafficOrderStatus.Cancelled]: '❌',
+              [TrafficOrderStatus.Failed]: '⚠️',
+            }[campaign.status] || '❓';
 
           text += `${statusEmoji} ${campaign.orderId.substring(0, 8)}... (${campaign.type})\n`;
           text += `   Progress: ${campaign.currentCount}/${campaign.targetCount}\n`;
@@ -762,6 +772,7 @@ export class CallbackRouterHandler {
     // If no specific stat requested, show overview using StatisticsActionHandler
     if (!params || params.length === 0) {
       await this.statisticsHandler.handleStatisticsOverview(ctx);
+
       return;
     }
 
@@ -788,7 +799,9 @@ export class CallbackRouterHandler {
   private async handleProfileSecurityMenu(ctx: BotContext, params: string[]): Promise<void> {
     const keyboard = this.menuHandler.createProfileSecurityMenuKeyboard();
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('profile.security_menu', { default: '🔒 Security Settings\n\nManage your account security options.' }),
+      text: ctx.t('profile.security_menu', {
+        default: '🔒 Security Settings\n\nManage your account security options.',
+      }),
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
@@ -801,6 +814,7 @@ export class CallbackRouterHandler {
       }),
       parseMode: 'HTML',
     });
+
     if (ctx.session) {
       ctx.session.conversationState = 'awaiting_current_password';
     }
@@ -821,6 +835,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -829,6 +844,7 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
@@ -883,6 +899,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -891,6 +908,7 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
@@ -898,7 +916,7 @@ export class CallbackRouterHandler {
       const history = await em.find(
         UserBalanceHistoryEntity,
         { user: user.id },
-        { orderBy: { createdAt: 'DESC' }, limit: 100 }
+        { orderBy: { createdAt: 'DESC' }, limit: 100 },
       );
 
       if (history.length === 0) {
@@ -907,6 +925,7 @@ export class CallbackRouterHandler {
           parseMode: 'HTML',
           replyMarkup: this.menuHandler.createBackButton('menu:balance'),
         });
+
         return;
       }
 
@@ -915,17 +934,19 @@ export class CallbackRouterHandler {
 
       let totalIncome = decimal(0);
       let totalExpense = decimal(0);
-      const last30Days = history.filter(tx => {
+      const last30Days = history.filter((tx) => {
         const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+
         return daysDiff <= 30;
       });
 
-      const last7Days = history.filter(tx => {
+      const last7Days = history.filter((tx) => {
         const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+
         return daysDiff <= 7;
       });
 
-      history.forEach(tx => {
+      history.forEach((tx) => {
         const amount = decimal(tx.amount);
         if (amount.greaterThan(0)) {
           totalIncome = add(totalIncome, amount);
@@ -935,11 +956,11 @@ export class CallbackRouterHandler {
       });
 
       const income30Days = last30Days
-        .filter(tx => decimal(tx.amount).greaterThan(0))
+        .filter((tx) => decimal(tx.amount).greaterThan(0))
         .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
 
       const income7Days = last7Days
-        .filter(tx => decimal(tx.amount).greaterThan(0))
+        .filter((tx) => decimal(tx.amount).greaterThan(0))
         .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
 
       const netBalance = subtract(totalIncome, totalExpense);
@@ -977,6 +998,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -985,12 +1007,14 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
       // Check if user is verified
       if (!user.isVerified) {
         await ctx.reply('⚠️ Account verification required for withdrawals.\n\nPlease verify your account first.');
+
         return;
       }
 
@@ -1006,7 +1030,9 @@ export class CallbackRouterHandler {
       let hasAvailableBalance = false;
       for (const balance of balances) {
         const currency = await balance.currency.load();
-        if (!currency) continue;
+        if (!currency) {
+          continue;
+        }
 
         const available = balance.getAvailableBalance();
         if (decimal(available).greaterThan(0)) {
@@ -1037,6 +1063,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -1045,6 +1072,7 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
@@ -1074,6 +1102,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -1082,6 +1111,7 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
@@ -1089,21 +1119,23 @@ export class CallbackRouterHandler {
       const { UserRole } = await import('@app/database');
       if (user.role !== UserRole.Admin && user.role !== UserRole.SuperAdmin) {
         await ctx.reply('⛔️ Access denied. Admin privileges required.');
+
         return;
       }
 
       // Get admin statistics
       const [totalUsers, verifiedUsers] = await Promise.all([
         em.count(UserEntity),
-        em.count(UserEntity, { isVerified: true })
+        em.count(UserEntity, { isVerified: true }),
       ]);
+
       const activeUsers = totalUsers; // Simplified - count all users as active
 
       const [totalOrders, activeOrders] = await Promise.all([
         em.count(TrafficOrderEntity),
         em.count(TrafficOrderEntity, {
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] }
-        })
+          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        }),
       ]);
 
       const totalSources = await em.count(TrafficSourceEntity);
@@ -1135,6 +1167,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -1143,13 +1176,14 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
       // Get data counts for export preview
       const [ordersCount, transactionsCount] = await Promise.all([
         em.count(TrafficOrderEntity, { creator: user.id }),
-        em.count(UserBalanceHistoryEntity, { user: user.id })
+        em.count(UserBalanceHistoryEntity, { user: user.id }),
       ]);
 
       let text = '<b>📥 Data Export</b>\n\n';
@@ -1180,6 +1214,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -1188,6 +1223,7 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
@@ -1219,7 +1255,8 @@ export class CallbackRouterHandler {
   private async handleThemeSettings(ctx: BotContext): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('settings.theme', {
-        default: '🎨 Theme Settings\n\n✅ Auto-adapt theme (recommended)\n\nTheme automatically adapts to your Telegram settings.',
+        default:
+          '🎨 Theme Settings\n\n✅ Auto-adapt theme (recommended)\n\nTheme automatically adapts to your Telegram settings.',
       }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton('menu:settings'),
@@ -1274,6 +1311,7 @@ export class CallbackRouterHandler {
         parseMode: 'HTML',
         replyMarkup: this.menuHandler.createBackButton('menu:orders'),
       });
+
       return;
     }
 
@@ -1309,14 +1347,18 @@ export class CallbackRouterHandler {
 
   private async handleOrderDownload(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.download_preparing', { default: '📥 Preparing download...\n\nYour order data will be sent shortly.' }),
+      text: ctx.t('orders.download_preparing', {
+        default: '📥 Preparing download...\n\nYour order data will be sent shortly.',
+      }),
       parseMode: 'HTML',
     });
   }
 
   private async handleOrderBotManagement(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.bot_management', { default: '🤖 Bot Management\n\nManage bots associated with your orders.' }),
+      text: ctx.t('orders.bot_management', {
+        default: '🤖 Bot Management\n\nManage bots associated with your orders.',
+      }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton('menu:orders'),
     });
@@ -1325,7 +1367,8 @@ export class CallbackRouterHandler {
   private async handleOrderAudienceTargeting(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.audience_targeting', {
-        default: '🎯 Audience Targeting\n\nDefine your target audience:\n- Age range\n- Gender\n- Location\n- Interests',
+        default:
+          '🎯 Audience Targeting\n\nDefine your target audience:\n- Age range\n- Gender\n- Location\n- Interests',
       }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton('menu:orders'),
@@ -1334,7 +1377,9 @@ export class CallbackRouterHandler {
 
   private async handleOrderGenderSelection(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.gender_selection', { default: '👥 Gender Selection\n\nChoose target gender:\n• All\n• Male\n• Female' }),
+      text: ctx.t('orders.gender_selection', {
+        default: '👥 Gender Selection\n\nChoose target gender:\n• All\n• Male\n• Female',
+      }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton('menu:orders'),
     });
@@ -1350,7 +1395,9 @@ export class CallbackRouterHandler {
 
   private async handleOrderLocationSelection(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.location_selection', { default: '🌍 Location Selection\n\nSelect target locations for your campaign.' }),
+      text: ctx.t('orders.location_selection', {
+        default: '🌍 Location Selection\n\nSelect target locations for your campaign.',
+      }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton('menu:orders'),
     });
@@ -1360,6 +1407,7 @@ export class CallbackRouterHandler {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
+
         return;
       }
 
@@ -1368,6 +1416,7 @@ export class CallbackRouterHandler {
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
+
         return;
       }
 
@@ -1377,19 +1426,19 @@ export class CallbackRouterHandler {
           em.count(TrafficOrderEntity, { creator: user.id }),
           em.count(TrafficOrderEntity, {
             creator: user.id,
-            status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] }
+            status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
           }),
           em.count(TrafficOrderEntity, {
             creator: user.id,
-            status: TrafficOrderStatus.Completed
-          })
+            status: TrafficOrderStatus.Completed,
+          }),
         ]);
 
         const orders = await em.find(TrafficOrderEntity, { creator: user.id });
         const { decimal, sum, toDisplayString } = await import('@app/common-shared');
 
-        const totalSpent = sum(orders.map(o => decimal(o.spentAmount || '0')));
-        const totalBudget = sum(orders.map(o => decimal(o.totalBudget || '0')));
+        const totalSpent = sum(orders.map((o) => decimal(o.spentAmount || '0')));
+        const totalBudget = sum(orders.map((o) => decimal(o.totalBudget || '0')));
         const totalActions = orders.reduce((sum, o) => sum + o.currentCount, 0);
         const targetActions = orders.reduce((sum, o) => sum + o.targetCount, 0);
 
@@ -1432,7 +1481,9 @@ export class CallbackRouterHandler {
 
   private async handleOrderIntegration(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.integration', { default: '🔗 Order Integration\n\nConnect your order with external services.' }),
+      text: ctx.t('orders.integration', {
+        default: '🔗 Order Integration\n\nConnect your order with external services.',
+      }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton('menu:orders'),
     });
@@ -1448,7 +1499,9 @@ export class CallbackRouterHandler {
 
   private async handleOrderChannelView(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.channel_view', { default: '📺 Channel Information\n\nView details about the associated channel.' }),
+      text: ctx.t('orders.channel_view', {
+        default: '📺 Channel Information\n\nView details about the associated channel.',
+      }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton('menu:orders'),
     });
@@ -1456,7 +1509,9 @@ export class CallbackRouterHandler {
 
   private async handleOrderTypeSelection(ctx: BotContext, params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.type_selection', { default: '📋 Order Type\n\nSelect the type of order you want to create.' }),
+      text: ctx.t('orders.type_selection', {
+        default: '📋 Order Type\n\nSelect the type of order you want to create.',
+      }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton('menu:orders'),
     });

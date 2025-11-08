@@ -83,10 +83,14 @@ export class TaskDto {
   @ApiProperty({ description: 'Order ID', example: 'ORD-1234567890' })
   orderId!: string;
 
-  @ApiProperty({ description: 'Task action type', example: 'subscribe', enum: ['subscribe', 'join', 'view', 'react', 'comment'] })
+  @ApiProperty({
+    description: 'Task action type',
+    example: 'subscribe',
+    enum: ['subscribe', 'join', 'view', 'react', 'comment'],
+  })
   action!: string;
 
-  @ApiProperty({ description: 'Reward amount (number)', example: 0.10 })
+  @ApiProperty({ description: 'Reward amount (number)', example: 0.1 })
   price!: number;
 
   @ApiProperty({ description: 'Target link', example: 'https://t.me/mychannel' })
@@ -174,7 +178,11 @@ export class CheckTaskStatusRequestDto extends BaseSourceRequestDto {
 }
 
 export class CheckTaskStatusResponseDto {
-  @ApiProperty({ description: 'Task completion status', example: 'completed', enum: ['not_started', 'pending', 'completed', 'failed'] })
+  @ApiProperty({
+    description: 'Task completion status',
+    example: 'completed',
+    enum: ['not_started', 'pending', 'completed', 'failed'],
+  })
   status!: string;
 
   @ApiProperty({ description: 'Can submit completion', example: true })
@@ -205,7 +213,7 @@ export class CompletedTaskDto {
   @ApiProperty({ description: 'Order ID', example: 'ORD-1234567890' })
   orderId!: string;
 
-  @ApiProperty({ description: 'Reward earned', example: 0.10 })
+  @ApiProperty({ description: 'Reward earned', example: 0.1 })
   reward!: number;
 
   @ApiProperty({ description: 'Completed at (ISO 8601)', example: '2025-01-06T12:00:00Z' })
@@ -263,13 +271,17 @@ export class CompleteTaskResponseDto {
   @ApiPropertyOptional({ description: 'Action ID if successful', example: 'ACT-1234567890' })
   actionId?: string;
 
-  @ApiPropertyOptional({ description: 'Completion status', example: 'verified', enum: ['verified', 'pending', 'rejected'] })
+  @ApiPropertyOptional({
+    description: 'Completion status',
+    example: 'verified',
+    enum: ['verified', 'pending', 'rejected'],
+  })
   status?: 'verified' | 'pending' | 'rejected';
 
-  @ApiPropertyOptional({ description: 'Reward amount earned', example: 0.10 })
+  @ApiPropertyOptional({ description: 'Reward amount earned', example: 0.1 })
   reward?: number;
 
-  @ApiPropertyOptional({ description: 'User total earnings after this task', example: 5.50 })
+  @ApiPropertyOptional({ description: 'User total earnings after this task', example: 5.5 })
   totalEarnings?: number;
 
   @ApiPropertyOptional({ description: 'Error message if failed' })
@@ -320,7 +332,7 @@ export class GetFiltersResponseDto {
     description: 'Available action types with base prices',
     type: 'array',
     example: [
-      { action: 'subscribe', displayName: 'Channel Subscribe', basePrice: 0.10 },
+      { action: 'subscribe', displayName: 'Channel Subscribe', basePrice: 0.1 },
       { action: 'join', displayName: 'Group Join', basePrice: 0.08 },
     ],
   })

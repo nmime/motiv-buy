@@ -149,9 +149,12 @@ export class CommandHandler {
           // Existing user - welcome back
           await ctx.replyWithHTML(
             `<b>${ctx.t('bot.commands.welcome_back', { name: userName })}</b>\n\n` +
-              ctx.t('bot.commands.welcome_back_message') + `\n\n` +
-              ctx.t('bot.commands.account_status') + `\n` +
-              ctx.t('bot.commands.platform_status') + `\n` +
+              ctx.t('bot.commands.welcome_back_message') +
+              `\n\n` +
+              ctx.t('bot.commands.account_status') +
+              `\n` +
+              ctx.t('bot.commands.platform_status') +
+              `\n` +
               `${ctx.t('bot.commands.user_id')} ${userId}\n\n` +
               ctx.t('bot.commands.use_menu'),
             {
@@ -176,12 +179,18 @@ export class CommandHandler {
             `<b>${ctx.t('bot.commands.welcome_new')}</b>\n\n` +
               `Hello <b>${userName}</b>, ${ctx.t('bot.commands.welcome_new_intro')}\n\n` +
               `🎯 <b>${ctx.t('bot.commands.help_features')}</b>\n` +
-              ctx.t('bot.commands.feature_track') + `\n` +
-              ctx.t('bot.commands.feature_monitor') + `\n` +
-              ctx.t('bot.commands.feature_manage') + `\n` +
-              ctx.t('bot.commands.feature_analytics') + `\n` +
-              ctx.t('bot.commands.feature_withdraw') + `\n` +
-              ctx.t('bot.commands.feature_optimize') + `\n\n` +
+              ctx.t('bot.commands.feature_track') +
+              `\n` +
+              ctx.t('bot.commands.feature_monitor') +
+              `\n` +
+              ctx.t('bot.commands.feature_manage') +
+              `\n` +
+              ctx.t('bot.commands.feature_analytics') +
+              `\n` +
+              ctx.t('bot.commands.feature_withdraw') +
+              `\n` +
+              ctx.t('bot.commands.feature_optimize') +
+              `\n\n` +
               `Let's get you set up! 🛠️`,
             {
               reply_markup: {
@@ -218,7 +227,8 @@ export class CommandHandler {
       });
 
       await ctx.reply(
-        ctx.t('bot.commands.welcome_new') + `\n\n` +
+        ctx.t('bot.commands.welcome_new') +
+          `\n\n` +
           `I'm here to help you manage your traffic campaigns and earnings.\n\n` +
           `Use /menu to see available options or /help for assistance.`,
       );

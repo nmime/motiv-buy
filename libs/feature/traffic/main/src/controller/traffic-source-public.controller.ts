@@ -50,7 +50,8 @@ export class TrafficSourcePublicController {
   @Get('filters')
   @ApiOperation({
     summary: 'Get available filters',
-    description: 'Get targeting filter options (genders, ages, countries, languages, actions). No authentication required.',
+    description:
+      'Get targeting filter options (genders, ages, countries, languages, actions). No authentication required.',
   })
   @ApiOkResponse({
     description: 'Filters retrieved successfully',
@@ -68,7 +69,8 @@ export class TrafficSourcePublicController {
   @Post('info')
   @ApiOperation({
     summary: 'Get source info',
-    description: 'Get information about your traffic source using API key. Validates API key and returns source details.',
+    description:
+      'Get information about your traffic source using API key. Validates API key and returns source details.',
   })
   @ApiOkResponse({
     description: 'Source info retrieved successfully',
@@ -164,7 +166,7 @@ export class TrafficSourcePublicController {
   @Post('tasks/completed')
   @ApiOperation({
     summary: 'Get completed tasks',
-    description: "Get list of tasks completed by a specific user with their rewards and completion timestamps.",
+    description: 'Get list of tasks completed by a specific user with their rewards and completion timestamps.',
   })
   @ApiOkResponse({
     description: 'Completed tasks retrieved successfully',

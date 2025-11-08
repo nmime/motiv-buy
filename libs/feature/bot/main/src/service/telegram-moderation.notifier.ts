@@ -2,12 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Bot } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
-import {
-  TrafficSourceEntity,
-  TrafficOrderEntity,
-  ModerationRequestEntity,
-  ModerationEntityType,
-} from '@app/database';
+import { TrafficSourceEntity, TrafficOrderEntity, ModerationRequestEntity, ModerationEntityType } from '@app/database';
 import { InlineKeyboard } from 'grammy';
 import { getErrorMessage } from '@app/common-shared';
 
@@ -34,12 +29,16 @@ export class TelegramModerationNotifier {
   /**
    * Send traffic source moderation request to channel
    */
-  async notifySourceCreated(source: TrafficSourceEntity, moderationRequest: ModerationRequestEntity): Promise<{
+  async notifySourceCreated(
+    source: TrafficSourceEntity,
+    moderationRequest: ModerationRequestEntity,
+  ): Promise<{
     chatId: string;
     messageId: number;
   } | null> {
     if (!this.moderationChannelId) {
       this.logger.warn('Moderation channel not configured. Skipping notification.');
+
       return null;
     }
 
@@ -59,7 +58,11 @@ export class TelegramModerationNotifier {
         messageId: sentMessage.message_id,
       };
     } catch (error: unknown) {
-      this.logger.error(`Failed to send source moderation notification: ${getErrorMessage(error)}`, { sourceId: source.id, error });
+      this.logger.error(`Failed to send source moderation notification: ${getErrorMessage(error)}`, {
+        sourceId: source.id,
+        error,
+      });
+
       return null;
     }
   }
@@ -67,12 +70,16 @@ export class TelegramModerationNotifier {
   /**
    * Send traffic order moderation request to channel
    */
-  async notifyOrderCreated(order: TrafficOrderEntity, moderationRequest: ModerationRequestEntity): Promise<{
+  async notifyOrderCreated(
+    order: TrafficOrderEntity,
+    moderationRequest: ModerationRequestEntity,
+  ): Promise<{
     chatId: string;
     messageId: number;
   } | null> {
     if (!this.moderationChannelId) {
       this.logger.warn('Moderation channel not configured. Skipping notification.');
+
       return null;
     }
 
@@ -92,7 +99,11 @@ export class TelegramModerationNotifier {
         messageId: sentMessage.message_id,
       };
     } catch (error: unknown) {
-      this.logger.error(`Failed to send order moderation notification: ${getErrorMessage(error)}`, { orderId: order.id, error });
+      this.logger.error(`Failed to send order moderation notification: ${getErrorMessage(error)}`, {
+        orderId: order.id,
+        error,
+      });
+
       return null;
     }
   }

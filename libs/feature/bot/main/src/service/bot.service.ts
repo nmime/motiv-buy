@@ -534,6 +534,7 @@ For support, contact @support or use the /support command.
         chat_instance: '',
       },
     };
+
     await this.callbackRouter.routeCallback(simulatedCallback as BotContext);
   }
 
@@ -548,6 +549,7 @@ For support, contact @support or use the /support command.
         chat_instance: '',
       },
     };
+
     await this.callbackRouter.routeCallback(simulatedCallback as BotContext);
   }
 
@@ -562,6 +564,7 @@ For support, contact @support or use the /support command.
         chat_instance: '',
       },
     };
+
     await this.callbackRouter.routeCallback(simulatedCallback as BotContext);
   }
 
@@ -576,6 +579,7 @@ For support, contact @support or use the /support command.
         chat_instance: '',
       },
     };
+
     await this.callbackRouter.routeCallback(simulatedCallback as BotContext);
   }
 

@@ -49,20 +49,14 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
    * Get all pending moderation requests
    */
   async findPending(): Promise<ModerationRequestEntity[]> {
-    return this.find(
-      { status: ModerationStatus.Pending },
-      { orderBy: { createdAt: 'ASC' } },
-    );
+    return this.find({ status: ModerationStatus.Pending }, { orderBy: { createdAt: 'ASC' } });
   }
 
   /**
    * Get pending requests by type
    */
   async findPendingByType(entityType: ModerationEntityType): Promise<ModerationRequestEntity[]> {
-    return this.find(
-      { entityType, status: ModerationStatus.Pending },
-      { orderBy: { createdAt: 'ASC' } },
-    );
+    return this.find({ entityType, status: ModerationStatus.Pending }, { orderBy: { createdAt: 'ASC' } });
   }
 
   /**
@@ -138,6 +132,7 @@ export class ModerationRequestRepository extends EntityRepository<ModerationRequ
       // Log warning but don't throw - this is not a critical error
       // The moderation request may have been deleted or already processed
       this.logger.warn(`Moderation request not found for Telegram message update: ${requestId}`);
+
       return;
     }
 

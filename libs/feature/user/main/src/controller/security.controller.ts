@@ -29,16 +29,22 @@ export class SecurityController {
   ): AsyncResult<LoginHistoryResponseDto[], InternalException> {
     const resultLimit = Math.min(Math.max(limit ?? 50, 1), 100);
     const result = await this.securityService.getLoginHistory(userId, resultLimit);
+
     return Ok(result);
   }
 
   @Get('overview')
   @ApiOperation({ summary: 'Get security overview' })
-  @ApiResponse({ status: 200, description: 'Security overview retrieved successfully', type: SecurityOverviewResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Security overview retrieved successfully',
+    type: SecurityOverviewResponseDto,
+  })
   async getSecurityOverview(
     @CurrentUserId() userId: string,
   ): AsyncResult<SecurityOverviewResponseDto, InternalException> {
     const result = await this.securityService.getSecurityOverview(userId);
+
     return Ok(result);
   }
 }

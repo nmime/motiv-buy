@@ -95,6 +95,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
         ON payment_transactions (provider_transaction_id)
         WHERE provider_transaction_id IS NOT NULL;
     `);
+
     this.addSql('CREATE INDEX idx__payment_transactions__created_at ON payment_transactions (created_at DESC);');
     this.addSql('CREATE INDEX idx__payment_transactions__user_status ON payment_transactions (user_id, status);');
 

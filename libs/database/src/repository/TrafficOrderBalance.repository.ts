@@ -178,10 +178,7 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
     totalAvailable: string;
     unsettledCount: number;
   }> {
-    const [totalReserves, unsettledCount] = await Promise.all([
-      this.count(),
-      this.count({ isSettled: false }),
-    ]);
+    const [totalReserves, unsettledCount] = await Promise.all([this.count(), this.count({ isSettled: false })]);
 
     const reserves = await this.findAll();
 
