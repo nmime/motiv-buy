@@ -334,7 +334,9 @@ export function toDisplayString(value: Decimal.Value, decimalPlaces = 2): string
   if (!str.includes('.')) {
     return str;
   }
-  return str.replace(/(\.[0-9]*?)0+$/, '$1').replace(/\.$/, '');
+
+  // eslint-disable-next-line sonarjs/slow-regex
+  return str.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
 }
 
 /**

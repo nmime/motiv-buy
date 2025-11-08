@@ -151,9 +151,11 @@ export class ProviderRoutingService {
           const { provider } = rule.provider.unwrap();
 
         // eslint-disable-next-line no-await-in-loop
+        // eslint-disable-next-line no-await-in-loop
           // Validate provider supports this operation
           const isValid = await this.validateProvider(provider, context.currency, context.operation);
 
+      // eslint-disable-next-line no-await-in-loop
       // eslint-disable-next-line no-await-in-loop
           if (isValid) {
             // Record rule usage
@@ -163,9 +165,11 @@ export class ProviderRoutingService {
 
             return Ok(provider);
           }
+        // eslint-disable-next-line no-await-in-loop
         }
         // eslint-disable-next-line no-await-in-loop
 
+        // eslint-disable-next-line no-await-in-loop
         // Try fallback if available
         if (rule.fallbackRuleId) {
         // eslint-disable-next-line no-await-in-loop

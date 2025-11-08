@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { I18nService } from 'nestjs-i18n';
-import { Ok, Err, AsyncResult, toError } from '@app/common-shared';
+import { Ok, Err, AsynctoError } from '@app/common-shared';
 import { decimal, add, subtract, toDbString, lessThan } from '@app/common-shared';
 import { PaymentProviderFactory } from './payment-provider.factory';
 import { ProviderRoutingService, RoutingContext } from './provider-routing.service';
@@ -156,12 +156,10 @@ export class PaymentService {
         amount: transaction.amount,
         currency: transaction.currency,
         status: transaction.status,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        payUrl: transaction.payUrl!,
+        payUrl: transaction.payUrl || '',
         description: transaction.description || undefined,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         createdAt: transaction.createdAt?.toISOString() || new Date().toISOString(),
-        expiresAt: transaction.expiresAt!.toISOString(),
+        expiresAt: transaction.expiresAt?.toISOString() || new Date().toISOString(),
       };
 
       return Ok(response);
@@ -394,10 +392,9 @@ export class PaymentService {
       // CRITICAL: Rollback balance using captured balanceBeforeTransaction
       // Only rollback if we successfully deducted (transfer was created with provider)
       if (transferCreated && balanceBeforeTransaction !== null) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         try {
           // FIXED: Rollback in REQUESTED currency, not always RUB
-          await this.userBalanceRepository.createOrUpdateBalance(userId, dto.currency, balanceBeforeTransaction!);
+          await this.userBalanceRepository.createOrUpdateBalance(userId, dto.currency, balanceBeforeTransaction);
 
           this.logger.warn(
             `Balance rollback performed for user ${userId} in ${dto.currency}: restored to ${balanceBeforeTransaction}`,

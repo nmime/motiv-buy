@@ -529,7 +529,6 @@ For support, contact @support or use the /support command.
     const simulatedCallback = {
       ...ctx,
       callbackQuery: {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         id: 'cmd_profile',
         from: ctx.from!,
         data: 'profile:view',
@@ -544,7 +543,7 @@ For support, contact @support or use the /support command.
     // Simulate callback query for settings:view action
     const simulatedCallback = {
       ...ctx,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       callbackQuery: {
         id: 'cmd_settings',
         from: ctx.from!,
@@ -559,7 +558,6 @@ For support, contact @support or use the /support command.
   private async handleBalanceCommand(ctx: BotContext): Promise<void> {
     // Simulate callback query for balance:view action
     const simulatedCallback = {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       ...ctx,
       callbackQuery: {
         id: 'cmd_balance',
@@ -574,7 +572,7 @@ For support, contact @support or use the /support command.
 
   private async handleMenuCommand(ctx: BotContext): Promise<void> {
     // Simulate callback query for menu:main action
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
     const simulatedCallback = {
       ...ctx,
       callbackQuery: {

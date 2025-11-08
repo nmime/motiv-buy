@@ -37,7 +37,7 @@ import { PaymentTransactionEntity } from '@app/database';
 /**
  * DTO for transaction list query parameters
  */
-class TransactionQueryDto {
+export class TransactionQueryDto {
   @ApiPropertyOptional({
     enum: PaymentType,
     description: 'Filter by transaction type',

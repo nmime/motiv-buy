@@ -150,6 +150,7 @@ export class HeleketProvider implements IPaymentProvider {
           ).toString();
 
         // eslint-disable-next-line no-await-in-loop
+        // eslint-disable-next-line no-await-in-loop
           const fullUrl = queryString ? `${url}?${queryString}` : url;
           const response = await fetch(fullUrl, options);
 
@@ -158,6 +159,7 @@ export class HeleketProvider implements IPaymentProvider {
           }
 
           return response.json();
+        // eslint-disable-next-line no-await-in-loop
         // eslint-disable-next-line no-await-in-loop
         }
 
@@ -173,6 +175,7 @@ export class HeleketProvider implements IPaymentProvider {
         this.logger.warn(`Request attempt ${attempt + 1} failed: ${method} ${endpoint}`, {
           error: lastError.message,
         });
+      // eslint-disable-next-line no-await-in-loop
 
       // eslint-disable-next-line no-await-in-loop
         if (attempt < this.maxRetries) {

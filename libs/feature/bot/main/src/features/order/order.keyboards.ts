@@ -60,7 +60,6 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
   // List orders for current page
   pageOrders.forEach((order) => {
     // eslint-disable-next-line no-use-before-define
-    // eslint-disable-next-line no-use-before-define
     const statusEmoji = getStatusEmoji(order.status);
     const statusText = getStatusText(order.status);
     const label = `${statusEmoji} ${order.config.name || 'Без названия'}`;

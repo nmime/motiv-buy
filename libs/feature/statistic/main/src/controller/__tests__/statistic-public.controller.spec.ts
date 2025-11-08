@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, no-await-in-loop */
+/* eslint-disable no-await-in-loop */
 import { Test, TestingModule } from '@nestjs/testing';
 import { StatisticPublicController } from '../statistic-public.controller';
 import { StatisticService } from '../../service';

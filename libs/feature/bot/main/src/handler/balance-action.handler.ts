@@ -28,7 +28,7 @@ export class BalanceActionHandler {
   /**
    * Handle balance view action
    */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   async handleBalanceView(ctx: AuthenticatedBotContext): Promise<void> {
     const em = this.em.fork();
     try {
@@ -150,7 +150,6 @@ export class BalanceActionHandler {
       const depositText =
         ctx.t('balance.deposit_info_title') +
         '\n\n' +
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
         ctx.t('balance.deposit_info_steps') +
         '\n\n' +
         ctx.t('balance.deposit_info_min_deposit');
@@ -235,7 +234,6 @@ export class BalanceActionHandler {
       const isPositive = amount.greaterThanOrEqualTo(0);
       const amountText = isPositive ? `+${toDisplayString(amount, 8)}` : toDisplayString(amount, 8);
       const emoji = isPositive ? '📈' : '📉';
-        // eslint-disable-next-line sonarjs/no-nested-template-literals
 
       text +=
         `${emoji} <b>${tx.type}</b>\n` +

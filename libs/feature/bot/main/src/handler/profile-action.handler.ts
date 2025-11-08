@@ -140,16 +140,14 @@ export class ProfileActionHandler {
    * Field update map for O(1) lookup performance
    */
   private readonly fieldUpdaters: Record<string, (user: UserEntity, value: string) => void> = {
-    // eslint-disable-next-line no-param-reassign
     username: (user, value) => {
       user.username = value;
-    // eslint-disable-next-line no-param-reassign
     },
     firstName: (user, value) => {
-    // eslint-disable-next-line no-param-reassign
+      // eslint-disable-next-line no-param-reassign
       user.firstName = value;
     },
-    // eslint-disable-next-line no-param-reassign
+
     lastName: (user, value) => {
       user.lastName = value;
     },
@@ -218,7 +216,6 @@ export class ProfileActionHandler {
 
     return validator(value);
   }
-    // eslint-disable-next-line sonarjs/no-nested-conditional
 
   /**
    * Format profile view text
@@ -265,7 +262,6 @@ export class ProfileActionHandler {
       `• Last Active: ${user.lastActiveAt ? user.lastActiveAt.toLocaleString() : 'Never'}`
     );
   }
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
 
   /**
    * Create profile edit keyboard

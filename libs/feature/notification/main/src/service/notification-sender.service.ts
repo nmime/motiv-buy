@@ -60,7 +60,6 @@ export class NotificationSenderService {
 
         notification.template = template;
       }
-    // eslint-disable-next-line no-param-reassign
 
       const content = buildNotificationFromTemplate(notification.template, {
         templateCode: notification.templateCode ?? '',

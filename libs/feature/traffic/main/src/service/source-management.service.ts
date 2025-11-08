@@ -12,7 +12,6 @@ import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType } from 
 import { ITelegramModerationNotifier } from '@app/feature-bot-shared';
 import { ModerationService } from './moderation.service';
 
-
 /**
  * Service for Private Traffic Source Management API
  * Handles creation, updating, and management of traffic sources

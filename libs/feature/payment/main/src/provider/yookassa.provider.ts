@@ -176,8 +176,10 @@ export class YooKassaProvider implements IPaymentProvider {
           options.body = JSON.stringify(params);
         }
         // eslint-disable-next-line no-await-in-loop
+        // eslint-disable-next-line no-await-in-loop
 
         const response = await fetch(url, options);
+          // eslint-disable-next-line no-await-in-loop
           // eslint-disable-next-line no-await-in-loop
 
         if (!response.ok) {
@@ -193,6 +195,7 @@ export class YooKassaProvider implements IPaymentProvider {
         this.logger.warn(`Request attempt ${attempt + 1} failed: ${method} ${endpoint}`, {
           error: lastError.message,
         });
+      // eslint-disable-next-line no-await-in-loop
 
       // eslint-disable-next-line no-await-in-loop
         if (attempt < this.maxRetries) {

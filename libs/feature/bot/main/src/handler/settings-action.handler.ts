@@ -282,11 +282,9 @@ export class SettingsActionHandler {
     const settings = await this.em.find(UserSettingsEntity, { user: userId });
 
     const settingsMap = settings.reduce(
-      // eslint-disable-next-line no-param-reassign
       (acc, setting) => {
         acc[setting.key] = setting.getValue();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return acc;
       },
       {} as Record<string, any>,
@@ -490,7 +488,6 @@ export class SettingsActionHandler {
       .text('« Back', 'menu:settings');
   }
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
   /**
    * Create privacy keyboard
    */

@@ -204,8 +204,6 @@ describe('PaymentService - Race Condition Tests', () => {
       // Verify balance check happens INSIDE transaction (transactional called)
       expect(mockEm.transactional).toHaveBeenCalled();
 
-    // eslint-disable-next-line prefer-destructuring
-      // Verify lock is acquired BEFORE balance check
       const transactionalCallback = mockEm.transactional.mock.calls[0][0];
       await transactionalCallback(mockEm);
 

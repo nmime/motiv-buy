@@ -360,7 +360,6 @@ export class MenuActionHandler {
       return false;
     }
 
-    // eslint-disable-next-line sonarjs/prefer-single-boolean-return
     // Add role-based access control if needed
     if (requiredRole) {
       // Check user role from database

@@ -204,7 +204,6 @@ export class OrderService {
    * Get channel info from link
    */
   async getChannelInfo(link: string): Promise<ChannelInfo | null> {
-    // eslint-disable-next-line sonarjs/duplicates-in-character-class
     // Extract username from link
     const match = link.match(/t\.me\/([\w\d_]+)/i);
     if (!match) {
@@ -414,7 +413,7 @@ export class OrderService {
     // For now, simulate some activity
     // eslint-disable-next-line sonarjs/pseudo-random
     order.stats.subscribersToday = Math.floor(Math.random() * 50);
-    // eslint-disable-next-line sonarjs/pseudo-random
+
     order.stats.totalSubscribers += order.stats.subscribersToday;
     order.stats.conversionRate = 85 + Math.random() * 10;
     order.updatedAt = new Date();

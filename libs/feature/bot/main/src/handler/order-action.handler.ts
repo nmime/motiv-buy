@@ -320,9 +320,8 @@ export class OrderActionHandler {
       `• Spent: $${spentAmountDisplay}\n` +
       `• Price per Action: $${pricePerActionDisplay}\n\n` +
       `<b>Source:</b> ${source.name}\n` +
-    // eslint-disable-next-line sonarjs/no-nested-template-literals
       `<b>Target:</b> ${target.name}\n\n` +
-    // eslint-disable-next-line sonarjs/no-nested-template-literals
+      // eslint-disable-next-line sonarjs/no-nested-template-literals
       `${order.description ? `<b>Description:</b>\n${order.description}\n\n` : ''}` +
       `<b>Created:</b> ${order.createdAt.toLocaleString()}\n` +
       `${order.completedAt ? `<b>Completed:</b> ${order.completedAt.toLocaleString()}` : ''}`
@@ -348,7 +347,7 @@ export class OrderActionHandler {
   /**
    * Create order type keyboard
    */
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
   private createOrderTypeKeyboard() {
     const { InlineKeyboard } = require('grammy');
 

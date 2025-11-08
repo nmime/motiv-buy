@@ -229,7 +229,6 @@ export class StatisticsActionHandler {
     const orders = await this.em.find(TrafficOrderEntity, { creator: userId });
 
     const ordersByStatus = orders.reduce(
-      // eslint-disable-next-line no-param-reassign
       (acc, order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
 
@@ -238,7 +237,6 @@ export class StatisticsActionHandler {
       {} as Record<string, number>,
     );
 
-      // eslint-disable-next-line no-param-reassign
     const ordersByType = orders.reduce(
       (acc, order) => {
         acc[order.type] = (acc[order.type] || 0) + 1;
@@ -293,7 +291,6 @@ export class StatisticsActionHandler {
     );
 
     const earningsByType = history.reduce(
-        // eslint-disable-next-line no-param-reassign
       (acc, entry) => {
         const amount = decimal(entry.amount);
         if (amount.greaterThan(0)) {

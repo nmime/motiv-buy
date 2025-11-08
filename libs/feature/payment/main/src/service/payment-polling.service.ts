@@ -241,7 +241,7 @@ export class PaymentPollingService implements OnModuleInit, OnModuleDestroy {
           }
 
           // Poll provider for status update
-      // eslint-disable-next-line no-await-in-loop
+          // eslint-disable-next-line no-await-in-loop
           const result = await this.pollTransactionStatus(transaction);
 
           if (result) {

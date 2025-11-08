@@ -44,7 +44,7 @@ function selectVariation(
   }
 
   if (Array.isArray(text) && text.length > 0) {
-  // eslint-disable-next-line sonarjs/pseudo-random
+    // eslint-disable-next-line sonarjs/pseudo-random
     const randomIndex = Math.floor(Math.random() * text.length);
     const selectedText = text[randomIndex];
 
@@ -66,7 +66,7 @@ function selectVariation(
   return { buttons: (buttons as NotificationButton[][]) ?? [] };
 }
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function buildNotificationFromTemplate(
   template: NotificationTemplateEntity,
   options: BuildNotificationOptions,
