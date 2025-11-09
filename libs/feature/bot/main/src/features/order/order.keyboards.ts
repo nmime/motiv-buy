@@ -10,8 +10,38 @@ import { availableTopics, Order, OrderDisplayLocation, OrderStatus, UserGender }
 /**
  * Pagination configuration
  */
-const ordersPerPage = 10;
-const maxInlineButtons = 100;
+const _ordersPerPage = 10;
+const _maxInlineButtons = 100;
+
+/**
+ * Helper functions
+ */
+
+function getStatusEmoji(status: OrderStatus): string {
+  const emojiMap: Record<OrderStatus, string> = {
+    [OrderStatus.Active]: '🟢',
+    [OrderStatus.Paused]: '⏸️',
+    [OrderStatus.Moderation]: '🟡',
+    [OrderStatus.Rejected]: '🔴',
+    [OrderStatus.Completed]: '✅',
+    [OrderStatus.Deleted]: '🗑️',
+  };
+
+  return emojiMap[status] || '⚪';
+}
+
+function getStatusText(status: OrderStatus): string {
+  const textMap: Record<OrderStatus, string> = {
+    [OrderStatus.Active]: 'Активен',
+    [OrderStatus.Paused]: 'Остановлен',
+    [OrderStatus.Moderation]: 'На модерации',
+    [OrderStatus.Rejected]: 'Отклонен',
+    [OrderStatus.Completed]: 'Завершен',
+    [OrderStatus.Deleted]: 'Удален',
+  };
+
+  return textMap[status] || 'Неизвестно';
+}
 
 /**
  * Main Menu Keyboard (from specification)
@@ -52,14 +82,13 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
   );
 
   // Calculate pagination
-  const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
-  const startIndex = (page - 1) * ORDERS_PER_PAGE;
-  const endIndex = Math.min(startIndex + ORDERS_PER_PAGE, filteredOrders.length);
+  const totalPages = Math.ceil(filteredOrders.length / _ordersPerPage);
+  const startIndex = (page - 1) * _ordersPerPage;
+  const endIndex = Math.min(startIndex + _ordersPerPage, filteredOrders.length);
   const pageOrders = filteredOrders.slice(startIndex, endIndex);
 
   // List orders for current page
   pageOrders.forEach((order) => {
-    // eslint-disable-next-line no-use-before-define
     const statusEmoji = getStatusEmoji(order.status);
     const statusText = getStatusText(order.status);
     const label = `${statusEmoji} ${order.config.name || 'Без названия'}`;
@@ -343,34 +372,4 @@ export function createDeleteConfirmKeyboard(orderId: string): InlineKeyboard {
   keyboard.text('✅ Да, удалить', `order:delete:confirm:${orderId}`).text('❌ Отмена', `order:view:${orderId}`);
 
   return keyboard;
-}
-
-/**
- * Helper functions
- */
-
-function getStatusEmoji(status: OrderStatus): string {
-  const emojiMap: Record<OrderStatus, string> = {
-    [OrderStatus.Active]: '🟢',
-    [OrderStatus.Paused]: '⏸️',
-    [OrderStatus.Moderation]: '🟡',
-    [OrderStatus.Rejected]: '🔴',
-    [OrderStatus.Completed]: '✅',
-    [OrderStatus.Deleted]: '🗑️',
-  };
-
-  return emojiMap[status] || '⚪';
-}
-
-function getStatusText(status: OrderStatus): string {
-  const textMap: Record<OrderStatus, string> = {
-    [OrderStatus.Active]: 'Активен',
-    [OrderStatus.Paused]: 'Остановлен',
-    [OrderStatus.Moderation]: 'На модерации',
-    [OrderStatus.Rejected]: 'Отклонен',
-    [OrderStatus.Completed]: 'Завершен',
-    [OrderStatus.Deleted]: 'Удален',
-  };
-
-  return textMap[status] || 'Неизвестно';
 }

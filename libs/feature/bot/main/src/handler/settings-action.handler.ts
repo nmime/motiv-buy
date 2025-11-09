@@ -8,6 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
+import { InlineKeyboard } from 'grammy';
 import { SettingType, UserEntity, UserSettingsEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { BotValidationUtil } from '../util/bot-validation.util';
@@ -281,12 +282,11 @@ export class SettingsActionHandler {
     const settings = await this.em.find(UserSettingsEntity, { user: userId });
 
     const settingsMap = settings.reduce(
-      (acc, setting) => {
-        acc[setting.key] = setting.getValue();
-
-        return acc;
-      },
-      {} as Record<string, any>,
+      (acc, setting) =>
+        Object.assign({}, acc, {
+          [setting.key]: setting.getValue(),
+        }),
+      {} as Record<string, unknown>,
     );
 
     return {
@@ -446,7 +446,6 @@ export class SettingsActionHandler {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
    */
   private createLanguageKeyboard(currentLang: string) {
-    const { InlineKeyboard } = require('grammy');
     const keyboard = new InlineKeyboard();
 
     const languages = [
@@ -473,8 +472,6 @@ export class SettingsActionHandler {
    * Create notification keyboard
    */
   private createNotificationKeyboard(prefs: UserPreferences['notifications']) {
-    const { InlineKeyboard } = require('grammy');
-
     return new InlineKeyboard()
       .text(`${prefs.balance ? '✅' : '❌'} Balance`, 'settings:notify:balance')
       .text(`${prefs.trade ? '✅' : '❌'} Trade`, 'settings:notify:trade')
@@ -491,8 +488,6 @@ export class SettingsActionHandler {
    * Create privacy keyboard
    */
   private createPrivacyKeyboard(prefs: UserPreferences['privacy']) {
-    const { InlineKeyboard } = require('grammy');
-
     return new InlineKeyboard()
       .text(`${prefs.showProfile ? '✅' : '❌'} Profile`, 'settings:privacy:profile')
       .text(`${prefs.showStats ? '✅' : '❌'} Stats`, 'settings:privacy:stats')

@@ -17,7 +17,7 @@ import {
   createLocationKeyboard,
   createTopicsKeyboard,
 } from '../order.keyboards';
-import { UserGender, OrderDisplayLocation } from '../order.types';
+import { OrderDisplayLocation } from '../order.types';
 
 @Injectable()
 export class OrderConfigHandler {
@@ -288,12 +288,11 @@ export class OrderConfigHandler {
   }
 
   /**
-    // eslint-disable-next-line sonarjs/slow-regex
    * Handle topic toggle
    */
   private async handleTopicToggle(ctx: BotContext): Promise<void> {
     try {
-      const match = ctx.callbackQuery?.data?.match(/^order:topic:(.+):(.+)$/);
+      const match = ctx.callbackQuery?.data?.match(/^order:topic:([^:]+):([^:]+)$/);
       const topicId = match?.[1];
       const orderId = match?.[2];
 
@@ -382,7 +381,7 @@ export class OrderConfigHandler {
    */
   private async handleLocationSelection(ctx: BotContext): Promise<void> {
     try {
-      const match = ctx.callbackQuery?.data?.match(/^order:location:(.+):(.+)$/);
+      const match = ctx.callbackQuery?.data?.match(/^order:location:([^:]+):([^:]+)$/);
       const location = match?.[1];
       const orderId = match?.[2];
 

@@ -27,18 +27,18 @@ import { ModerationActionHandler } from './moderation-action.handler';
 import { RateLimitMiddleware } from '../middleware/rate-limit.middleware';
 import { MessageService } from '../service/message.service';
 
-type ActionHandler = (ctx: BotContext, action: string, params: string[]) => Promise<void>;
+type ActionHandler = (ctx: BotContext, _action: string, _params: string[]) => Promise<void>;
 
 @Injectable()
 export class CallbackRouterHandler {
   private readonly logger = new Logger(CallbackRouterHandler.name);
   private primaryActionHandlers!: Map<string, ActionHandler>;
   private menuActionHandlers!: Map<string, (ctx: BotContext) => Promise<void>>;
-  private profileActionHandlers!: Map<string, (ctx: BotContext, params: string[]) => Promise<void>>;
-  private balanceActionHandlers!: Map<string, (ctx: BotContext, params: string[]) => Promise<void>>;
+  private profileActionHandlers!: Map<string, (ctx: BotContext, _params: string[]) => Promise<void>>;
+  private balanceActionHandlers!: Map<string, (ctx: BotContext, _params: string[]) => Promise<void>>;
   private statsActionHandlers!: Map<string, (ctx: BotContext) => Promise<void>>;
-  private orderActionHandlers!: Map<string, (ctx: BotContext, params: string[]) => Promise<void>>;
-  private settingsActionHandlers!: Map<string, (ctx: BotContext, params: string[]) => Promise<void>>;
+  private orderActionHandlers!: Map<string, (ctx: BotContext, _params: string[]) => Promise<void>>;
+  private settingsActionHandlers!: Map<string, (ctx: BotContext, _params: string[]) => Promise<void>>;
 
   constructor(
     private readonly em: EntityManager,
@@ -122,10 +122,10 @@ export class CallbackRouterHandler {
       ['details', async (ctx) => this.profileHandler.handleProfileDetails(ctx as AuthenticatedBotContext)],
       ['verify', async (ctx) => this.profileHandler.handleVerification(ctx as AuthenticatedBotContext)],
       ['stats', this.handleProfileStatsMenu.bind(this)],
-      ['stats:overview', async (ctx, params) => this.statisticsHandler.handleStatisticsOverview(ctx)],
-      ['stats:activity', async (ctx, params) => this.statisticsHandler.handleDetailedStatistics(ctx)],
-      ['stats:earnings', async (ctx, params) => this.statisticsHandler.handleEarningsStatistics(ctx)],
-      ['stats:performance', async (ctx, params) => this.statisticsHandler.handleTrafficStatistics(ctx)],
+      ['stats:overview', async (ctx, _params) => this.statisticsHandler.handleStatisticsOverview(ctx)],
+      ['stats:activity', async (ctx, _params) => this.statisticsHandler.handleDetailedStatistics(ctx)],
+      ['stats:earnings', async (ctx, _params) => this.statisticsHandler.handleEarningsStatistics(ctx)],
+      ['stats:performance', async (ctx, _params) => this.statisticsHandler.handleTrafficStatistics(ctx)],
       ['security', this.handleProfileSecurityMenu.bind(this)],
       ['password', this.handlePasswordChange.bind(this)],
       ['email_security', this.handleEmailSecurity.bind(this)],
@@ -208,7 +208,7 @@ export class CallbackRouterHandler {
       ['download', this.handleOrderDownload.bind(this)],
       [
         'help',
-        async (ctx, params) => {
+        async (ctx, _params) => {
           await this.handleHelpMenu(ctx);
         },
       ],
@@ -219,7 +219,7 @@ export class CallbackRouterHandler {
       ['location', this.handleOrderLocationSelection.bind(this)],
       [
         'refresh',
-        async (ctx, params) => {
+        async (ctx, _params) => {
           await this.messageService.sendOrEditMessage(ctx, {
             text: ctx.t('orders.stats_refreshed'),
           });
@@ -231,7 +231,7 @@ export class CallbackRouterHandler {
       ['transfer', this.handleOrderTransfer.bind(this)],
       [
         'stop',
-        async (ctx, params) => {
+        async (ctx, _params) => {
           await this.messageService.sendOrEditMessage(ctx, {
             text: ctx.t('orders.stopped'),
           });
@@ -344,7 +344,7 @@ export class CallbackRouterHandler {
   /**
    * Route menu actions
    */
-  private async routeMenuAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeMenuAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     const handler = this.menuActionHandlers.get(action);
 
     if (handler) {
@@ -360,7 +360,7 @@ export class CallbackRouterHandler {
   /**
    * Route profile actions
    */
-  private async routeProfileAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeProfileAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     const handler = this.profileActionHandlers.get(action || 'view');
 
     if (handler) {
@@ -373,7 +373,7 @@ export class CallbackRouterHandler {
   /**
    * Route balance actions
    */
-  private async routeBalanceAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeBalanceAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     const handler = this.balanceActionHandlers.get(action || 'view');
 
     if (handler) {
@@ -386,7 +386,7 @@ export class CallbackRouterHandler {
   /**
    * Route statistics actions
    */
-  private async routeStatisticsAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeStatisticsAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     const handler = this.statsActionHandlers.get(action || 'overview');
 
     if (handler) {
@@ -399,7 +399,7 @@ export class CallbackRouterHandler {
   /**
    * Route order actions
    */
-  private async routeOrderAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeOrderAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     const handler = this.orderActionHandlers.get(action || 'list');
 
     if (handler) {
@@ -412,7 +412,7 @@ export class CallbackRouterHandler {
   /**
    * Route settings actions
    */
-  private async routeSettingsAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeSettingsAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     const handler = this.settingsActionHandlers.get(action);
 
     if (handler) {
@@ -427,7 +427,7 @@ export class CallbackRouterHandler {
    * Format: moderation:approve:traffic_source:requestId
    * or: moderation:decline:traffic_order:requestId
    */
-  private async routeModerationAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeModerationAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     // Verify admin access (action should be 'approve' or 'decline')
     // params[0] should be entity type, params[1] should be requestId
     if (params.length < 2) {
@@ -436,16 +436,15 @@ export class CallbackRouterHandler {
       return;
     }
 
-    const entityTypeStr = params[0];
-    const requestId = params[1];
+    const [entityTypeStr, requestId] = _params;
 
     // Map string to ModerationEntityType
-    const entityType =
-      entityTypeStr === 'traffic_source'
-        ? ModerationEntityType.TrafficSource
-        : entityTypeStr === 'traffic_order'
-          ? ModerationEntityType.TrafficOrder
-          : null;
+    const entityTypeMap: Record<string, ModerationEntityType> = {
+      traffic_source: ModerationEntityType.TrafficSource,
+      traffic_order: ModerationEntityType.TrafficOrder,
+    };
+
+    const entityType = entityTypeMap[entityTypeStr] || null;
 
     if (!entityType) {
       await ctx.answerCallbackQuery('❌ Invalid entity type');
@@ -466,77 +465,77 @@ export class CallbackRouterHandler {
   /**
    * Route referral actions
    */
-  private async routeReferralAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeReferralAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleReferralsMenu(ctx);
   }
 
   /**
    * Route payment actions
    */
-  private async routePaymentAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routePaymentAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handlePaymentsMenu(ctx);
   }
 
   /**
    * Route deposit actions
    */
-  private async routeDepositAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeDepositAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleDepositMenu(ctx);
   }
 
   /**
    * Route withdrawal actions
    */
-  private async routeWithdrawalAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeWithdrawalAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleWithdrawalMenu(ctx);
   }
 
   /**
    * Route traffic actions
    */
-  private async routeTrafficAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeTrafficAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleTrafficMenu(ctx);
   }
 
   /**
    * Route support actions
    */
-  private async routeSupportAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeSupportAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleSupportMenu(ctx);
   }
 
   /**
    * Handle noop actions (pagination indicators, etc)
    */
-  private async handleNoopAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async handleNoopAction(_ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     // Do nothing - these are UI-only elements
   }
 
   /**
    * Route help actions
    */
-  private async routeHelpAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeHelpAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleHelpMenu(ctx);
   }
 
   /**
    * Route campaign actions
    */
-  private async routeCampaignAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeCampaignAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleCampaignMenu(ctx);
   }
 
   /**
    * Route admin actions
    */
-  private async routeAdminAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeAdminAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleAdminMenu(ctx);
   }
 
   /**
    * Route auth actions
    */
-  private async routeAuthAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeAuthAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await ctx.reply(
       ctx.t('auth.feature_info', { default: '🔐 Authentication features are managed through your profile settings.' }),
     );
@@ -545,35 +544,35 @@ export class CallbackRouterHandler {
   /**
    * Route verify actions
    */
-  private async routeVerifyAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeVerifyAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.profileHandler.handleVerification(ctx as AuthenticatedBotContext);
   }
 
   /**
    * Route export actions
    */
-  private async routeExportAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeExportAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleExportMenu(ctx);
   }
 
   /**
    * Route reset actions
    */
-  private async routeResetAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeResetAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleResetMenu(ctx);
   }
 
   /**
    * Route status actions
    */
-  private async routeStatusAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeStatusAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleStatusDisplay(ctx);
   }
 
   /**
    * Route command actions
    */
-  private async routeCommandAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+  private async routeCommandAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await this.handleCommandsHelp(ctx);
   }
 
@@ -637,7 +636,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -696,7 +694,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -768,16 +765,16 @@ export class CallbackRouterHandler {
     }
   }
 
-  private async handleProfileStatsMenu(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleProfileStatsMenu(ctx: BotContext, _params: string[]): Promise<void> {
     // If no specific stat requested, show overview using StatisticsActionHandler
-    if (!params || params.length === 0) {
+    if (!_params || _params.length === 0) {
       await this.statisticsHandler.handleStatisticsOverview(ctx);
 
       return;
     }
 
     // Route to specific stat views
-    const statType = params[0];
+    const [statType] = _params;
     switch (statType) {
       case 'overview':
         await this.statisticsHandler.handleStatisticsOverview(ctx);
@@ -796,7 +793,7 @@ export class CallbackRouterHandler {
     }
   }
 
-  private async handleProfileSecurityMenu(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleProfileSecurityMenu(ctx: BotContext, _params: string[]): Promise<void> {
     const keyboard = this.menuHandler.createProfileSecurityMenuKeyboard();
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('profile.security_menu', {
@@ -807,7 +804,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handlePasswordChange(ctx: BotContext, params: string[]): Promise<void> {
+  private async handlePasswordChange(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('profile.password_change', {
         default: '🔑 Change Password\n\nTo change your password, please enter your current password:',
@@ -820,7 +817,7 @@ export class CallbackRouterHandler {
     }
   }
 
-  private async handleEmailSecurity(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleEmailSecurity(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('profile.email_security', {
         default:
@@ -832,7 +829,7 @@ export class CallbackRouterHandler {
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
-  private async handleLoginHistory(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleLoginHistory(ctx: BotContext, _params: string[]): Promise<void> {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
@@ -840,7 +837,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -896,7 +892,7 @@ export class CallbackRouterHandler {
     }
   }
 
-  private async handleBalanceAnalytics(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleBalanceAnalytics(ctx: BotContext, _params: string[]): Promise<void> {
     try {
       if (!ctx.from) {
         await ctx.reply(ctx.t('auth.authentication_required'));
@@ -904,7 +900,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -931,7 +926,7 @@ export class CallbackRouterHandler {
       }
 
       // Calculate analytics
-      const { decimal, add, subtract, toDisplayString, toNumber } = await import('@app/common-shared');
+      const { decimal, add, subtract, toDisplayString } = await import('@app/common-shared');
 
       let totalIncome = decimal(0);
       let totalExpense = decimal(0);
@@ -1003,7 +998,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -1030,6 +1024,7 @@ export class CallbackRouterHandler {
 
       let hasAvailableBalance = false;
       for (const balance of balances) {
+        // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
         const currency = await balance.currency.load();
         if (!currency) {
           continue;
@@ -1068,7 +1063,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -1107,7 +1101,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -1172,7 +1165,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -1219,7 +1211,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -1297,7 +1288,7 @@ export class CallbackRouterHandler {
   }
 
   // Order management handlers
-  private async handleDeletedOrders(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleDeletedOrders(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.deleted_list', { default: '🗑 Deleted Orders\n\nNo deleted orders found.' }),
       parseMode: 'HTML',
@@ -1305,8 +1296,8 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderConfig(ctx: BotContext, params: string[]): Promise<void> {
-    if (!params || params.length === 0) {
+  private async handleOrderConfig(ctx: BotContext, _params: string[]): Promise<void> {
+    if (!_params || _params.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: '⚙️ Please select an order to configure.',
         parseMode: 'HTML',
@@ -1316,11 +1307,11 @@ export class CallbackRouterHandler {
       return;
     }
 
-    const orderId = params[0];
+    const [orderId] = _params;
     await this.orderHandler.handleOrderDetails(ctx, orderId);
   }
 
-  private async handleOrderEdit(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderEdit(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.edit_prompt', { default: '✏️ Edit Order\n\nPlease select what you want to edit:' }),
       parseMode: 'HTML',
@@ -1328,14 +1319,14 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderToggle(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderToggle(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.toggled', { default: '✅ Order status has been toggled.' }),
       parseMode: 'HTML',
     });
   }
 
-  private async handleOrderDelete(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderDelete(ctx: BotContext, _params: string[]): Promise<void> {
     const keyboard = this.menuHandler.createConfirmationKeyboard('order:delete', { id: params[0] || '' });
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.delete_confirm', {
@@ -1346,7 +1337,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderDownload(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderDownload(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.download_preparing', {
         default: '📥 Preparing download...\n\nYour order data will be sent shortly.',
@@ -1355,7 +1346,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderBotManagement(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderBotManagement(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.bot_management', {
         default: '🤖 Bot Management\n\nManage bots associated with your orders.',
@@ -1365,7 +1356,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderAudienceTargeting(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderAudienceTargeting(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.audience_targeting', {
         default:
@@ -1376,7 +1367,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderGenderSelection(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderGenderSelection(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.gender_selection', {
         default: '👥 Gender Selection\n\nChoose target gender:\n• All\n• Male\n• Female',
@@ -1386,7 +1377,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderTopicSelection(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderTopicSelection(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.topic_selection', { default: '🎯 Topic Selection\n\nSelect topics for your campaign.' }),
       parseMode: 'HTML',
@@ -1394,7 +1385,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderLocationSelection(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderLocationSelection(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.location_selection', {
         default: '🌍 Location Selection\n\nSelect target locations for your campaign.',
@@ -1466,7 +1457,7 @@ export class CallbackRouterHandler {
         });
       } else {
         // Show specific order stats
-        const orderId = params[0];
+        const [orderId] = params;
         await this.orderHandler.handleOrderDetails(ctx, orderId);
       }
     } catch (error) {
@@ -1474,14 +1465,14 @@ export class CallbackRouterHandler {
     }
   }
 
-  private async handleOrderDuplicate(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderDuplicate(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.duplicated', { default: '📋 Order duplicated successfully!' }),
       parseMode: 'HTML',
     });
   }
 
-  private async handleOrderIntegration(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderIntegration(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.integration', {
         default: '🔗 Order Integration\n\nConnect your order with external services.',
@@ -1491,7 +1482,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderTransfer(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderTransfer(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.transfer', { default: '🔄 Transfer Order\n\nTransfer this order to another account.' }),
       parseMode: 'HTML',
@@ -1499,7 +1490,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderChannelView(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderChannelView(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.channel_view', {
         default: '📺 Channel Information\n\nView details about the associated channel.',
@@ -1509,7 +1500,7 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderTypeSelection(ctx: BotContext, params: string[]): Promise<void> {
+  private async handleOrderTypeSelection(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.type_selection', {
         default: '📋 Order Type\n\nSelect the type of order you want to create.',

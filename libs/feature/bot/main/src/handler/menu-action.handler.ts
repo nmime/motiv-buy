@@ -367,7 +367,7 @@ export class MenuActionHandler {
 
     // Check user role from context if available
     // Context augmented with user data by authentication middleware
-    const user = (ctx as { user?: { role?: string; isAdmin?: boolean } }).user;
+    const { user } = ctx as { user?: { role?: string; isAdmin?: boolean } };
 
     if (!user) {
       await ctx.reply('Please authenticate first using /start');

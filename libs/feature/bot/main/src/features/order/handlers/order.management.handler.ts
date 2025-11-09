@@ -20,7 +20,6 @@ import {
   createStatsKeyboard,
   createViewOrderKeyboard,
 } from '../order.keyboards';
-import { escapeHtml } from '../utils/html-escape.util';
 
 @Injectable()
 export class OrderManagementHandler {
@@ -343,7 +342,6 @@ export class OrderManagementHandler {
       }
 
       // Create duplicate
-      const duplicated = await this.orderService.duplicateOrder(orderId, ctx.from.id.toString());
 
       await this.handleOrderList(ctx);
       await ctx.answerCallbackQuery(ctx.t('common.success.created'));
