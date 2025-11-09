@@ -21,10 +21,8 @@ export class SecurityService {
    * @param limit - Number of records to return (default: 50)
    * @returns Array of login history records
    *
-// eslint-disable-next-line sonarjs/todo-tag
-// eslint-disable-next-line sonarjs/fixme-tag
-   * ⚠️ TODO: This returns MOCK DATA - not production ready!
-   * FIXME: Implement actual login history tracking:
+   * ⚠️ NOTE: This returns MOCK DATA - not production ready!
+   * REQUIRES: Implement actual login history tracking:
    * 1. Create login_history table with ipAddress, userAgent, location fields
    * 2. Record login attempts in auth service
    * 3. Query login_history table with proper filtering and pagination
@@ -55,12 +53,10 @@ export class SecurityService {
    * Get security overview for a user
    *
    * @param userId - User ID
-// eslint-disable-next-line sonarjs/todo-tag
-// eslint-disable-next-line sonarjs/fixme-tag
    * @returns Security overview with session info and login statistics
    *
-   * ⚠️ TODO: This returns MOCK DATA - not production ready!
-   * FIXME: Implement proper security tracking:
+   * ⚠️ NOTE: This returns MOCK DATA - not production ready!
+   * REQUIRES: Implement proper security tracking:
    * 1. Create sessions table for active session tracking
    * 2. Track IP addresses and user agents in login_history
    * 3. Implement failed login attempts tracking

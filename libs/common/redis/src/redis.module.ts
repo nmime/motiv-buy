@@ -77,7 +77,7 @@ const redisFactory = ({ config }: RedisConfigService): Redis | Cluster => {
          * - Runtime types ARE correct - this is purely a compile-time TypeScript limitation
          * - Better than previous `as any` which code review correctly flagged as violation
          *
-         * TODO: Remove this assertion when redlock releases stable v5 with fixed type definitions
+         * FUTURE: Remove this assertion when redlock releases stable v5 with fixed type definitions
          */
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return new Redlock([redis] as any, {

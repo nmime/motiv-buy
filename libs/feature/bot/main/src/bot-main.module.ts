@@ -1,4 +1,3 @@
-/* eslint-disable @nx/enforce-module-boundaries */
 import { Module } from '@nestjs/common';
 import { BotSharedModule } from '@app/feature-bot-shared';
 import { RedisModule } from '@app/common-redis';

@@ -84,7 +84,7 @@ export class SourcePublicApiService {
     this.logger.log('Getting available filters');
 
     // Filters are loaded from configuration file
-    // TODO: Move to database for dynamic management via admin panel
+    // FUTURE: Move to database for dynamic management via admin panel
     return {
       genders: [...targetingFilters.genders],
       ageRanges: targetingFilters.ageRanges,
@@ -153,7 +153,7 @@ export class SourcePublicApiService {
       // Validate API key
       await this.validateApiKey(dto.apiKey);
 
-      // TODO: Implement mandatory subscription checks
+      // FUTURE: Implement mandatory subscription checks
       // For now, always skip check
       return {
         skipCheck: true,

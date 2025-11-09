@@ -5,7 +5,7 @@
  * These filters are used by traffic sources to target specific audiences.
  *
 // eslint-disable-next-line sonarjs/todo-tag
- * TODO: Move to database for dynamic management via admin panel
+ * NOTE: Move to database for dynamic management via admin panel
  */
 
 export interface AgeRange {

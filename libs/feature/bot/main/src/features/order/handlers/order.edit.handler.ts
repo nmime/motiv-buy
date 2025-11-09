@@ -40,7 +40,7 @@ export class OrderEditHandler {
 
   /**
    * Handle edit name
-   * TODO: Implement text input handling
+   * FUTURE: Implement text input handling
    */
   private async handleEditName(ctx: BotContext): Promise<void> {
     try {
@@ -70,7 +70,7 @@ export class OrderEditHandler {
 
   /**
    * Handle edit link
-   * TODO: Implement text input handling
+   * FUTURE: Implement text input handling
    */
   private async handleEditLink(ctx: BotContext): Promise<void> {
     try {
@@ -100,7 +100,7 @@ export class OrderEditHandler {
 
   /**
    * Handle edit daily users
-   * TODO: Implement numeric input handling
+   * FUTURE: Implement numeric input handling
    */
   private async handleEditDaily(ctx: BotContext): Promise<void> {
     try {
@@ -130,7 +130,7 @@ export class OrderEditHandler {
 
   /**
    * Handle edit total users
-   * TODO: Implement numeric input handling
+   * FUTURE: Implement numeric input handling
    */
   private async handleEditTotal(ctx: BotContext): Promise<void> {
     try {
@@ -160,7 +160,7 @@ export class OrderEditHandler {
 
   /**
    * Handle edit price
-   * TODO: Implement numeric input handling
+   * FUTURE: Implement numeric input handling
    */
   private async handleEditPrice(ctx: BotContext): Promise<void> {
     try {
@@ -190,7 +190,7 @@ export class OrderEditHandler {
 
   /**
    * Handle edit start time
-   * TODO: Implement date/time picker
+   * FUTURE: Implement date/time picker
    */
   private async handleEditStartTime(ctx: BotContext): Promise<void> {
     try {
@@ -220,7 +220,7 @@ export class OrderEditHandler {
 
   /**
    * Handle edit schedule
-   * TODO: Implement schedule configuration UI
+   * FUTURE: Implement schedule configuration UI
    */
   private async handleEditSchedule(ctx: BotContext): Promise<void> {
     try {

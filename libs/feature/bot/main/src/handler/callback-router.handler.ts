@@ -12,11 +12,14 @@ import {
   UserEntity,
   UserLastAuthEntity,
   UserBalanceHistoryEntity,
+  UserBalanceEntity,
+  UserRole,
   TrafficSourceEntity,
   TrafficOrderEntity,
   TrafficOrderStatus,
   ModerationEntityType,
 } from '@app/database';
+import { decimal, add, subtract, sum, toDisplayString } from '@app/common-shared';
 import { MenuActionHandler } from './menu-action.handler';
 import { ProfileActionHandler } from './profile-action.handler';
 import { BalanceActionHandler } from './balance-action.handler';
@@ -722,7 +725,6 @@ export class CallbackRouterHandler {
         { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['trafficTarget'] },
       );
 
-      const { decimal, toDisplayString } = await import('@app/common-shared');
       const totalSpent = recentCampaigns.reduce((sum, order) => {
         return sum.plus(decimal(order.spentAmount || '0'));
       }, decimal(0));
@@ -926,7 +928,6 @@ export class CallbackRouterHandler {
       }
 
       // Calculate analytics
-      const { decimal, add, subtract, toDisplayString } = await import('@app/common-shared');
 
       let totalIncome = decimal(0);
       let totalExpense = decimal(0);
@@ -1014,10 +1015,7 @@ export class CallbackRouterHandler {
       }
 
       // Get user balances
-      const { UserBalanceEntity } = await import('@app/database');
       const balances = await em.find(UserBalanceEntity, { user: user.id }, { populate: ['currency'] });
-
-      const { decimal, toDisplayString } = await import('@app/common-shared');
 
       let text = '<b>💸 Withdrawal</b>\n\n';
       text += '<b>Available Balances:</b>\n';
@@ -1110,7 +1108,6 @@ export class CallbackRouterHandler {
       }
 
       // Check if user has admin or super admin role
-      const { UserRole } = await import('@app/database');
       if (user.role !== UserRole.Admin && user.role !== UserRole.SuperAdmin) {
         await ctx.reply('⛔️ Access denied. Admin privileges required.');
 
@@ -1427,7 +1424,6 @@ export class CallbackRouterHandler {
         ]);
 
         const orders = await em.find(TrafficOrderEntity, { creator: user.id });
-        const { decimal, sum, toDisplayString } = await import('@app/common-shared');
 
         const totalSpent = sum(orders.map((o) => decimal(o.spentAmount || '0')));
         const totalBudget = sum(orders.map((o) => decimal(o.totalBudget || '0')));

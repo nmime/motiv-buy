@@ -1,4 +1,3 @@
-/* eslint-disable @nx/enforce-module-boundaries */
 import { unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { InlineKeyboard } from 'grammy';

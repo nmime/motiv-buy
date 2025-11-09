@@ -1,4 +1,3 @@
-/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthUserService, LinkType, TelegramAuthParams } from '@app/feature-auth-shared';
 import { PlatformType, UserEntity } from '@app/database';

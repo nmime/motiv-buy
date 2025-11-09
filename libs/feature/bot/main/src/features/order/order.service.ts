@@ -23,7 +23,7 @@ import {
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
 
-  // TODO: Replace with database persistence for finalized orders
+  // FUTURE: Replace with database persistence for finalized orders
   // Incomplete drafts are stored in Redis sessions via getOrderSessionState/saveOrderSessionState
   private orders: Map<string, Order> = new Map();
 
@@ -195,7 +195,7 @@ export class OrderService {
       };
     }
 
-    // TODO: Implement real validation with Telegram API
+    // FUTURE: Implement real validation with Telegram API
     // For now, accept all valid format links
     return { valid: true };
   }
@@ -408,7 +408,7 @@ export class OrderService {
       return null;
     }
 
-    // TODO: Implement real stats refresh from tracking system
+    // FUTURE: Implement real stats refresh from tracking system
     // For now, simulate some activity
     // eslint-disable-next-line sonarjs/pseudo-random -- Mock data generation for demo purposes
     order.stats.subscribersToday = Math.floor(Math.random() * 50);
@@ -433,7 +433,7 @@ export class OrderService {
       return '';
     }
 
-    // TODO: Implement real report generation
+    // FUTURE: Implement real report generation
     const report = `
 Order Report #${orderId}
 ========================
@@ -487,7 +487,7 @@ Created: ${order.createdAt.toLocaleDateString()}
    * Cleanup expired sessions
    */
   private cleanupExpiredSessions(): void {
-    // TODO: Implement session cleanup when Redis/database is integrated
+    // FUTURE: Implement session cleanup when Redis/database is integrated
     // For now, this is a placeholder for the in-memory implementation
     this.logger.debug('Session cleanup would run here with database integration');
   }

@@ -1,4 +1,3 @@
-/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
 import { BotCommand, BotContext } from '@app/feature-bot-shared';
