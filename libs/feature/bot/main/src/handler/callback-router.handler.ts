@@ -639,7 +639,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
@@ -648,15 +648,15 @@ export class CallbackRouterHandler {
       }
 
       // Get traffic sources managed by user
-      const sources = await em.find(TrafficSourceEntity, { managedBy: user.id }, { populate: ['orders'] });
+      const sources = await this.em.find(TrafficSourceEntity, { managedBy: user.id }, { populate: ['orders'] });
 
       // Get active traffic orders
-      const activeOrders = await em.count(TrafficOrderEntity, {
+      const activeOrders = await this.em.count(TrafficOrderEntity, {
         creator: user.id,
         status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
       });
 
-      const totalOrders = await em.count(TrafficOrderEntity, { creator: user.id });
+      const totalOrders = await this.em.count(TrafficOrderEntity, { creator: user.id });
 
       let text = '<b>🎯 Traffic Management</b>\n\n';
       text += `<b>📊 Overview:</b>\n`;
@@ -697,7 +697,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
@@ -707,19 +707,19 @@ export class CallbackRouterHandler {
 
       // Get campaign statistics (campaigns are TrafficOrders)
       const [active, completed, total] = await Promise.all([
-        em.count(TrafficOrderEntity, {
+        this.em.count(TrafficOrderEntity, {
           creator: user.id,
           status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
         }),
-        em.count(TrafficOrderEntity, {
+        this.em.count(TrafficOrderEntity, {
           creator: user.id,
           status: TrafficOrderStatus.Completed,
         }),
-        em.count(TrafficOrderEntity, { creator: user.id }),
+        this.em.count(TrafficOrderEntity, { creator: user.id }),
       ]);
 
       // Get recent campaigns
-      const recentCampaigns = await em.find(
+      const recentCampaigns = await this.em.find(
         TrafficOrderEntity,
         { creator: user.id },
         { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['trafficTarget'] },
@@ -839,7 +839,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
@@ -847,7 +847,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const lastAuth = await em.findOne(UserLastAuthEntity, { user: user.id });
+      const lastAuth = await this.em.findOne(UserLastAuthEntity, { user: user.id });
 
       let text = '<b>🔐 Login History</b>\n\n';
 
@@ -902,7 +902,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
@@ -911,7 +911,7 @@ export class CallbackRouterHandler {
       }
 
       // Get all balance history for analytics
-      const history = await em.find(
+      const history = await this.em.find(
         UserBalanceHistoryEntity,
         { user: user.id },
         { orderBy: { createdAt: 'DESC' }, limit: 100 },
@@ -999,7 +999,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
@@ -1015,7 +1015,7 @@ export class CallbackRouterHandler {
       }
 
       // Get user balances
-      const balances = await em.find(UserBalanceEntity, { user: user.id }, { populate: ['currency'] });
+      const balances = await this.em.find(UserBalanceEntity, { user: user.id }, { populate: ['currency'] });
 
       let text = '<b>💸 Withdrawal</b>\n\n';
       text += '<b>Available Balances:</b>\n';
@@ -1061,7 +1061,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
@@ -1099,7 +1099,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
@@ -1116,20 +1116,20 @@ export class CallbackRouterHandler {
 
       // Get admin statistics
       const [totalUsers, verifiedUsers] = await Promise.all([
-        em.count(UserEntity),
-        em.count(UserEntity, { isVerified: true }),
+        this.em.count(UserEntity),
+        this.em.count(UserEntity, { isVerified: true }),
       ]);
 
       const activeUsers = totalUsers; // Simplified - count all users as active
 
       const [totalOrders, activeOrders] = await Promise.all([
-        em.count(TrafficOrderEntity),
-        em.count(TrafficOrderEntity, {
+        this.em.count(TrafficOrderEntity),
+        this.em.count(TrafficOrderEntity, {
           status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
         }),
       ]);
 
-      const totalSources = await em.count(TrafficSourceEntity);
+      const totalSources = await this.em.count(TrafficSourceEntity);
 
       let text = '<b>🔧 Admin Panel</b>\n\n';
       text += '<b>👥 Users:</b>\n';
@@ -1162,7 +1162,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
@@ -1172,8 +1172,8 @@ export class CallbackRouterHandler {
 
       // Get data counts for export preview
       const [ordersCount, transactionsCount] = await Promise.all([
-        em.count(TrafficOrderEntity, { creator: user.id }),
-        em.count(UserBalanceHistoryEntity, { user: user.id }),
+        this.em.count(TrafficOrderEntity, { creator: user.id }),
+        this.em.count(UserBalanceHistoryEntity, { user: user.id }),
       ]);
 
       let text = '<b>📥 Data Export</b>\n\n';
@@ -1208,7 +1208,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));
@@ -1324,7 +1324,7 @@ export class CallbackRouterHandler {
   }
 
   private async handleOrderDelete(ctx: BotContext, _params: string[]): Promise<void> {
-    const keyboard = this.menuHandler.createConfirmationKeyboard('order:delete', { id: params[0] || '' });
+    const keyboard = this.menuHandler.createConfirmationKeyboard('order:delete', { id: _params[0] || '' });
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.delete_confirm', {
         default: '⚠️ Delete Order\n\nAre you sure you want to delete this order? This action cannot be undone.',
@@ -1401,7 +1401,7 @@ export class CallbackRouterHandler {
       }
 
       const em = this.em.fork();
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));

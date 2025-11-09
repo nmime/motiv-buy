@@ -7,6 +7,7 @@
  */
 
 import { Composer } from 'grammy';
+import { BotContext } from '@app/feature-bot-shared';
 
 /**
  * Create a protected composer that requires authentication

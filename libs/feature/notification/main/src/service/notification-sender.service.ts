@@ -145,9 +145,21 @@ export class NotificationSenderService {
 
     const message = error.message.toLowerCase();
 
-    for (const [pattern, reason] of Object.entries(ERROR_PATTERNS)) {
+    const errorPatterns: Record<string, NotificationErrorReason> = {
+      'bot was blocked': NotificationErrorReason.BotBlocked,
+      'user is deactivated': NotificationErrorReason.UserDeactivated,
+      'chat not found': NotificationErrorReason.ChatNotFound,
+      'not enough rights': NotificationErrorReason.ChatRestricted,
+      'user_not_found': NotificationErrorReason.InvalidTarget,
+      'invalid user': NotificationErrorReason.InvalidTarget,
+      'rate limit': NotificationErrorReason.RateLimitExceeded,
+      'network': NotificationErrorReason.NetworkError,
+      'timeout': NotificationErrorReason.NetworkError,
+    };
+
+    for (const [pattern, reason] of Object.entries(errorPatterns)) {
       if (message.includes(pattern)) {
-        return reason;
+        return reason as NotificationErrorReason;
       }
     }
 

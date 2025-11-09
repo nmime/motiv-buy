@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import * as crypto from 'crypto';
 import Decimal from 'decimal.js';
-import { decimal, toNumber } from '@app/common-shared';
+import { decimal, sum, toNumber } from '@app/common-shared';
 import {
   TrafficActionsRepository,
   TrafficActionStatus,
@@ -130,7 +130,7 @@ export class StatisticService {
 
     const dataPoints = await handler(userId, query);
     const totalActions = dataPoints.reduce((sum, point) => sum + point.countOfActions, 0);
-    const totalAmount = dataPoints.reduce((sum, point) => sum + point.amountEarnedOrSpent, 0);
+    const totalAmount = toNumber(sum(dataPoints.map((p) => p.amountEarnedOrSpent)));
 
     return {
       type: query.type,
@@ -185,7 +185,7 @@ export class StatisticService {
     const dataPoints = await handler(userId, query);
 
     const totalActions = dataPoints.reduce((sum, point) => sum + point.countOfActions, 0);
-    const totalAmount = dataPoints.reduce((sum, point) => sum + point.amountEarnedOrSpent, 0);
+    const totalAmount = toNumber(sum(dataPoints.map((p) => p.amountEarnedOrSpent)));
 
     return {
       type: statisticType,
