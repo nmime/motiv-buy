@@ -753,7 +753,7 @@ export class SourcePublicApiService {
 
     const action = new TrafficActionsEntity({
       actionId,
-      type: ORDER_TYPE_TO_ACTION_TYPE[order.type],
+      type: _orderTypeToActionType[order.type],
       status: TrafficActionStatus.Completed,
       reward: order.pricePerAction,
       completedAt: dto.completedAt ? new Date(dto.completedAt) : new Date(),

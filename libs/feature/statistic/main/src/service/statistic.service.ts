@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import * as crypto from 'crypto';
+import Decimal from 'decimal.js';
+import { decimal, toNumber } from '@app/common-shared';
 import {
   TrafficActionsRepository,
   TrafficActionStatus,
@@ -300,7 +302,7 @@ export class StatisticService {
       );
 
     const firstResult = Array.isArray(rewardSumResult) && rewardSumResult.length > 0 ? rewardSumResult[0] : null;
-    const totalReward = parseFloat(
+    const totalRewardDecimal = decimal(
       (firstResult && typeof firstResult === 'object' && 'totalReward' in firstResult
         ? String(firstResult.totalReward)
         : '0') || '0',
@@ -309,12 +311,12 @@ export class StatisticService {
     return {
       type: StatisticType.TrafficSource,
       countOfActions: totalActions,
-      amountEarnedOrSpent: totalReward, // Positive - user earns rewards from their sources
+      amountEarnedOrSpent: toNumber(totalRewardDecimal), // Positive - user earns rewards from their sources
       period: this.formatPeriod(query.fromDate, query.endDate),
       generatedAt: new Date(),
       uniqueSourcesCount: sources.length,
       totalActions,
-      avgRewardPerAction: totalActions > 0 ? totalReward / totalActions : 0,
+      avgRewardPerAction: totalActions > 0 ? toNumber(totalRewardDecimal.dividedBy(totalActions)) : 0,
     };
   }
 
@@ -443,7 +445,7 @@ export class StatisticService {
       10,
     );
 
-    const netBalanceChange = parseFloat(
+    const netBalanceChangeDecimal = decimal(
       (userTransactionStats && typeof userTransactionStats === 'object' && 'netBalanceChange' in userTransactionStats
         ? String(userTransactionStats.netBalanceChange)
         : '0') || '0',
@@ -452,12 +454,12 @@ export class StatisticService {
     return {
       type: StatisticType.User,
       countOfActions: totalTransactions,
-      amountEarnedOrSpent: netBalanceChange,
+      amountEarnedOrSpent: toNumber(netBalanceChangeDecimal),
       period: this.formatPeriod(query.fromDate, query.endDate),
       generatedAt: new Date(),
       activeUsersCount,
       totalTransactions,
-      netBalanceChange,
+      netBalanceChange: toNumber(netBalanceChangeDecimal),
     };
   }
 
@@ -611,10 +613,12 @@ export class StatisticService {
     );
 
     const row = this.getFirstRow(result);
+    const totalBudgetDecimal = this.safeParseDecimal(row, 'totalBudget');
+    const totalSpentDecimal = this.safeParseDecimal(row, 'totalSpent');
 
     return {
-      totalBudget: this.safeParseFloat(row, 'totalBudget'),
-      totalSpent: this.safeParseFloat(row, 'totalSpent'),
+      totalBudget: toNumber(totalBudgetDecimal),
+      totalSpent: toNumber(totalSpentDecimal),
     };
   }
 
@@ -727,10 +731,11 @@ export class StatisticService {
     );
 
     const row = this.getFirstRow(result);
+    const avgPriceDecimal = this.safeParseDecimal(row, 'avgPricePerMember');
 
     return {
       activeTargets: this.safeParseInt(row, 'activeTargets'),
-      avgPricePerMember: this.safeParseFloat(row, 'avgPricePerMember'),
+      avgPricePerMember: toNumber(avgPriceDecimal),
     };
   }
 
@@ -751,10 +756,11 @@ export class StatisticService {
     );
 
     const row = this.getFirstRow(result);
+    const totalEarnedDecimal = this.safeParseDecimal(row, 'totalEarned');
 
     return {
       totalOrders: this.safeParseInt(row, 'totalOrders'),
-      totalEarned: this.safeParseFloat(row, 'totalEarned'),
+      totalEarned: toNumber(totalEarnedDecimal),
     };
   }
 
@@ -785,16 +791,17 @@ export class StatisticService {
   }
 
   /**
-   * Helper: Safely parse float from query result
+   * Helper: Safely parse Decimal from query result
+   * Returns Decimal for precision-safe monetary calculations
    */
-  private safeParseFloat(row: Record<string, unknown> | null, field: string): number {
+  private safeParseDecimal(row: Record<string, unknown> | null, field: string): Decimal {
     if (!row || !(field in row)) {
-      return 0;
+      return decimal(0);
     }
 
     const value = String(row[field] ?? '0');
 
-    return parseFloat(value) || 0;
+    return decimal(value);
   }
 
   private formatPeriod(fromDate?: string, endDate?: string): string {

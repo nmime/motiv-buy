@@ -1,7 +1,15 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { getErrorMessage, multiply, percentage, toDbString, toNumber, unknownToError } from '@app/common-shared';
+import {
+  decimal,
+  getErrorMessage,
+  multiply,
+  percentage,
+  toDbString,
+  toNumber,
+  unknownToError,
+} from '@app/common-shared';
 import {
   AvailableTrafficDto,
   BotAction,
@@ -803,7 +811,7 @@ export class TrafficService {
       description: data.description,
       type: data.type,
       username: data.username,
-      pricePerMember: data.pricePerMember ? parseFloat(data.pricePerMember) : undefined,
+      pricePerMember: data.pricePerMember ? toNumber(decimal(data.pricePerMember)) : undefined,
     });
   }
 
@@ -913,8 +921,8 @@ export class TrafficService {
       targetUrl: order.targetUrl || target.username || '',
       amount: order.targetCount,
       completedAmount: order.currentCount,
-      pricePerUnit: parseFloat(order.pricePerAction),
-      totalCost: parseFloat(order.totalBudget),
+      pricePerUnit: toNumber(decimal(order.pricePerAction)),
+      totalCost: toNumber(decimal(order.totalBudget)),
       status: order.status as unknown as TrafficOrderStatus,
       progressPercentage,
       estimatedCompletion,

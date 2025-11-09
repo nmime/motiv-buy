@@ -329,13 +329,11 @@ export function toDisplayString(value: Decimal.Value, decimalPlaces = 2): string
   const rounded = dec.toDecimalPlaces(decimalPlaces);
 
   // Convert to string and remove trailing zeros after decimal point
-  // Using a more efficient regex to avoid backtracking
   const str = rounded.toString();
   if (!str.includes('.')) {
     return str;
   }
 
-  // eslint-disable-next-line sonarjs/slow-regex
   return str.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
 }
 

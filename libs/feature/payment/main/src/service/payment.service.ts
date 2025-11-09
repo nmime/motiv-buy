@@ -572,7 +572,7 @@ export class PaymentService {
       type WebhookHandler = (
         updateDto: WebhookUpdateDto,
         logContext: Record<string, unknown>,
-      ) => Promise<AsyncResult<PaymentTransactionEntity, Error>>;
+      ) => AsyncResult<PaymentTransactionEntity, Error>;
 
       const webhookHandlers: Record<string, WebhookHandler> = {
         invoice_paid: this.handleInvoicePaid.bind(this),
