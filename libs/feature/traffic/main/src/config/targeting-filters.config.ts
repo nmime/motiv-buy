@@ -4,7 +4,6 @@
  * Centralized configuration for available targeting filters.
  * These filters are used by traffic sources to target specific audiences.
  *
-// eslint-disable-next-line sonarjs/todo-tag
  * NOTE: Move to database for dynamic management via admin panel
  */
 

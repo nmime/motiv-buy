@@ -490,28 +490,72 @@ export class HeleketProvider implements IPaymentProvider {
    * Heleket supports multiple networks for multi-chain assets like USDT and USDC
    */
   private selectNetwork(currency: Cryptocurrency): string {
-    return NETWORK_MAP[currency] || currency.toLowerCase();
+    const networkMap: Record<Cryptocurrency, string> = {
+      [Cryptocurrency.Usdt]: 'TRC20',
+      [Cryptocurrency.Usdc]: 'TRC20',
+      [Cryptocurrency.Btc]: 'BTC',
+      [Cryptocurrency.Eth]: 'ERC20',
+      [Cryptocurrency.Bnb]: 'BEP20',
+      [Cryptocurrency.Trx]: 'TRC20',
+      [Cryptocurrency.Ton]: 'TON',
+      [Cryptocurrency.Ltc]: 'LTC',
+      [Cryptocurrency.Doge]: 'DOGE',
+      [Cryptocurrency.Dai]: 'ERC20',
+      [Cryptocurrency.Dash]: 'DASH',
+      [Cryptocurrency.Bch]: 'BCH',
+      [Cryptocurrency.Sol]: 'SOL',
+      [Cryptocurrency.Jet]: 'TRC20', // JET uses TRC20 network
+      [Cryptocurrency.Rub]: 'RUB',
+      [Cryptocurrency.Usd]: 'USD',
+      [Cryptocurrency.Eur]: 'EUR',
+    };
+
+    return networkMap[currency] || currency.toLowerCase();
   }
 
   /**
    * Map Heleket payment status to PaymentStatus enum
    */
   private mapHelekeStatus(status: string): PaymentStatus {
-    return STATUS_MAP[status] ?? PaymentStatus.Pending;
+    const statusMap: Record<string, PaymentStatus> = {
+      pending: PaymentStatus.Pending,
+      success: PaymentStatus.Completed,
+      failed: PaymentStatus.Failed,
+      expired: PaymentStatus.Expired,
+      cancelled: PaymentStatus.Cancelled,
+    };
+
+    return statusMap[status] ?? PaymentStatus.Pending;
   }
 
   /**
    * Map Heleket payout status to PaymentStatus enum
    */
   private mapHelekePayoutStatus(status: string): PaymentStatus {
-    return STATUS_MAP[status] ?? PaymentStatus.Pending;
+    const statusMap: Record<string, PaymentStatus> = {
+      pending: PaymentStatus.Pending,
+      processing: PaymentStatus.Processing,
+      completed: PaymentStatus.Completed,
+      failed: PaymentStatus.Failed,
+    };
+
+    return statusMap[status] ?? PaymentStatus.Pending;
   }
 
   /**
    * Map PaymentStatus to Heleket status
    */
   private mapStatusToHeleke(status: PaymentStatus): string {
-    return STATUS_MAP[status] ?? 'pending';
+    const statusMap: Record<PaymentStatus, string> = {
+      [PaymentStatus.Pending]: 'pending',
+      [PaymentStatus.Processing]: 'processing',
+      [PaymentStatus.Completed]: 'success',
+      [PaymentStatus.Failed]: 'failed',
+      [PaymentStatus.Expired]: 'expired',
+      [PaymentStatus.Cancelled]: 'cancelled',
+    };
+
+    return statusMap[status] ?? 'pending';
   }
 
   /**
@@ -519,6 +563,22 @@ export class HeleketProvider implements IPaymentProvider {
    * Heleket is crypto-native and returns actual cryptocurrency codes
    */
   private mapCurrencyToCryptocurrency(currency: string): Cryptocurrency {
-    return CURRENCY_MAP[currency.toUpperCase()] || Cryptocurrency.Usdt;
+    const currencyMap: Record<string, Cryptocurrency> = {
+      USDT: Cryptocurrency.Usdt,
+      BTC: Cryptocurrency.Btc,
+      ETH: Cryptocurrency.Eth,
+      USDC: Cryptocurrency.Usdc,
+      BNB: Cryptocurrency.Bnb,
+      TRX: Cryptocurrency.Trx,
+      TON: Cryptocurrency.Ton,
+      LTC: Cryptocurrency.Ltc,
+      DOGE: Cryptocurrency.Doge,
+      DAI: Cryptocurrency.Dai,
+      DASH: Cryptocurrency.Dash,
+      BCH: Cryptocurrency.Bch,
+      SOL: Cryptocurrency.Sol,
+    };
+
+    return currencyMap[currency.toUpperCase()] || Cryptocurrency.Usdt;
   }
 }

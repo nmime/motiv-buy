@@ -503,7 +503,27 @@ export class YooKassaProvider implements IPaymentProvider {
    * Map Cryptocurrency enum to CurrencyCode enum
    */
   private mapCryptocurrencyToCurrencyCode(cryptocurrency: Cryptocurrency): CurrencyCode {
-    const currencyCode = CURRENCY_MAP[cryptocurrency];
+    const currencyMap: Record<Cryptocurrency, CurrencyCode> = {
+      [Cryptocurrency.Usdt]: CurrencyCode.Usdt,
+      [Cryptocurrency.Ton]: CurrencyCode.Ton,
+      [Cryptocurrency.Btc]: CurrencyCode.Btc,
+      [Cryptocurrency.Eth]: CurrencyCode.Eth,
+      [Cryptocurrency.Bnb]: CurrencyCode.Bnb,
+      [Cryptocurrency.Trx]: CurrencyCode.Trx,
+      [Cryptocurrency.Usdc]: CurrencyCode.Usdc,
+      [Cryptocurrency.Ltc]: CurrencyCode.Ltc,
+      [Cryptocurrency.Doge]: CurrencyCode.Doge,
+      [Cryptocurrency.Dai]: CurrencyCode.Dai,
+      [Cryptocurrency.Dash]: CurrencyCode.Dash,
+      [Cryptocurrency.Bch]: CurrencyCode.Bch,
+      [Cryptocurrency.Sol]: CurrencyCode.Sol,
+      [Cryptocurrency.Jet]: CurrencyCode.Usdt, // JET maps to USDT as fallback
+      [Cryptocurrency.Rub]: CurrencyCode.Rub,
+      [Cryptocurrency.Usd]: CurrencyCode.Usd,
+      [Cryptocurrency.Eur]: CurrencyCode.Eur,
+    };
+
+    const currencyCode = currencyMap[cryptocurrency];
     if (!currencyCode) {
       throw new Error(`Unsupported cryptocurrency for conversion: ${cryptocurrency}`);
     }
@@ -515,21 +535,43 @@ export class YooKassaProvider implements IPaymentProvider {
    * Map YooKassa payment status to PaymentStatus enum
    */
   private mapYooKassaStatus(status: string): PaymentStatus {
-    return STATUS_MAP[status] ?? PaymentStatus.Pending;
+    const statusMap: Record<string, PaymentStatus> = {
+      pending: PaymentStatus.Pending,
+      waiting_for_capture: PaymentStatus.Pending,
+      succeeded: PaymentStatus.Completed,
+      canceled: PaymentStatus.Cancelled,
+    };
+
+    return statusMap[status] ?? PaymentStatus.Pending;
   }
 
   /**
    * Map YooKassa payout status to PaymentStatus enum
    */
   private mapYooKassaPayoutStatus(status: string): PaymentStatus {
-    return STATUS_MAP[status] ?? PaymentStatus.Pending;
+    const statusMap: Record<string, PaymentStatus> = {
+      pending: PaymentStatus.Pending,
+      succeeded: PaymentStatus.Completed,
+      canceled: PaymentStatus.Cancelled,
+    };
+
+    return statusMap[status] ?? PaymentStatus.Pending;
   }
 
   /**
    * Map PaymentStatus to YooKassa status
    */
   private mapStatusToYooKassa(status: PaymentStatus): string {
-    return STATUS_MAP[status] ?? 'pending';
+    const statusMap: Record<PaymentStatus, string> = {
+      [PaymentStatus.Pending]: 'pending',
+      [PaymentStatus.Processing]: 'waiting_for_capture',
+      [PaymentStatus.Completed]: 'succeeded',
+      [PaymentStatus.Failed]: 'canceled',
+      [PaymentStatus.Expired]: 'canceled',
+      [PaymentStatus.Cancelled]: 'canceled',
+    };
+
+    return statusMap[status] ?? 'pending';
   }
 
   /**
