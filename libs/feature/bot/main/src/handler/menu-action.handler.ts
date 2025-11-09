@@ -1,4 +1,3 @@
-/* eslint-disable sonarjs/prefer-single-boolean-return */
 /**
  * Menu Action Handler
  *

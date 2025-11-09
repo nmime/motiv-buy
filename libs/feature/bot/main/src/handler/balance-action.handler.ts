@@ -1,5 +1,3 @@
-/* eslint-disable @nx/enforce-module-boundaries, @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any, sonarjs/no-nested-template-literals, sonarjs/no-nested-conditional, no-param-reassign, no-await-in-loop, sonarjs/no-unused-vars, sonarjs/no-dead-store */
-/* eslint-disable @nx/enforce-module-boundaries */
 /**
  * Balance Action Handler
  *

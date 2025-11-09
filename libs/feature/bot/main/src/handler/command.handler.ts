@@ -1,4 +1,3 @@
-/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable, Logger } from '@nestjs/common';
 import { BotCommand, BotContext, MenuType } from '@app/feature-bot-shared';
 import { AuthService } from '@app/feature-auth-main';
