@@ -84,8 +84,7 @@ export class SourcePublicApiService {
     this.logger.log('Getting available filters');
 
     // Filters are loaded from configuration file
-    // eslint-disable-next-line sonarjs/todo-tag
-TODO: Move to database for dynamic management via admin panel
+    // TODO: Move to database for dynamic management via admin panel
     return {
       genders: [...targetingFilters.genders],
       ageRanges: targetingFilters.ageRanges,
@@ -833,27 +832,27 @@ TODO: Move to database for dynamic management via admin panel
   /**
    * Update order progress counters and status
    */
-  // eslint-disable-next-line no-param-reassign
   private updateOrderProgress(order: TrafficOrderEntity, reward: Decimal): void {
-    order.currentCount += 1;
-    order.spentAmount = toDbString(add(order.spentAmount, reward), 8);
+    const currentCount = order.currentCount + 1;
+    const spentAmount = toDbString(add(order.spentAmount, reward), 8);
 
-    if (order.currentCount >= order.targetCount) {
-      order.status = TrafficOrderStatus.Completed;
-      order.completedAt = new Date();
-    } else {
-      order.status = TrafficOrderStatus.InProgress;
-    }
+    Object.assign(order, {
+      currentCount,
+      spentAmount,
+      status: currentCount >= order.targetCount ? TrafficOrderStatus.Completed : TrafficOrderStatus.InProgress,
+      completedAt: currentCount >= order.targetCount ? new Date() : order.completedAt,
+    });
   }
 
   /**
    * Update traffic user statistics
    */
-  // eslint-disable-next-line no-param-reassign
   private updateTrafficUserStats(trafficUser: TrafficUserEntity, reward: Decimal): void {
-    trafficUser.totalOrdersParticipated += 1;
-    trafficUser.totalEarnings = toDbString(add(trafficUser.totalEarnings, reward), 8);
-    trafficUser.lastSeenAt = new Date();
+    Object.assign(trafficUser, {
+      totalOrdersParticipated: trafficUser.totalOrdersParticipated + 1,
+      totalEarnings: toDbString(add(trafficUser.totalEarnings, reward), 8),
+      lastSeenAt: new Date(),
+    });
   }
 
   /**

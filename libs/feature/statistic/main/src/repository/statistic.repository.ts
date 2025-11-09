@@ -121,7 +121,6 @@ export class StatisticRepository {
 
   /**
    * Get traffic source statistics with proper source filtering
-  // eslint-disable-next-line sonarjs/cognitive-complexity
    */
   async getTrafficSourceStatistics(
     userId: string,
@@ -133,47 +132,13 @@ export class StatisticRepository {
     totalReward: number;
     avgRewardPerAction: number;
   }> {
-    // Traffic source statistics using raw SQL
-    let query = `
-      SELECT
-        COUNT(DISTINCT ts.id) as unique_sources_count,
-        COUNT(ta.id) as total_actions,
-        COALESCE(SUM(CAST(ta.reward AS DECIMAL)), 0) as total_reward
-      FROM traffic_sources ts
-      LEFT JOIN traffic_actions ta ON ts.id = ta.traffic_source_id
-      LEFT JOIN traffic_orders tor ON ta.traffic_order_id = tor.id
-      LEFT JOIN users u ON tor.creator_id = u.id
-      WHERE (ts.managed_by_id = $1 OR u.id = $1)
-    `;
+    const baseQuery = this.buildTrafficSourceQuery(userId, sourceId);
+    const dateFilterCondition = dateFilter ? ` AND ${this.buildDateFilter('ta.created_at', dateFilter)}` : '';
+    const query = baseQuery + dateFilterCondition;
 
     const params: unknown[] = [userId];
-    let paramIndex = 2;
-
     if (sourceId) {
-      query += ` AND ts.id = $${paramIndex}`;
       params.push(sourceId);
-      paramIndex++;
-    }
-
-    // Apply date filtering to actions
-    if (dateFilter?.fromDate || dateFilter?.endDate) {
-      const dateConditions: string[] = [];
-
-      if (dateFilter.fromDate) {
-        dateConditions.push(`ta.created_at >= $${paramIndex}`);
-        params.push(dateFilter.fromDate);
-        paramIndex++;
-      }
-
-      if (dateFilter.endDate) {
-        dateConditions.push(`ta.created_at <= $${paramIndex}`);
-        params.push(dateFilter.endDate);
-        paramIndex++;
-      }
-
-      if (dateConditions.length > 0) {
-        query += ` AND (${dateConditions.join(' AND ')})`;
-      }
     }
 
     const statsRaw = await this.em.getConnection().execute(query, params);
@@ -193,7 +158,6 @@ export class StatisticRepository {
   }
 
   /**
-  // eslint-disable-next-line sonarjs/cognitive-complexity
    * Get traffic target statistics with proper target filtering
    */
   async getTrafficTargetStatistics(
@@ -206,46 +170,13 @@ export class StatisticRepository {
     totalEarned: number;
     avgPricePerMember: number;
   }> {
-    // Traffic target statistics using raw SQL
-    let query = `
-      SELECT
-        COUNT(DISTINCT CASE WHEN tt.is_active = true THEN tt.id END) as active_targets_count,
-        COUNT(tor.id) as total_orders_count,
-        COALESCE(SUM(CAST(tor.spent_amount AS DECIMAL)), 0) as total_earned
-      FROM traffic_targets tt
-      LEFT JOIN traffic_orders tor ON tt.id = tor.traffic_target_id
-      LEFT JOIN users u ON tor.creator_id = u.id
-      WHERE (tt.managed_by_id = $1 OR u.id = $1)
-    `;
+    const baseQuery = this.buildTrafficTargetQuery(userId, targetId);
+    const dateFilterCondition = dateFilter ? ` AND ${this.buildDateFilter('tor.created_at', dateFilter)}` : '';
+    const query = baseQuery + dateFilterCondition;
 
     const params: unknown[] = [userId];
-    let paramIndex = 2;
-
     if (targetId) {
-      query += ` AND tt.id = $${paramIndex}`;
       params.push(targetId);
-      paramIndex++;
-    }
-
-    // Apply date filtering to orders
-    if (dateFilter?.fromDate || dateFilter?.endDate) {
-      const dateConditions: string[] = [];
-
-      if (dateFilter.fromDate) {
-        dateConditions.push(`tor.created_at >= $${paramIndex}`);
-        params.push(dateFilter.fromDate);
-        paramIndex++;
-      }
-
-      if (dateFilter.endDate) {
-        dateConditions.push(`tor.created_at <= $${paramIndex}`);
-        params.push(dateFilter.endDate);
-        paramIndex++;
-      }
-
-      if (dateConditions.length > 0) {
-        query += ` AND (${dateConditions.join(' AND ')})`;
-      }
     }
 
     const statsRaw = await this.em.getConnection().execute(query, params);
@@ -414,6 +345,51 @@ export class StatisticRepository {
     }
 
     return conditions.length > 0 ? conditions.join(' AND ') : '1=1';
+  }
+
+  /**
+   * Build base query for traffic source statistics
+   */
+  private buildTrafficSourceQuery(userId: string, sourceId?: string): string {
+    let query = `
+      SELECT
+        COUNT(DISTINCT ts.id) as unique_sources_count,
+        COUNT(ta.id) as total_actions,
+        COALESCE(SUM(CAST(ta.reward AS DECIMAL)), 0) as total_reward
+      FROM traffic_sources ts
+      LEFT JOIN traffic_actions ta ON ts.id = ta.traffic_source_id
+      LEFT JOIN traffic_orders tor ON ta.traffic_order_id = tor.id
+      LEFT JOIN users u ON tor.creator_id = u.id
+      WHERE (ts.managed_by_id = $1 OR u.id = $1)
+    `;
+
+    if (sourceId) {
+      query += ' AND ts.id = $2';
+    }
+
+    return query;
+  }
+
+  /**
+   * Build base query for traffic target statistics
+   */
+  private buildTrafficTargetQuery(userId: string, targetId?: string): string {
+    let query = `
+      SELECT
+        COUNT(DISTINCT CASE WHEN tt.is_active = true THEN tt.id END) as active_targets_count,
+        COUNT(tor.id) as total_orders_count,
+        COALESCE(SUM(CAST(tor.spent_amount AS DECIMAL)), 0) as total_earned
+      FROM traffic_targets tt
+      LEFT JOIN traffic_orders tor ON tt.id = tor.traffic_target_id
+      LEFT JOIN users u ON tor.creator_id = u.id
+      WHERE (tt.managed_by_id = $1 OR u.id = $1)
+    `;
+
+    if (targetId) {
+      query += ' AND tt.id = $2';
+    }
+
+    return query;
   }
 
   /**

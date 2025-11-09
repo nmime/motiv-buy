@@ -58,8 +58,8 @@ export class NotificationSenderService {
           };
         }
 
-      // eslint-disable-next-line no-param-reassign
-      notification.template = template;
+        // eslint-disable-next-line no-param-reassign
+        notification.template = template;
       }
 
       const content = buildNotificationFromTemplate(notification.template, {

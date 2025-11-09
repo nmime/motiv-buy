@@ -29,7 +29,7 @@ export class SecurityService {
    * 2. Record login attempts in auth service
    * 3. Query login_history table with proper filtering and pagination
    */
-  async getLoginHistory(userId: string, limit = 50): Promise<LoginHistoryResponseDto[]> {
+  async getLoginHistory(userId: string, _limit = 50): Promise<LoginHistoryResponseDto[]> {
     const em = this.em.fork();
 
     // ⚠️ WARNING: Returning mock data - not actual login history!
