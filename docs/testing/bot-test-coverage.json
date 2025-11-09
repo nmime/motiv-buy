@@ -162,9 +162,7 @@
     "Descriptive Naming",
     "Fast Execution"
   ],
-  "componentsT
-
-ested": [
+  "componentsTested": [
     {
       "component": "BotService",
       "file": "apps/bot/src/service/bot.service.ts",
