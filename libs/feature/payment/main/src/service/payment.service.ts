@@ -568,28 +568,28 @@ export class PaymentService {
     try {
       this.logger.log(`Processing webhook: ${updateDto.updateType}`, logContext);
 
-      // Route to appropriate handler based on webhook type
-      switch (updateDto.updateType) {
-        case 'invoice_paid':
-          return await this.handleInvoicePaid(updateDto, logContext);
+      // Route to appropriate handler based on webhook type using Map-based lookup
+      type WebhookHandler = (
+        updateDto: WebhookUpdateDto,
+        logContext: Record<string, unknown>,
+      ) => Promise<AsyncResult<PaymentTransactionEntity, Error>>;
 
-        case 'invoice_expired':
-          return await this.handleInvoiceExpired(updateDto, logContext);
+      const webhookHandlers: Record<string, WebhookHandler> = {
+        invoice_paid: this.handleInvoicePaid.bind(this),
+        invoice_expired: this.handleInvoiceExpired.bind(this),
+        invoice_cancelled: this.handleInvoiceCancelled.bind(this),
+        transfer_completed: this.handleTransferCompleted.bind(this),
+        transfer_failed: this.handleTransferFailed.bind(this),
+      };
 
-        case 'invoice_cancelled':
-          return await this.handleInvoiceCancelled(updateDto, logContext);
+      const handler = webhookHandlers[updateDto.updateType];
+      if (!handler) {
+        this.logger.warn(`Unsupported webhook type: ${updateDto.updateType}`, logContext);
 
-        case 'transfer_completed':
-          return await this.handleTransferCompleted(updateDto, logContext);
-
-        case 'transfer_failed':
-          return await this.handleTransferFailed(updateDto, logContext);
-
-        default:
-          this.logger.warn(`Unsupported webhook type: ${updateDto.updateType}`, logContext);
-
-          return Err(new Error(`Unsupported webhook type: ${updateDto.updateType}`));
+        return Err(new Error(`Unsupported webhook type: ${updateDto.updateType}`));
       }
+
+      return await handler(updateDto, logContext);
     } catch (error) {
       this.logger.error('Error processing webhook', { ...logContext, error: toError(error).message });
 

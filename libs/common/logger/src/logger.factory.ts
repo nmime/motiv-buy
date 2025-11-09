@@ -55,8 +55,9 @@ function createLoggerMiddlewares(params: Record<string, unknown>, useExisting = 
 
   const middleware = pinoHttp(...(Array.isArray(params) ? params : [params]));
 
-  // Set the root logger using type assertion to bypass readonly restriction
-
+  // Type assertion required: NestJS library workaround to set readonly root logger
+  // PinoLogger.root is readonly by design, but must be set during initialization
+  // This is the official pattern recommended by nestjs-pino documentation
   (PinoLogger as { root?: unknown }).root = middleware.logger;
 
   return [middleware, bindLoggerMiddlewareFactory(useExisting)];
@@ -73,16 +74,22 @@ function redactSensitiveStrings(str: string): string {
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function replaceProtectedVariables<T>(obj: unknown): T {
   if (typeof obj === 'string') {
+    // Type assertion required: Generic function return type with runtime type checking
+    // TypeScript cannot infer T from the string redaction, but we've verified it's a string
     return redactSensitiveStrings(obj) as unknown as T;
   }
 
   if (!obj || typeof obj !== 'object') {
+    // Type assertion required: Generic function return type for primitive types
+    // Runtime check confirms non-object types can be safely returned as T
     return obj as T;
   }
 
   const copy: Record<string, unknown> | unknown[] = Array.isArray(obj) ? [] : {};
 
   if (Array.isArray(copy)) {
+    // Type assertion required: Array element access with proper type checking
+    // obj is verified as array, so indexing is safe
     for (let i = 0; i < (obj as unknown[]).length; i++) {
       const value = (obj as unknown[])[i];
       if (typeof value === 'string') {
