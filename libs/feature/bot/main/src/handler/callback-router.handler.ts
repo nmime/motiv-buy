@@ -19,7 +19,7 @@ import {
   TrafficOrderStatus,
   ModerationEntityType,
 } from '@app/database';
-import { decimal, add, subtract, sum, toDisplayString } from '@app/common-shared';
+import { decimal, add, subtract, sum, multiply, divide, toDisplayString } from '@app/common-shared';
 import { MenuActionHandler } from './menu-action.handler';
 import { ProfileActionHandler } from './profile-action.handler';
 import { BalanceActionHandler } from './balance-action.handler';
@@ -775,24 +775,17 @@ export class CallbackRouterHandler {
       return;
     }
 
-    // Route to specific stat views
+    // Route to specific stat views using Map pattern
+    const statsHandlers: Record<string, (ctx: BotContext) => Promise<void>> = {
+      overview: (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx),
+      activity: (ctx) => this.statisticsHandler.handleDetailedStatistics(ctx),
+      earnings: (ctx) => this.statisticsHandler.handleEarningsStatistics(ctx),
+      performance: (ctx) => this.statisticsHandler.handleTrafficStatistics(ctx),
+    };
+
     const [statType] = _params;
-    switch (statType) {
-      case 'overview':
-        await this.statisticsHandler.handleStatisticsOverview(ctx);
-        break;
-      case 'activity':
-        await this.statisticsHandler.handleDetailedStatistics(ctx);
-        break;
-      case 'earnings':
-        await this.statisticsHandler.handleEarningsStatistics(ctx);
-        break;
-      case 'performance':
-        await this.statisticsHandler.handleTrafficStatistics(ctx);
-        break;
-      default:
-        await this.statisticsHandler.handleStatisticsOverview(ctx);
-    }
+    const handler = statsHandlers[statType] || statsHandlers.overview;
+    await handler(ctx);
   }
 
   private async handleProfileSecurityMenu(ctx: BotContext, _params: string[]): Promise<void> {
@@ -1430,7 +1423,8 @@ export class CallbackRouterHandler {
         const totalActions = orders.reduce((sum, o) => sum + o.currentCount, 0);
         const targetActions = orders.reduce((sum, o) => sum + o.targetCount, 0);
 
-        const completionRate = targetActions > 0 ? ((totalActions / targetActions) * 100).toFixed(1) : '0.0';
+        const completionRate =
+          targetActions > 0 ? toDisplayString(multiply(divide(totalActions, targetActions), 100), 1) : '0.0';
 
         let text = '<b>📊 Order Statistics</b>\n\n';
         text += '<b>Overview:</b>\n';
