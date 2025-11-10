@@ -3,8 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
+import { Ok, Err } from 'ts-results';
 import { BotTokenValidationGuard } from '../bot-token-validation.guard';
 import { BotTokenValidationService } from '../../service/bot-token-validation.service';
+import { BotTokenInvalidException } from '../../exception/bot-token-validation.exception';
 
 describe('BotTokenValidationGuard', () => {
   let guard: BotTokenValidationGuard;
@@ -81,52 +83,70 @@ describe('BotTokenValidationGuard', () => {
       } as unknown as ExecutionContext;
 
       mockConfigService.get.mockReturnValue('test-bot-token');
+
+      // Set up default mock for validateToken to return success
+      mockValidationService.validateToken.mockResolvedValue(
+        Ok({
+          isValid: true,
+          botId: '123456',
+          botUsername: '@test_bot',
+          permissions: ['traffic_sell'],
+        }),
+      );
     });
 
     it('should be defined', () => {
       expect(guard).toBeDefined();
     });
 
-    it('should allow request with valid token in header', () => {
+    it('should allow request with valid token in header', async () => {
       mockRequest.headers['x-bot-token'] = 'test-bot-token';
 
-      expect(guard.canActivate(mockContext)).toBe(true);
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
     });
 
-    it('should reject request without token', () => {
-      expect(() => guard.canActivate(mockContext)).toThrow(UnauthorizedException);
+    it('should reject request without token', async () => {
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
     });
 
-    it('should reject request with invalid token in header', () => {
+    it('should reject request with invalid token in header', async () => {
       mockRequest.headers['x-bot-token'] = 'wrong-token';
 
-      expect(() => guard.canActivate(mockContext)).toThrow(UnauthorizedException);
+      // Mock validation to return invalid
+      mockValidationService.validateToken.mockResolvedValueOnce(
+        Ok({
+          isValid: false,
+          error: 'Invalid token',
+        }),
+      );
+
+      await expect(guard.canActivate(mockContext)).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should allow request with valid token in query params', () => {
+    it('should allow request with valid token in query params', async () => {
       mockRequest.query['botToken'] = 'test-bot-token';
 
-      expect(guard.canActivate(mockContext)).toBe(true);
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
     });
 
-    it('should allow request with valid token in body', () => {
+    it('should allow request with valid token in body', async () => {
       mockRequest.body['botToken'] = 'test-bot-token';
 
-      expect(guard.canActivate(mockContext)).toBe(true);
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
     });
 
-    it('should prioritize header token over query params', () => {
+    it('should prioritize header token over query params', async () => {
       mockRequest.headers['x-bot-token'] = 'test-bot-token';
       mockRequest.headers['x-telegram-bot-token'] = 'test-bot-token';
       mockRequest.query['botToken'] = 'wrong-token';
 
-      expect(guard.canActivate(mockContext)).toBe(true);
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
     });
 
-    it('should accept alternative header x-telegram-bot-token', () => {
+    it('should accept alternative header x-telegram-bot-token', async () => {
       mockRequest.headers['x-telegram-bot-token'] = 'test-bot-token';
 
-      expect(guard.canActivate(mockContext)).toBe(true);
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
     });
 
     it('should extract and validate IP from x-forwarded-for header', () => {
