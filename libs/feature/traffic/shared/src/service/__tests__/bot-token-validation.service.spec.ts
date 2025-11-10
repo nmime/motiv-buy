@@ -3,10 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RedisClient } from '@app/common-redis';
 import { BotTokenValidationService } from '../bot-token-validation.service';
 import { BotTokenValidationDto } from '../../dto';
-import {
-  BotTokenInvalidException,
-  BotTokenRateLimitException,
-} from '../../exception/bot-token-validation.exception';
+import { BotTokenInvalidException, BotTokenRateLimitException } from '../../exception/bot-token-validation.exception';
 
 describe('BotTokenValidationService', () => {
   let service: BotTokenValidationService;

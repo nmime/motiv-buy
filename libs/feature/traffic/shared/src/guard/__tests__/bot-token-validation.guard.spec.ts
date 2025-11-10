@@ -10,6 +10,7 @@ describe('BotTokenValidationGuard', () => {
   let mockConfigService: {
     get: jest.Mock;
   };
+
   let mockValidationService: jest.Mocked<BotTokenValidationService>;
 
   beforeEach(async () => {
@@ -20,6 +21,7 @@ describe('BotTokenValidationGuard', () => {
     mockValidationService = {
       validateToken: jest.fn(),
       validateTokenDirect: jest.fn(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({

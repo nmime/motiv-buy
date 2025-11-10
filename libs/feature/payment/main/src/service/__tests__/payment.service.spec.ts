@@ -11,7 +11,6 @@ import { Err, Ok } from '@app/common-shared';
 import {
   CreateInvoiceDto,
   CreateTransferDto,
-  Cryptocurrency,
   PaymentInvoice,
   PaymentProvider,
   PaymentStatus,

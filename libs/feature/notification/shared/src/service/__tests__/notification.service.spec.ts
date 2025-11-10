@@ -78,6 +78,7 @@ describe('NotificationService', () => {
         const entities = Array.isArray(entity) ? entity : [entity];
         entities.forEach((e) => {
           if (!e.id) {
+            // eslint-disable-next-line no-param-reassign, sonarjs/pseudo-random
             (e as any).id = `notif-${Math.random().toString(36).substring(7)}`;
           }
         });

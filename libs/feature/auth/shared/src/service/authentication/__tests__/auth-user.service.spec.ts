@@ -650,6 +650,7 @@ describe('AuthUserService', () => {
         ...mockTelegramAuthParams,
         telegramId: '',
       };
+
       const newUser = createMockUser({ telegramId: '' });
 
       mockEntityManager.transactional.mockImplementation(async (callback) => {

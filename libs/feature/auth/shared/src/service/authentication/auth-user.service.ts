@@ -63,11 +63,18 @@ export class AuthUserService {
     const em = this.usersRepository.getEntityManager();
 
     return await em.transactional(async (entityManager: EntityManager) => {
-      const sourceParams = telegramAuthParams.sourceParams
-        ? telegramAuthParams.sourceParams
-        : telegramAuthParams.userSource
-          ? this.getSourceParamsService.parseRequest(telegramAuthParams.userSource)
-          : undefined;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let sourceParams: any;
+
+      const { sourceParams: directSourceParams, userSource } = telegramAuthParams;
+
+      if (directSourceParams) {
+        sourceParams = directSourceParams;
+      } else if (userSource) {
+        sourceParams = this.getSourceParamsService.parseRequest(userSource);
+      } else {
+        sourceParams = undefined;
+      }
 
       let userRefLink: UserRefLink | undefined;
 
