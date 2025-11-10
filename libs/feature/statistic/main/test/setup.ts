@@ -8,6 +8,10 @@ process.env['DB_USER'] = 'test_user';
 // eslint-disable-next-line sonarjs/no-hardcoded-passwords
 process.env['DB_PASSWORD'] = 'test_password';
 
+// Auth environment variables
+process.env['JWT_SECRET'] = 'test-jwt-secret-key-for-testing';
+process.env['BOT_TOKEN'] = 'test-bot-token-123456';
+
 // Global test setup
 beforeAll(() => {
   // Setup code before all tests

@@ -7,3 +7,7 @@ process.env['DB_USER'] = 'test_user';
 process.env['DB_PASSWORD'] = 'test_password';
 process.env['REDIS_MODE'] = 'standalone';
 process.env['REDIS_HOSTS'] = 'localhost:6379';
+
+// Auth environment variables
+process.env['JWT_SECRET'] = 'test-jwt-secret-key-for-testing';
+process.env['BOT_TOKEN'] = 'test-bot-token-123456';
