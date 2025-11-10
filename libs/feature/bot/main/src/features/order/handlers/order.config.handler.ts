@@ -212,7 +212,7 @@ export class OrderConfigHandler {
    */
   private async handleGenderSelection(ctx: BotContext): Promise<void> {
     try {
-      const match = ctx.callbackQuery?.data?.match(/^order:gender:(.+):(.+)$/);
+      const match = ctx.callbackQuery?.data?.match(/^order:gender:([^:]+):([^:]+)$/);
       const gender = match?.[1];
       const orderId = match?.[2];
 
