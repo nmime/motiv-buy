@@ -2,6 +2,7 @@ import {
   all,
   andThen,
   any,
+  AsyncResult,
   DomainError,
   Err,
   fromNullable,
