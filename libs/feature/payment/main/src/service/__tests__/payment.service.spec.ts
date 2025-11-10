@@ -7,7 +7,7 @@ import { getRepositoryToken } from '@mikro-orm/nestjs';
 import { PaymentService } from '../payment.service';
 import { PaymentProviderFactory } from '../payment-provider.factory';
 import { ProviderRoutingService } from '../provider-routing.service';
-import { PaymentTransactionEntity, CurrencyCode, UserBalanceRepository } from '@app/database';
+import { PaymentTransactionEntity, Cryptocurrency, CurrencyCode, UserBalanceRepository } from '@app/database';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
 import { Err, Ok } from '@app/common-shared';
 import { I18nService } from 'nestjs-i18n';
@@ -51,7 +51,8 @@ describe('PaymentService', () => {
   const testInvoiceId = '12345';
   const testTransferId = '67890';
   const testAmount = '100.50';
-  const testCurrency = CurrencyCode.Usdt;
+  const testCurrency = Cryptocurrency.Usdt;
+  // Note: DTOs use CurrencyCode, so cast when needed: testCurrency as unknown as CurrencyCode
 
   /**
    * Create mock transaction entity
@@ -63,7 +64,7 @@ describe('PaymentService', () => {
     provider: PaymentProvider.CryptoBot,
     providerTransactionId: testInvoiceId,
     amount: testAmount,
-    currency: testCurrency,
+    currency: testCurrency as unknown as CurrencyCode,
     status: PaymentStatus.Pending,
     payUrl: 'https://pay.cryptopay.com/test',
     description: 'Test payment',
@@ -82,7 +83,7 @@ describe('PaymentService', () => {
   const createMockInvoice = (overrides: Partial<PaymentInvoice> = {}): PaymentInvoice => ({
     invoiceId: testInvoiceId,
     amount: testAmount,
-    currency: testCurrency,
+    currency: testCurrency as unknown as CurrencyCode,
     payUrl: 'https://pay.cryptopay.com/test',
     expiresAt: new Date('2025-12-31T23:59:59Z'),
     description: 'Test payment',
@@ -95,7 +96,7 @@ describe('PaymentService', () => {
   const createMockTransfer = (overrides: Partial<PaymentTransfer> = {}): PaymentTransfer => ({
     transferId: testTransferId,
     amount: testAmount,
-    currency: testCurrency,
+    currency: testCurrency as unknown as CurrencyCode,
     status: PaymentStatus.Processing,
     completedAt: undefined,
     fee: '0.50',
@@ -251,7 +252,7 @@ describe('PaymentService', () => {
       expect(mockProvider.createInvoice).toHaveBeenCalledWith({
         userId: testUserId,
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
         description: createInvoiceDto.description,
         expiresIn: createInvoiceDto.expiresIn,
       });
@@ -303,7 +304,7 @@ describe('PaymentService', () => {
     it('should create invoice with minimal parameters', async () => {
       const minimalDto: CreateInvoiceDto = {
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
       };
 
       const mockInvoice = createMockInvoice({ description: undefined });
@@ -317,7 +318,7 @@ describe('PaymentService', () => {
       expect(mockProvider.createInvoice).toHaveBeenCalledWith(
         expect.objectContaining({
           amount: testAmount,
-          currency: testCurrency,
+          currency: testCurrency as unknown as CurrencyCode,
           description: undefined,
         }),
       );
@@ -347,7 +348,7 @@ describe('PaymentService', () => {
     const createTransferDto: CreateTransferDto = {
       userId: testUserId,
       amount: '50.00',
-      currency: testCurrency,
+      currency: testCurrency as unknown as CurrencyCode,
       comment: 'Test withdrawal',
     };
 
@@ -627,7 +628,7 @@ describe('PaymentService', () => {
         status: 'paid',
         data: {
           amount: testAmount,
-          currency: testCurrency,
+          currency: testCurrency as unknown as CurrencyCode,
         },
       },
     };
@@ -758,7 +759,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: '1.00',
@@ -817,7 +818,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: null,
@@ -845,7 +846,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: null,
@@ -873,7 +874,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: '0.50',
@@ -905,7 +906,7 @@ describe('PaymentService', () => {
       const mockProviderTransfer = {
         transferId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
         status: PaymentStatus.Completed,
         completedAt: new Date(),
         fee: '1.00',
@@ -949,7 +950,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
         status: PaymentStatus.Pending, // Same status
         paidAt: undefined,
         fee: null,
@@ -1023,7 +1024,7 @@ describe('PaymentService', () => {
     it('should handle network timeout errors', async () => {
       const createInvoiceDto: CreateInvoiceDto = {
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
       };
 
       mockProvider.createInvoice.mockResolvedValue(Err(new Error('ETIMEDOUT')));
@@ -1102,7 +1103,7 @@ describe('PaymentService', () => {
       const largeAmount = '999999999.99999999';
       const createInvoiceDto: CreateInvoiceDto = {
         amount: largeAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
       };
 
       const mockInvoice = createMockInvoice({ amount: largeAmount });
@@ -1122,7 +1123,7 @@ describe('PaymentService', () => {
       const smallAmount = '0.00000001';
       const createInvoiceDto: CreateInvoiceDto = {
         amount: smallAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
       };
 
       const mockInvoice = createMockInvoice({ amount: smallAmount });
@@ -1141,7 +1142,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: null, // No fee
@@ -1168,7 +1169,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency,
+        currency: testCurrency as unknown as CurrencyCode,
         status: PaymentStatus.Expired,
         paidAt: undefined,
         fee: null,

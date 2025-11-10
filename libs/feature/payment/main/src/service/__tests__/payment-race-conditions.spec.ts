@@ -5,9 +5,9 @@ import { PaymentService } from '../payment.service';
 import { PaymentProviderFactory } from '../payment-provider.factory';
 import { ProviderRoutingService } from '../provider-routing.service';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
-import { CurrencyCode, PaymentStatus, UserBalanceRepository } from '@app/database';
+import { PaymentStatus, UserBalanceRepository, Cryptocurrency, CurrencyCode } from '@app/database';
 import { Err, Ok } from '@app/common-shared';
-import { CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
+import { CreateTransferDto } from '@app/feature-payment-shared';
 import { I18nService } from 'nestjs-i18n';
 
 /**
@@ -105,7 +105,7 @@ describe('PaymentService - Race Condition Tests', () => {
       // Mock balance entity with pessimistic locking
       const mockBalanceEntity = {
         userId,
-        currencyType: CurrencyCode.Rub,
+        currency: Cryptocurrency.Rub,
         balance: initialBalance,
       };
 
@@ -315,7 +315,7 @@ describe('PaymentService - Race Condition Tests', () => {
         Ok({
           transferId: 'transfer-4',
           amount: '25.00',
-          currency: Cryptocurrency.Usdt,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
           status: PaymentStatus.Completed,
         } as any),
       );
@@ -468,7 +468,7 @@ describe('PaymentService - Race Condition Tests', () => {
         Ok({
           transferId: 'transfer-5',
           amount: exactBalance,
-          currency: Cryptocurrency.Usdt,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
           status: PaymentStatus.Completed,
         } as any),
       );
@@ -493,7 +493,7 @@ describe('PaymentService - Race Condition Tests', () => {
       expect(result.ok).toBe(true);
       expect(mockBalanceRepository.createOrUpdateBalance).toHaveBeenCalledWith(
         userId,
-        CurrencyCode.Rub,
+        Cryptocurrency.Rub,
         '0.00', // Balance should be exactly zero
       );
     });
@@ -516,7 +516,7 @@ describe('PaymentService - Race Condition Tests', () => {
         Ok({
           transferId: 'transfer-6',
           amount: smallWithdrawal,
-          currency: Cryptocurrency.Usdt,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
           status: PaymentStatus.Completed,
         } as any),
       );
@@ -558,7 +558,7 @@ describe('PaymentService - Race Condition Tests', () => {
         Ok({
           transferId: 'transfer-7',
           amount: '50.00',
-          currency: Cryptocurrency.Usdt,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
           status: PaymentStatus.Completed,
         } as any),
       );
