@@ -6,13 +6,15 @@ import { EntityManager } from '@mikro-orm/core';
 import { AuthUserService } from '../auth-user.service';
 import { AuthCreateUserService } from '../auth-create-user.service';
 import { AuthUserVisitService } from '../auth-user-visit.service';
-import { getGeoByIp, GetSourceParamsService, GetUserRefLinkService, SourceRegisterService } from '../../source';
-import { UserEntity, UserLastAuthRepository, UserRepository, UserSourceVisitEntity } from '@app/database';
-import { TelegramAuthParams, UserRefLink } from '../../type';
+import { getGeoByIp, GetSourceParamsService, GetUserRefLinkService, SourceRegisterService } from '../../../source';
+import { UserEntity, UserLastAuthRepository, UserRepository, UserSourceVisitEntity, UserRefLinkType } from '@app/database';
+import { TelegramAuthParams, UserRefLink } from '../../../type';
+import { Language } from '@app/common-shared';
+import { LinkType } from '../../../source/const/link-type.enum';
 
 // Mock the getGeoByIp utility
-jest.mock('../../source', () => ({
-  ...jest.requireActual('../../source'),
+jest.mock('../../../source', () => ({
+  ...jest.requireActual('../../../source'),
   getGeoByIp: jest.fn().mockReturnValue({
     country: { name: 'United States', code: 'US' },
     city: 'New York',
@@ -33,7 +35,7 @@ describe('AuthUserService', () => {
   let mockEntityManager: jest.Mocked<EntityManager>;
   let loggerSpy: jest.SpyInstance;
 
-  const mockTelegramAuthParams: TelegramAuthParams = {
+  const mockTelegramAuthParams: any = {
     telegramId: '123456789',
     firstName: 'John',
     lastName: 'Doe',
@@ -42,7 +44,7 @@ describe('AuthUserService', () => {
     ip: '203.0.113.1', // Use documentation IP address instead of private range
     userSource: 'telegram',
     sourceParams: {
-      linkType: 'referral',
+      linkType: LinkType.Referral,
       linkCode: 'ABC123',
       refCode: 'REF456',
     },
@@ -54,20 +56,39 @@ describe('AuthUserService', () => {
     firstName: 'John',
     lastName: 'Doe',
     username: 'johndoe',
-    email: 'john@example.com',
     languageCode: 'en',
     isActive: true,
     createdAt: new Date('2023-01-01T00:00:00Z'),
     updatedAt: new Date('2023-01-01T00:00:00Z'),
     ...overrides,
+  } as UserEntity);
+
+  const createMockUserRefLink = (): any => ({
+    id: 'ref-link-123',
+    type: UserRefLinkType.User,
+    userId: 'ref-user-123',
+    refCode: 'REF456',
+    refCodeUniqueKey: 'REF456',
+    defaultUniqueKey: 'default',
+    refPercentLevel1: '10',
+    refPercentLevel2: '1',
+    refPercentLevel3: '0',
+    isDefault: false,
+    isCustom: false,
+    isDeleted: false,
+    createdAt: new Date('2023-01-01T00:00:00Z'),
+    updatedAt: new Date('2023-01-01T00:00:00Z'),
   });
 
-  const createMockUserRefLink = (): UserRefLink => ({
-    userId: 'ref-user-123',
-    linkType: 'referral',
-    linkCode: 'ABC123',
-    refCode: 'REF456',
-    isActive: true,
+  const createMockUserLastAuth = (): any => ({
+    id: 'last-auth-123',
+    ip: '203.0.113.1',
+    country: 'United States',
+    city: 'New York',
+    continent: 'North America',
+    createdAt: new Date('2023-01-01T00:00:00Z'),
+    updatedAt: new Date('2023-01-01T00:00:00Z'),
+    user: { id: 'user-123' },
   });
 
   beforeEach(async () => {
@@ -164,7 +185,7 @@ describe('AuthUserService', () => {
       mockGetUserRefLinkService.resolveUserRefLink.mockResolvedValue(createMockUserRefLink());
       mockUserRepository.findOne.mockResolvedValue(existingUser);
       mockUserVisitService.registerVisit.mockResolvedValue(mockVisit);
-      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(createMockUserLastAuth());
 
       const result = await service.findOrCreateByWebAuth(mockTelegramAuthParams, {
         trackUserVisit: true,
@@ -248,7 +269,7 @@ describe('AuthUserService', () => {
 
       mockGetSourceParamsService.parseRequest.mockReturnValue(mockTelegramAuthParams.sourceParams);
       mockUserRepository.findOne.mockResolvedValue(existingUser);
-      mockEntityManager.nativeUpdate.mockResolvedValue(undefined);
+      mockEntityManager.nativeUpdate.mockResolvedValue(1);
 
       const result = await service.findOrCreateByBot(mockTelegramAuthParams, {
         trackUserVisit: true, // This should be overridden to false
@@ -269,7 +290,7 @@ describe('AuthUserService', () => {
       });
 
       mockUserRepository.findOne.mockResolvedValue(existingUser);
-      mockEntityManager.nativeUpdate.mockResolvedValue(undefined);
+      mockEntityManager.nativeUpdate.mockResolvedValue(1);
 
       await service.findOrCreateByBot(updatedParams);
 
@@ -303,7 +324,7 @@ describe('AuthUserService', () => {
         firstName: 'OldFirst',
         lastName: 'OldLast',
         username: 'oldusername',
-        languageCode: null,
+        languageCode: undefined,
       });
 
       const updatedParams = {
@@ -319,8 +340,8 @@ describe('AuthUserService', () => {
       });
 
       mockUserRepository.findOne.mockResolvedValue(existingUser);
-      mockCreateUserService.determineLanguage.mockReturnValue('es');
-      mockEntityManager.nativeUpdate.mockResolvedValue(undefined);
+      mockCreateUserService.determineLanguage.mockReturnValue(Language.Spanish);
+      mockEntityManager.nativeUpdate.mockResolvedValue(1);
 
       await service.findOrCreateByBot(updatedParams);
 
@@ -353,7 +374,7 @@ describe('AuthUserService', () => {
 
     it('should handle null values in update params', async () => {
       const existingUser = createMockUser();
-      const paramsWithNulls = {
+      const paramsWithNulls: any = {
         ...mockTelegramAuthParams,
         firstName: null,
         lastName: undefined,
@@ -388,7 +409,7 @@ describe('AuthUserService', () => {
       });
 
       mockUserRepository.findOne.mockResolvedValue(existingUser);
-      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(createMockUserLastAuth());
 
       await service.findOrCreateByWebAuth(mockTelegramAuthParams, {
         trackUserLastAuth: true,
@@ -419,7 +440,7 @@ describe('AuthUserService', () => {
       });
 
       mockUserRepository.findOne.mockResolvedValue(existingUser);
-      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(createMockUserLastAuth());
 
       await service.findOrCreateByWebAuth(mockTelegramAuthParams, {
         trackUserLastAuth: true,
@@ -462,7 +483,7 @@ describe('AuthUserService', () => {
 
       mockUserRepository.findOne.mockResolvedValue(existingUser);
       mockUserVisitService.registerVisit.mockResolvedValue(mockVisit);
-      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(createMockUserLastAuth());
 
       await service.findOrCreateByWebAuth(mockTelegramAuthParams, {
         trackUserVisit: true,
@@ -490,7 +511,7 @@ describe('AuthUserService', () => {
       });
 
       mockUserRepository.findOne.mockResolvedValue(existingUser);
-      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(undefined);
+      mockUserLastAuthRepository.upsertUserLastAuth.mockResolvedValue(createMockUserLastAuth());
 
       await service.findOrCreateByWebAuth(paramsWithoutIp, {
         trackUserLastAuth: true,
@@ -556,13 +577,13 @@ describe('AuthUserService', () => {
   describe('Source Parameter Handling', () => {
     it('should prefer sourceParams over userSource parsing', async () => {
       const existingUser = createMockUser();
-      const directSourceParams = {
+      const directSourceParams: any = {
         linkType: 'direct',
         linkCode: 'DIRECT123',
         refCode: 'DIRECTREF',
       };
 
-      const paramsWithBoth = {
+      const paramsWithBoth: any = {
         ...mockTelegramAuthParams,
         sourceParams: directSourceParams,
         userSource: 'different-source-string',
@@ -584,11 +605,11 @@ describe('AuthUserService', () => {
     it('should handle incomplete source parameters', async () => {
       const existingUser = createMockUser();
       const incompleteParams = {
-        linkType: 'referral',
+        linkType: LinkType.Referral,
         // Missing linkCode and refCode
       };
 
-      const paramsWithIncomplete = {
+      const paramsWithIncomplete: any = {
         ...mockTelegramAuthParams,
         sourceParams: incompleteParams,
       };
@@ -749,7 +770,7 @@ describe('AuthUserService', () => {
         return await callback(mockEntityManager);
       });
 
-      mockUserRepository.findOne.mockImplementation(async (criteria) => {
+      mockUserRepository.findOne.mockImplementation(async (criteria: any) => {
         const index = parseInt(criteria.telegramId.replace('user', ''));
 
         return users[index] || null;
