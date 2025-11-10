@@ -398,7 +398,7 @@ describe('BotService', () => {
     it('should handle service with no logger', async () => {
       // Remove logger temporarily
       const originalLogger = service['logger'];
-      service['logger'] = undefined as unknown as Logger;
+      (service as any)['logger'] = undefined as unknown as Logger;
 
       mockBotMainService.start.mockResolvedValue(undefined);
 
@@ -406,7 +406,7 @@ describe('BotService', () => {
       await expect(service.start()).rejects.toThrow();
 
       // Restore logger
-      service['logger'] = originalLogger;
+      (service as any)['logger'] = originalLogger;
     });
 
     it('should handle service with no BotMainService', async () => {
