@@ -2,10 +2,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager, LockMode } from '@mikro-orm/core';
 import { PaymentService } from '../payment.service';
+import { PaymentProviderFactory } from '../payment-provider.factory';
+import { ProviderRoutingService } from '../provider-routing.service';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
 import { CurrencyCode, PaymentStatus, UserBalanceRepository } from '@app/database';
 import { Err, Ok } from '@app/common-shared';
 import { CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
+import { I18nService } from 'nestjs-i18n';
 
 /**
  * Race Condition Test Suite for Payment Service
@@ -22,6 +25,9 @@ describe('PaymentService - Race Condition Tests', () => {
   let mockProvider: jest.Mocked<CryptoBotProvider>;
   let mockBalanceRepository: jest.Mocked<UserBalanceRepository>;
   let mockTransactionRepository: any;
+  let mockProviderFactory: jest.Mocked<PaymentProviderFactory>;
+  let mockRoutingService: jest.Mocked<ProviderRoutingService>;
+  let mockI18nService: jest.Mocked<I18nService>;
 
   beforeEach(async () => {
     // Create mock EntityManager
@@ -51,12 +57,30 @@ describe('PaymentService - Race Condition Tests', () => {
       findOne: jest.fn(),
     };
 
+    // Create mock PaymentProviderFactory
+    mockProviderFactory = {
+      getProvider: jest.fn().mockReturnValue(mockProvider),
+    } as any;
+
+    // Create mock ProviderRoutingService
+    mockRoutingService = {
+      routeInvoice: jest.fn(),
+      routeTransfer: jest.fn(),
+    } as any;
+
+    // Create mock I18nService
+    mockI18nService = {
+      t: jest.fn((key: string) => key),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentService,
         { provide: EntityManager, useValue: mockEm },
-        { provide: CryptoBotProvider, useValue: mockProvider },
+        { provide: PaymentProviderFactory, useValue: mockProviderFactory },
+        { provide: ProviderRoutingService, useValue: mockRoutingService },
         { provide: UserBalanceRepository, useValue: mockBalanceRepository },
+        { provide: I18nService, useValue: mockI18nService },
         { provide: 'PaymentTransactionEntityRepository', useValue: mockTransactionRepository },
       ],
     }).compile();

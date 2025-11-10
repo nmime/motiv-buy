@@ -5,9 +5,12 @@ import { Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { getRepositoryToken } from '@mikro-orm/nestjs';
 import { PaymentService } from '../payment.service';
+import { PaymentProviderFactory } from '../payment-provider.factory';
+import { ProviderRoutingService } from '../provider-routing.service';
 import { PaymentTransactionEntity, CurrencyCode, Cryptocurrency, UserBalanceRepository } from '@app/database';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
 import { Err, Ok } from '@app/common-shared';
+import { I18nService } from 'nestjs-i18n';
 import {
   CreateInvoiceDto,
   CreateTransferDto,
@@ -38,6 +41,9 @@ describe('PaymentService', () => {
   let mockProvider: jest.Mocked<CryptoBotProvider>;
   let mockUserBalanceRepository: jest.Mocked<UserBalanceRepository>;
   let mockEntityManager: jest.Mocked<EntityManager>;
+  let mockProviderFactory: jest.Mocked<PaymentProviderFactory>;
+  let mockRoutingService: jest.Mocked<ProviderRoutingService>;
+  let mockI18nService: jest.Mocked<I18nService>;
 
   // Test data constants
   const testUserId = 'user-123';
@@ -45,7 +51,7 @@ describe('PaymentService', () => {
   const testInvoiceId = '12345';
   const testTransferId = '67890';
   const testAmount = '100.50';
-  const testCurrency = Cryptocurrency.Usdt;
+  const testCurrency = CurrencyCode.Usdt;
 
   /**
    * Create mock transaction entity
@@ -136,6 +142,22 @@ describe('PaymentService', () => {
       createOrUpdateBalance: jest.fn(),
     } as any;
 
+    // Create mock PaymentProviderFactory
+    mockProviderFactory = {
+      getProvider: jest.fn().mockReturnValue(mockProvider),
+    } as any;
+
+    // Create mock ProviderRoutingService
+    mockRoutingService = {
+      routeInvoice: jest.fn(),
+      routeTransfer: jest.fn(),
+    } as any;
+
+    // Create mock I18nService
+    mockI18nService = {
+      t: jest.fn((key: string) => key),
+    } as any;
+
     module = await Test.createTestingModule({
       providers: [
         PaymentService,
@@ -144,8 +166,12 @@ describe('PaymentService', () => {
           useValue: mockTransactionRepository,
         },
         {
-          provide: CryptoBotProvider,
-          useValue: mockProvider,
+          provide: PaymentProviderFactory,
+          useValue: mockProviderFactory,
+        },
+        {
+          provide: ProviderRoutingService,
+          useValue: mockRoutingService,
         },
         {
           provide: UserBalanceRepository,
@@ -154,6 +180,10 @@ describe('PaymentService', () => {
         {
           provide: EntityManager,
           useValue: mockEntityManager,
+        },
+        {
+          provide: I18nService,
+          useValue: mockI18nService,
         },
       ],
     }).compile();
