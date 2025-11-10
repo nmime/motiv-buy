@@ -13,5 +13,6 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   coverageReporters: ['html', 'text', 'lcov'],
-  transformIgnorePatterns: ['node_modules/(?!(eta|uuid)/)'],
+  // Handle ESM modules in pnpm's nested structure (.pnpm/eta@.../node_modules/eta)
+  transformIgnorePatterns: ['node_modules/(?!(.pnpm|eta|uuid)/)'],
 };

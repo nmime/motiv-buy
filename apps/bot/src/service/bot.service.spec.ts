@@ -229,9 +229,9 @@ describe('BotService', () => {
 
   describe('Error Handling', () => {
     it('should handle unknown errors during start', async () => {
-      mockBotMainService.start.mockRejectedValue('Unknown error');
+      mockBotMainService.start.mockRejectedValue(new Error('Unknown error'));
 
-      await expect(service.start()).rejects.toThrow();
+      await expect(service.start()).rejects.toThrow('Unknown error');
     });
 
     it('should handle unknown errors during stop', async () => {
