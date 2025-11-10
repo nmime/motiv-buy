@@ -4,6 +4,6 @@ export default {
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   coverageDirectory: '../../../../coverage/libs/feature/notification/shared',
   moduleNameMapper: {
-    '^eta$': '<rootDir>/../../../../node_modules/eta/dist/eta.cjs',
+    '^eta$': '<rootDir>/../../../../node_modules/eta/dist/index.js',
   },
 };

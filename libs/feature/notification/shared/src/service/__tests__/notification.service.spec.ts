@@ -74,12 +74,18 @@ describe('NotificationService', () => {
     // Create mocks
     mockEntityManager = {
       persistAndFlush: jest.fn().mockImplementation(async (entity: NotificationEntity | NotificationEntity[]) => {
-        // Simulate database behavior by setting id on entities
+        // Simulate database behavior by setting id and timestamps on entities
         const entities = Array.isArray(entity) ? entity : [entity];
         entities.forEach((e) => {
           if (!e.id) {
             // eslint-disable-next-line no-param-reassign, sonarjs/pseudo-random
-            (e as any).id = `notif-${Math.random().toString(36).substring(7)}`;
+            const generatedId = `notif-${Math.random().toString(36).substring(7)}`;
+            const now = new Date();
+
+            // Use defineProperty to ensure properties are set correctly
+            Object.defineProperty(e, 'id', { value: generatedId, writable: true, configurable: true });
+            Object.defineProperty(e, 'createdAt', { value: now, writable: true, configurable: true });
+            Object.defineProperty(e, 'updatedAt', { value: now, writable: true, configurable: true });
           }
         });
       }),
