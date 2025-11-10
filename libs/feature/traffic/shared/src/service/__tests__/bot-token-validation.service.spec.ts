@@ -1,9 +1,12 @@
 import { unknownToError } from '@app/common-shared';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RedisClient } from '@app/common-redis';
-import { BadTokenException, RateLimitExceedException } from '@app/common-exception';
 import { BotTokenValidationService } from '../bot-token-validation.service';
 import { BotTokenValidationDto } from '../../dto';
+import {
+  BotTokenInvalidException,
+  BotTokenRateLimitException,
+} from '../../exception/bot-token-validation.exception';
 
 describe('BotTokenValidationService', () => {
   let service: BotTokenValidationService;
@@ -26,14 +29,14 @@ describe('BotTokenValidationService', () => {
       providers: [
         BotTokenValidationService,
         {
-          provide: 'REDIS_CLIENT',
+          provide: 'RedisInjectToken',
           useValue: mockRedis,
         },
       ],
     }).compile();
 
     service = module.get<BotTokenValidationService>(BotTokenValidationService);
-    mockRedisClient = module.get('REDIS_CLIENT');
+    mockRedisClient = module.get('RedisInjectToken');
   });
 
   afterEach(() => {
@@ -98,7 +101,7 @@ describe('BotTokenValidationService', () => {
       expect(result.err).toBe(true);
       if (result.err) {
         const error = result.val;
-        expect(error).toBeInstanceOf(BadTokenException);
+        expect(error).toBeInstanceOf(BotTokenInvalidException);
         expect(unknownToError(error)).toContain('Invalid token format');
       }
     });
@@ -115,7 +118,7 @@ describe('BotTokenValidationService', () => {
       expect(result.err).toBe(true);
       if (result.err) {
         const error = result.val;
-        expect(error).toBeInstanceOf(RateLimitExceedException);
+        expect(error).toBeInstanceOf(BotTokenRateLimitException);
         expect(unknownToError(error)).toContain('Rate limit exceeded');
       }
     });

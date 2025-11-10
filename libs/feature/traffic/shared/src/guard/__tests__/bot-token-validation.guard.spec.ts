@@ -3,17 +3,24 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BotTokenValidationGuard } from '../bot-token-validation.guard';
+import { BotTokenValidationService } from '../../service/bot-token-validation.service';
 
 describe('BotTokenValidationGuard', () => {
   let guard: BotTokenValidationGuard;
   let mockConfigService: {
     get: jest.Mock;
   };
+  let mockValidationService: jest.Mocked<BotTokenValidationService>;
 
   beforeEach(async () => {
     mockConfigService = {
       get: jest.fn(),
     };
+
+    mockValidationService = {
+      validateToken: jest.fn(),
+      validateTokenDirect: jest.fn(),
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -21,6 +28,10 @@ describe('BotTokenValidationGuard', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: BotTokenValidationService,
+          useValue: mockValidationService,
         },
       ],
     }).compile();
