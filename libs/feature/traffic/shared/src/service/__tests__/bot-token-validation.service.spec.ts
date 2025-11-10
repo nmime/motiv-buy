@@ -1,7 +1,7 @@
 import { unknownToError } from '@app/common-shared';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RedisClient } from '@app/common-redis';
-import { BadTokenException, RateLimitException } from '@app/common-exception';
+import { BadTokenException, RateLimitExceedException } from '@app/common-exception';
 import { BotTokenValidationService } from '../bot-token-validation.service';
 import { BotTokenValidationDto } from '../../dto';
 
@@ -115,7 +115,7 @@ describe('BotTokenValidationService', () => {
       expect(result.err).toBe(true);
       if (result.err) {
         const error = result.val;
-        expect(error).toBeInstanceOf(RateLimitException);
+        expect(error).toBeInstanceOf(RateLimitExceedException);
         expect(unknownToError(error)).toContain('Rate limit exceeded');
       }
     });

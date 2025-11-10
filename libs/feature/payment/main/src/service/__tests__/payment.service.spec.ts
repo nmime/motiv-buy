@@ -46,7 +46,7 @@ describe('PaymentService', () => {
   const testInvoiceId = '12345';
   const testTransferId = '67890';
   const testAmount = '100.50';
-  const testCurrency = Cryptocurrency.Usdt;
+  const testCurrency = CurrencyCode.Usdt;
 
   /**
    * Create mock transaction entity
@@ -62,7 +62,7 @@ describe('PaymentService', () => {
     status: PaymentStatus.Pending,
     payUrl: 'https://pay.cryptopay.com/test',
     description: 'Test payment',
-    fee: null,
+    fee: undefined,
     metadata: null,
     paidAt: null,
     expiresAt: new Date('2025-12-31T23:59:59Z'),
@@ -613,7 +613,7 @@ describe('PaymentService', () => {
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
       mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
-      mockUserBalanceRepository.createOrUpdateBalance.mockResolvedValue(undefined);
+      mockUserBalanceRepository.createOrUpdateBalance.mockResolvedValue(mockBalance);
       mockEntityManager.flush.mockResolvedValue(undefined);
 
       const result = await service.processWebhook(webhookUpdateDto);
@@ -791,7 +791,7 @@ describe('PaymentService', () => {
         currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
-        fee: null,
+        fee: undefined,
       };
 
       const mockBalance = createMockBalance('100.00');
@@ -819,7 +819,7 @@ describe('PaymentService', () => {
         currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
-        fee: null,
+        fee: undefined,
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -923,7 +923,7 @@ describe('PaymentService', () => {
         currency: testCurrency,
         status: PaymentStatus.Pending, // Same status
         paidAt: undefined,
-        fee: null,
+        fee: undefined,
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -1107,7 +1107,7 @@ describe('PaymentService', () => {
     });
 
     it('should handle missing or null fee values', async () => {
-      const mockTransaction = createMockTransaction({ fee: null });
+      const mockTransaction = createMockTransaction({ fee: undefined });
       const mockProviderTransaction = {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
@@ -1142,7 +1142,7 @@ describe('PaymentService', () => {
         currency: testCurrency,
         status: PaymentStatus.Expired,
         paidAt: undefined,
-        fee: null,
+        fee: undefined,
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);

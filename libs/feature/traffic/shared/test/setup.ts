@@ -8,6 +8,10 @@ process.env['DB_USER'] = 'test_user';
 // eslint-disable-next-line sonarjs/no-hardcoded-passwords
 process.env['DB_PASSWORD'] = 'test_password';
 
+// Set required Redis environment variables for tests
+process.env['REDIS_MODE'] = 'standalone';
+process.env['REDIS_HOSTS'] = 'localhost:6379';
+
 // Global test setup
 beforeAll(() => {
   // Setup code before all tests

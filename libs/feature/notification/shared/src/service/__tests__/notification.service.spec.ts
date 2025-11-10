@@ -73,7 +73,15 @@ describe('NotificationService', () => {
   beforeEach(async () => {
     // Create mocks
     mockEntityManager = {
-      persistAndFlush: jest.fn(),
+      persistAndFlush: jest.fn().mockImplementation(async (entity: NotificationEntity | NotificationEntity[]) => {
+        // Simulate database behavior by setting id on entities
+        const entities = Array.isArray(entity) ? entity : [entity];
+        entities.forEach((e) => {
+          if (!e.id) {
+            (e as any).id = `notif-${Math.random().toString(36).substring(7)}`;
+          }
+        });
+      }),
     } as any;
 
     mockNotificationRepository = {

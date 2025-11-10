@@ -319,6 +319,7 @@ describe('StatisticService', () => {
     it('should validate and return chart data with valid share token', async () => {
       const shareToken = `tra-${mockUserId}-${Date.now()}-abc123`;
       const query = {
+        type: StatisticType.TrafficSource,
         fromDate: '2024-01-01',
         endDate: '2024-01-31',
         interval: ChartInterval.Day,
@@ -335,6 +336,7 @@ describe('StatisticService', () => {
       const expiredTimestamp = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 days ago
       const expiredToken = `tra-${mockUserId}-${expiredTimestamp}-abc123`;
       const query = {
+        type: StatisticType.TrafficSource,
         fromDate: '2024-01-01',
         endDate: '2024-01-31',
       };
@@ -345,6 +347,7 @@ describe('StatisticService', () => {
     it('should throw error for invalid share token format', async () => {
       const invalidToken = 'invalid-token';
       const query = {
+        type: StatisticType.TrafficSource,
         fromDate: '2024-01-01',
         endDate: '2024-01-31',
       };

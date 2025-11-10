@@ -79,13 +79,13 @@ describe('BotTokenValidationGuard', () => {
     });
 
     it('should allow request with valid token in query params', () => {
-      mockRequest.query.botToken = 'test-bot-token';
+      mockRequest.query['botToken'] = 'test-bot-token';
 
       expect(guard.canActivate(mockContext)).toBe(true);
     });
 
     it('should allow request with valid token in body', () => {
-      mockRequest.body.botToken = 'test-bot-token';
+      mockRequest.body['botToken'] = 'test-bot-token';
 
       expect(guard.canActivate(mockContext)).toBe(true);
     });
@@ -93,7 +93,7 @@ describe('BotTokenValidationGuard', () => {
     it('should prioritize header token over query params', () => {
       mockRequest.headers['x-bot-token'] = 'test-bot-token';
       mockRequest.headers['x-telegram-bot-token'] = 'test-bot-token';
-      mockRequest.query.botToken = 'wrong-token';
+      mockRequest.query['botToken'] = 'wrong-token';
 
       expect(guard.canActivate(mockContext)).toBe(true);
     });

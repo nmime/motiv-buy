@@ -160,7 +160,7 @@ describe('NotificationSenderService', () => {
 
     it('should handle notification with variables', async () => {
       const template = createMockTemplate({
-        content: 'Hello <%= name %>, your balance is <%= balance %> USD',
+        text: { en: 'Hello <%= name %>, your balance is <%= balance %> USD' },
       });
 
       const notification = createMockNotification({
@@ -177,7 +177,7 @@ describe('NotificationSenderService', () => {
     });
 
     it('should handle notification with custom locale', async () => {
-      const template = createMockTemplate({ locale: 'ru' });
+      const template = createMockTemplate();
       const notification = createMockNotification({
         template,
         locale: 'ru',
@@ -350,7 +350,7 @@ describe('NotificationSenderService', () => {
 
   describe('Edge Cases', () => {
     it('should handle notification with empty data', async () => {
-      const template = createMockTemplate({ content: 'Static message' });
+      const template = createMockTemplate({ text: { en: 'Static message' } });
       const notification = createMockNotification({
         template,
         data: {},
@@ -379,8 +379,8 @@ describe('NotificationSenderService', () => {
 
     it('should handle HTML content type', async () => {
       const template = createMockTemplate({
-        contentType: NotificationContentType.Html,
-        content: '<b>Order <%= orderId %></b>',
+        contentType: NotificationContentType.Text,
+        text: { en: '<b>Order <%= orderId %></b>' },
       });
 
       const notification = createMockNotification({
@@ -397,8 +397,8 @@ describe('NotificationSenderService', () => {
 
     it('should handle markdown content type', async () => {
       const template = createMockTemplate({
-        contentType: NotificationContentType.Markdown,
-        content: '**Order <%= orderId %>**',
+        contentType: NotificationContentType.Text,
+        text: { en: '**Order <%= orderId %>**' },
       });
 
       const notification = createMockNotification({

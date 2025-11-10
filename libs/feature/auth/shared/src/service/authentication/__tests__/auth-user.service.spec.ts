@@ -635,6 +635,11 @@ describe('AuthUserService', () => {
   describe('Error Scenarios', () => {
     it('should handle database connection failures', async () => {
       const dbError = new Error('Database connection lost');
+
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      });
+
       mockUserRepository.findOne.mockRejectedValue(dbError);
 
       await expect(service.findOrCreateByWebAuth(mockTelegramAuthParams)).rejects.toThrow('Database connection lost');
@@ -645,12 +650,15 @@ describe('AuthUserService', () => {
         ...mockTelegramAuthParams,
         telegramId: '',
       };
+      const newUser = createMockUser({ telegramId: '' });
 
       mockEntityManager.transactional.mockImplementation(async (callback) => {
         return await callback(mockEntityManager);
       });
 
       mockUserRepository.findOne.mockResolvedValue(null);
+      mockCreateUserService.createUser.mockResolvedValue(newUser);
+      mockCreateUserService.determineLanguage.mockReturnValue(Language.English);
 
       // Service should handle empty telegramId appropriately
       await expect(service.findOrCreateByWebAuth(invalidParams)).resolves.toBeDefined();
