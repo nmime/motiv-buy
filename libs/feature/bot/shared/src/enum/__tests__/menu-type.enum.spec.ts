@@ -60,7 +60,7 @@ describe('MenuType Enum', () => {
     });
 
     it('should be usable in switch statements', () => {
-      const testMenu = MenuType.Profile;
+      const testMenu = MenuType.Profile as MenuType;
       let result = '';
 
       switch (testMenu) {
@@ -97,7 +97,7 @@ describe('MenuType Enum', () => {
     it('should be comparable with string values', () => {
       expect(MenuType.Main === 'main').toBe(true);
       expect(MenuType.Profile === 'profile').toBe(true);
-      expect(MenuType.Settings !== 'main').toBe(true);
+      expect(String(MenuType.Settings) !== 'main').toBe(true);
     });
   });
 
@@ -215,7 +215,7 @@ describe('MenuType Enum', () => {
 
       // Perform many enum operations
       for (let i = 0; i < 10000; i++) {
-        const menu = MenuType.Profile;
+        const menu: MenuType = MenuType.Profile;
         menu === MenuType.Main; // Check if main
         Object.values(MenuType); // Get values
         Object.values(MenuType).includes(menu); // Check includes
