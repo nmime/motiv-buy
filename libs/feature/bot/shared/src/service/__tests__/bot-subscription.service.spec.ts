@@ -382,7 +382,7 @@ describe('BotSubscriptionService', () => {
 
       const result = await service.getChatInfo(mockBotToken, -1009876543210);
 
-      expect(result.type).toBe(ChatType.SUPERGROUP);
+      expect(result.type).toBe(ChatType.Supergroup);
       expect(result.isForum).toBe(true);
     });
 

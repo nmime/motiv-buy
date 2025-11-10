@@ -216,7 +216,6 @@ describe('MenuType Enum', () => {
       // Perform many enum operations
       for (let i = 0; i < 10000; i++) {
         const menu: MenuType = MenuType.Profile;
-        menu === MenuType.Main; // Check if main
         Object.values(MenuType); // Get values
         Object.values(MenuType).includes(menu); // Check includes
       }

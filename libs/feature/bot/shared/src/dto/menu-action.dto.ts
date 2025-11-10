@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 import { MenuActionType } from '../type/callback-data.interface';
 
 /**
@@ -76,6 +76,7 @@ export class MenuActionResponseDto {
     description: 'Whether action was successful',
     example: true,
   })
+  @IsBoolean()
   success!: boolean;
 
   @ApiProperty({
