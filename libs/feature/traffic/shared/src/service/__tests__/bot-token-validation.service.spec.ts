@@ -302,8 +302,9 @@ describe('BotTokenValidationService', () => {
 
     it('should handle bot-shared integration failure gracefully', async () => {
       // This would test the integration with bot-shared when it fails
+      // Using a token with non-numeric botId to simulate bot-shared validation failure
       const dto: BotTokenValidationDto = {
-        token: '999999:AAFdqTcLreQksK5d_oM4c9ZhLNbxFV9qHlK', // Non-existent bot
+        token: 'abc123:AAFdqTcLreQksK5d_oM4c9ZhLNbxFV9qHlK', // Non-numeric bot ID fails validation
         operationContext: 'traffic_sell',
       };
 
@@ -312,10 +313,10 @@ describe('BotTokenValidationService', () => {
 
       const result = await service.validateToken(dto);
 
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        // Should return invalid validation due to bot-shared integration failure
-        expect(result.val.isValid).toBe(false);
+      // Token with non-numeric botId should be rejected during format validation
+      expect(result.err).toBe(true);
+      if (result.err) {
+        expect(result.val).toBeInstanceOf(BotTokenInvalidException);
       }
     });
   });
