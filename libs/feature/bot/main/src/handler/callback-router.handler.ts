@@ -347,7 +347,7 @@ export class CallbackRouterHandler {
   /**
    * Route menu actions
    */
-  private async routeMenuAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+  private async routeMenuAction(ctx: BotContext, action: string, _params: string[]): Promise<void> {
     const handler = this.menuActionHandlers.get(action);
 
     if (handler) {
@@ -363,7 +363,7 @@ export class CallbackRouterHandler {
   /**
    * Route profile actions
    */
-  private async routeProfileAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+  private async routeProfileAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     const handler = this.profileActionHandlers.get(action || 'view');
 
     if (handler) {
@@ -376,7 +376,7 @@ export class CallbackRouterHandler {
   /**
    * Route balance actions
    */
-  private async routeBalanceAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+  private async routeBalanceAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     const handler = this.balanceActionHandlers.get(action || 'view');
 
     if (handler) {
@@ -389,7 +389,7 @@ export class CallbackRouterHandler {
   /**
    * Route statistics actions
    */
-  private async routeStatisticsAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+  private async routeStatisticsAction(ctx: BotContext, action: string, _params: string[]): Promise<void> {
     const handler = this.statsActionHandlers.get(action || 'overview');
 
     if (handler) {
@@ -402,7 +402,7 @@ export class CallbackRouterHandler {
   /**
    * Route order actions
    */
-  private async routeOrderAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+  private async routeOrderAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     const handler = this.orderActionHandlers.get(action || 'list');
 
     if (handler) {
@@ -415,7 +415,7 @@ export class CallbackRouterHandler {
   /**
    * Route settings actions
    */
-  private async routeSettingsAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+  private async routeSettingsAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     const handler = this.settingsActionHandlers.get(action);
 
     if (handler) {
@@ -430,7 +430,7 @@ export class CallbackRouterHandler {
    * Format: moderation:approve:traffic_source:requestId
    * or: moderation:decline:traffic_order:requestId
    */
-  private async routeModerationAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+  private async routeModerationAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     // Verify admin access (action should be 'approve' or 'decline')
     // params[0] should be entity type, params[1] should be requestId
     if (params.length < 2) {
@@ -439,7 +439,7 @@ export class CallbackRouterHandler {
       return;
     }
 
-    const [entityTypeStr, requestId] = _params;
+    const [entityTypeStr, requestId] = params;
 
     // Map string to ModerationEntityType
     const entityTypeMap: Record<string, ModerationEntityType> = {

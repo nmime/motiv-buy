@@ -17,7 +17,7 @@ import {
   createLocationKeyboard,
   createTopicsKeyboard,
 } from '../order.keyboards';
-import { OrderDisplayLocation } from '../order.types';
+import { OrderDisplayLocation, UserGender } from '../order.types';
 
 @Injectable()
 export class OrderConfigHandler {
@@ -209,6 +209,7 @@ export class OrderConfigHandler {
 
   /**
    * Handle gender selection
+   */
   private async handleGenderSelection(ctx: BotContext): Promise<void> {
     try {
       const match = ctx.callbackQuery?.data?.match(/^order:gender:(.+):(.+)$/);
