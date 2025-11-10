@@ -5,7 +5,7 @@ import { Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { getRepositoryToken } from '@mikro-orm/nestjs';
 import { PaymentService } from '../payment.service';
-import { PaymentTransactionEntity, CurrencyCode, UserBalanceRepository } from '@app/database';
+import { PaymentTransactionEntity, CurrencyCode, Cryptocurrency, UserBalanceRepository } from '@app/database';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
 import { Err, Ok } from '@app/common-shared';
 import {
@@ -45,7 +45,7 @@ describe('PaymentService', () => {
   const testInvoiceId = '12345';
   const testTransferId = '67890';
   const testAmount = '100.50';
-  const testCurrency = CurrencyCode.Usdt;
+  const testCurrency = Cryptocurrency.Usdt;
 
   /**
    * Create mock transaction entity
@@ -61,7 +61,7 @@ describe('PaymentService', () => {
     status: PaymentStatus.Pending,
     payUrl: 'https://pay.cryptopay.com/test',
     description: 'Test payment',
-    fee: undefined,
+    fee: null,
     metadata: null,
     paidAt: null,
     expiresAt: new Date('2025-12-31T23:59:59Z'),
@@ -790,7 +790,7 @@ describe('PaymentService', () => {
         currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
-        fee: undefined,
+        fee: null,
       };
 
       const mockBalance = createMockBalance('100.00');
@@ -818,7 +818,7 @@ describe('PaymentService', () => {
         currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
-        fee: undefined,
+        fee: null,
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -922,7 +922,7 @@ describe('PaymentService', () => {
         currency: testCurrency,
         status: PaymentStatus.Pending, // Same status
         paidAt: undefined,
-        fee: undefined,
+        fee: null,
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -1114,7 +1114,7 @@ describe('PaymentService', () => {
         currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
-        fee: undefined, // No fee
+        fee: null, // No fee
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
@@ -1141,7 +1141,7 @@ describe('PaymentService', () => {
         currency: testCurrency,
         status: PaymentStatus.Expired,
         paidAt: undefined,
-        fee: undefined,
+        fee: null,
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);

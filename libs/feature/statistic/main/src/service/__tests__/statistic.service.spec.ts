@@ -358,6 +358,7 @@ describe('StatisticService', () => {
     it('should validate date range for shared chart data', async () => {
       const shareToken = `tra-${mockUserId}-${Date.now()}-abc123`;
       const query = {
+        type: StatisticType.User,
         fromDate: '2024-12-31',
         endDate: '2024-01-01',
       };
