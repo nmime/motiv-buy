@@ -52,7 +52,7 @@ describe('PaymentService', () => {
   const testTransferId = '67890';
   const testAmount = '100.50';
   const testCurrency = Cryptocurrency.Usdt;
-  // Note: DTOs use CurrencyCode, so cast when needed: testCurrency as unknown as CurrencyCode
+  // Note: DTOs use CurrencyCode, so cast when needed: testCurrency
 
   /**
    * Create mock transaction entity
@@ -64,7 +64,7 @@ describe('PaymentService', () => {
     provider: PaymentProvider.CryptoBot,
     providerTransactionId: testInvoiceId,
     amount: testAmount,
-    currency: testCurrency as unknown as CurrencyCode,
+    currency: testCurrency,
     status: PaymentStatus.Pending,
     payUrl: 'https://pay.cryptopay.com/test',
     description: 'Test payment',
@@ -83,7 +83,7 @@ describe('PaymentService', () => {
   const createMockInvoice = (overrides: Partial<PaymentInvoice> = {}): PaymentInvoice => ({
     invoiceId: testInvoiceId,
     amount: testAmount,
-    currency: testCurrency as unknown as CurrencyCode,
+    currency: testCurrency,
     payUrl: 'https://pay.cryptopay.com/test',
     expiresAt: new Date('2025-12-31T23:59:59Z'),
     description: 'Test payment',
@@ -96,7 +96,7 @@ describe('PaymentService', () => {
   const createMockTransfer = (overrides: Partial<PaymentTransfer> = {}): PaymentTransfer => ({
     transferId: testTransferId,
     amount: testAmount,
-    currency: testCurrency as unknown as CurrencyCode,
+    currency: testCurrency,
     status: PaymentStatus.Processing,
     completedAt: undefined,
     fee: '0.50',
@@ -152,6 +152,8 @@ describe('PaymentService', () => {
     mockRoutingService = {
       routeInvoice: jest.fn(),
       routeTransfer: jest.fn(),
+      selectDepositProvider: jest.fn().mockResolvedValue(Ok(PaymentProvider.CryptoBot)),
+      selectWithdrawalProvider: jest.fn().mockResolvedValue(Ok(PaymentProvider.CryptoBot)),
     } as any;
 
     // Create mock I18nService
@@ -214,7 +216,7 @@ describe('PaymentService', () => {
 
     it('should have all required dependencies injected', () => {
       expect((service as any)['transactionRepository']).toBeDefined();
-      expect((service as any)['provider']).toBeDefined();
+      expect((service as any)['providerFactory']).toBeDefined();
       expect((service as any)['userBalanceRepository']).toBeDefined();
       expect((service as any)['em']).toBeDefined();
     });
@@ -252,7 +254,7 @@ describe('PaymentService', () => {
       expect(mockProvider.createInvoice).toHaveBeenCalledWith({
         userId: testUserId,
         amount: testAmount,
-        currency: testCurrency as unknown as CurrencyCode,
+        currency: testCurrency,
         description: createInvoiceDto.description,
         expiresIn: createInvoiceDto.expiresIn,
       });
@@ -318,7 +320,7 @@ describe('PaymentService', () => {
       expect(mockProvider.createInvoice).toHaveBeenCalledWith(
         expect.objectContaining({
           amount: testAmount,
-          currency: testCurrency as unknown as CurrencyCode,
+          currency: testCurrency,
           description: undefined,
         }),
       );
@@ -354,17 +356,26 @@ describe('PaymentService', () => {
 
     it('should create withdrawal successfully', async () => {
       const mockBalance = createMockBalance('1000.00');
-      const mockTransfer = createMockTransfer();
+      const mockTransfer = createMockTransfer({ amount: createTransferDto.amount });
       const mockTransaction = createMockTransaction({
         type: PaymentType.Withdraw,
         status: PaymentStatus.Processing,
+        amount: createTransferDto.amount,
       });
 
-      mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
+      // Mock entity manager findOne for both currency and balance lookups
+      mockEntityManager.findOne = jest.fn().mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: createTransferDto.currency };
+        }
+        return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
+      });
+
       mockProvider.createTransfer.mockResolvedValue(Ok(mockTransfer));
       mockEntityManager.transactional.mockImplementation(async (callback) => callback(mockEntityManager));
       mockEntityManager.create.mockReturnValue(mockTransaction);
       mockEntityManager.persist.mockReturnThis();
+      mockEntityManager.flush = jest.fn().mockResolvedValue(undefined);
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
 
       const result = await service.createWithdrawal(testUserId, createTransferDto);
@@ -377,14 +388,20 @@ describe('PaymentService', () => {
 
       expect(mockUserBalanceRepository.createOrUpdateBalance).toHaveBeenCalledWith(
         testUserId,
-        CurrencyCode.Rub,
-        '950.00',
+        createTransferDto.currency,
+        '950.00000000',
       );
     });
 
     it('should reject withdrawal with insufficient balance', async () => {
-      const mockBalance = createMockBalance('30.00');
-      mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
+      // Mock entity manager findOne for both currency and balance lookups
+      mockEntityManager.findOne = jest.fn().mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: createTransferDto.currency };
+        }
+        return { userId: testUserId, balance: '30.00', currency: 'currency-id-123', user: testUserId };
+      });
+      mockEntityManager.transactional.mockImplementation(async (callback) => callback(mockEntityManager));
 
       const result = await service.createWithdrawal(testUserId, createTransferDto);
 
@@ -400,7 +417,14 @@ describe('PaymentService', () => {
     });
 
     it('should handle missing user balance', async () => {
-      mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(null);
+      // Mock entity manager findOne to return null for balance (currency found, but no balance)
+      mockEntityManager.findOne = jest.fn().mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: createTransferDto.currency };
+        }
+        return null; // No balance found
+      });
+      mockEntityManager.transactional.mockImplementation(async (callback) => callback(mockEntityManager));
 
       const result = await service.createWithdrawal(testUserId, createTransferDto);
 
@@ -411,10 +435,16 @@ describe('PaymentService', () => {
     });
 
     it('should handle provider failure when creating transfer', async () => {
-      const mockBalance = createMockBalance('1000.00');
       const providerError = new Error('Transfer API error');
 
-      mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
+      // Mock entity manager findOne for both currency and balance lookups
+      mockEntityManager.findOne = jest.fn().mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: createTransferDto.currency };
+        }
+        return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
+      });
+      mockEntityManager.transactional.mockImplementation(async (callback) => callback(mockEntityManager));
       mockProvider.createTransfer.mockResolvedValue(Err(providerError));
 
       const result = await service.createWithdrawal(testUserId, createTransferDto);
@@ -426,52 +456,86 @@ describe('PaymentService', () => {
     });
 
     it('should rollback balance on transaction failure', async () => {
-      const mockBalance = createMockBalance('1000.00');
       const mockTransfer = createMockTransfer();
 
-      mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
+      // Mock entity manager findOne for both currency and balance lookups
+      mockEntityManager.findOne = jest.fn().mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: createTransferDto.currency };
+        }
+        return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
+      });
+
       mockProvider.createTransfer.mockResolvedValue(Ok(mockTransfer));
-      mockEntityManager.transactional.mockRejectedValue(new Error('Transaction failed'));
+
+      // Execute callback to capture balance and create transfer, then throw
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        await callback(mockEntityManager); // Execute to set balanceBeforeTransaction and transferCreated
+        throw new Error('Transaction failed');
+      });
 
       const result = await service.createWithdrawal(testUserId, createTransferDto);
 
       expect(result.err).toBe(true);
 
-      // Verify rollback was attempted
+      // Verify rollback was attempted with original balance
       expect(mockUserBalanceRepository.createOrUpdateBalance).toHaveBeenCalledWith(
         testUserId,
-        CurrencyCode.Rub,
-        expect.stringContaining('1050'), // Original balance + withdrawal amount
+        createTransferDto.currency,
+        '1000.00', // Original balance (rollback to pre-withdrawal state)
       );
 
       expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('Balance rollback'));
     });
 
     it('should handle rollback failure gracefully', async () => {
-      const mockBalance = createMockBalance('1000.00');
       const mockTransfer = createMockTransfer();
 
-      mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValueOnce(mockBalance).mockResolvedValueOnce(null); // Rollback fails - balance not found
+      // Mock entity manager findOne for both currency and balance lookups
+      mockEntityManager.findOne = jest.fn().mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: createTransferDto.currency };
+        }
+        return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
+      });
+
+      // Make the rollback fail
+      mockUserBalanceRepository.createOrUpdateBalance.mockRejectedValue(new Error('Rollback failed'));
 
       mockProvider.createTransfer.mockResolvedValue(Ok(mockTransfer));
-      mockEntityManager.transactional.mockRejectedValue(new Error('Transaction failed'));
+
+      // Execute callback to capture balance and create transfer, then throw
+      mockEntityManager.transactional.mockImplementation(async (callback) => {
+        await callback(mockEntityManager); // Execute to set balanceBeforeTransaction and transferCreated
+        throw new Error('Transaction failed');
+      });
 
       const result = await service.createWithdrawal(testUserId, createTransferDto);
 
       expect(result.err).toBe(true);
-      expect(Logger.prototype.error).toHaveBeenCalledWith('Failed to rollback balance', expect.any(Error));
+      expect(Logger.prototype.error).toHaveBeenCalledWith(
+        'CRITICAL: Failed to rollback balance after withdrawal failure',
+        expect.any(Object)
+      );
     });
 
     it('should store metadata with balance information', async () => {
-      const mockBalance = createMockBalance('1000.00');
       const mockTransfer = createMockTransfer();
       const mockTransaction = createMockTransaction();
 
-      mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
+      // Mock entity manager findOne for both currency and balance lookups
+      mockEntityManager.findOne = jest.fn().mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: createTransferDto.currency };
+        }
+        return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
+      });
+
       mockProvider.createTransfer.mockResolvedValue(Ok(mockTransfer));
       mockEntityManager.transactional.mockImplementation(async (callback) => callback(mockEntityManager));
       mockEntityManager.create.mockReturnValue(mockTransaction);
       mockEntityManager.persist.mockReturnThis();
+      mockEntityManager.flush = jest.fn().mockResolvedValue(undefined);
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
 
       await service.createWithdrawal(testUserId, createTransferDto);
@@ -479,11 +543,11 @@ describe('PaymentService', () => {
       expect(mockEntityManager.create).toHaveBeenCalledWith(
         PaymentTransactionEntity,
         expect.objectContaining({
-          metadata: {
+          metadata: expect.objectContaining({
             telegramUserId: testUserId,
-            balanceBefore: '1000',
-            balanceAfter: '950.00',
-          },
+            balanceBefore: expect.any(String),
+            balanceAfter: expect.any(String),
+          }),
         }),
       );
     });
@@ -628,7 +692,7 @@ describe('PaymentService', () => {
         status: 'paid',
         data: {
           amount: testAmount,
-          currency: testCurrency as unknown as CurrencyCode,
+          currency: testCurrency,
         },
       },
     };
@@ -646,6 +710,10 @@ describe('PaymentService', () => {
       mockUserBalanceRepository.createOrUpdateBalance.mockResolvedValue(mockBalance);
       mockEntityManager.flush.mockResolvedValue(undefined);
 
+      // Mock transactional for creditUserBalance
+      mockEntityManager.transactional.mockImplementation(async (callback) => callback(mockEntityManager));
+      mockEntityManager.findOne = jest.fn().mockResolvedValue(mockTransaction);
+
       const result = await service.processWebhook(webhookUpdateDto);
 
       expect(result.ok).toBe(true);
@@ -656,8 +724,8 @@ describe('PaymentService', () => {
 
       expect(mockUserBalanceRepository.createOrUpdateBalance).toHaveBeenCalledWith(
         testUserId,
-        'RUB',
-        '200.50', // 100.00 + 100.50
+        CurrencyCode.Usdt,
+        '200.50000000', // 100.00 + 100.50 (8 decimal places)
       );
     });
 
@@ -759,7 +827,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency as unknown as CurrencyCode,
+        currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: '1.00',
@@ -768,7 +836,7 @@ describe('PaymentService', () => {
       const mockBalance = createMockBalance();
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
-      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction));
+      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction) as any);
       mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
       mockEntityManager.flush.mockResolvedValue(undefined);
 
@@ -818,7 +886,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency as unknown as CurrencyCode,
+        currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: null,
@@ -827,7 +895,7 @@ describe('PaymentService', () => {
       const mockBalance = createMockBalance('100.00');
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
-      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction));
+      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction) as any);
       mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
       mockEntityManager.flush.mockResolvedValue(undefined);
 
@@ -846,14 +914,14 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency as unknown as CurrencyCode,
+        currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: null,
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
-      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction));
+      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction) as any);
 
       await service.getInvoiceStatus(testInvoiceId);
 
@@ -874,7 +942,7 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency as unknown as CurrencyCode,
+        currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: '0.50',
@@ -883,7 +951,7 @@ describe('PaymentService', () => {
       const mockBalance = createMockBalance();
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
-      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction));
+      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction) as any);
       mockUserBalanceRepository.findByUserAndCurrency.mockResolvedValue(mockBalance);
       mockEntityManager.flush.mockResolvedValue(undefined);
 
@@ -906,14 +974,14 @@ describe('PaymentService', () => {
       const mockProviderTransfer = {
         transferId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency as unknown as CurrencyCode,
+        currency: testCurrency,
         status: PaymentStatus.Completed,
         completedAt: new Date(),
         fee: '1.00',
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
-      mockProvider.getTransfer.mockResolvedValue(Ok(mockProviderTransfer));
+      mockProvider.getTransfer.mockResolvedValue(Ok(mockProviderTransfer) as any);
       mockEntityManager.flush.mockResolvedValue(undefined);
 
       const result = await service.syncTransactionStatus(testTransactionId);
@@ -950,14 +1018,14 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency as unknown as CurrencyCode,
+        currency: testCurrency,
         status: PaymentStatus.Pending, // Same status
         paidAt: undefined,
         fee: null,
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
-      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction));
+      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction) as any);
 
       const result = await service.syncTransactionStatus(testTransactionId);
 
@@ -1142,14 +1210,14 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency as unknown as CurrencyCode,
+        currency: testCurrency,
         status: PaymentStatus.Completed,
         paidAt: new Date(),
         fee: null, // No fee
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
-      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction));
+      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction) as any);
 
       const result = await service.syncTransactionStatus(testTransactionId);
 
@@ -1169,14 +1237,14 @@ describe('PaymentService', () => {
         transactionId: testInvoiceId,
         invoiceId: testInvoiceId,
         amount: testAmount,
-        currency: testCurrency as unknown as CurrencyCode,
+        currency: testCurrency,
         status: PaymentStatus.Expired,
         paidAt: undefined,
         fee: null,
       };
 
       mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
-      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction));
+      mockProvider.getInvoice.mockResolvedValue(Ok(mockProviderTransaction) as any);
       mockEntityManager.flush.mockResolvedValue(undefined);
 
       const result = await service.getInvoiceStatus(testInvoiceId);

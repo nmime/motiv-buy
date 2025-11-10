@@ -66,6 +66,7 @@ describe('PaymentService - Race Condition Tests', () => {
     mockRoutingService = {
       routeInvoice: jest.fn(),
       routeTransfer: jest.fn(),
+      selectWithdrawalProvider: jest.fn().mockResolvedValue(Ok('CRYPTO_BOT')),
     } as any;
 
     // Create mock I18nService
@@ -116,6 +117,12 @@ describe('PaymentService - Race Condition Tests', () => {
 
       // Mock findOne to simulate pessimistic locking behavior
       mockEm.findOne.mockImplementation(async (entity, criteria, options) => {
+        // Return currency entity when looking up currency
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+
+        // Handle UserBalanceEntity with pessimistic locking
         if (options?.lockMode === LockMode.PESSIMISTIC_WRITE) {
           balanceCheckCount++;
 
@@ -180,8 +187,8 @@ describe('PaymentService - Race Condition Tests', () => {
 
       // Verify pessimistic locking was used
       expect(mockEm.findOne).toHaveBeenCalledWith(
-        'UserBalanceEntity',
-        expect.objectContaining({ userId }),
+        expect.anything(), // UserBalanceEntity class
+        expect.objectContaining({ user: userId }),
         expect.objectContaining({ lockMode: LockMode.PESSIMISTIC_WRITE }),
       );
 
@@ -201,10 +208,15 @@ describe('PaymentService - Race Condition Tests', () => {
         return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: '50.00',
-      } as any);
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+        return {
+          userId,
+          balance: '50.00',
+        } as any;
+      });
 
       mockProvider.createTransfer.mockResolvedValue(
         Ok({
@@ -232,7 +244,7 @@ describe('PaymentService - Race Condition Tests', () => {
       await transactionalCallback(mockEm);
 
       expect(mockEm.findOne).toHaveBeenCalledWith(
-        'UserBalanceEntity',
+        expect.anything(), // UserBalanceEntity class
         expect.any(Object),
         expect.objectContaining({ lockMode: LockMode.PESSIMISTIC_WRITE }),
       );
@@ -252,14 +264,24 @@ describe('PaymentService - Race Condition Tests', () => {
       let capturedBalanceForRollback: string | null = null;
 
       mockEm.transactional.mockImplementation(async (callback) => {
-        // Simulate transaction failure after balance deduction
-        throw new Error('Database transaction failed');
+        // Execute callback - let it read balance and create entities
+        return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: originalBalance,
-      } as any);
+      // Make persist fail to simulate transaction failure after balance deduction
+      mockEm.persist.mockImplementation(() => {
+        throw new Error('Database persist failed');
+      });
+
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+        return {
+          userId,
+          balance: originalBalance,
+        } as any;
+      });
 
       mockProvider.createTransfer.mockResolvedValue(
         Ok({
@@ -302,10 +324,15 @@ describe('PaymentService - Race Condition Tests', () => {
       const balanceReadOrder: string[] = [];
 
       mockEm.transactional.mockImplementation(async (callback) => {
+        // Execute callback so balance can be read
+        await callback(mockEm);
         throw new Error('Simulated failure');
       });
 
-      mockEm.findOne.mockImplementation(async () => {
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
         balanceReadOrder.push('balance_read_in_transaction');
 
         return { userId, balance: balanceBeforeTransaction };
@@ -414,17 +441,31 @@ describe('PaymentService - Race Condition Tests', () => {
       let rollbackPerformed = false;
 
       mockEm.transactional.mockImplementation(async (callback) => {
-        // Provider failure happens inside transaction
-        throw new Error('Provider rejected transfer');
+        // Execute callback so provider failure can happen
+        return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: originalBalance,
-      } as any);
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+        return {userId,
+        balance: originalBalance,} as any;
+      });
 
-      // Provider failure
-      mockProvider.createTransfer.mockResolvedValue(Err(new Error('Transfer rejected by provider')));
+      // Provider succeeds, but persist fails after balance deduction
+      mockProvider.createTransfer.mockResolvedValue(
+        Ok({
+          transferId: 'transfer-6',
+          amount: withdrawalAmount,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+        }) as any,
+      );
+
+      // Make persist fail to simulate failure after balance deduction
+      mockEm.persist.mockImplementation(() => {
+        throw new Error('Database persist failed after balance deduction');
+      });
 
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
         if (balance === originalBalance) {
@@ -459,10 +500,13 @@ describe('PaymentService - Race Condition Tests', () => {
         return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: exactBalance,
-      } as any);
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+        return {userId,
+        balance: exactBalance,} as any;
+      });
 
       mockProvider.createTransfer.mockResolvedValue(
         Ok({
@@ -493,8 +537,8 @@ describe('PaymentService - Race Condition Tests', () => {
       expect(result.ok).toBe(true);
       expect(mockBalanceRepository.createOrUpdateBalance).toHaveBeenCalledWith(
         userId,
-        Cryptocurrency.Rub,
-        '0.00', // Balance should be exactly zero
+        Cryptocurrency.Usdt as unknown as CurrencyCode,
+        '0.00000000', // Balance should be exactly zero (8 decimal places)
       );
     });
 
@@ -507,10 +551,13 @@ describe('PaymentService - Race Condition Tests', () => {
         return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: smallBalance,
-      } as any);
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+        return {userId,
+        balance: smallBalance,} as any;
+      });
 
       mockProvider.createTransfer.mockResolvedValue(
         Ok({
@@ -549,10 +596,13 @@ describe('PaymentService - Race Condition Tests', () => {
         throw new Error('Transaction failed');
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: originalBalance,
-      } as any);
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+        return {userId,
+        balance: originalBalance,} as any;
+      });
 
       mockProvider.createTransfer.mockResolvedValue(
         Ok({

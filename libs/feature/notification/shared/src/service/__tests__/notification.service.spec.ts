@@ -73,30 +73,9 @@ describe('NotificationService', () => {
   beforeEach(async () => {
     // Create mocks
     mockEntityManager = {
-      persistAndFlush: jest.fn().mockImplementation(async (entity: NotificationEntity | NotificationEntity[]) => {
-        // Simulate database behavior by setting id and timestamps on entities
-        const entities = Array.isArray(entity) ? entity : [entity];
-        entities.forEach((e) => {
-          // Manually set properties that would be set by the database
-          // eslint-disable-next-line sonarjs/pseudo-random
-          const generatedId = `notif-${Math.random().toString(36).substring(7)}`;
-          const now = new Date();
-
-          // Try multiple approaches to set properties
-          try {
-            e.id = generatedId;
-            e.createdAt = now;
-            e.updatedAt = now;
-          } catch {
-            // If direct assignment fails, try Object.defineProperty
-            Object.defineProperties(e, {
-              id: { value: generatedId, writable: true, enumerable: true, configurable: true },
-              createdAt: { value: now, writable: true, enumerable: true, configurable: true },
-              updatedAt: { value: now, writable: true, enumerable: true, configurable: true },
-            });
-          }
-        });
-      }),
+      // Note: id, createdAt, updatedAt would be set by database in production
+      // We don't need to simulate that in unit tests as we're testing service logic, not database behavior
+      persistAndFlush: jest.fn().mockResolvedValue(undefined),
     } as any;
 
     mockNotificationRepository = {
