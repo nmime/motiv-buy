@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager, LockMode } from '@mikro-orm/core';
 import { PaymentService } from '../payment.service';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
-import { CurrencyType, PaymentStatus, UserBalanceRepository } from '@app/database';
+import { CurrencyCode, CurrencyType, PaymentStatus, UserBalanceRepository } from '@app/database';
 import { Err, Ok } from '@app/common-shared';
 import { CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
 
@@ -81,7 +81,7 @@ describe('PaymentService - Race Condition Tests', () => {
       // Mock balance entity with pessimistic locking
       const mockBalanceEntity = {
         userId,
-        currencyType: CurrencyType.Rub,
+        currencyType: CurrencyCode.Rub,
         balance: initialBalance,
       };
 
@@ -117,9 +117,9 @@ describe('PaymentService - Race Condition Tests', () => {
         Ok({
           transferId: 'transfer-1',
           amount: withdrawalAmount,
-          currency: Cryptocurrency.Usdt,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
           fee: '0.50',
-        }),
+        }) as any,
       );
 
       // Mock balance update
@@ -141,7 +141,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: withdrawalAmount,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       // Execute first withdrawal (should succeed)
@@ -180,14 +180,14 @@ describe('PaymentService - Race Condition Tests', () => {
       mockEm.findOne.mockResolvedValue({
         userId,
         balance: '50.00',
-      });
+      } as any);
 
       mockProvider.createTransfer.mockResolvedValue(
         Ok({
           transferId: 'transfer-2',
           amount: '30.00',
-          currency: Cryptocurrency.Usdt,
-        }),
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+        }) as any,
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockResolvedValue({} as any);
@@ -196,7 +196,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: '30.00',
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       await service.createWithdrawal(userId, withdrawalDto);
@@ -241,8 +241,8 @@ describe('PaymentService - Race Condition Tests', () => {
         Ok({
           transferId: 'transfer-3',
           amount: withdrawalAmount,
-          currency: Cryptocurrency.Usdt,
-        }),
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+        }) as any,
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
@@ -254,7 +254,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: withdrawalAmount,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);
@@ -300,7 +300,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: '25.00',
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       await service.createWithdrawal(userId, withdrawalDto);
@@ -408,7 +408,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: withdrawalAmount,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);
@@ -451,7 +451,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: exactBalance,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);
@@ -492,7 +492,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: smallWithdrawal,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);
@@ -525,7 +525,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: '50.00',
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);
