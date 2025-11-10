@@ -1,6 +1,7 @@
 # Development Guidelines & Code Standards
 
 ## Table of Contents
+
 1. [Project Overview](#project-overview)
 2. [Critical Rules](#critical-rules)
 3. [Module Architecture](#module-architecture)
@@ -15,11 +16,13 @@
 ## Project Overview
 
 NestJS monorepo application with:
+
 - **API Application** (`apps/api`) - REST API backend
 - **Bot Application** (`apps/bot`) - Telegram bot interface
 - **Shared Libraries** (`libs/`) - Common functionality used by both apps
 
 **Stack:**
+
 - TypeScript (strict mode)
 - NestJS framework
 - MikroORM with PostgreSQL
@@ -159,6 +162,7 @@ All strict flags MUST be enabled:
 ### Type Guards Over Assertions
 
 **❌ WRONG - Type Assertion:**
+
 ```typescript
 function processUser(data: unknown) {
   const user = data as User; // ❌ Unsafe!
@@ -167,6 +171,7 @@ function processUser(data: unknown) {
 ```
 
 **✅ CORRECT - Type Guard:**
+
 ```typescript
 function isUser(data: unknown): data is User {
   return (
@@ -190,13 +195,16 @@ function processUser(data: unknown) {
 ### Using `unknown` Instead of `any`
 
 **❌ WRONG:**
+
 ```typescript
-function handleError(error: any) { // ❌ any hides bugs
+function handleError(error: any) {
+  // ❌ any hides bugs
   console.log(error.message);
 }
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 function handleError(error: unknown) {
   if (error instanceof Error) {
@@ -216,8 +224,8 @@ function handleError(error: unknown) {
 JavaScript's native numbers use floating-point arithmetic with precision issues:
 
 ```javascript
-0.1 + 0.2 === 0.3  // false! (actually 0.30000000000000004)
-0.1 + 0.7 === 0.8  // false! (0.7999999999999999)
+0.1 + 0.2 === 0.3; // false! (actually 0.30000000000000004)
+0.1 + 0.7 === 0.8; // false! (0.7999999999999999)
 ```
 
 **Use Decimal.js for ALL financial calculations!**
@@ -228,22 +236,23 @@ Import from `@app/common-shared/util`:
 
 ```typescript
 import {
-  decimal,        // Create Decimal instance
-  add,            // Addition
-  subtract,       // Subtraction
-  multiply,       // Multiplication
-  divide,         // Division
-  sum,            // Sum array of values
-  percentage,     // Calculate percentage
-  toDbString,     // Format for database (string)
-  toDisplayString,// Format for UI display
-  toNumber,       // Convert to number (use only for display)
+  decimal, // Create Decimal instance
+  add, // Addition
+  subtract, // Subtraction
+  multiply, // Multiplication
+  divide, // Division
+  sum, // Sum array of values
+  percentage, // Calculate percentage
+  toDbString, // Format for database (string)
+  toDisplayString, // Format for UI display
+  toNumber, // Convert to number (use only for display)
 } from '@app/common-shared/util';
 ```
 
 ### Examples
 
 **❌ WRONG - Native Arithmetic:**
+
 ```typescript
 // Payment calculation
 const total = parseFloat(price) + parseFloat(tax);
@@ -258,6 +267,7 @@ const converted = amount * parseFloat(rate);
 ```
 
 **✅ CORRECT - Decimal.js:**
+
 ```typescript
 // Payment calculation
 const total = add(price, tax);
@@ -273,18 +283,18 @@ const converted = multiply(amount, rate);
 
 ### Migration Patterns
 
-| Native JavaScript | Decimal.js Utility |
-|-------------------|-------------------|
-| `parseFloat(x)` | `decimal(x)` |
-| `x + y` | `add(x, y)` |
-| `x - y` | `subtract(x, y)` |
-| `x * y` | `multiply(x, y)` |
-| `x / y` | `divide(x, y)` |
-| `Math.abs(x)` | `abs(x)` |
-| `array.reduce((s, v) => s + v, 0)` | `sum(array)` |
-| `(value / total) * 100` | `percentage(value, total)` |
-| `.toFixed(8)` (storage) | `toDbString(value, 8)` |
-| `.toFixed(2)` (display) | `toDisplayString(value, 2)` |
+| Native JavaScript                  | Decimal.js Utility          |
+| ---------------------------------- | --------------------------- |
+| `parseFloat(x)`                    | `decimal(x)`                |
+| `x + y`                            | `add(x, y)`                 |
+| `x - y`                            | `subtract(x, y)`            |
+| `x * y`                            | `multiply(x, y)`            |
+| `x / y`                            | `divide(x, y)`              |
+| `Math.abs(x)`                      | `abs(x)`                    |
+| `array.reduce((s, v) => s + v, 0)` | `sum(array)`                |
+| `(value / total) * 100`            | `percentage(value, total)`  |
+| `.toFixed(8)` (storage)            | `toDbString(value, 8)`      |
+| `.toFixed(2)` (display)            | `toDisplayString(value, 2)` |
 
 ### When to Use `toNumber()`
 
@@ -314,6 +324,7 @@ const result = balanceNum - pendingNum; // ❌ Lost precision!
 ### Use Maps Instead of Switch/If-Else-If
 
 **❌ AVOID - Switch/Case:**
+
 ```typescript
 function getStatusMessage(status: string): string {
   switch (status) {
@@ -332,6 +343,7 @@ function getStatusMessage(status: string): string {
 ```
 
 **❌ AVOID - If-Else-If Chain:**
+
 ```typescript
 function getStatusMessage(status: string): string {
   if (status === 'pending') {
@@ -348,6 +360,7 @@ function getStatusMessage(status: string): string {
 ```
 
 **✅ CORRECT - Object/Map Lookup:**
+
 ```typescript
 const STATUS_MESSAGES: Record<string, string> = {
   pending: 'Order is pending',
@@ -362,6 +375,7 @@ function getStatusMessage(status: string): string {
 ```
 
 **✅ CORRECT - Map with Functions:**
+
 ```typescript
 type StatusHandler = (order: Order) => Promise<void>;
 
@@ -382,6 +396,7 @@ async function handleStatus(status: OrderStatus, order: Order): Promise<void> {
 ```
 
 **Benefits:**
+
 - **Performance**: O(1) lookup vs O(n) comparisons
 - **Maintainability**: Add/remove cases without modifying function logic
 - **Readability**: Clear separation of data and behavior
@@ -657,7 +672,6 @@ await this.em.transactional(async (em) => {
 
 **Remember**: Code quality and type safety are non-negotiable. These standards exist to prevent bugs, ensure maintainability, and protect financial data integrity.
 
-
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
@@ -669,6 +683,5 @@ await this.em.transactional(async (em) => {
 - When working in individual projects, use the `nx_project_details` mcp tool to analyze and understand the specific project structure and dependencies
 - For questions around nx configuration, best practices or if you're unsure, use the `nx_docs` tool to get relevant, up-to-date docs. Always use this instead of assuming things about nx configuration
 - If the user needs help with an Nx configuration or project graph error, use the `nx_workspace` tool to get any errors
-
 
 <!-- nx configuration end-->

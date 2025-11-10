@@ -37,6 +37,7 @@ Total: 570+ keys (285 EN + 285 RU)
 Keys follow the pattern: `{feature}.{section}.{key}`
 
 Examples:
+
 - `common.error`
 - `common.errors.not_found`
 - `common.success.saved`
@@ -96,21 +97,25 @@ export class MyController {
 ## Key Features
 
 ### Feature Separation
+
 - Each feature has its own JSON file
 - Common strings shared across features in `common.json`
 - Easy to maintain and extend
 
 ### I18nLoader
+
 - Automatically loads all feature files
 - Merges them into a single namespace
 - Handles missing files gracefully
 
 ### Language Detection
+
 - Bot: Uses user's Telegram language
 - API: Uses Accept-Language header
 - Fallback to English
 
 ### Full Bilingual Support
+
 - English (en) - default
 - Russian (ru) - complete
 
@@ -124,7 +129,8 @@ export class MyController {
 
 ## Common Keys Available
 
-### Errors (common.errors.*)
+### Errors (common.errors.\*)
+
 - not_found
 - access_denied
 - invalid_input
@@ -136,14 +142,16 @@ export class MyController {
 - balance_invalid
 - And 20+ more...
 
-### Success (common.success.*)
+### Success (common.success.\*)
+
 - saved
 - updated
 - deleted
 - created
 - completed
 
-### Buttons (common.buttons.*)
+### Buttons (common.buttons.\*)
+
 - back, next, previous
 - confirm, cancel, close
 - save, delete, edit
@@ -173,4 +181,3 @@ export class MyController {
 - All keys are type-safe (when using generated types)
 - Missing keys fall back to the key name itself
 - HTML formatting supported in bot messages
-

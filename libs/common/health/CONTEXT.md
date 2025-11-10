@@ -91,7 +91,6 @@ Each microservice extends `BaseHealthController`:
 ### Basic Health Controller Extension
 
 ```typescript
-
 @Controller('health')
 export class ServiceHealthController extends BaseHealthController {
   constructor(
@@ -116,7 +115,6 @@ export class ServiceHealthController extends BaseHealthController {
 ### Custom Business Health Checks
 
 ```typescript
-
 @Controller('health')
 export class PaymentServiceHealthController extends BaseHealthController {
   constructor(
@@ -178,11 +176,9 @@ private async checkBlockchainRPC(): Promise<HealthIndicatorResult> {
 ### Shutdown Service Integration
 
 ```typescript
-
 @Injectable()
 export class AppService implements OnApplicationShutdown {
-  constructor(private readonly shutdownService: ShutdownService) {
-  }
+  constructor(private readonly shutdownService: ShutdownService) {}
 
   async onApplicationShutdown(signal?: string) {
     this.logger.log(`Received shutdown signal: ${signal}`);

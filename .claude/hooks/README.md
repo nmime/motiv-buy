@@ -31,6 +31,7 @@ These hooks execute at specific points in Claude Code's lifecycle, providing det
 **Trigger**: `PreToolUse` for `mcp__gemini__consult_gemini`
 
 **Features**:
+
 - Detects new Gemini consultation sessions (no session_id)
 - Automatically attaches two key files:
   - `docs/ai-context/project-structure.md` - Complete project structure and tech stack
@@ -41,7 +42,8 @@ These hooks execute at specific points in Claude Code's lifecycle, providing det
 - Fails gracefully if either file is missing
 - Handles partial availability (will attach whichever files exist)
 
-**Customization**: 
+**Customization**:
+
 - Copy `docs/MCP-ASSISTANT-RULES.md` template to your project root
 - Customize it with your project-specific standards, principles, and constraints
 - The hook will automatically include it in Gemini consultations
@@ -53,6 +55,7 @@ These hooks execute at specific points in Claude Code's lifecycle, providing det
 **Trigger**: `PreToolUse` for all MCP tools (`mcp__.*`)
 
 **Features**:
+
 - Pattern-based detection for API keys, passwords, and secrets
 - Scans code context, problem descriptions, and attached files
 - File content scanning with size limits
@@ -62,6 +65,7 @@ These hooks execute at specific points in Claude Code's lifecycle, providing det
 - Comprehensive logging of security events to `.claude/logs/`
 
 **Customization**: Edit `config/sensitive-patterns.json` to:
+
 - Add custom API key patterns
 - Modify credential detection rules
 - Update sensitive file patterns
@@ -74,6 +78,7 @@ These hooks execute at specific points in Claude Code's lifecycle, providing det
 **Trigger**: `PreToolUse` for `Task` tool
 
 **Features**:
+
 - Intercepts all Task tool calls before execution
 - Prepends references to three core documentation files:
   - `docs/CLAUDE.md` - Project overview, coding standards, AI instructions
@@ -85,6 +90,7 @@ These hooks execute at specific points in Claude Code's lifecycle, providing det
 - Eliminates need for manual context inclusion in Task prompts
 
 **Benefits**:
+
 - Every sub-agent starts with the same foundational knowledge
 - No manual context specification needed in each Task prompt
 - Token-efficient through @ references instead of content duplication
@@ -95,11 +101,13 @@ These hooks execute at specific points in Claude Code's lifecycle, providing det
 
 **Purpose**: Provides pleasant audio feedback when Claude Code needs your attention or completes tasks.
 
-**Triggers**: 
+**Triggers**:
+
 - `Notification` events (all notifications including input needed)
 - `Stop` events (main task completion)
 
 **Features**:
+
 - Cross-platform audio support (macOS, Linux, Windows)
 - Non-blocking audio playback (runs in background)
 - Multiple audio playback fallbacks
@@ -111,22 +119,26 @@ These hooks execute at specific points in Claude Code's lifecycle, providing det
 ## Installation
 
 1. **Copy the hooks to your project**:
+
    ```bash
    cp -r hooks your-project/.claude/
    ```
 
 2. **Configure hooks in your project**:
+
    ```bash
    cp hooks/setup/settings.json.template your-project/.claude/settings.json
    ```
+
    Then edit the WORKSPACE path in the settings file.
 
 3. **Test the hooks**:
+
    ```bash
    # Test notification
    .claude/hooks/notify.sh input
    .claude/hooks/notify.sh complete
-   
+
    # View logs
    tail -f .claude/logs/context-injection.log
    tail -f .claude/logs/security-scan.log
@@ -235,16 +247,19 @@ The hooks system complements MCP server integrations:
 ## Troubleshooting
 
 ### Hooks not executing
+
 - Check file permissions: `chmod +x *.sh`
 - Verify paths in settings.json
 - Check Claude Code logs for errors
 
 ### Security scanner too restrictive
+
 - Review patterns in `config/sensitive-patterns.json`
 - Add legitimate patterns to the whitelist
 - Check logs for what triggered the block
 
 ### No sound playing
+
 - Verify sound files exist in `sounds/` directory
 - Test audio playback: `.claude/hooks/notify.sh input`
 - Check system audio settings

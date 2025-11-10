@@ -156,7 +156,7 @@ export class TradingValidationService {
 ### Financial Amount Validation
 
 ```typescript
-import {registerDecorator, ValidationOptions} from 'class-validator';
+import { registerDecorator, ValidationOptions } from 'class-validator';
 
 export function IsValidAmount(validationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {
@@ -221,8 +221,8 @@ export function IsValidCurrency(validationOptions?: ValidationOptions) {
 ### Blockchain Address Validation
 
 ```typescript
-import {isAddress} from 'web3-utils';
-import {validate as validateBitcoinAddress} from 'bitcoin-address-validation';
+import { isAddress } from 'web3-utils';
+import { validate as validateBitcoinAddress } from 'bitcoin-address-validation';
 
 export function IsBlockchainAddress(validationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {
@@ -289,8 +289,8 @@ function validateTronAddress(address: string): boolean {
 ### Validation Pipeline
 
 ```typescript
-import {ValidationPipe} from '@nestjs/common';
-import {ValidationApiProblemException} from '@app/common-validation';
+import { ValidationPipe } from '@nestjs/common';
+import { ValidationApiProblemException } from '@app/common-validation';
 
 @Injectable()
 export class CustomValidationPipe extends ValidationPipe {
@@ -336,8 +336,7 @@ export class CustomValidationPipe extends ValidationPipe {
     },
   ],
 })
-export class ValidationModule {
-}
+export class ValidationModule {}
 ```
 
 ### Complex Object Validation
@@ -402,7 +401,7 @@ export class ComplexValidationService {
 ### Validation Exception Classes
 
 ```typescript
-import {ApiProblemException} from '@app/common-exception';
+import { ApiProblemException } from '@app/common-exception';
 
 export class ValidationApiProblemException extends ApiProblemException {
   constructor(problem: { title: string; detail: string; status: number; errors: ValidationError[] }) {

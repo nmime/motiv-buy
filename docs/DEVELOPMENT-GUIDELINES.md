@@ -3,6 +3,7 @@
 ## 📋 **1. CODE CONVENTIONS**
 
 ### **1.1 TypeScript Configuration**
+
 - **Strict Mode:** ALWAYS enabled (`strict: true`)
 - **Target:** ES2023 with CommonJS modules
 - **Decorators:** Enabled for NestJS (`emitDecoratorMetadata`, `experimentalDecorators`)
@@ -14,6 +15,7 @@
 ### **1.2 TypeScript Strict Rules**
 
 #### **FORBIDDEN: `any` Type**
+
 ```typescript
 // ❌ FORBIDDEN:
 function processData(data: any) {
@@ -39,6 +41,7 @@ function processData(data: unknown) {
 ```
 
 #### **FORBIDDEN: Type Assertions (unless critical)**
+
 ```typescript
 // ❌ AVOID:
 const user = response.data as User;
@@ -46,12 +49,7 @@ const element = document.getElementById('root') as HTMLElement;
 
 // ✅ CORRECT: Use type guards
 function isUser(data: unknown): data is User {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'id' in data &&
-    'name' in data
-  );
+  return typeof data === 'object' && data !== null && 'id' in data && 'name' in data;
 }
 
 const user = response.data;
@@ -67,10 +65,11 @@ if (element instanceof HTMLElement) {
 }
 
 // ✅ ACCEPTABLE: Type narrowing when safe
-const error = new Error('message') as CustomError;  // When extending Error
+const error = new Error('message') as CustomError; // When extending Error
 ```
 
 #### **Use `unknown` Instead of `any`**
+
 ```typescript
 // ✅ CORRECT: Handle unknown data
 function handleError(error: unknown): void {
@@ -88,13 +87,14 @@ function parseApiResponse(data: unknown): User {
   if (!isValidUserData(data)) {
     throw new ValidationException('Invalid user data');
   }
-  return data;  // TypeScript knows data is User now
+  return data; // TypeScript knows data is User now
 }
 ```
 
 ### **1.3 Naming Conventions**
 
 #### **Files:**
+
 ```
 ✅ CORRECT:
 - auth.controller.ts         (Controllers)
@@ -113,6 +113,7 @@ function parseApiResponse(data: unknown): User {
 ```
 
 #### **Classes & Types:**
+
 ```typescript
 ✅ CORRECT:
 class UserEntity {}          // PascalCase for classes
@@ -126,6 +127,7 @@ class user_entity {}         // Must be PascalCase
 ```
 
 #### **Variables & Functions:**
+
 ```typescript
 ✅ CORRECT:
 const userId = '123';                    // camelCase
@@ -139,6 +141,7 @@ const user_id = '123';                   // Not snake_case
 ```
 
 #### **Enum Members:**
+
 ```typescript
 ✅ CORRECT:
 enum UserStatus {
@@ -157,6 +160,7 @@ enum UserStatus {
 ### **1.4 Import/Export Patterns**
 
 #### **Import Order:**
+
 ```typescript
 // 1. External dependencies
 import { Injectable, Logger } from '@nestjs/common';
@@ -171,6 +175,7 @@ import { AuthService } from '../service';
 ```
 
 #### **Barrel Exports (index.ts):**
+
 ```typescript
 // libs/common/exception/src/index.ts
 export * from './abstract';
@@ -181,6 +186,7 @@ export * from './factory';
 ```
 
 **Benefits:** Clean imports across the codebase
+
 ```typescript
 // Instead of:
 import { BaseException } from '@app/common-exception/abstract/base.exception';
@@ -194,6 +200,7 @@ import { BaseException } from '@app/common-exception';
 #### **🚨 CRITICAL: Feature Module Import Rules**
 
 **ABSOLUTE RULES:**
+
 1. **ALL shared functionality MUST be created in `libs`** - because it will be used by both API app and bot app
 2. **`libs/feature/*/main`** - Domain-specific business logic and services used by THIS domain AND apps
 3. **`libs/feature/*/shared`** - Domain-related utilities/types/guards that OTHER domains can use
@@ -220,32 +227,33 @@ import { BaseException } from '@app/common-exception';
 ```typescript
 // ❌ FORBIDDEN: Lib importing another lib's main module
 // File: libs/feature/payment/main/src/service/payment.service.ts
-import { AuthService } from '@app/feature-auth-main';  // WRONG! Circular dependency risk
+import { AuthService } from '@app/feature-auth-main'; // WRONG! Circular dependency risk
 
 // ✅ CORRECT: Lib importing another lib's shared utilities
 // File: libs/feature/payment/main/src/controller/payment.controller.ts
-import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared';  // CORRECT!
+import { JwtAuthGuard, CurrentUserId } from '@app/feature-auth-shared'; // CORRECT!
 
 // ✅ CORRECT: Using shared DTOs and types
 // File: libs/feature/user/main/src/service/user.service.ts
-import { UserStatus, UserDto } from '@app/feature-user-shared';  // CORRECT!
-import { AuthResponseDto } from '@app/feature-auth-shared';      // CORRECT!
+import { UserStatus, UserDto } from '@app/feature-user-shared'; // CORRECT!
+import { AuthResponseDto } from '@app/feature-auth-shared'; // CORRECT!
 
 // ✅ CORRECT: Apps importing main modules
 // File: apps/api/src/api.module.ts
-import { AuthMainModule } from '@app/feature-auth-main';    // CORRECT!
-import { UserMainModule } from '@app/feature-user-main';    // CORRECT!
-import { PaymentMainModule } from '@app/feature-payment-main';  // CORRECT!
+import { AuthMainModule } from '@app/feature-auth-main'; // CORRECT!
+import { UserMainModule } from '@app/feature-user-main'; // CORRECT!
+import { PaymentMainModule } from '@app/feature-payment-main'; // CORRECT!
 
 // ✅ CORRECT: Apps can also import shared if needed
 // File: apps/bot/src/bot.module.ts
-import { UserMainModule } from '@app/feature-user-main';    // CORRECT!
-import { UserStatus } from '@app/feature-user-shared';      // CORRECT!
+import { UserMainModule } from '@app/feature-user-main'; // CORRECT!
+import { UserStatus } from '@app/feature-user-shared'; // CORRECT!
 ```
 
 #### **What Goes in `main` vs `shared`:**
 
 **`feature/*/main/` (Domain business logic + Apps only):**
+
 - **Controllers** - HTTP endpoints that apps expose
 - **Services** - Core business logic for THIS domain
 - **Domain-specific logic** - Functions used by this feature and consumed by apps
@@ -253,11 +261,13 @@ import { UserStatus } from '@app/feature-user-shared';      // CORRECT!
 - **Internal providers** - Services that support this domain's functionality
 
 **Examples:**
+
 - `AuthService.login()` - Core auth logic (used by AuthController and apps)
 - `UserService.createUser()` - User creation logic (used by UserController and apps)
 - `PaymentService.processPayment()` - Payment logic (used by PaymentController and apps)
 
 **`feature/*/shared/` (Cross-domain utilities):**
+
 - **DTOs** - Data structures OTHER domains need to reference
 - **Guards** - Protection mechanisms OTHER domains use (e.g., `JwtAuthGuard`)
 - **Decorators** - Utilities OTHER domains use (e.g., `@CurrentUserId()`)
@@ -267,23 +277,25 @@ import { UserStatus } from '@app/feature-user-shared';      // CORRECT!
 - **Utilities** - Helper functions OTHER domains call
 
 **Examples:**
+
 - `JwtAuthGuard` - Used by payment, user, and other domains to protect routes
 - `@CurrentUserId()` - Used by payment, user domains to get authenticated user
 - `AuthResponseDto` - Referenced by other domains that return auth data
 - `UserStatus` enum - Referenced by other domains that work with users
 
 #### **Module Definition Pattern:**
+
 ```typescript
 // libs/feature/auth/main/src/auth-main.module.ts
 @Module({
   imports: [
-    DatabaseModule,          // Core infrastructure
-    AuthSharedModule,        // Own shared module
-    UserSharedModule,        // Other feature's shared (✅ allowed)
+    DatabaseModule, // Core infrastructure
+    AuthSharedModule, // Own shared module
+    UserSharedModule, // Other feature's shared (✅ allowed)
   ],
   controllers: [AuthController],
   providers: [AuthService],
-  exports: [AuthService],    // Export for apps to use
+  exports: [AuthService], // Export for apps to use
 })
 export class AuthMainModule {}
 
@@ -297,6 +309,7 @@ export class AuthSharedModule {}
 ```
 
 #### **Dependency Graph:**
+
 ```
 apps/
   ├── api/                    ✅ Imports: auth-main, user-main, payment-main
@@ -339,6 +352,7 @@ libs/feature/
 > **"Any functionality used by BOTH api app AND bot app MUST live in libs"**
 
 This ensures:
+
 - ✅ Code reuse between apps
 - ✅ No duplication of business logic
 - ✅ Single source of truth
@@ -348,6 +362,7 @@ This ensures:
 ### **1.6 Dependency Injection**
 
 #### **Constructor Injection Pattern:**
+
 ```typescript
 @Injectable()
 export class AuthService {
@@ -363,6 +378,7 @@ export class AuthService {
 ```
 
 **Rules:**
+
 - Use `private readonly` for injected dependencies
 - Use `@Inject()` decorators for custom tokens
 - Initialize logger with class name for context
@@ -370,6 +386,7 @@ export class AuthService {
 ### **1.7 Error Handling with Result Types**
 
 #### **Service Layer - Return Results:**
+
 ```typescript
 import { AsyncResult, Ok, Err } from '@app/common-shared';
 
@@ -393,6 +410,7 @@ async authDev(userId: string): Promise<AuthResultDto> {
 ```
 
 #### **Controller Layer - Let Interceptor Handle:**
+
 ```typescript
 @Get('/auth/dev')
 async authDev(@Query() dto: AuthDevRequestDto): AsyncResult<...> {
@@ -402,6 +420,7 @@ async authDev(@Query() dto: AuthDevRequestDto): AsyncResult<...> {
 ```
 
 **How it Works:**
+
 1. Service returns `Ok(value)` or `Err(exception)`
 2. `ResponseTransformer` interceptor unwraps result
 3. If `Err`, throws the exception → HTTP error response
@@ -410,6 +429,7 @@ async authDev(@Query() dto: AuthDevRequestDto): AsyncResult<...> {
 ### **1.8 DTO Validation**
 
 #### **Always Validate with Decorators:**
+
 ```typescript
 import { IsString, IsNotEmpty, IsOptional, IsNumberString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -438,6 +458,7 @@ export class TelegramWidgetAuthDto {
 ```
 
 **Rules:**
+
 - ALWAYS use `class-validator` decorators
 - ALWAYS add `@ApiProperty()` for Swagger docs
 - Use `!` for required fields (non-null assertion)
@@ -446,6 +467,7 @@ export class TelegramWidgetAuthDto {
 ### **1.9 Async/Await Best Practices**
 
 #### **Parallel Execution:**
+
 ```typescript
 // ✅ CORRECT: Run independent operations in parallel
 const [total, active, blocked] = await Promise.all([
@@ -461,6 +483,7 @@ const blocked = await this.userRepository.count({ status: UserStatus.Blocked });
 ```
 
 #### **Error Handling in Non-Critical Operations:**
+
 ```typescript
 // For operations like logging/tracking that shouldn't break main flow
 async trackUserActivity(userId: string): Promise<void> {
@@ -480,6 +503,7 @@ async trackUserActivity(userId: string): Promise<void> {
 ### **2.1 Environment Variables**
 
 #### **NEVER Use process.env Directly:**
+
 ```typescript
 // ❌ WRONG:
 const secret = process.env.JWT_SECRET;
@@ -496,6 +520,7 @@ export class AuthService {
 ```
 
 #### **Configuration Module Pattern:**
+
 ```typescript
 export interface AppConfig {
   nodeEnv: string;
@@ -515,12 +540,14 @@ export function createAppConfig(configService: ConfigService): AppConfig {
 ### **2.2 Secrets Management**
 
 #### **NEVER Commit:**
+
 - `.env` files with actual secrets
 - API keys, tokens, passwords
 - Database credentials
 - Private keys
 
 #### **ALWAYS:**
+
 - Use `.env.example` with dummy values
 - Store secrets in environment variables
 - Use `ConfigService.getOrThrow()` for critical config
@@ -529,6 +556,7 @@ export function createAppConfig(configService: ConfigService): AppConfig {
 ### **2.3 Authentication & Authorization**
 
 #### **JWT Authentication Pattern:**
+
 ```typescript
 // Guard implementation
 @Injectable()
@@ -549,7 +577,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 @Controller('profile')
 export class ProfileController {
   @Get()
-  @UseGuards(JwtAuthGuard)  // Require authentication
+  @UseGuards(JwtAuthGuard) // Require authentication
   async getProfile(@CurrentUserId() userId: string): AsyncResult<UserDto, UserNotFoundException> {
     return this.profileService.getProfile(userId);
   }
@@ -557,23 +585,23 @@ export class ProfileController {
 ```
 
 #### **Current User Decorator (Secure):**
+
 ```typescript
-export const CurrentUserId = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): string => {
-    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
+export const CurrentUserId = createParamDecorator((_data: unknown, ctx: ExecutionContext): string => {
+  const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    if (!request.user?.userId) {
-      throw new UnauthorizedException('User not authenticated');
-    }
-
-    return request.user.userId;
+  if (!request.user?.userId) {
+    throw new UnauthorizedException('User not authenticated');
   }
-);
+
+  return request.user.userId;
+});
 ```
 
 ### **2.4 Input Validation**
 
 #### **ALWAYS Validate ALL Inputs:**
+
 ```typescript
 // DTO with validation
 export class CreateUserDto {
@@ -596,6 +624,7 @@ export class CreateUserDto {
 ```
 
 #### **SQL Injection Prevention:**
+
 ```typescript
 // ✅ CORRECT: Use ORM methods (MikroORM handles escaping)
 await this.userRepository.findOne({ email: userEmail });
@@ -604,15 +633,13 @@ await this.userRepository.findOne({ email: userEmail });
 await em.getConnection().execute(`SELECT * FROM users WHERE email = '${userEmail}'`);
 
 // ✅ CORRECT: If you must use raw queries, use parameters
-await em.getConnection().execute(
-  'SELECT * FROM users WHERE email = ?',
-  [userEmail],
-);
+await em.getConnection().execute('SELECT * FROM users WHERE email = ?', [userEmail]);
 ```
 
 ### **2.5 Rate Limiting**
 
 #### **Module-Level Configuration:**
+
 ```typescript
 @Module({
   imports: [
@@ -633,6 +660,7 @@ await em.getConnection().execute(
 ```
 
 #### **Endpoint-Level:**
+
 ```typescript
 @Post('login')
 @Throttle({ short: { limit: 5, ttl: 60000 } })  // 5 login attempts per minute
@@ -644,28 +672,22 @@ async login(@Body() dto: LoginDto): AsyncResult<AuthResultDto, InvalidCredential
 ### **2.6 Logging Security**
 
 #### **Automatic Redaction:**
+
 ```typescript
 // Protected variables (automatically redacted by logger):
-const protectedVars = [
-  'authorization',
-  'password',
-  'api-key',
-  'token',
-  'jwt',
-  'secret',
-  'cookie',
-];
+const protectedVars = ['authorization', 'password', 'api-key', 'token', 'jwt', 'secret', 'cookie'];
 
 // ✅ CORRECT: Logger automatically redacts
 this.logger.debug('User login', {
   email: 'user@example.com',
-  password: 'secret123',  // Will be [redacted]
+  password: 'secret123', // Will be [redacted]
 });
 
 // Output: User login { email: 'user@example.com', password: '[redacted]' }
 ```
 
 #### **Don't Log Sensitive Data:**
+
 ```typescript
 // ❌ WRONG:
 this.logger.log(`User ${userId} paid with card ${cardNumber}`);
@@ -673,13 +695,14 @@ this.logger.log(`User ${userId} paid with card ${cardNumber}`);
 // ✅ CORRECT:
 this.logger.log(`User ${userId} completed payment`, {
   paymentMethod: 'card',
-  last4: cardNumber.slice(-4),  // Only last 4 digits
+  last4: cardNumber.slice(-4), // Only last 4 digits
 });
 ```
 
 ### **2.7 Telegram Authentication Validation**
 
 #### **Always Validate Telegram Widget Data:**
+
 ```typescript
 import { checkSignature } from '@grammyjs/validator';
 
@@ -713,87 +736,93 @@ async validateTelegramAuth(dto: TelegramWidgetAuthDto): AsyncResult<User, TmaDat
 ## 🎨 **3. CODE STYLE**
 
 ### **3.1 Prettier Configuration**
+
 ```json
 {
-  "singleQuote": true,           // Use 'text' not "text"
-  "trailingComma": "all",        // Trailing commas everywhere
-  "tabWidth": 2,                 // 2 spaces (not tabs)
-  "printWidth": 120,             // 120 character line length
-  "endOfLine": "lf",             // Unix line endings
-  "semi": true,                  // Semicolons required
-  "arrowParens": "always",       // (x) => x not x => x
-  "bracketSpacing": true         // { x } not {x}
+  "singleQuote": true, // Use 'text' not "text"
+  "trailingComma": "all", // Trailing commas everywhere
+  "tabWidth": 2, // 2 spaces (not tabs)
+  "printWidth": 120, // 120 character line length
+  "endOfLine": "lf", // Unix line endings
+  "semi": true, // Semicolons required
+  "arrowParens": "always", // (x) => x not x => x
+  "bracketSpacing": true // { x } not {x}
 }
 ```
 
 ### **3.2 Code Formatting Rules**
 
 #### **Strings:**
+
 ```typescript
 // ✅ CORRECT:
 const name = 'John';
 const greeting = `Hello, ${name}`;
 
 // ❌ INCORRECT:
-const name = "John";           // Use single quotes
-const greeting = 'Hello ' + name;  // Use template literals for concatenation
+const name = 'John'; // Use single quotes
+const greeting = 'Hello ' + name; // Use template literals for concatenation
 ```
 
 #### **Object Literals:**
+
 ```typescript
 // ✅ CORRECT:
 const user = {
-  name,              // Shorthand
+  name, // Shorthand
   age: 25,
   isActive: true,
 };
 
 // ❌ INCORRECT:
 const user = {
-  name: name,        // Don't repeat property name
+  name: name, // Don't repeat property name
   age: 25,
-  isActive: true
-};                   // Missing trailing comma
+  isActive: true,
+}; // Missing trailing comma
 ```
 
 #### **Arrays:**
+
 ```typescript
 // ✅ CORRECT:
 const items = [
   'item1',
   'item2',
-  'item3',           // Trailing comma
+  'item3', // Trailing comma
 ];
 
 // ❌ INCORRECT:
 const items = [
   'item1',
   'item2',
-  'item3'            // Missing trailing comma
+  'item3', // Missing trailing comma
 ];
 ```
 
 ### **3.3 Spacing Rules**
 
 #### **Blank Lines Before Returns:**
+
 ```typescript
 // ✅ CORRECT:
 function calculateTotal(items: Item[]): number {
   const subtotal = items.reduce((sum, item) => sum + item.price, 0);
   const tax = subtotal * 0.1;
 
-  return subtotal + tax;  // Blank line before return
+  return subtotal + tax; // Blank line before return
 }
 
 // ❌ INCORRECT:
 function calculateTotal(items: Item[]): number {
   const subtotal = items.reduce((sum, item) => sum + item.price, 0);
   const tax = subtotal * 0.1;
-  return subtotal + tax;  // No blank line
+  return subtotal + tax; // No blank line
 }
 ```
 
 #### **Class Member Spacing:**
+
 ```typescript
 // ✅ CORRECT:
 class UserService {
@@ -814,16 +843,18 @@ class UserService {
 ### **3.4 Forbidden Patterns**
 
 #### **No var:**
+
 ```typescript
 // ❌ FORBIDDEN:
 var x = 10;
 
 // ✅ USE:
-const x = 10;  // If value doesn't change
-let y = 20;    // If value changes
+const x = 10; // If value doesn't change
+let y = 20; // If value changes
 ```
 
 #### **No console:**
+
 ```typescript
 // ❌ FORBIDDEN (in production code):
 console.log('Debug message');
@@ -835,28 +866,34 @@ this.logger.error('Error occurred', error);
 ```
 
 #### **No Template Curly in Strings:**
+
 ```typescript
 // ❌ FORBIDDEN:
-const message = 'Hello ${name}';  // Won't interpolate!
+const message = 'Hello ${name}'; // Won't interpolate!
 
 // ✅ USE:
-const message = `Hello ${name}`;  // Backticks for templates
+const message = `Hello ${name}`; // Backticks for templates
 ```
 
 #### **Use Explicit Equality:**
+
 ```typescript
 // ❌ AVOID:
-if (user == null) {}
+if (user == null) {
+}
 
 // ✅ USE:
-if (user === null || user === undefined) {}
+if (user === null || user === undefined) {
+}
 // Or:
-if (!user) {}
+if (!user) {
+}
 ```
 
 ### **3.5 TypeScript Specific**
 
 #### **Explicit Return Types:**
+
 ```typescript
 // ✅ CORRECT:
 async function getUser(id: string): Promise<User | null> {
@@ -870,6 +907,7 @@ async function getUser(id: string) {
 ```
 
 #### **Explicit Accessibility:**
+
 ```typescript
 // ✅ CORRECT:
 class UserService {
@@ -892,6 +930,7 @@ class UserService {
 ### **4.1 Database Operations (MikroORM)**
 
 #### **Entity Definition:**
+
 ```typescript
 @Entity({ tableName: 'users' })
 @Index({ name: 'ix__users__telegram_id', properties: ['telegramId'] })
@@ -922,12 +961,14 @@ export class UserEntity {
 ```
 
 **Rules:**
+
 - Use `fieldName` for snake_case column names
 - Always specify column types explicitly
 - Use indexes for frequently queried fields
 - Use `defaultRaw` for database-level defaults
 
 #### **Repository Pattern:**
+
 ```typescript
 export class UserRepository extends EntityRepository<UserEntity> {
   async findByTelegramId(telegramId: string): Promise<UserEntity | null> {
@@ -948,6 +989,7 @@ export class UserRepository extends EntityRepository<UserEntity> {
 ```
 
 **Rules:**
+
 - Encapsulate queries in repository methods
 - Use `persistAndFlush()` for immediate persistence
 - Use `nativeUpdate()` for bulk updates
@@ -956,6 +998,7 @@ export class UserRepository extends EntityRepository<UserEntity> {
 ### **4.2 Exception Handling**
 
 #### **Creating Custom Exceptions:**
+
 ```typescript
 export class UserNotFoundException extends Exception({
   kind: ExceptionKind.NotFound,
@@ -971,6 +1014,7 @@ export class UserNotFoundException extends Exception({
 ```
 
 #### **Documenting Exceptions:**
+
 ```typescript
 @Get('/users/:id')
 @ApiProblemExceptions([
@@ -985,14 +1029,16 @@ async getUser(@Param('id') id: string): AsyncResult<UserDto, UserNotFoundExcepti
 ### **4.3 Logging Best Practices**
 
 #### **Logger Initialization:**
+
 ```typescript
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);  // Use class name
+  private readonly logger = new Logger(AuthService.name); // Use class name
 }
 ```
 
 #### **Log Levels:**
+
 ```typescript
 // DEBUG: Detailed diagnostic information
 this.logger.debug('Processing auth request', { userId, method: 'jwt' });
@@ -1008,6 +1054,7 @@ this.logger.error('Authentication failed', error, { userId });
 ```
 
 #### **Contextual Logging:**
+
 ```typescript
 // ✅ CORRECT: Include context
 this.logger.log('User created', {
@@ -1023,6 +1070,7 @@ this.logger.log('Success');
 ### **4.4 Testing Patterns**
 
 #### **Unit Test Structure:**
+
 ```typescript
 describe('AuthService', () => {
   let service: AuthService;
@@ -1074,6 +1122,7 @@ describe('AuthService', () => {
 ### **4.5 Configuration Management**
 
 #### **Creating Config Interfaces:**
+
 ```typescript
 export interface DatabaseConfig {
   host: string;
@@ -1097,13 +1146,14 @@ export function createDatabaseConfig(config: ConfigService): DatabaseConfig {
 ```
 
 #### **Using Configuration:**
+
 ```typescript
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      validate: validateConfig,  // Validate on startup
+      validate: validateConfig, // Validate on startup
     }),
   ],
 })
@@ -1113,15 +1163,16 @@ export class AppModule {}
 ### **4.6 API Documentation**
 
 #### **Swagger Decorators:**
+
 ```typescript
 @Controller('users')
-@ApiTags('users')  // Group in Swagger UI
+@ApiTags('users') // Group in Swagger UI
 export class UserController {
   @Get('/:id')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiOkResponse({ type: UserDto, description: 'User found' })
   @ApiNotFoundResponse({ description: 'User not found' })
-  @ApiBearerAuth()  // Requires JWT
+  @ApiBearerAuth() // Requires JWT
   async getUser(@Param('id') id: string): AsyncResult<UserDto, UserNotFoundException> {
     return this.userService.findById(id);
   }
@@ -1129,6 +1180,7 @@ export class UserController {
 ```
 
 #### **DTO Documentation:**
+
 ```typescript
 export class UserDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -1145,26 +1197,25 @@ export class UserDto {
 ### **4.7 Module Composition**
 
 #### **Feature Module:**
+
 ```typescript
 @Module({
   imports: [
-    DatabaseModule,              // Shared database connection
-    ConfigModule,                 // Global config
-    AuthSharedModule,            // ✅ Shared guards/decorators
+    DatabaseModule, // Shared database connection
+    ConfigModule, // Global config
+    AuthSharedModule, // ✅ Shared guards/decorators
   ],
   controllers: [UserController],
-  providers: [
-    UserService,
-    UserRepository,
-  ],
+  providers: [UserService, UserRepository],
   exports: [
-    UserService,                 // Export for other modules
+    UserService, // Export for other modules
   ],
 })
 export class UserMainModule {}
 ```
 
 #### **Root App Module:**
+
 ```typescript
 @Module({
   imports: [
@@ -1187,6 +1238,7 @@ export class ApiModule {}
 ## 🚀 **5. BUILD & DEPLOYMENT**
 
 ### **5.1 Build Commands**
+
 ```bash
 # Development
 pnpm dev:api                    # Run API in dev mode
@@ -1216,6 +1268,7 @@ pnpm migration:revert           # Revert last migration
 ```
 
 ### **5.2 Environment Setup**
+
 ```bash
 # Required for all environments
 NODE_ENV=development|production
@@ -1269,6 +1322,7 @@ Before committing code, ensure:
 ## 📦 **7. ARCHITECTURE SUMMARY**
 
 ### **Dependency Flow:**
+
 ```
 apps/
   ├── api/                   # REST API server
@@ -1306,6 +1360,7 @@ libs/
 ```
 
 ### **Type Safety Rules:**
+
 - ✅ Use proper types (interfaces, types, enums)
 - ✅ Use `unknown` for truly unknown data
 - ✅ Use type guards for runtime validation
@@ -1314,6 +1369,7 @@ libs/
 - ✅ Enable all strict TypeScript flags
 
 ### **Module Import Rules:**
+
 - ✅ Apps import `feature/*/main` modules
 - ✅ Libs import `feature/*/shared` modules
 - ✅ Common/database modules can be imported anywhere

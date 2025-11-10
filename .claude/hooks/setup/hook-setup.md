@@ -90,6 +90,7 @@ All hooks configured and tested successfully!
 ## Troubleshooting
 
 The command provides specific guidance for any issues found:
+
 - Missing files or permissions
 - Configuration problems
 - Test failures with debugging steps

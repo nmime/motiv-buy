@@ -5,21 +5,25 @@ This document provides the complete technology stack and file tree structure for
 ## Technology Stack
 
 ### Backend Technologies
+
 - **TypeScript 5.8+** with **pnpm** - Dependency management and packaging with workspace support
 - **NestJS 11+** - Web framework with decorators, dependency injection, and async support
 - **Fastify 5.4+** - High-performance web server with plugins and middleware
 - **MikroORM 6.4+** - TypeScript ORM with entity management and migrations
 
 ### Database & Storage
+
 - **PostgreSQL** - Primary database with MikroORM integration
 - **SQLite** - Development and testing database support
 - **MikroORM Migrations** - Database schema version control and evolution
 
 ### Bot Framework
+
 - **Grammy 1.37+** - Modern TypeScript Telegram bot framework with type safety
 - **Telegram Bot API** - Direct integration with Telegram platform
 
 ### Build System & Development Tools
+
 - **Nx 21.3+** - Monorepo build system with task orchestration and dependency management
 - **Webpack 5** - Module bundling and optimization
 - **Vite 6.0+** - Fast build tool and dev server
@@ -27,6 +31,7 @@ This document provides the complete technology stack and file tree structure for
 - **Vitest 3.0+** - Fast unit testing with Vite integration
 
 ### Code Quality & Validation
+
 - **ESLint 9.32+** - Code linting with TypeScript support
 - **Prettier 2.6+** - Code formatting and style enforcement
 - **TypeScript ESLint** - TypeScript-specific linting rules
@@ -34,12 +39,14 @@ This document provides the complete technology stack and file tree structure for
 - **Class Transformer 0.5+** - Object transformation and serialization
 
 ### Security & Performance
+
 - **Fastify Helmet** - Security headers and protection middleware
 - **Fastify CORS** - Cross-origin resource sharing configuration
 - **Fastify Rate Limit** - Request throttling and abuse prevention
 - **Fastify Swagger** - API documentation generation
 
 ### Development & Quality Tools
+
 - **SWC** - Super-fast TypeScript/JavaScript compiler
 - **ts-jest** - Jest transformer for TypeScript
 - **reflect-metadata** - Metadata reflection for decorators
@@ -49,7 +56,7 @@ This document provides the complete technology stack and file tree structure for
 
 ```
 app/                              # Monorepo root directory
-├── README.md                           # Project overview and setup instructions  
+├── README.md                           # Project overview and setup instructions
 ├── CLAUDE.md                           # Master AI context file with coding standards
 ├── package.json                        # Root package configuration and workspace scripts
 ├── pnpm-workspace.yaml                 # pnpm workspace configuration
@@ -217,6 +224,7 @@ app/                              # Monorepo root directory
 ## Application Types and Deployment
 
 ### API Application (`apps/api/`)
+
 - **Type**: HTTP API service
 - **Framework**: NestJS with Fastify adapter
 - **Purpose**: Business logic orchestration, HTTP endpoints, data validation
@@ -224,6 +232,7 @@ app/                              # Monorepo root directory
 - **Port**: 3000 (default)
 
 ### Bot Application (`apps/bot/`)
+
 - **Type**: Telegram bot service
 - **Framework**: Grammy with NestJS integration
 - **Purpose**: Telegram bot handlers, user interaction, command processing
@@ -231,6 +240,7 @@ app/                              # Monorepo root directory
 - **Integration**: Direct Telegram Bot API communication
 
 ### Migration Application (`apps/migration/`)
+
 - **Type**: Database migration utility
 - **Framework**: MikroORM CLI with custom scripts
 - **Purpose**: Database schema evolution, data transformation, seeding
@@ -240,12 +250,14 @@ app/                              # Monorepo root directory
 ## Library Organization
 
 ### Database Library (`libs/database/`)
+
 - **Purpose**: Database layer abstraction with MikroORM
 - **Exports**: Entities, repositories, services, configuration
 - **Dependencies**: MikroORM, PostgreSQL/SQLite drivers
 - **Usage**: Imported by applications for data access
 
 ### DTO Library (`libs/dto/`)
+
 - **Purpose**: Shared data transfer objects and validation
 - **Exports**: DTOs for API requests/responses, inter-service communication
 - **Dependencies**: Class Validator, Class Transformer
@@ -254,17 +266,20 @@ app/                              # Monorepo root directory
 ## Development Workflow
 
 ### Build Commands
+
 - `pnpm build` - Build all applications and libraries
 - `pnpm build:api` - Build API application only
-- `pnpm build:bot` - Build bot application only  
+- `pnpm build:bot` - Build bot application only
 - `pnpm build:libs` - Build all libraries only
 
 ### Development Commands
+
 - `pnpm dev` - Start all applications in development mode
 - `pnpm dev:api` - Start API application with hot reload
 - `pnpm dev:bot` - Start bot application with hot reload
 
 ### Testing Commands
+
 - `pnpm test` - Run all tests
 - `pnpm test:unit` - Run unit tests only
 - `pnpm test:integration` - Run integration tests only
@@ -272,12 +287,14 @@ app/                              # Monorepo root directory
 - `pnpm test:coverage` - Generate test coverage reports
 
 ### Code Quality Commands
+
 - `pnpm lint` - Lint all code
 - `pnpm lint:fix` - Fix linting issues
 - `pnpm typecheck` - Type check all TypeScript
 - `pnpm format` - Format code with Prettier
 
 ### Database Commands
+
 - `pnpm migration:create` - Create new migration
 - `pnpm migration:up` - Run pending migrations
 - `pnpm migration:down` - Rollback migrations
@@ -285,12 +302,13 @@ app/                              # Monorepo root directory
 ## Environment Configuration
 
 ### Required Environment Variables
+
 ```bash
 # Database Configuration
 DATABASE_URL=postgresql://user:password@localhost:5432/motiv_buy
 DATABASE_TYPE=postgresql
 
-# API Configuration  
+# API Configuration
 API_PORT=3000
 API_HOST=0.0.0.0
 
@@ -304,6 +322,7 @@ LOG_LEVEL=debug
 ```
 
 ### Development Environment Setup
+
 1. Copy `.env.example` to `.env`
 2. Configure database connection
 3. Set Telegram bot token (for bot app)
@@ -313,4 +332,4 @@ LOG_LEVEL=debug
 
 ---
 
-*This project structure follows domain-driven design principles with a monorepo approach, enabling shared code reuse while maintaining clear separation of concerns between applications and business logic.*
+_This project structure follows domain-driven design principles with a monorepo approach, enabling shared code reuse while maintaining clear separation of concerns between applications and business logic._

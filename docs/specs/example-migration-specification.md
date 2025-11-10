@@ -7,12 +7,14 @@ This document outlines the implementation patterns for database migrations in th
 ## Migration Naming Convention
 
 Migration files follow the pattern: `{timestamp}-{TICKET}-{description}.ts`
+
 - **timestamp**: Unix timestamp (13 digits)
 - **TICKET**: JIRA ticket number (e.g., DEV-1234)
 - **description**: kebab-case description
 - **Class name**: PascalCase with ticket and timestamp
 
 Examples:
+
 - `1750681712901-DEV-1304-create-qoden-accounts.ts`
 - `1751654151823-DEV-1563-xjourney-add-is-used-profile-endpoint.ts`
 - `1752499694857-DEV-1597-xjourney-activation-push.ts`
@@ -54,7 +56,7 @@ export class DEV1234AddUserBalanceIndexes1640995200000 implements MigrationInter
         algorithm = inplace,
         lock = none;
     `);
-    
+
     await queryRunner.query(`
       alter table user_balances
         drop index ix__user_balances__amount_status,
@@ -226,6 +228,7 @@ export class DEV1597XJourneyActivationPush1752499694857 implements MigrationInte
 **IMPORTANT**: In xRocket, we use VARCHAR in MySQL database but TypeScript enums in entities for better performance and flexibility.
 
 ### Database Schema (VARCHAR)
+
 ```sql
 -- Migration: Use VARCHAR for enum-like fields
 create table orders (
@@ -235,13 +238,14 @@ create table orders (
   order_type varchar(32) not null,
   priority_level varchar(16) not null default 'normal',
   created_at datetime default current_timestamp not null,
-  
+
   index ix__orders__status_type (status, order_type),
   index ix__orders__user_status (user_id, status)
 );
 ```
 
 ### TypeScript Entity (Enum Types)
+
 ```typescript
 import { Entity, Column, Index } from 'typeorm';
 
@@ -250,21 +254,21 @@ export enum OrderStatus {
   Processing = 'processing',
   Completed = 'completed',
   Cancelled = 'cancelled',
-  Failed = 'failed'
+  Failed = 'failed',
 }
 
 export enum OrderType {
   Buy = 'buy',
   Sell = 'sell',
   Swap = 'swap',
-  Transfer = 'transfer'
+  Transfer = 'transfer',
 }
 
 export enum PriorityLevel {
   Low = 'low',
   Normal = 'normal',
   High = 'high',
-  Urgent = 'urgent'
+  Urgent = 'urgent',
 }
 
 @Entity('orders')
@@ -278,26 +282,26 @@ export class Order {
   userId!: string;
 
   // VARCHAR in DB but TypeScript enum for type safety
-  @Column({ 
-    name: 'status', 
-    type: 'varchar', 
-    length: 32, 
-    default: OrderStatus.Pending 
+  @Column({
+    name: 'status',
+    type: 'varchar',
+    length: 32,
+    default: OrderStatus.Pending,
   })
   status!: OrderStatus;
 
-  @Column({ 
-    name: 'order_type', 
-    type: 'varchar', 
-    length: 32 
+  @Column({
+    name: 'order_type',
+    type: 'varchar',
+    length: 32,
   })
   orderType!: OrderType;
 
-  @Column({ 
-    name: 'priority_level', 
-    type: 'varchar', 
-    length: 16, 
-    default: PriorityLevel.Normal 
+  @Column({
+    name: 'priority_level',
+    type: 'varchar',
+    length: 16,
+    default: PriorityLevel.Normal,
   })
   priorityLevel!: PriorityLevel;
 
@@ -307,6 +311,7 @@ export class Order {
 ```
 
 ### Migration Example with VARCHAR
+
 ```typescript
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
@@ -351,11 +356,11 @@ import { Entity, Column, Index } from 'typeorm';
 @Index('ix__users__telegram_id_active', ['telegramId', 'isActive', 'isBlocked'])
 export class User {
   // Use VARCHAR in decorator but TypeScript enum for type safety
-  @Column({ 
-    name: 'kyc_status', 
-    type: 'varchar', 
-    length: 32, 
-    default: KycStatus.NONE 
+  @Column({
+    name: 'kyc_status',
+    type: 'varchar',
+    length: 32,
+    default: KycStatus.NONE,
   })
   kycStatus!: KycStatus;
 
@@ -370,6 +375,7 @@ export class User {
 ## Best Practices
 
 ### Database Schema
+
 - Use lowercase SQL keywords: `create table`, `alter table`, `drop index`
 - Use snake_case for database columns: `created_at`, `user_id`, `kyc_status`
 - **Use VARCHAR instead of ENUM**: Always use `varchar(32)` or appropriate length for enum-like fields
@@ -379,18 +385,21 @@ export class User {
   - For index operations: `algorithm = inplace, lock = none`
 
 ### TypeScript Entities
+
 - **Use TypeScript enums for type safety**: Define enums with string values matching database
 - **Column decorator must specify VARCHAR**: Use `type: 'varchar', length: 32` in @Column decorator
 - **TypeScript property uses enum type**: Property type should be the TypeScript enum, not string
 - Enum values should match database values exactly: `PENDING = 'pending'`
 
 ### Migration Rules
+
 - Always implement proper `down()` migration for rollback capability
 - Use parameterized queries for data insertion to prevent SQL injection
 - Use `alter table` syntax for adding/dropping indexes, not standalone `create index`
 - Specify appropriate VARCHAR length based on enum values (usually 16-32 characters)
 
 ### Example Pattern
+
 ```typescript
 // ✅ Correct: VARCHAR in database, enum in TypeScript
 create table orders (
@@ -408,4 +417,4 @@ create table orders (
 
 ---
 
-*This migration specification provides xRocket-specific patterns for database schema changes using TypeORM migrations.*
+_This migration specification provides xRocket-specific patterns for database schema changes using TypeORM migrations._

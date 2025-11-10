@@ -66,7 +66,7 @@ services:
     volumes:
       - ${PROJECT_NAME}_postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ 'CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${PROJECT_NAME}_${NODE_ENV:-development}' ]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${PROJECT_NAME}_${NODE_ENV:-development}']
       <<: *healthcheck-fast
 
   # Redis Cache
@@ -82,7 +82,7 @@ services:
     volumes:
       - ${PROJECT_NAME}_redis_dev_data:/data
     healthcheck:
-      test: [ 'CMD', 'redis-cli', 'ping' ]
+      test: ['CMD', 'redis-cli', 'ping']
       <<: *healthcheck-fast
 
   # NATS JetStream
@@ -103,7 +103,7 @@ services:
     volumes:
       - ${PROJECT_NAME}_nats_dev_data:/data
     healthcheck:
-      test: [ 'CMD', 'wget', '--spider', '-q', 'http://localhost:8222/healthz' ]
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8222/healthz']
       <<: *healthcheck-fast
 
 # ==========================================

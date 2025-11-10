@@ -92,7 +92,7 @@ Add `PaymentMainModule` to your API app:
 
 ```typescript
 // apps/api/src/app.module.ts
-import {PaymentMainModule} from '@app/feature-payment-main';
+import { PaymentMainModule } from '@app/feature-payment-main';
 
 @Module({
   imports: [
@@ -100,8 +100,7 @@ import {PaymentMainModule} from '@app/feature-payment-main';
     PaymentMainModule,
   ],
 })
-export class AppModule {
-}
+export class AppModule {}
 ```
 
 ## 📡 API Endpoints
@@ -245,7 +244,7 @@ crypto-pay-api-signature: <hmac_signature>
 ### Table: `payment_transactions`
 
 | Column                  | Type          | Description                  |
-|-------------------------|---------------|------------------------------|
+| ----------------------- | ------------- | ---------------------------- |
 | id                      | uuid          | Primary key                  |
 | user_id                 | varchar(255)  | Telegram user ID             |
 | type                    | enum          | TOP_UP or WITHDRAW           |
@@ -334,7 +333,7 @@ curl -X GET http://localhost:3000/payment/transactions \
 ## 📊 Rate Limits
 
 | Endpoint                | Rate Limit |
-|-------------------------|------------|
+| ----------------------- | ---------- |
 | POST /topup             | 10/minute  |
 | POST /withdraw          | 5/minute   |
 | GET /transactions       | 30/minute  |

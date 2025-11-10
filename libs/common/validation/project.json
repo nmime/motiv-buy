@@ -3,16 +3,11 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/common/validation/src",
   "projectType": "library",
-  "tags": [
-    "scope:common",
-    "type:utility"
-  ],
+  "tags": ["scope:common", "type:utility"],
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": [
-        "{options.outputPath}"
-      ],
+      "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/libs/common/validation",
         "main": "libs/common/validation/src/index.ts",
@@ -34,20 +29,14 @@
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": [
-        "{options.outputFile}"
-      ],
+      "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": [
-          "libs/common/validation/**/*.ts"
-        ]
+        "lintFilePatterns": ["libs/common/validation/**/*.ts"]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": [
-        "{workspaceRoot}/coverage/{projectRoot}"
-      ],
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "jestConfig": "libs/common/validation/jest.config.ts",
         "passWithNoTests": true

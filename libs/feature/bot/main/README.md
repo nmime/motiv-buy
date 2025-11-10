@@ -55,15 +55,14 @@ export class AppModule {}
 ### Use services
 
 ```typescript
-import {BotService, MenuService} from '@app/feature-bot-main';
+import { BotService, MenuService } from '@app/feature-bot-main';
 
 @Injectable()
 export class MyBotController {
   constructor(
     private readonly botService: BotService,
     private readonly menuService: MenuService,
-  ) {
-  }
+  ) {}
 }
 ```
 
