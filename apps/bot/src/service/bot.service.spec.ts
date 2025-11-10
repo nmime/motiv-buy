@@ -398,6 +398,7 @@ describe('BotService', () => {
     it('should handle service with no logger', async () => {
       // Remove logger temporarily
       const originalLogger = service['logger'];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (service as any)['logger'] = undefined as unknown as Logger;
 
       mockBotMainService.start.mockResolvedValue(undefined);
@@ -406,6 +407,7 @@ describe('BotService', () => {
       await expect(service.start()).rejects.toThrow();
 
       // Restore logger
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (service as any)['logger'] = originalLogger;
     });
 
