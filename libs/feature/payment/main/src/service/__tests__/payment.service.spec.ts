@@ -7,7 +7,7 @@ import { getRepositoryToken } from '@mikro-orm/nestjs';
 import { PaymentService } from '../payment.service';
 import { PaymentProviderFactory } from '../payment-provider.factory';
 import { ProviderRoutingService } from '../provider-routing.service';
-import { PaymentTransactionEntity, CurrencyCode, Cryptocurrency, UserBalanceRepository } from '@app/database';
+import { PaymentTransactionEntity, CurrencyCode, UserBalanceRepository } from '@app/database';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
 import { Err, Ok } from '@app/common-shared';
 import { I18nService } from 'nestjs-i18n';
