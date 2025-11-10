@@ -2,6 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
 import { BotTokenValidationGuard } from '../bot-token-validation.guard';
 import { BotTokenValidationService } from '../../service/bot-token-validation.service';
 
@@ -12,6 +13,7 @@ describe('BotTokenValidationGuard', () => {
   };
 
   let mockValidationService: jest.Mocked<BotTokenValidationService>;
+  let mockReflector: jest.Mocked<Reflector>;
 
   beforeEach(async () => {
     mockConfigService = {
@@ -24,12 +26,21 @@ describe('BotTokenValidationGuard', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
+    mockReflector = {
+      get: jest.fn().mockReturnValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BotTokenValidationGuard,
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: Reflector,
+          useValue: mockReflector,
         },
         {
           provide: BotTokenValidationService,
@@ -66,6 +77,7 @@ describe('BotTokenValidationGuard', () => {
         switchToHttp: jest.fn().mockReturnValue({
           getRequest: jest.fn().mockReturnValue(mockRequest),
         }),
+        getHandler: jest.fn().mockReturnValue({}),
       } as unknown as ExecutionContext;
 
       mockConfigService.get.mockReturnValue('test-bot-token');
