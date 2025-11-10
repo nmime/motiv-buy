@@ -1,6 +1,9 @@
 import { Eta } from 'eta';
 
-const etaInstance = new Eta();
+const etaInstance = new Eta({
+  useWith: true, // Enable with() for variable access
+  autoEscape: true, // Escape HTML by default
+});
 
 export function renderTemplate(template: string, variables: Record<string, string | number>): string {
   return etaInstance.renderString(template, variables);

@@ -3,7 +3,7 @@ export default {
   preset: '../../../../jest.preset.js',
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   coverageDirectory: '../../../../coverage/libs/feature/notification/shared',
-  transformIgnorePatterns: ['node_modules/(?!(eta)/)'],
+  // transformIgnorePatterns inherited from jest.preset.js to handle .pnpm structure
   moduleNameMapper: {
     '^eta$': '<rootDir>/../../../../node_modules/eta/dist/index.js',
   },
