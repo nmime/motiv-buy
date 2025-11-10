@@ -13,4 +13,5 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   coverageReporters: ['html', 'text', 'lcov'],
+  transformIgnorePatterns: ['node_modules/(?!(eta|uuid)/)'],
 };
