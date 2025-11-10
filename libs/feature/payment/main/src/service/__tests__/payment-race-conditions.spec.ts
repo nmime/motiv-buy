@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager, LockMode } from '@mikro-orm/core';
 import { PaymentService } from '../payment.service';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
-import { CurrencyCode, CurrencyType, PaymentStatus, UserBalanceRepository } from '@app/database';
+import { CurrencyCode, PaymentStatus, UserBalanceRepository } from '@app/database';
 import { Err, Ok } from '@app/common-shared';
 import { CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
 
@@ -235,7 +235,7 @@ describe('PaymentService - Race Condition Tests', () => {
       mockEm.findOne.mockResolvedValue({
         userId,
         balance: originalBalance,
-      });
+      } as any);
 
       mockProvider.createTransfer.mockResolvedValue(
         Ok({
@@ -288,7 +288,12 @@ describe('PaymentService - Race Condition Tests', () => {
       });
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-4', amount: '25.00', currency: Cryptocurrency.Usdt }),
+        Ok({
+          transferId: 'transfer-4',
+          amount: '25.00',
+          currency: Cryptocurrency.Usdt,
+          status: PaymentStatus.Completed,
+        } as any),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
@@ -392,7 +397,7 @@ describe('PaymentService - Race Condition Tests', () => {
       mockEm.findOne.mockResolvedValue({
         userId,
         balance: originalBalance,
-      });
+      } as any);
 
       // Provider failure
       mockProvider.createTransfer.mockResolvedValue(Err(new Error('Transfer rejected by provider')));
@@ -433,10 +438,15 @@ describe('PaymentService - Race Condition Tests', () => {
       mockEm.findOne.mockResolvedValue({
         userId,
         balance: exactBalance,
-      });
+      } as any);
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-5', amount: exactBalance, currency: Cryptocurrency.Usdt }),
+        Ok({
+          transferId: 'transfer-5',
+          amount: exactBalance,
+          currency: Cryptocurrency.Usdt,
+          status: PaymentStatus.Completed,
+        } as any),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockResolvedValue({} as any);
@@ -459,7 +469,7 @@ describe('PaymentService - Race Condition Tests', () => {
       expect(result.ok).toBe(true);
       expect(mockBalanceRepository.createOrUpdateBalance).toHaveBeenCalledWith(
         userId,
-        CurrencyType.Rub,
+        CurrencyCode.Rub,
         '0.00', // Balance should be exactly zero
       );
     });
@@ -476,10 +486,15 @@ describe('PaymentService - Race Condition Tests', () => {
       mockEm.findOne.mockResolvedValue({
         userId,
         balance: smallBalance,
-      });
+      } as any);
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-6', amount: smallWithdrawal, currency: Cryptocurrency.Usdt }),
+        Ok({
+          transferId: 'transfer-6',
+          amount: smallWithdrawal,
+          currency: Cryptocurrency.Usdt,
+          status: PaymentStatus.Completed,
+        } as any),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockResolvedValue({} as any);
@@ -513,10 +528,15 @@ describe('PaymentService - Race Condition Tests', () => {
       mockEm.findOne.mockResolvedValue({
         userId,
         balance: originalBalance,
-      });
+      } as any);
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-7', amount: '50.00', currency: Cryptocurrency.Usdt }),
+        Ok({
+          transferId: 'transfer-7',
+          amount: '50.00',
+          currency: Cryptocurrency.Usdt,
+          status: PaymentStatus.Completed,
+        } as any),
       );
 
       // Rollback also fails (worst case scenario)
