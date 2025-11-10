@@ -355,7 +355,6 @@ describe('PaymentService', () => {
     };
 
     it('should create withdrawal successfully', async () => {
-      const mockBalance = createMockBalance('1000.00');
       const mockTransfer = createMockTransfer({ amount: createTransferDto.amount });
       const mockTransaction = createMockTransaction({
         type: PaymentType.Withdraw,
@@ -368,6 +367,7 @@ describe('PaymentService', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: createTransferDto.currency };
         }
+
         return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
       });
 
@@ -399,8 +399,10 @@ describe('PaymentService', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: createTransferDto.currency };
         }
+
         return { userId: testUserId, balance: '30.00', currency: 'currency-id-123', user: testUserId };
       });
+
       mockEntityManager.transactional.mockImplementation(async (callback) => callback(mockEntityManager));
 
       const result = await service.createWithdrawal(testUserId, createTransferDto);
@@ -422,8 +424,10 @@ describe('PaymentService', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: createTransferDto.currency };
         }
+
         return null; // No balance found
       });
+
       mockEntityManager.transactional.mockImplementation(async (callback) => callback(mockEntityManager));
 
       const result = await service.createWithdrawal(testUserId, createTransferDto);
@@ -442,8 +446,10 @@ describe('PaymentService', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: createTransferDto.currency };
         }
+
         return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
       });
+
       mockEntityManager.transactional.mockImplementation(async (callback) => callback(mockEntityManager));
       mockProvider.createTransfer.mockResolvedValue(Err(providerError));
 
@@ -463,6 +469,7 @@ describe('PaymentService', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: createTransferDto.currency };
         }
+
         return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
       });
 
@@ -496,6 +503,7 @@ describe('PaymentService', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: createTransferDto.currency };
         }
+
         return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
       });
 
@@ -515,7 +523,7 @@ describe('PaymentService', () => {
       expect(result.err).toBe(true);
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         'CRITICAL: Failed to rollback balance after withdrawal failure',
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -528,6 +536,7 @@ describe('PaymentService', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: createTransferDto.currency };
         }
+
         return { userId: testUserId, balance: '1000.00', currency: 'currency-id-123', user: testUserId };
       });
 

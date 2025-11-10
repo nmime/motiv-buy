@@ -3,10 +3,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
-import { Ok, Err } from 'ts-results';
+import { Ok } from 'ts-results';
 import { BotTokenValidationGuard } from '../bot-token-validation.guard';
 import { BotTokenValidationService } from '../../service/bot-token-validation.service';
-import { BotTokenInvalidException } from '../../exception/bot-token-validation.exception';
 
 describe('BotTokenValidationGuard', () => {
   let guard: BotTokenValidationGuard;

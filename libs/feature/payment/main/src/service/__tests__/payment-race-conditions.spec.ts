@@ -6,7 +6,7 @@ import { PaymentProviderFactory } from '../payment-provider.factory';
 import { ProviderRoutingService } from '../provider-routing.service';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
 import { PaymentStatus, UserBalanceRepository, Cryptocurrency, CurrencyCode } from '@app/database';
-import { Err, Ok } from '@app/common-shared';
+import { Ok } from '@app/common-shared';
 import { CreateTransferDto } from '@app/feature-payment-shared';
 import { I18nService } from 'nestjs-i18n';
 
@@ -212,6 +212,7 @@ describe('PaymentService - Race Condition Tests', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: CurrencyCode.Usdt };
         }
+
         return {
           userId,
           balance: '50.00',
@@ -277,6 +278,7 @@ describe('PaymentService - Race Condition Tests', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: CurrencyCode.Usdt };
         }
+
         return {
           userId,
           balance: originalBalance,
@@ -333,6 +335,7 @@ describe('PaymentService - Race Condition Tests', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: CurrencyCode.Usdt };
         }
+
         balanceReadOrder.push('balance_read_in_transaction');
 
         return { userId, balance: balanceBeforeTransaction };
@@ -449,8 +452,8 @@ describe('PaymentService - Race Condition Tests', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: CurrencyCode.Usdt };
         }
-        return {userId,
-        balance: originalBalance,} as any;
+
+        return { userId, balance: originalBalance } as any;
       });
 
       // Provider succeeds, but persist fails after balance deduction
@@ -504,8 +507,8 @@ describe('PaymentService - Race Condition Tests', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: CurrencyCode.Usdt };
         }
-        return {userId,
-        balance: exactBalance,} as any;
+
+        return { userId, balance: exactBalance } as any;
       });
 
       mockProvider.createTransfer.mockResolvedValue(
@@ -555,8 +558,8 @@ describe('PaymentService - Race Condition Tests', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: CurrencyCode.Usdt };
         }
-        return {userId,
-        balance: smallBalance,} as any;
+
+        return { userId, balance: smallBalance } as any;
       });
 
       mockProvider.createTransfer.mockResolvedValue(
@@ -600,8 +603,8 @@ describe('PaymentService - Race Condition Tests', () => {
         if (entity === 'CurrencyEntity') {
           return { id: 'currency-id-123', code: CurrencyCode.Usdt };
         }
-        return {userId,
-        balance: originalBalance,} as any;
+
+        return { userId, balance: originalBalance } as any;
       });
 
       mockProvider.createTransfer.mockResolvedValue(
