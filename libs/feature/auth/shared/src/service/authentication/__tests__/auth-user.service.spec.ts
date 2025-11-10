@@ -7,8 +7,13 @@ import { AuthUserService } from '../auth-user.service';
 import { AuthCreateUserService } from '../auth-create-user.service';
 import { AuthUserVisitService } from '../auth-user-visit.service';
 import { getGeoByIp, GetSourceParamsService, GetUserRefLinkService, SourceRegisterService } from '../../../source';
-import { UserEntity, UserLastAuthRepository, UserRepository, UserSourceVisitEntity, UserRefLinkType } from '@app/database';
-import { TelegramAuthParams, UserRefLink } from '../../../type';
+import {
+  UserEntity,
+  UserLastAuthRepository,
+  UserRepository,
+  UserSourceVisitEntity,
+  UserRefLinkType,
+} from '@app/database';
 import { Language } from '@app/common-shared';
 import { LinkType } from '../../../source/const/link-type.enum';
 
@@ -50,18 +55,19 @@ describe('AuthUserService', () => {
     },
   };
 
-  const createMockUser = (overrides: Partial<UserEntity> = {}): UserEntity => ({
-    id: 'user-123',
-    telegramId: '123456789',
-    firstName: 'John',
-    lastName: 'Doe',
-    username: 'johndoe',
-    languageCode: 'en',
-    isActive: true,
-    createdAt: new Date('2023-01-01T00:00:00Z'),
-    updatedAt: new Date('2023-01-01T00:00:00Z'),
-    ...overrides,
-  } as UserEntity);
+  const createMockUser = (overrides: Partial<UserEntity> = {}): UserEntity =>
+    ({
+      id: 'user-123',
+      telegramId: '123456789',
+      firstName: 'John',
+      lastName: 'Doe',
+      username: 'johndoe',
+      languageCode: 'en',
+      isActive: true,
+      createdAt: new Date('2023-01-01T00:00:00Z'),
+      updatedAt: new Date('2023-01-01T00:00:00Z'),
+      ...overrides,
+    }) as UserEntity;
 
   const createMockUserRefLink = (): any => ({
     id: 'ref-link-123',
