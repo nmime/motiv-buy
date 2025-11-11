@@ -11,13 +11,9 @@ on:
 
 jobs:
   analyze:
-    name: Analyze Code
+    name: CodeQL Security Analysis
     runs-on: ubuntu-latest
     continue-on-error: true
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
 
     strategy:
       fail-fast: false
@@ -32,22 +28,24 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          # Optionally specify queries to run
-          # queries: security-and-quality
+          queries: security-and-quality
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
+        id: analyze
         uses: github/codeql-action/analyze@v3
         continue-on-error: true
         with:
           category: "/language:${{ matrix.language }}"
+          upload: false
+          output: sarif-results
 
       - name: Upload CodeQL results as artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: codeql-results-${{ matrix.language }}
-          path: ../results/${{ matrix.language }}.sarif
+          name: codeql-security-analysis
+          path: sarif-results/${{ matrix.language }}.sarif
           retention-days: 30
