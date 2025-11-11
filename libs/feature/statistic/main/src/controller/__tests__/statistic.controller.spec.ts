@@ -4,6 +4,7 @@ import { StatisticController } from '../statistic.controller';
 import { StatisticService } from '../../service';
 import { StatisticMapper } from '../../mapper';
 import { ChartInterval, StatisticType } from '../../dto';
+import { JwtAuthGuard } from '@app/feature-auth-shared';
 
 describe('StatisticController', () => {
   let controller: StatisticController;
@@ -74,7 +75,10 @@ describe('StatisticController', () => {
           useValue: mockMapper,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<StatisticController>(StatisticController);
     service = module.get(StatisticService);

@@ -199,10 +199,18 @@ export class StatisticService {
 
   generateShareToken(userId: string, query?: StatisticQueryDto): string {
     const timestamp = Date.now();
-    const randomStr = crypto.randomUUID();
-    const typeHash = query?.type ? String(query.type).substring(0, 3) : 'all';
+    const randomStr = crypto.randomBytes(8).toString('hex');
 
-    return `${typeHash}-${userId}-${timestamp}-${randomStr}`;
+    const typeHashMapping: Record<StatisticType, string> = {
+      [StatisticType.TrafficSource]: 'tra',
+      [StatisticType.TrafficOrder]: 'ord',
+      [StatisticType.TrafficTarget]: 'tar',
+      [StatisticType.User]: 'use',
+    };
+
+    const typeHash = query?.type ? typeHashMapping[query.type] : 'all';
+
+    return `${typeHash}.${userId}.${timestamp}.${randomStr}`;
   }
 
   /**
@@ -821,7 +829,7 @@ export class StatisticService {
   }
 
   private validateAndParseShareToken(shareToken: string): { userId: string; statisticType: StatisticType } {
-    const tokenParts = shareToken.split('-');
+    const tokenParts = shareToken.split('.');
     if (tokenParts.length !== 4) {
       throw new Error('Invalid share token format');
     }

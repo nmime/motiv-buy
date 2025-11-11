@@ -1,0 +1,51 @@
+name: "CodeQL Analysis"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    # Run at 2 AM UTC every Monday
+    - cron: '0 2 * * 1'
+
+jobs:
+  analyze:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript-typescript' ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        id: analyze
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+        with:
+          category: "/language:${{ matrix.language }}"
+          upload: false
+          output: sarif-results
+
+      - name: Upload CodeQL results as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codeql-security-analysis
+          path: sarif-results/${{ matrix.language }}.sarif
+          retention-days: 30

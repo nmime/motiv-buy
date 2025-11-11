@@ -1,13 +1,13 @@
 # Deployment Guide
 
-Complete guide for deploying Motiv-Buy application using Docker and GitHub Actions CI/CD.
+Complete guide for deploying Motiv-Buy applications to production and staging environments.
 
 ## Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [Prerequisites](#prerequisites)
-3. [Local Development](#local-development)
-4. [VPS Setup](#vps-setup)
+1. [Quick Start](#quick-start)
+2. [Architecture Overview](#architecture-overview)
+3. [Prerequisites](#prerequisites)
+4. [Domain Setup](#domain-setup)
 5. [GitHub Secrets Configuration](#github-secrets-configuration)
 6. [Deployment Process](#deployment-process)
 7. [Monitoring & Maintenance](#monitoring--maintenance)
@@ -16,50 +16,120 @@ Complete guide for deploying Motiv-Buy application using Docker and GitHub Actio
 
 ---
 
+## Quick Start
+
+**TL;DR - How to Deploy:**
+
+1. Configure all [GitHub Secrets](#github-secrets-configuration)
+2. Set up [DNS records](#domain-setup) for your domains
+3. Go to GitHub Actions → Select workflow:
+   - **Production**: Deploy to Production (master branch only)
+   - **Staging**: Deploy to Staging (any branch except master)
+4. Click "Run workflow" and monitor progress
+5. Verify deployment at `https://api.motivbuy.com/health` (production) or `https://api.st.motivbuy.com/health` (staging)
+
+---
+
 ## Architecture Overview
 
 ### Deployment Strategy
 
-- **CI Pipeline**: Runs on all branches (lint, test, build, security scan)
-- **Staging Deployment**: Auto-deploys all branches except `main`
-- **Production Deployment**: Auto-deploys on push to `main` or version tags
+- **CI Pipeline**: Runs automatically on all PRs (lint, test, build, security scan)
+- **Staging Deployment**: **Manual trigger** from any branch except `master`
+- **Production Deployment**: **Manual trigger** from `master` branch only
+- **Concurrency Control**: Prevents duplicate deployments, queues if needed
 
 ### Infrastructure
 
 ```
-VPS Server
-├── Nginx (Reverse Proxy)
-│   ├── SSL/TLS (Let's Encrypt)
-│   ├── Rate Limiting
-│   └── Security Headers
+Production: motivbuy.com
+├── api.motivbuy.com (API application)
+├── bot.motivbuy.com (Telegram bot)
+└── motivbuy.com (Main frontend)
+
+Staging: st.motivbuy.com
+├── api.st.motivbuy.com (API application)
+├── bot.st.motivbuy.com (Telegram bot)
+└── st.motivbuy.com (Main frontend)
+
+Each VPS Server runs:
+├── Nginx (Reverse Proxy with SSL/TLS)
 ├── Docker Containers
 │   ├── API Application
 │   ├── Bot Application
 │   ├── PostgreSQL Database
 │   └── Redis Cache
-└── Automated Backups
+└── Automated Backups (production only)
 ```
 
 ---
 
 ## Prerequisites
 
-### Local Development
+### VPS Server Requirements
+
+**Production Server:**
+- Ubuntu 20.04+ LTS or similar Linux distribution
+- Minimum 2 CPU cores
+- Minimum 2GB RAM (4GB recommended)
+- 50GB+ storage
+- Root or sudo access
+- Public IP address
+- SSH access configured
+
+**Staging Server:**
+- Same requirements as production
+- Can use smaller instance (1GB RAM minimum)
+- Separate server recommended but can share with proper isolation
+
+### Required Software
 
 - Docker Engine 24.0+
 - Docker Compose 2.20+
-- Node.js 20+ (for local development without Docker)
-- pnpm 8+
+- Nginx or similar reverse proxy
+- Certbot (for SSL/TLS certificates)
 
-### VPS Requirements
+---
 
-- Ubuntu 22.04 LTS (recommended)
-- Minimum 2 CPU cores
-- Minimum 4GB RAM
-- 20GB+ storage
-- Root or sudo access
-- Public IP address
-- Domain name (for production)
+## Domain Setup
+
+### DNS Configuration
+
+Configure A records pointing to your VPS IP addresses:
+
+**Production DNS (motivbuy.com):**
+```
+A     motivbuy.com           →  YOUR_PRODUCTION_IP
+A     api.motivbuy.com       →  YOUR_PRODUCTION_IP
+A     bot.motivbuy.com       →  YOUR_PRODUCTION_IP
+```
+
+**Staging DNS (st.motivbuy.com):**
+```
+A     st.motivbuy.com        →  YOUR_STAGING_IP
+A     api.st.motivbuy.com    →  YOUR_STAGING_IP
+A     bot.st.motivbuy.com    →  YOUR_STAGING_IP
+```
+
+### SSL/TLS Certificates
+
+The deployment workflows configure environment variables for Let's Encrypt:
+- `API_DOMAIN`: api.motivbuy.com (prod) / api.st.motivbuy.com (staging)
+- `BOT_DOMAIN`: bot.motivbuy.com (prod) / bot.st.motivbuy.com (staging)
+- `MAIN_DOMAIN`: motivbuy.com (prod) / st.motivbuy.com (staging)
+- `LETSENCRYPT_EMAIL`: Your email for certificate notifications
+
+Your docker-compose files should configure Nginx/Certbot to use these domains.
+
+### Verify DNS Propagation
+
+```bash
+# Check if DNS is propagated
+dig api.motivbuy.com
+dig api.st.motivbuy.com
+
+# Should return your VPS IP address
+```
 
 ---
 
@@ -269,66 +339,139 @@ openssl rand -base64 32
 
 ### Staging Deployment
 
-**Automatic**: Push to any branch except `main`
+**Trigger**: Manual only via GitHub Actions
 
-```bash
-git checkout -b feature/new-feature
-git add .
-git commit -m "Add new feature"
-git push origin feature/new-feature
-```
+**Prerequisites**:
+- All changes pushed to a feature branch (NOT master)
+- GitHub secrets configured for staging
+- Staging VPS prepared and accessible
 
-GitHub Actions will:
+**Steps**:
 
-1. Run CI checks (lint, test, build)
-2. Build Docker images
-3. Push to GitHub Container Registry
-4. Deploy to staging VPS
-5. Run health checks
+1. **Push your changes to a branch**:
+   ```bash
+   git checkout -b feature/new-feature
+   git add .
+   git commit -m "Add new feature"
+   git push origin feature/new-feature
+   ```
+
+2. **Trigger deployment**:
+   - Go to: `Repository → Actions → Deploy to Staging`
+   - Click "Run workflow"
+   - Select your branch (e.g., `feature/new-feature`)
+   - Click "Run workflow" button
+
+3. **Monitor deployment**:
+   - Watch workflow progress in Actions tab
+   - Check each step completes successfully
+
+4. **Verify deployment**:
+   ```bash
+   # Check API health
+   curl https://api.st.motivbuy.com/health
+
+   # Check API endpoint
+   curl https://api.st.motivbuy.com/api
+   ```
+
+**What happens**:
+1. ✅ Validates branch is not master
+2. 🏗️ Builds Docker images
+3. 📤 Pushes to GitHub Container Registry
+4. 🚀 Deploys to staging VPS
+5. 🗄️ Runs database migrations
+6. 🔍 Performs health checks
 
 ### Production Deployment
 
-**Automatic**: Push to `main` or create a version tag
+**Trigger**: Manual only via GitHub Actions
+
+**Prerequisites**:
+- All changes merged to `master` branch
+- CI checks passing (tests, lint, build, security)
+- All GitHub secrets configured for production
+- Production VPS prepared and accessible
+- **Team notified** of deployment
+
+**Steps**:
+
+1. **Merge to master**:
+   ```bash
+   git checkout master
+   git pull origin master
+   git merge feature/new-feature
+   git push origin master
+   ```
+
+2. **Trigger deployment**:
+   - Go to: `Repository → Actions → Deploy to Production`
+   - Click "Run workflow"
+   - **Ensure branch is set to `master`**
+   - (Optional) Enter version tag (e.g., v1.0.0)
+   - Click "Run workflow" button
+
+3. **Monitor deployment**:
+   - Watch workflow progress carefully
+   - Verify each step completes
+   - Check for any errors or warnings
+
+4. **Verify deployment**:
+   ```bash
+   # Check API health
+   curl https://api.motivbuy.com/health
+
+   # Check API endpoint
+   curl https://api.motivbuy.com/api
+
+   # Test bot in Telegram
+   # Send /start command to production bot
+   ```
+
+5. **Post-deployment checks**:
+   - Monitor error logs for 15-30 minutes
+   - Check performance metrics
+   - Verify critical user flows
+
+**What happens**:
+1. ✅ Validates deployment from master branch only
+2. 🏗️ Builds production Docker images
+3. 💾 **Backs up production database**
+4. 📤 Pushes to GitHub Container Registry
+5. 🚀 Deploys to production VPS
+6. 🗄️ Runs database migrations
+7. 🔍 Performs health checks
+8. 🧪 Runs smoke tests
+9. ↩️ Auto-rollback on failure
+
+### Manual Deployment (SSH)
+
+If GitHub Actions is unavailable, deploy via SSH:
 
 ```bash
-# Option 1: Merge to main
-git checkout main
-git merge feature/new-feature
-git push origin main
+# SSH into VPS
+ssh deployer@YOUR_VPS_IP
 
-# Option 2: Create version tag
-git tag -a v1.0.0 -m "Release version 1.0.0"
-git push origin v1.0.0
-```
-
-GitHub Actions will:
-
-1. Run full CI pipeline
-2. Build production Docker images
-3. Backup database
-4. Deploy to production VPS
-5. Run migrations
-6. Run health checks
-7. Run smoke tests
-
-### Manual Deployment
-
-SSH into VPS and run:
-
-```bash
+# Navigate to deployment directory
 cd /opt/motiv-buy
+
+# Login to container registry
+echo "YOUR_GITHUB_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
 
 # Pull latest images
 docker compose pull
 
-# Run migrations
+# Run database migrations
 docker compose run --rm api node dist/apps/api/main.js migrate
 
-# Deploy
-docker compose up -d
+# Deploy with zero-downtime
+docker compose up -d --remove-orphans
 
 # Check status
 docker compose ps
+
+# Check health
+curl http://localhost:3000/health
 ```
 
 ---
@@ -556,4 +699,6 @@ ssh deployer@VPS_IP "docker compose exec postgres pg_dump -U \$DB_USER \$DB_NAME
 
 ---
 
-**Last Updated**: 2024-01-01
+**Last Updated**: 2025-11-11
+**Deployment Strategy**: Manual triggers only
+**Environments**: Production (motivbuy.com) | Staging (st.motivbuy.com)
