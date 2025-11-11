@@ -13,14 +13,17 @@ This document addresses the remaining medium-priority issues and provides recomm
 **File:** `monorepo/libs/feature/bot/main/src/middleware/rate-limit.middleware.ts:25`
 
 **Problem:**
+
 ```typescript
 private readonly rateLimitStore = new Map<string, RateLimitEntry>();
 ```
+
 - Uses in-memory storage for rate limit tracking
 - **Does NOT work in multi-instance deployments**
 - Users can bypass limits by hitting different server instances
 
 **Attack Scenario:**
+
 ```
 Server Instance 1: User sends 20 requests (limit reached)
 Server Instance 2: User sends 20 requests (limit reached)
@@ -33,11 +36,13 @@ Server Instance 3: User sends 20 requests (limit reached)
 #### Option 1: Redis with ioredis (Recommended)
 
 **Install dependencies:**
+
 ```bash
 pnpm add ioredis @types/ioredis
 ```
 
 **Update rate-limit.middleware.ts:**
+
 ```typescript
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import Redis from 'ioredis';
@@ -81,6 +86,7 @@ export class RateLimitMiddleware implements NestMiddleware {
 ```
 
 **Benefits:**
+
 - ✅ Works across multiple server instances
 - ✅ Automatic cleanup via Redis expiration
 - ✅ Persistent across server restarts
@@ -89,11 +95,13 @@ export class RateLimitMiddleware implements NestMiddleware {
 #### Option 2: NestJS Throttler with Redis (Recommended Alternative)
 
 **Install:**
+
 ```bash
 pnpm add @nestjs/throttler @nestjs/throttler-storage-redis ioredis
 ```
 
 **Configure in module:**
+
 ```typescript
 import { ThrottlerModule, ThrottlerStorageRedisService } from '@nestjs/throttler';
 import Redis from 'ioredis';
@@ -128,6 +136,7 @@ export class AppModule {}
 ```
 
 **Benefits:**
+
 - ✅ Built-in NestJS integration
 - ✅ Distributed rate limiting
 - ✅ Simpler configuration
@@ -136,6 +145,7 @@ export class AppModule {}
 ###Environment Variables
 
 Add to `.env`:
+
 ```bash
 # Redis Configuration
 REDIS_HOST=localhost
@@ -156,12 +166,12 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis-data:/data
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 3
@@ -198,6 +208,7 @@ Webhook processing queries `provider_transaction_id` frequently without index, c
 ### Recommended Indexes
 
 **Add to migration:**
+
 ```sql
 -- Index for webhook lookups (high frequency)
 CREATE INDEX CONCURRENTLY idx_payment_transactions_provider_id
@@ -219,6 +230,7 @@ WHERE status = 'PENDING';
 ```
 
 **Add to entity (TypeORM/MikroORM):**
+
 ```typescript
 @Entity({ tableName: 'payment_transactions' })
 @Index({ name: 'idx_provider_transaction_id', properties: ['providerTransactionId'] })
@@ -236,6 +248,7 @@ export class PaymentTransactionEntity {
 ### Performance Impact
 
 **Before (without index):**
+
 ```
 EXPLAIN ANALYZE SELECT * FROM payment_transactions
 WHERE provider_transaction_id = 'INV123';
@@ -246,6 +259,7 @@ Execution Time: 45.367 ms  <-- SLOW
 ```
 
 **After (with index):**
+
 ```
 Index Scan using idx_provider_transaction_id on payment_transactions  (cost=0.29..8.31 rows=1 width=100) (actual time=0.045..0.046 rows=1 loops=1)
 Planning Time: 0.078 ms
@@ -265,11 +279,13 @@ In-memory rate limit store grows indefinitely without cleanup, causing memory le
 ### Recommended Fix
 
 **Install:**
+
 ```bash
 pnpm add @nestjs/schedule
 ```
 
 **Update rate-limit.middleware.ts:**
+
 ```typescript
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -310,6 +326,7 @@ export class RateLimitMiddleware implements NestMiddleware {
 ```
 
 **Enable in module:**
+
 ```typescript
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -331,10 +348,12 @@ export class AppModule {}
 ### Current Issue
 
 **Files:**
+
 - `csrf-protection.middleware.ts` (line 88)
 - Bot handlers use session state
 
 **Problem:**
+
 - Session data stored in memory (default)
 - Does NOT persist across server restarts
 - Does NOT work in multi-instance deployments
@@ -342,12 +361,14 @@ export class AppModule {}
 ### Recommended Fix: Redis Session Store
 
 **Install:**
+
 ```bash
 pnpm add express-session connect-redis ioredis
 pnpm add -D @types/express-session
 ```
 
 **Configure in main.ts:**
+
 ```typescript
 import session from 'express-session';
 import RedisStore from 'connect-redis';
@@ -384,6 +405,7 @@ async function bootstrap() {
 ```
 
 **Environment variables:**
+
 ```bash
 SESSION_SECRET=your-super-secret-session-key-change-this-in-production
 NODE_ENV=production
@@ -392,12 +414,14 @@ NODE_ENV=production
 ### Security Considerations
 
 1. **Generate strong session secret:**
+
    ```bash
    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    ```
 
 2. **Rotate session secrets:**
    - Use multiple secrets for zero-downtime rotation
+
    ```typescript
    secret: [
      process.env.SESSION_SECRET_NEW,
@@ -456,6 +480,7 @@ export class MetricsService {
 ```
 
 **Alert rules (Prometheus):**
+
 ```yaml
 groups:
   - name: payment_alerts
@@ -465,14 +490,14 @@ groups:
           rate(payment_webhooks_total{status="failure"}[5m]) > 0.05
         for: 5m
         annotations:
-          summary: "High webhook failure rate detected"
+          summary: 'High webhook failure rate detected'
 
       - alert: CriticalRollbackFailure
         expr: |
           increase(payment_rollback_failures_total[1m]) > 0
         for: 0m
         annotations:
-          summary: "CRITICAL: Balance rollback failed - manual intervention required"
+          summary: 'CRITICAL: Balance rollback failed - manual intervention required'
 ```
 
 ---
@@ -517,14 +542,14 @@ groups:
 
 ## Estimated Effort
 
-| Task | Priority | Effort | Risk |
-|------|----------|--------|------|
-| Redis rate limiting | HIGH | 4 hours | Low |
-| Database indexes | HIGH | 2 hours | Low |
-| Redis sessions | MEDIUM | 3 hours | Low |
-| Cron cleanup | LOW | 1 hour | Low |
-| Monitoring setup | MEDIUM | 6 hours | Medium |
-| Load testing | HIGH | 8 hours | Medium |
+| Task                | Priority | Effort  | Risk   |
+| ------------------- | -------- | ------- | ------ |
+| Redis rate limiting | HIGH     | 4 hours | Low    |
+| Database indexes    | HIGH     | 2 hours | Low    |
+| Redis sessions      | MEDIUM   | 3 hours | Low    |
+| Cron cleanup        | LOW      | 1 hour  | Low    |
+| Monitoring setup    | MEDIUM   | 6 hours | Medium |
+| Load testing        | HIGH     | 8 hours | Medium |
 
 **Total:** ~24 hours (3 days)
 

@@ -3,6 +3,7 @@
 ## ✅ Completed Tasks
 
 ### 1. Core Action Handlers
+
 - ✅ **Menu Action Handler** - Menu creation and navigation utilities
 - ✅ **Profile Action Handler** - Complete profile management (view, edit, verify)
 - ✅ **Balance Action Handler** - Balance viewing, transaction history, withdrawals
@@ -11,18 +12,21 @@
 - ✅ **Settings Action Handler** - Language, notifications, privacy settings
 
 ### 2. Security Features
+
 - ✅ **Rate Limiting Middleware** - Per-user rate limiting with configurable limits
 - ✅ **CSRF Protection Middleware** - Token-based protection for multi-step actions
 - ✅ **Input Validation** - Comprehensive validation using existing utilities
 - ✅ **Input Sanitization** - XSS and injection prevention
 
 ### 3. Integration
+
 - ✅ **Callback Router** - Centralized callback query routing
 - ✅ **Bot Service Updates** - Integrated all handlers into main bot service
 - ✅ **Error Handling** - User-friendly error messages throughout
 - ✅ **Logging** - Comprehensive logging for all user actions
 
 ### 4. State Management
+
 - ✅ **Session-based State** - Multi-step action support
 - ✅ **Conversation State** - Tracking current user flow
 - ✅ **Form Data** - Collecting data across multiple steps
@@ -31,6 +35,7 @@
 ## 📁 File Structure
 
 ### Handlers
+
 ```
 /monorepo/libs/feature/bot/main/src/handler/
 ├── menu-action.handler.ts        (Menu utilities)
@@ -44,6 +49,7 @@
 ```
 
 ### Middleware
+
 ```
 /monorepo/libs/feature/bot/main/src/middleware/
 ├── rate-limit.middleware.ts      (Rate limiting)
@@ -52,6 +58,7 @@
 ```
 
 ### Documentation
+
 ```
 /docs/
 ├── bot-menu-implementation.md    (Detailed documentation)
@@ -74,6 +81,7 @@
 ## 🔐 Security Implementation
 
 ### Rate Limiting
+
 - **Messages**: 20/minute per user
 - **Callbacks**: 30/minute per user
 - **Withdrawals**: 3/hour per user
@@ -82,12 +90,14 @@
 - 5-minute block duration by default
 
 ### CSRF Protection
+
 - 30-minute token lifetime
 - One-time use tokens for sensitive operations
 - Session-based token storage
 - Protected actions: withdrawals, order creation, settings updates
 
 ### Input Validation
+
 - Email format validation
 - Phone number validation
 - Username validation (3-32 characters, alphanumeric)
@@ -98,6 +108,7 @@
 ## 📊 Key Features
 
 ### Profile Management
+
 - View profile summary
 - Edit first name, last name, username, language
 - View detailed profile information
@@ -105,6 +116,7 @@
 - See referral count and status
 
 ### Balance Management
+
 - Multi-currency support
 - Available, locked, and total balance display
 - Transaction history with pagination (10 per page)
@@ -112,6 +124,7 @@
 - Deposit information and methods
 
 ### Statistics & Analytics
+
 - Total orders count
 - Active/completed orders breakdown
 - Total earnings tracking
@@ -122,6 +135,7 @@
 - Orders by status and type
 
 ### Order Management
+
 - Active orders list with progress tracking
 - Completed orders history
 - Order creation workflow
@@ -130,6 +144,7 @@
 - Pagination support (5 orders per page)
 
 ### Settings Configuration
+
 - Language selection (7 languages supported)
 - Notification preferences (5 types)
   - Balance changes
@@ -145,7 +160,9 @@
 ## 🎨 User Experience
 
 ### Interactive Menus
+
 All menus use inline keyboards with clear navigation:
+
 - Main menu with 8 primary options
 - Sub-menus for each feature area
 - Back buttons for easy navigation
@@ -153,7 +170,9 @@ All menus use inline keyboards with clear navigation:
 - Confirmation dialogs for critical actions
 
 ### Multi-Step Actions
+
 Seamless multi-step workflows:
+
 1. User initiates action (e.g., edit profile)
 2. Session state is set
 3. Bot presents options/prompts
@@ -164,7 +183,9 @@ Seamless multi-step workflows:
 8. Session state cleared
 
 ### Error Handling
+
 User-friendly error messages:
+
 - Clear explanation of what went wrong
 - Suggestions for resolution
 - Option to retry or return to menu
@@ -173,6 +194,7 @@ User-friendly error messages:
 ## 🧪 Testing Checklist
 
 ### Manual Testing
+
 - [ ] Test each menu navigation path
 - [ ] Test profile editing for all fields
 - [ ] Test balance viewing with multiple currencies
@@ -185,6 +207,7 @@ User-friendly error messages:
 - [ ] Test session persistence across multiple interactions
 
 ### Integration Testing
+
 - [ ] Database operations work correctly
 - [ ] Session management persists across requests
 - [ ] Rate limiting doesn't block legitimate users
@@ -193,6 +216,7 @@ User-friendly error messages:
 - [ ] Performance is acceptable under load
 
 ### Security Testing
+
 - [ ] SQL injection attempts are blocked
 - [ ] XSS attempts are sanitized
 - [ ] Rate limits cannot be bypassed
@@ -203,18 +227,21 @@ User-friendly error messages:
 ## 📈 Performance Considerations
 
 ### Database Queries
+
 - Use pagination for large lists (limits to 5-10 items)
 - Populate only necessary relations
 - Use indexes for frequent queries (userId, telegramId)
 - Connection pooling for concurrent requests
 
 ### Memory Management
+
 - Rate limit data is stored in-memory with TTL
 - Session data is minimal (only active conversation state)
 - Automatic cleanup of expired entries
 - CSRF tokens expire after 30 minutes
 
 ### Response Time
+
 - Menu displays: < 100ms
 - Database queries: < 200ms
 - Complex calculations: < 500ms
@@ -223,25 +250,31 @@ User-friendly error messages:
 ## 🚀 Deployment
 
 ### Prerequisites
+
 - Node.js 18+
 - PostgreSQL database
 - Telegram bot token
 - Environment variables configured
 
 ### Installation
+
 ```bash
 # No additional dependencies required
 # All handlers use existing packages
 ```
 
 ### Configuration
+
 No new configuration required. Uses existing:
+
 - Database connection
 - Bot token
 - Session storage
 
 ### Monitoring
+
 Key metrics to monitor:
+
 - Rate limit violations per hour
 - CSRF validation failures
 - Database query performance
@@ -252,6 +285,7 @@ Key metrics to monitor:
 ## 🔧 Maintenance
 
 ### Regular Tasks
+
 1. Clean up expired rate limit entries (runs automatically)
 2. Monitor error logs daily
 3. Review user feedback weekly
@@ -259,7 +293,9 @@ Key metrics to monitor:
 5. Audit security logs weekly
 
 ### Updates
+
 To add new menu actions:
+
 1. Create handler in `/handler/` directory
 2. Add route in `callback-router.handler.ts`
 3. Add menu button in `menu-action.handler.ts`
@@ -283,12 +319,14 @@ To add new menu actions:
 ## 🎯 Next Steps
 
 ### Immediate (Priority 1)
+
 1. Replace `null as any` with proper dependency injection
 2. Add unit tests for all handlers
 3. Add integration tests for complete flows
 4. Configure persistent session storage
 
 ### Short Term (Priority 2)
+
 1. Implement referral system fully
 2. Integrate payment gateways
 3. Add multilingual support with i18n
@@ -296,6 +334,7 @@ To add new menu actions:
 5. Add admin panel integration
 
 ### Long Term (Priority 3)
+
 1. Add inline query support
 2. Implement voice message handling
 3. Add file upload/download capabilities

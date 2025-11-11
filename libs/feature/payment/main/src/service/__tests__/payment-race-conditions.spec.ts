@@ -1,10 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, prefer-destructuring */
 import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager, LockMode } from '@mikro-orm/core';
 import { PaymentService } from '../payment.service';
+import { PaymentProviderFactory } from '../payment-provider.factory';
+import { ProviderRoutingService } from '../provider-routing.service';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
-import { CurrencyType, PaymentStatus, UserBalanceRepository } from '@app/database';
-import { Err, Ok } from '@app/common-shared';
-import { CreateTransferDto, Cryptocurrency } from '@app/feature-payment-shared';
+import { PaymentStatus, UserBalanceRepository, Cryptocurrency, CurrencyCode } from '@app/database';
+import { Ok } from '@app/common-shared';
+import { CreateTransferDto } from '@app/feature-payment-shared';
+import { I18nService } from 'nestjs-i18n';
 
 /**
  * Race Condition Test Suite for Payment Service
@@ -21,6 +25,9 @@ describe('PaymentService - Race Condition Tests', () => {
   let mockProvider: jest.Mocked<CryptoBotProvider>;
   let mockBalanceRepository: jest.Mocked<UserBalanceRepository>;
   let mockTransactionRepository: any;
+  let mockProviderFactory: jest.Mocked<PaymentProviderFactory>;
+  let mockRoutingService: jest.Mocked<ProviderRoutingService>;
+  let mockI18nService: jest.Mocked<I18nService>;
 
   beforeEach(async () => {
     // Create mock EntityManager
@@ -50,12 +57,31 @@ describe('PaymentService - Race Condition Tests', () => {
       findOne: jest.fn(),
     };
 
+    // Create mock PaymentProviderFactory
+    mockProviderFactory = {
+      getProvider: jest.fn().mockReturnValue(mockProvider),
+    } as any;
+
+    // Create mock ProviderRoutingService
+    mockRoutingService = {
+      routeInvoice: jest.fn(),
+      routeTransfer: jest.fn(),
+      selectWithdrawalProvider: jest.fn().mockResolvedValue(Ok('CRYPTO_BOT')),
+    } as any;
+
+    // Create mock I18nService
+    mockI18nService = {
+      t: jest.fn((key: string) => key),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentService,
         { provide: EntityManager, useValue: mockEm },
-        { provide: CryptoBotProvider, useValue: mockProvider },
+        { provide: PaymentProviderFactory, useValue: mockProviderFactory },
+        { provide: ProviderRoutingService, useValue: mockRoutingService },
         { provide: UserBalanceRepository, useValue: mockBalanceRepository },
+        { provide: I18nService, useValue: mockI18nService },
         { provide: 'PaymentTransactionEntityRepository', useValue: mockTransactionRepository },
       ],
     }).compile();
@@ -80,7 +106,7 @@ describe('PaymentService - Race Condition Tests', () => {
       // Mock balance entity with pessimistic locking
       const mockBalanceEntity = {
         userId,
-        currencyType: CurrencyType.Rub,
+        currency: Cryptocurrency.Rub,
         balance: initialBalance,
       };
 
@@ -91,6 +117,12 @@ describe('PaymentService - Race Condition Tests', () => {
 
       // Mock findOne to simulate pessimistic locking behavior
       mockEm.findOne.mockImplementation(async (entity, criteria, options) => {
+        // Return currency entity when looking up currency
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+
+        // Handle UserBalanceEntity with pessimistic locking
         if (options?.lockMode === LockMode.PESSIMISTIC_WRITE) {
           balanceCheckCount++;
 
@@ -116,9 +148,9 @@ describe('PaymentService - Race Condition Tests', () => {
         Ok({
           transferId: 'transfer-1',
           amount: withdrawalAmount,
-          currency: Cryptocurrency.Usdt,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
           fee: '0.50',
-        }),
+        }) as any,
       );
 
       // Mock balance update
@@ -140,7 +172,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: withdrawalAmount,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       // Execute first withdrawal (should succeed)
@@ -155,8 +187,8 @@ describe('PaymentService - Race Condition Tests', () => {
 
       // Verify pessimistic locking was used
       expect(mockEm.findOne).toHaveBeenCalledWith(
-        'UserBalanceEntity',
-        expect.objectContaining({ userId }),
+        expect.anything(), // UserBalanceEntity class
+        expect.objectContaining({ user: userId }),
         expect.objectContaining({ lockMode: LockMode.PESSIMISTIC_WRITE }),
       );
 
@@ -176,17 +208,23 @@ describe('PaymentService - Race Condition Tests', () => {
         return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: '50.00',
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+
+        return {
+          userId,
+          balance: '50.00',
+        } as any;
       });
 
       mockProvider.createTransfer.mockResolvedValue(
         Ok({
           transferId: 'transfer-2',
           amount: '30.00',
-          currency: Cryptocurrency.Usdt,
-        }),
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+        }) as any,
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockResolvedValue({} as any);
@@ -195,7 +233,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: '30.00',
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       await service.createWithdrawal(userId, withdrawalDto);
@@ -203,12 +241,11 @@ describe('PaymentService - Race Condition Tests', () => {
       // Verify balance check happens INSIDE transaction (transactional called)
       expect(mockEm.transactional).toHaveBeenCalled();
 
-      // Verify lock is acquired BEFORE balance check
       const transactionalCallback = mockEm.transactional.mock.calls[0][0];
       await transactionalCallback(mockEm);
 
       expect(mockEm.findOne).toHaveBeenCalledWith(
-        'UserBalanceEntity',
+        expect.anything(), // UserBalanceEntity class
         expect.any(Object),
         expect.objectContaining({ lockMode: LockMode.PESSIMISTIC_WRITE }),
       );
@@ -228,21 +265,32 @@ describe('PaymentService - Race Condition Tests', () => {
       let capturedBalanceForRollback: string | null = null;
 
       mockEm.transactional.mockImplementation(async (callback) => {
-        // Simulate transaction failure after balance deduction
-        throw new Error('Database transaction failed');
+        // Execute callback - let it read balance and create entities
+        return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: originalBalance,
+      // Make persist fail to simulate transaction failure after balance deduction
+      mockEm.persist.mockImplementation(() => {
+        throw new Error('Database persist failed');
+      });
+
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+
+        return {
+          userId,
+          balance: originalBalance,
+        } as any;
       });
 
       mockProvider.createTransfer.mockResolvedValue(
         Ok({
           transferId: 'transfer-3',
           amount: withdrawalAmount,
-          currency: Cryptocurrency.Usdt,
-        }),
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+        }) as any,
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
@@ -254,7 +302,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: withdrawalAmount,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);
@@ -278,17 +326,28 @@ describe('PaymentService - Race Condition Tests', () => {
       const balanceReadOrder: string[] = [];
 
       mockEm.transactional.mockImplementation(async (callback) => {
+        // Execute callback so balance can be read
+        await callback(mockEm);
         throw new Error('Simulated failure');
       });
 
-      mockEm.findOne.mockImplementation(async () => {
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+
         balanceReadOrder.push('balance_read_in_transaction');
 
         return { userId, balance: balanceBeforeTransaction };
       });
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-4', amount: '25.00', currency: Cryptocurrency.Usdt }),
+        Ok({
+          transferId: 'transfer-4',
+          amount: '25.00',
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+          status: PaymentStatus.Completed,
+        } as any),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
@@ -300,7 +359,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: '25.00',
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       await service.createWithdrawal(userId, withdrawalDto);
@@ -385,17 +444,31 @@ describe('PaymentService - Race Condition Tests', () => {
       let rollbackPerformed = false;
 
       mockEm.transactional.mockImplementation(async (callback) => {
-        // Provider failure happens inside transaction
-        throw new Error('Provider rejected transfer');
+        // Execute callback so provider failure can happen
+        return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: originalBalance,
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+
+        return { userId, balance: originalBalance } as any;
       });
 
-      // Provider failure
-      mockProvider.createTransfer.mockResolvedValue(Err(new Error('Transfer rejected by provider')));
+      // Provider succeeds, but persist fails after balance deduction
+      mockProvider.createTransfer.mockResolvedValue(
+        Ok({
+          transferId: 'transfer-6',
+          amount: withdrawalAmount,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+        }) as any,
+      );
+
+      // Make persist fail to simulate failure after balance deduction
+      mockEm.persist.mockImplementation(() => {
+        throw new Error('Database persist failed after balance deduction');
+      });
 
       mockBalanceRepository.createOrUpdateBalance.mockImplementation(async (uid, curr, balance) => {
         if (balance === originalBalance) {
@@ -408,7 +481,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: withdrawalAmount,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);
@@ -430,13 +503,21 @@ describe('PaymentService - Race Condition Tests', () => {
         return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: exactBalance,
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+
+        return { userId, balance: exactBalance } as any;
       });
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-5', amount: exactBalance, currency: Cryptocurrency.Usdt }),
+        Ok({
+          transferId: 'transfer-5',
+          amount: exactBalance,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+          status: PaymentStatus.Completed,
+        } as any),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockResolvedValue({} as any);
@@ -451,7 +532,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: exactBalance,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);
@@ -459,8 +540,8 @@ describe('PaymentService - Race Condition Tests', () => {
       expect(result.ok).toBe(true);
       expect(mockBalanceRepository.createOrUpdateBalance).toHaveBeenCalledWith(
         userId,
-        CurrencyType.Rub,
-        '0.00', // Balance should be exactly zero
+        Cryptocurrency.Usdt as unknown as CurrencyCode,
+        '0.00000000', // Balance should be exactly zero (8 decimal places)
       );
     });
 
@@ -473,13 +554,21 @@ describe('PaymentService - Race Condition Tests', () => {
         return await callback(mockEm);
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: smallBalance,
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+
+        return { userId, balance: smallBalance } as any;
       });
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-6', amount: smallWithdrawal, currency: Cryptocurrency.Usdt }),
+        Ok({
+          transferId: 'transfer-6',
+          amount: smallWithdrawal,
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+          status: PaymentStatus.Completed,
+        } as any),
       );
 
       mockBalanceRepository.createOrUpdateBalance.mockResolvedValue({} as any);
@@ -492,7 +581,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: smallWithdrawal,
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);
@@ -510,13 +599,21 @@ describe('PaymentService - Race Condition Tests', () => {
         throw new Error('Transaction failed');
       });
 
-      mockEm.findOne.mockResolvedValue({
-        userId,
-        balance: originalBalance,
+      mockEm.findOne.mockImplementation(async (entity) => {
+        if (entity === 'CurrencyEntity') {
+          return { id: 'currency-id-123', code: CurrencyCode.Usdt };
+        }
+
+        return { userId, balance: originalBalance } as any;
       });
 
       mockProvider.createTransfer.mockResolvedValue(
-        Ok({ transferId: 'transfer-7', amount: '50.00', currency: Cryptocurrency.Usdt }),
+        Ok({
+          transferId: 'transfer-7',
+          amount: '50.00',
+          currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
+          status: PaymentStatus.Completed,
+        } as any),
       );
 
       // Rollback also fails (worst case scenario)
@@ -525,7 +622,7 @@ describe('PaymentService - Race Condition Tests', () => {
       const withdrawalDto: CreateTransferDto = {
         userId,
         amount: '50.00',
-        currency: Cryptocurrency.Usdt,
+        currency: Cryptocurrency.Usdt as unknown as CurrencyCode,
       };
 
       const result = await service.createWithdrawal(userId, withdrawalDto);

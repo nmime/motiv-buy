@@ -27,8 +27,8 @@ export class BalanceActionHandler {
   /**
    * Handle balance view action
    */
+
   async handleBalanceView(ctx: AuthenticatedBotContext): Promise<void> {
-    const em = this.em.fork();
     try {
       const balances = await this.getUserBalances(ctx.user.id);
       const balanceText = await this.formatBalanceView(ctx, balances);
@@ -48,9 +48,9 @@ export class BalanceActionHandler {
 
   /**
    * Handle transaction history view
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
    */
   async handleTransactionHistory(ctx: AuthenticatedBotContext, page = 1): Promise<void> {
-    const em = this.em.fork();
     try {
       const limit = 10;
       const offset = (page - 1) * limit;
@@ -100,10 +100,10 @@ export class BalanceActionHandler {
   }
 
   /**
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
    * Handle withdrawal initiation
    */
   async handleWithdrawalStart(ctx: AuthenticatedBotContext): Promise<void> {
-    const em = this.em.fork();
     try {
       // Check if user is verified
       if (!ctx.user.isVerified) {
@@ -150,7 +150,6 @@ export class BalanceActionHandler {
         '\n\n' +
         ctx.t('balance.deposit_info_min_deposit');
 
-      const { InlineKeyboard } = require('grammy');
       const depositKeyboard = new InlineKeyboard()
         .text(ctx.t('balance.deposit_card'), 'deposit:card')
         .text(ctx.t('balance.deposit_crypto'), 'deposit:crypto')
@@ -191,6 +190,7 @@ export class BalanceActionHandler {
     let text = ctx.t('balance.your_balance') + '\n\n';
 
     for (const balance of balances) {
+      // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
       const currency = await balance.currency.load();
       if (!currency) {
         continue;
@@ -200,11 +200,13 @@ export class BalanceActionHandler {
       const lockedBalanceDisplay = toDisplayString(balance.getLockedBalance(), 8);
       const totalBalanceDisplay = toDisplayString(balance.getTotalBalance(), 8);
 
+      const currencySymbol = currency.symbol ?? currency.code;
+
       text +=
         `<b>${currency.code}:</b>\n` +
-        `  ${ctx.t('balance.available')}: ${availableBalanceDisplay} ${currency.symbol ?? currency.code}\n` +
-        `  ${ctx.t('balance.locked')}: ${lockedBalanceDisplay} ${currency.symbol ?? currency.code}\n` +
-        `  ${ctx.t('balance.total')}: ${totalBalanceDisplay} ${currency.symbol ?? currency.code}\n\n`;
+        `  ${ctx.t('balance.available')}: ${availableBalanceDisplay} ${currencySymbol}\n` +
+        `  ${ctx.t('balance.locked')}: ${lockedBalanceDisplay} ${currencySymbol}\n` +
+        `  ${ctx.t('balance.total')}: ${totalBalanceDisplay} ${currencySymbol}\n\n`;
     }
 
     text += ctx.t('balance.balance_buttons_hint');
@@ -235,7 +237,7 @@ export class BalanceActionHandler {
         `${emoji} <b>${tx.type}</b>\n` +
         `  ${ctx.t('balance.amount')}: ${amountText} ${currencyCode}\n` +
         `  ${ctx.t('balance.date')}: ${tx.createdAt.toLocaleString()}\n` +
-        `${tx.description ? `  ${ctx.t('balance.note')}: ${tx.description}\n` : ''}` +
+        (tx.description ? `  ${ctx.t('balance.note')}: ${tx.description}\n` : '') +
         `\n`;
     }
 
@@ -249,6 +251,7 @@ export class BalanceActionHandler {
     const keyboard = new InlineKeyboard();
 
     for (const balance of balances) {
+      // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
       const currency = await balance.currency.load();
       if (!currency) {
         continue;

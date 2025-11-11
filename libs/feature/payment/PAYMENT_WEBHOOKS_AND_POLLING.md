@@ -3,6 +3,7 @@
 ## Overview
 
 The payment system now supports **dual update strategies** for all payment providers:
+
 - **Webhooks** (Push-based): Real-time notifications from payment providers
 - **Polling** (Pull-based): Periodic status checks for pending transactions
 - **Hybrid Mode** (Recommended): Both webhooks and polling for maximum reliability
@@ -11,11 +12,11 @@ The payment system now supports **dual update strategies** for all payment provi
 
 All three payment providers now have full webhook and polling support:
 
-| Provider | Webhook Endpoint | Signature Verification | Polling Support | Status |
-|----------|------------------|------------------------|-----------------|---------|
-| **CryptoBot** | `/payment/webhook/crypto-bot` | ✅ HMAC-SHA256 | ✅ Yes | **FULLY OPERATIONAL** |
-| **Heleke** | `/payment/webhook/heleke` | ✅ HMAC-SHA256 | ✅ Yes | **FULLY OPERATIONAL** |
-| **YooKassa** | `/payment/webhook/yookassa` | ✅ IP Whitelist | ✅ Yes | **FULLY OPERATIONAL** |
+| Provider      | Webhook Endpoint              | Signature Verification | Polling Support | Status                |
+| ------------- | ----------------------------- | ---------------------- | --------------- | --------------------- |
+| **CryptoBot** | `/payment/webhook/crypto-bot` | ✅ HMAC-SHA256         | ✅ Yes          | **FULLY OPERATIONAL** |
+| **Heleke**    | `/payment/webhook/heleke`     | ✅ HMAC-SHA256         | ✅ Yes          | **FULLY OPERATIONAL** |
+| **YooKassa**  | `/payment/webhook/yookassa`   | ✅ IP Whitelist        | ✅ Yes          | **FULLY OPERATIONAL** |
 
 ---
 
@@ -69,6 +70,7 @@ PAYMENT_POLLING_YOOKASSA=true
 ## Update Strategies
 
 ### 1. **WEBHOOK** (Push-based only)
+
 - Payment provider sends real-time notifications
 - Instant updates when payment status changes
 - Requires public endpoint accessible by provider
@@ -82,6 +84,7 @@ PAYMENT_POLLING_CRYPTOBOT=false  # Optional: explicitly disable
 ```
 
 ### 2. **POLLING** (Pull-based only)
+
 - Application periodically checks payment status
 - Works without public webhooks
 - Configurable interval (default: 30 seconds)
@@ -95,6 +98,7 @@ CRYPTO_BOT_WEBHOOK_URL=  # Leave empty or omit
 ```
 
 ### 3. **HYBRID** (Push + Pull) - **RECOMMENDED**
+
 - Both webhooks AND polling enabled
 - Maximum reliability and resilience
 - Idempotency prevents duplicate processing
@@ -117,18 +121,21 @@ PAYMENT_POLLING_CRYPTOBOT=true
 **Endpoint**: `POST /payment/webhook/crypto-bot`
 
 **Headers**:
+
 ```
 crypto-pay-api-signature: <HMAC-SHA256-signature>
 Content-Type: application/json
 ```
 
 **Signature Verification**:
+
 ```
 secret = SHA256(CRYPTO_BOT_API_TOKEN)
 signature = HMAC-SHA256(request_body, secret)
 ```
 
 **Payload Example**:
+
 ```json
 {
   "updateType": "invoice_paid",
@@ -152,17 +159,20 @@ signature = HMAC-SHA256(request_body, secret)
 **Endpoint**: `POST /payment/webhook/heleke`
 
 **Headers**:
+
 ```
 x-heleke-signature: <HMAC-SHA256-signature>
 Content-Type: application/json
 ```
 
 **Signature Verification**:
+
 ```
 signature = HMAC-SHA256(request_body, HELEKET_API_TOKEN)
 ```
 
 **Payload Example**:
+
 ```json
 {
   "updateType": "invoice_paid",
@@ -185,6 +195,7 @@ signature = HMAC-SHA256(request_body, HELEKET_API_TOKEN)
 **Endpoint**: `POST /payment/webhook/yookassa`
 
 **Headers**:
+
 ```
 x-forwarded-for: <client-ip>
 x-real-ip: <client-ip>
@@ -192,6 +203,7 @@ Content-Type: application/json
 ```
 
 **IP Whitelist Verification**:
+
 ```
 Allowed IPs (from YooKassa documentation):
 - 185.71.76.0/27
@@ -202,6 +214,7 @@ Allowed IPs (from YooKassa documentation):
 ```
 
 **Payload Example**:
+
 ```json
 {
   "updateType": "invoice_paid",
@@ -241,6 +254,7 @@ PAYMENT_POLLING_INTERVAL=30000  # milliseconds
 ```
 
 **Recommendations**:
+
 - **Development**: 10-15 seconds for faster feedback
 - **Production**: 30-60 seconds to reduce API calls
 - **High Volume**: 60-120 seconds to prevent rate limiting
@@ -288,6 +302,7 @@ When both webhooks and polling are enabled, **race conditions are prevented** th
 ### Balance Crediting/Refunding
 
 **Double-crediting prevented** through:
+
 - Pessimistic locking on transaction reload
 - `balanceCredited` flag in transaction metadata
 - Atomic check-and-set within database transaction
@@ -365,18 +380,18 @@ All operations are logged with structured context:
 
 ### Invoice Events
 
-| Event Type | Description | Webhook | Polling |
-|------------|-------------|---------|---------|
-| `invoice_paid` | Invoice successfully paid | ✅ | ✅ |
-| `invoice_expired` | Invoice expired without payment | ✅ | ✅ |
-| `invoice_cancelled` | Invoice cancelled by user/system | ✅ | ✅ |
+| Event Type          | Description                      | Webhook | Polling |
+| ------------------- | -------------------------------- | ------- | ------- |
+| `invoice_paid`      | Invoice successfully paid        | ✅      | ✅      |
+| `invoice_expired`   | Invoice expired without payment  | ✅      | ✅      |
+| `invoice_cancelled` | Invoice cancelled by user/system | ✅      | ✅      |
 
 ### Transfer Events
 
-| Event Type | Description | Webhook | Polling |
-|------------|-------------|---------|---------|
-| `transfer_completed` | Withdrawal completed successfully | ✅ | ✅ |
-| `transfer_failed` | Withdrawal failed, balance refunded | ✅ | ✅ |
+| Event Type           | Description                         | Webhook | Polling |
+| -------------------- | ----------------------------------- | ------- | ------- |
+| `transfer_completed` | Withdrawal completed successfully   | ✅      | ✅      |
+| `transfer_failed`    | Withdrawal failed, balance refunded | ✅      | ✅      |
 
 ---
 
@@ -412,6 +427,7 @@ All operations are logged with structured context:
 ### Webhooks Not Received
 
 **Check:**
+
 1. Webhook URL is publicly accessible
 2. SSL/TLS certificate is valid
 3. Firewall allows incoming connections
@@ -423,6 +439,7 @@ All operations are logged with structured context:
 ### Polling Not Working
 
 **Check:**
+
 1. `PAYMENT_POLLING_ENABLED=true`
 2. Provider-specific polling flags are `true`
 3. Update strategy is `POLLING` or `HYBRID`
@@ -447,12 +464,14 @@ All operations are logged with structured context:
 ### From Webhook-Only to Hybrid
 
 1. Add polling configuration to environment:
+
 ```bash
 PAYMENT_POLLING_ENABLED=true
 PAYMENT_POLLING_INTERVAL=30000
 ```
 
 2. Update strategy for each provider:
+
 ```bash
 CRYPTO_BOT_UPDATE_STRATEGY=HYBRID
 HELEKET_UPDATE_STRATEGY=HYBRID
@@ -527,6 +546,7 @@ YOOKASSA_UPDATE_STRATEGY=HYBRID
 #### Methods
 
 **`getStatus()`**
+
 ```typescript
 interface PollingStatus {
   enabled: boolean;
@@ -541,6 +561,7 @@ getStatus(): PollingStatus
 ```
 
 **`triggerManualPoll()`**
+
 ```typescript
 triggerManualPoll(): Promise<void>
 ```
@@ -554,16 +575,18 @@ Manually trigger a polling cycle (bypasses interval timer).
 #### New Methods
 
 **`getPollingConfig()`**
+
 ```typescript
 getPollingConfig(): PaymentPollingConfig
 ```
 
 **`getCryptoBotConfig().updateStrategy`**
+
 ```typescript
 enum PaymentUpdateStrategy {
   Webhook = 'WEBHOOK',
   Polling = 'POLLING',
-  Hybrid = 'HYBRID'
+  Hybrid = 'HYBRID',
 }
 ```
 
@@ -578,6 +601,7 @@ enum PaymentUpdateStrategy {
 **Lock Overhead**: Minimal (row-level locks, milliseconds)
 
 **Example**: With 50 pending transactions and 30s interval:
+
 - 50 API calls every 30 seconds = 100 calls/minute
 - Well within most provider rate limits (usually 300-1000/min)
 
@@ -598,6 +622,7 @@ enum PaymentUpdateStrategy {
 ## Support & Contact
 
 For questions or issues:
+
 1. Check logs for specific error messages
 2. Review this documentation
 3. Check provider documentation for webhook formats

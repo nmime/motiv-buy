@@ -130,6 +130,7 @@ export class BotUserService {
   /**
    * Parse start command parameters
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private parseStartParams(param: string): TelegramAuthParams['sourceParams'] | undefined {
     try {
       // Try to parse as JSON (for complex parameters)

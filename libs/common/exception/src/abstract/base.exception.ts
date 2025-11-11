@@ -33,6 +33,8 @@ export abstract class BaseException<DataType extends OptionalClassConstructor = 
     this.cause = props.cause;
 
     if ('data' in props) {
+      // Type assertion required: TypeScript cannot automatically narrow generic conditional types
+      // This assertion ensures the data property matches the expected type based on DataType generic
       this.data = props.data as DataType extends undefined
         ? undefined
         : DataType extends abstract new (...args: unknown[]) => unknown
@@ -42,6 +44,8 @@ export abstract class BaseException<DataType extends OptionalClassConstructor = 
 
     this.meta = props.meta;
 
+    // Type assertion required: Accessing static property from instance constructor
+    // TypeScript cannot infer static properties from this.constructor without assertion
     const exceptionClass = this.constructor as typeof BaseException & { problemType?: string };
     this.type = props.type ?? exceptionClass.problemType ?? 'internal_error';
 

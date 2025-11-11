@@ -166,8 +166,8 @@ this.logger.log('Financial operation completed', {
 
 - **LOG_LEVEL**: Log level (debug, info, warn, error) - defaults to 'debug'
 - **NODE_ENV**: Environment setting (affects log formatting)
-    - `production`: JSON format for machine processing
-    - `development/other`: Pretty printed format for human readability
+  - `production`: JSON format for machine processing
+  - `development/other`: Pretty printed format for human readability
 
 ### Logger Configuration
 

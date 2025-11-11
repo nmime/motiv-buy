@@ -61,6 +61,7 @@ export class SettingsService {
     }
 
     for (const update of updates) {
+      // eslint-disable-next-line no-await-in-loop
       const existing = await em.findOne(UserSettingsEntity, {
         user: userId,
         key: update.key,

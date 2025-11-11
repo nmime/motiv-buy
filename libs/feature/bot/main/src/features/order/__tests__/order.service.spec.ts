@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, no-await-in-loop */
 /**
  * Order Service Tests
  */
@@ -5,13 +6,36 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderService } from '../order.service';
 import { defaultOrderConfig, OrderFlowStep, OrderStatus } from '../order.types';
+import { BotSubscriptionService } from '@app/feature-bot-shared';
+import { BotConfigService } from '../../../config';
 
 describe('OrderService', () => {
   let service: OrderService;
+  let mockBotSubscriptionService: jest.Mocked<BotSubscriptionService>;
+  let mockBotConfigService: jest.Mocked<BotConfigService>;
 
   beforeEach(async () => {
+    // Create mock services
+    mockBotSubscriptionService = {
+      checkSubscription: jest.fn(),
+    } as any;
+
+    mockBotConfigService = {
+      getConfig: jest.fn().mockReturnValue({ defaultLanguage: 'en' }),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [OrderService],
+      providers: [
+        OrderService,
+        {
+          provide: BotSubscriptionService,
+          useValue: mockBotSubscriptionService,
+        },
+        {
+          provide: BotConfigService,
+          useValue: mockBotConfigService,
+        },
+      ],
     }).compile();
 
     service = module.get<OrderService>(OrderService);

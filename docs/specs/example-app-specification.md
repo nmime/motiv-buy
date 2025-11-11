@@ -5,12 +5,15 @@
 This document outlines the implementation of a comprehensive authentication service API for the xRocket platform. This serves as a template for documenting NestJS application specifications using enterprise-grade backend patterns.
 
 ### Application Type
+
 This is an **API** application type - one of three application types in xRocket:
+
 - **api**: HTTP API services (like this auth service) - deployed with N replicas
 - **scheduler**: Background job processing - single replica deployment
 - **consumer**: Message queue consumers - deployed with N replicas
 
 ### Application Objectives
+
 - Provide secure authentication for Telegram Mini App users
 - Support multiple authentication methods (TMA, Telegram Widget, Dev mode)
 - Implement comprehensive JWT token management with caching
@@ -18,13 +21,16 @@ This is an **API** application type - one of three application types in xRocket:
 - Maintain high performance with Redis caching and database optimization
 
 ### Domain Ownership
+
 This application composes the **auth** domain, which includes:
+
 - Authentication business logic
 - User session management
 - JWT token lifecycle
 - Cross-domain authentication events
 
 ### Key Technologies
+
 - **Backend Framework**: NestJS 10+ with TypeScript
 - **Database**: MySQL with TypeORM for user management
 - **Caching**: Redis for JWT tokens, user preferences, and session data
@@ -192,7 +198,7 @@ async function bootstrap() {
 
   // Security middleware
   app.use(helmet());
-  
+
   // CORS configuration
   app.enableCors({
     origin: configService.corsOrigins,
@@ -216,7 +222,7 @@ async function bootstrap() {
       .setVersion('1.0')
       .addBearerAuth()
       .build();
-    
+
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document);
   }
@@ -274,16 +280,18 @@ import * as compression from 'compression';
 
 async function configureMiddleware(app: any, config: ApiConfigService) {
   // Security middleware
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
       },
-    },
-  }));
+    }),
+  );
 
   // Compression
   app.use(compression());
@@ -311,6 +319,7 @@ async function configureMiddleware(app: any, config: ApiConfigService) {
 ## Implementation Plan
 
 ### Phase 1: Application Setup (Week 1)
+
 - [ ] Create auth-api application structure in `apps/auth/auth-api/`
 - [ ] Configure application module to import domain libraries
 - [ ] Set up application-specific configuration service
@@ -318,6 +327,7 @@ async function configureMiddleware(app: any, config: ApiConfigService) {
 - [ ] Set up application entry point with middleware configuration
 
 ### Phase 2: Application Integration (Week 2)
+
 - [ ] Wire up domain modules (AuthMainModule, AuthSharedModule)
 - [ ] Configure database, Redis, and RabbitMQ connections
 - [ ] Set up application-level middleware (helmet, CORS, compression)
@@ -325,6 +335,7 @@ async function configureMiddleware(app: any, config: ApiConfigService) {
 - [ ] Implement health check endpoints for monitoring
 
 ### Phase 3: Production Configuration (Week 3)
+
 - [ ] Configure Swagger/OpenAPI documentation
 - [ ] Set up security headers and CORS policies
 - [ ] Configure rate limiting and throttling at application level
@@ -332,6 +343,7 @@ async function configureMiddleware(app: any, config: ApiConfigService) {
 - [ ] Configure graceful shutdown and error handling
 
 ### Phase 4: Build and Deployment (Week 4)
+
 - [ ] Configure Nx build pipeline with webpack optimization
 - [ ] Set up Docker containerization for production deployment
 - [ ] Configure Kubernetes deployment manifests
@@ -339,6 +351,7 @@ async function configureMiddleware(app: any, config: ApiConfigService) {
 - [ ] Configure monitoring, metrics, and alerting
 
 ### Phase 5: Testing and Validation (Week 5)
+
 - [ ] Application-level integration testing
 - [ ] End-to-end API testing with real domain integration
 - [ ] Load testing for authentication endpoints
@@ -348,18 +361,21 @@ async function configureMiddleware(app: any, config: ApiConfigService) {
 ## API Design Considerations
 
 ### RESTful Endpoints
+
 - Consistent URL patterns following REST conventions
 - Proper HTTP status codes and response formatting
 - Comprehensive OpenAPI/Swagger documentation
 - Standardized error response structure
 
 ### Performance Optimization
+
 - Redis caching for frequently accessed data
 - Database connection pooling with configurable limits
 - Efficient JWT token validation with caching
 - Rate limiting to prevent abuse and ensure fair usage
 
 ### Monitoring and Observability
+
 - Structured logging with correlation IDs
 - Health check endpoints for infrastructure monitoring
 - Metrics collection for performance tracking
@@ -368,23 +384,21 @@ async function configureMiddleware(app: any, config: ApiConfigService) {
 ## Security Considerations
 
 ### API Security
+
 ```typescript
 // Example: Secure authentication validation
 @Injectable()
 export class AuthValidationService {
   constructor(
     private readonly configService: AuthConfigService,
-    private readonly jwtCacheService: AuthJwtCacheService
+    private readonly jwtCacheService: AuthJwtCacheService,
   ) {}
 
-  async validateTelegramData(
-    searchParams: URLSearchParams,
-    botToken: string
-  ): Promise<boolean> {
+  async validateTelegramData(searchParams: URLSearchParams, botToken: string): Promise<boolean> {
     try {
       // Validate Telegram Mini App data signature
       const isValid = validateWebAppData(botToken, searchParams);
-      
+
       if (!isValid) {
         this.logger.warn('Invalid Telegram data signature');
         return false;
@@ -404,7 +418,7 @@ export class AuthValidationService {
         if (currentTime - authTimestamp > maxAge) {
           this.logger.warn('Auth date expired', {
             authDate: new Date(authTimestamp),
-            currentTime: new Date(currentTime)
+            currentTime: new Date(currentTime),
           });
           return false;
         }
@@ -413,31 +427,26 @@ export class AuthValidationService {
       return true;
     } catch (error) {
       this.logger.error('Telegram data validation failed', {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
   }
 
-  async validateJwtToken(
-    token: string
-  ): Promise<AuthJwtPayloadDto | null> {
+  async validateJwtToken(token: string): Promise<AuthJwtPayloadDto | null> {
     try {
       // Verify JWT signature
       const payload = this.jwtService.verify(token, {
-        secret: this.configService.jwtSecret
+        secret: this.configService.jwtSecret,
       }) as AuthJwtPayloadDto;
 
       // Validate token exists in cache (not revoked)
-      const cachedPayload = await this.jwtCacheService.validateJwtKey(
-        payload.userId,
-        payload.uniqueKey
-      );
+      const cachedPayload = await this.jwtCacheService.validateJwtKey(payload.userId, payload.uniqueKey);
 
       if (!cachedPayload) {
         this.logger.warn('JWT token not found in cache', {
           userId: payload.userId,
-          uniqueKey: payload.uniqueKey
+          uniqueKey: payload.uniqueKey,
         });
         return null;
       }
@@ -445,7 +454,7 @@ export class AuthValidationService {
       return payload;
     } catch (error) {
       this.logger.error('JWT validation failed', {
-        error: error.message
+        error: error.message,
       });
       return null;
     }
@@ -454,6 +463,7 @@ export class AuthValidationService {
 ```
 
 ### Data Protection
+
 - All sensitive data encrypted in transit with HTTPS
 - JWT tokens with proper expiration and revocation
 - Database credentials and API keys stored securely
@@ -464,6 +474,7 @@ export class AuthValidationService {
 ## Testing Strategy
 
 ### Unit Tests
+
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
@@ -586,12 +597,14 @@ describe('AuthService', () => {
 ```
 
 ### Integration Tests
+
 - Database integration testing with test containers
 - Redis caching integration tests
 - JWT token lifecycle testing
 - Rate limiting and throttling integration tests
 
 ### E2E Tests
+
 ```typescript
 // test/auth.e2e-spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
@@ -628,27 +641,20 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should reject invalid user ID', () => {
-      return request(app.getHttpServer())
-        .get('/api/v1/auth/dev')
-        .query({ id: 'invalid_user' })
-        .expect(404);
+      return request(app.getHttpServer()).get('/api/v1/auth/dev').query({ id: 'invalid_user' }).expect(404);
     });
 
     it('should apply rate limiting', async () => {
       const promises = [];
-      
+
       // Make 25 requests (exceeding the 20 req/min limit)
       for (let i = 0; i < 25; i++) {
-        promises.push(
-          request(app.getHttpServer())
-            .get('/api/v1/auth/dev')
-            .query({ id: 'test_user_123' })
-        );
+        promises.push(request(app.getHttpServer()).get('/api/v1/auth/dev').query({ id: 'test_user_123' }));
       }
 
       const responses = await Promise.all(promises);
-      const rateLimitedResponses = responses.filter(res => res.status === 429);
-      
+      const rateLimitedResponses = responses.filter((res) => res.status === 429);
+
       expect(rateLimitedResponses.length).toBeGreaterThan(0);
     });
   });
@@ -683,9 +689,7 @@ describe('AuthController (e2e)', () => {
         hash: 'valid_hash_here',
       });
 
-      return request(app.getHttpServer())
-        .get(`/api/v1/auth/tma?${tmaParams.toString()}`)
-        .expect(400);
+      return request(app.getHttpServer()).get(`/api/v1/auth/tma?${tmaParams.toString()}`).expect(400);
     });
   });
 });
@@ -694,6 +698,7 @@ describe('AuthController (e2e)', () => {
 ## Deployment Strategy
 
 ### Build Configuration
+
 ```javascript
 // webpack.config.js
 const { composePlugins, withNx } = require('@nx/webpack');
@@ -776,6 +781,7 @@ module.exports = composePlugins(withNx(), (config) => {
 ```
 
 ### Docker Configuration
+
 ```dockerfile
 # Multi-stage build for NestJS application
 FROM node:20.12.2-alpine3.18 AS base
@@ -828,10 +834,10 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 CMD ["node", "main.js"]
 ```
 
-
 ## Related Files
 
 ### Application Files
+
 - `apps/auth/auth-api/src/auth-api.module.ts` - Main application module (composition root)
 - `apps/auth/auth-api/src/main.ts` - Application entry point and bootstrap
 - `apps/auth/auth-api/src/config/auth-api.config.ts` - Application-specific configuration
@@ -842,6 +848,7 @@ CMD ["node", "main.js"]
 - `apps/auth/auth-api/Dockerfile` - Container configuration
 
 ### Build and Deployment
+
 - `apps/auth/auth-api/environments/` - Environment-specific configurations
 - `apps/auth/auth-api/k8s/` - Kubernetes deployment manifests
 - `apps/auth/auth-api/.env.template` - Environment variables template
@@ -853,4 +860,4 @@ CMD ["node", "main.js"]
 
 ---
 
-*This application specification template provides a comprehensive approach to building secure authentication services with NestJS, TypeScript, and enterprise-grade patterns. Customize based on your specific authentication requirements and security standards.*
+_This application specification template provides a comprehensive approach to building secure authentication services with NestJS, TypeScript, and enterprise-grade patterns. Customize based on your specific authentication requirements and security standards._

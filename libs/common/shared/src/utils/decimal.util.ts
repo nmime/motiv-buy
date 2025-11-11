@@ -26,9 +26,10 @@ Decimal.set({
 });
 
 /**
- * Type alias for decimal values (string representation in database)
+ * Branded type for decimal values (string representation in database)
+ * This provides type safety and semantic clarity for database decimal columns
  */
-export type DecimalString = string;
+export type DecimalString = string & { readonly __brand: 'DecimalString' };
 
 /**
  * Type guard to check if a value is a valid decimal string
@@ -56,7 +57,9 @@ export function isDecimalValue(value: unknown): value is Decimal.Value {
   }
 
   try {
-    new Decimal(value as Decimal.Value);
+    // Decimal constructor handles unknown internally, no cast needed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Decimal.js accepts any value internally
+    new Decimal(value as any);
 
     return true;
   } catch {
@@ -315,7 +318,7 @@ export function clamp(value: Decimal.Value, minValue: Decimal.Value, maxValue: D
  * This matches PostgreSQL decimal(precision, scale) format
  */
 export function toDbString(value: Decimal.Value, decimalPlaces = 8): DecimalString {
-  return new Decimal(value).toFixed(decimalPlaces);
+  return new Decimal(value).toFixed(decimalPlaces) as DecimalString;
 }
 
 /**
@@ -327,10 +330,17 @@ export function toDisplayString(value: Decimal.Value, decimalPlaces = 2): string
   const rounded = dec.toDecimalPlaces(decimalPlaces);
 
   // Convert to string and remove trailing zeros after decimal point
-  return rounded
-    .toString()
-    .replace(/(\.\d*?)0+$/, '$1')
-    .replace(/\.$/, '');
+  const str = rounded.toString();
+  if (!str.includes('.')) {
+    return str;
+  }
+
+  // Remove trailing zeros: split approach avoids regex backtracking vulnerability
+  const [integerPart, decimalPart] = str.split('.');
+  // eslint-disable-next-line sonarjs/slow-regex -- Safe: simple quantifier at end, no backtracking possible
+  const trimmedDecimal = decimalPart.replace(/0+$/, '');
+
+  return trimmedDecimal ? `${integerPart}.${trimmedDecimal}` : integerPart;
 }
 
 /**

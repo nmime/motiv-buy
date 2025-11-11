@@ -21,7 +21,7 @@ describe('MenuActionDto', () => {
       const dto = new MenuActionDto({
         userId: '123456789',
         chatId: '-987654321',
-      } as Partial<MenuActionDto>);
+      } as any);
 
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'action')).toBe(true);
@@ -41,7 +41,7 @@ describe('MenuActionDto', () => {
       const dto = new MenuActionDto({
         action: MenuActionType.Navigate,
         userId: '123456789',
-      } as Partial<MenuActionDto>);
+      } as any);
 
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'chatId')).toBe(true);
@@ -196,7 +196,7 @@ describe('MenuActionResponseDto', () => {
     it('should require success field', async () => {
       const dto = new MenuActionResponseDto({
         message: 'Test message',
-      } as Partial<MenuActionResponseDto>);
+      } as any);
 
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'success')).toBe(true);

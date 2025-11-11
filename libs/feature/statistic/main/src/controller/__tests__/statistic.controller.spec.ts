@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import { Test, TestingModule } from '@nestjs/testing';
 import { StatisticController } from '../statistic.controller';
 import { StatisticService } from '../../service';

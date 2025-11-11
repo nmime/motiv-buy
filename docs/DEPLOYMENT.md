@@ -155,6 +155,7 @@ sudo bash setup-vps.sh
 ```
 
 This script will:
+
 - Install Docker and Docker Compose
 - Create deployment user (`deployer`)
 - Setup firewall (UFW)
@@ -278,6 +279,7 @@ git push origin feature/new-feature
 ```
 
 GitHub Actions will:
+
 1. Run CI checks (lint, test, build)
 2. Build Docker images
 3. Push to GitHub Container Registry
@@ -300,6 +302,7 @@ git push origin v1.0.0
 ```
 
 GitHub Actions will:
+
 1. Run full CI pipeline
 2. Build production Docker images
 3. Backup database

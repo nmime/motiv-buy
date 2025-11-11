@@ -7,9 +7,11 @@ This document describes the comprehensive bot menu system implementation for the
 ## Implemented Features
 
 ### 1. Profile Management
+
 **Location:** `/monorepo/libs/feature/bot/main/src/handler/profile-action.handler.ts`
 
 **Features:**
+
 - View user profile with status, verification, and referral information
 - Edit profile fields (first name, last name, username, language)
 - View detailed profile information
@@ -17,6 +19,7 @@ This document describes the comprehensive bot menu system implementation for the
 - Input validation for all profile fields
 
 **Actions:**
+
 - `profile:view` - Display user profile
 - `profile:edit` - Start profile editing
 - `profile:edit:<field>` - Edit specific field
@@ -24,9 +27,11 @@ This document describes the comprehensive bot menu system implementation for the
 - `profile:verify` - Check verification status
 
 ### 2. Balance Management
+
 **Location:** `/monorepo/libs/feature/bot/main/src/handler/balance-action.handler.ts`
 
 **Features:**
+
 - View balance across multiple currencies
 - Transaction history with pagination
 - Withdrawal initiation with verification checks
@@ -34,6 +39,7 @@ This document describes the comprehensive bot menu system implementation for the
 - Available, locked, and total balance display
 
 **Actions:**
+
 - `balance:view` - Display all balances
 - `balance:history` - View transaction history
 - `balance:history:page:<number>` - Paginated history
@@ -41,9 +47,11 @@ This document describes the comprehensive bot menu system implementation for the
 - `balance:deposit` - Show deposit options
 
 ### 3. Statistics & Analytics
+
 **Location:** `/monorepo/libs/feature/bot/main/src/handler/statistics-action.handler.ts`
 
 **Features:**
+
 - Statistics overview with key metrics
 - Detailed statistics by order status and type
 - Traffic analytics with completion rates
@@ -51,15 +59,18 @@ This document describes the comprehensive bot menu system implementation for the
 - Last 7 days earnings tracking
 
 **Actions:**
+
 - `stats:overview` - Show statistics summary
 - `stats:detailed` - Detailed statistics breakdown
 - `stats:traffic` - Traffic performance metrics
 - `stats:earnings` - Earnings analysis
 
 ### 4. Order Management
+
 **Location:** `/monorepo/libs/feature/bot/main/src/handler/order-action.handler.ts`
 
 **Features:**
+
 - View active orders with progress tracking
 - Completed orders history
 - Order creation workflow
@@ -67,6 +78,7 @@ This document describes the comprehensive bot menu system implementation for the
 - Detailed order information with all metrics
 
 **Actions:**
+
 - `orders:active` - List active orders
 - `orders:active:page:<number>` - Paginated active orders
 - `orders:completed` - List completed orders
@@ -75,9 +87,11 @@ This document describes the comprehensive bot menu system implementation for the
 - `order:details:<orderId>` - View order details
 
 ### 5. Settings Configuration
+
 **Location:** `/monorepo/libs/feature/bot/main/src/handler/settings-action.handler.ts`
 
 **Features:**
+
 - Language selection (7 supported languages)
 - Notification preferences (5 types)
 - Privacy settings
@@ -85,6 +99,7 @@ This document describes the comprehensive bot menu system implementation for the
 - Toggle-based configuration
 
 **Actions:**
+
 - `settings:language` - Language selection menu
 - `settings:lang:<code>` - Change language
 - `settings:notifications` - Notification settings
@@ -95,9 +110,11 @@ This document describes the comprehensive bot menu system implementation for the
 ## Security Features
 
 ### 1. Rate Limiting
+
 **Location:** `/monorepo/libs/feature/bot/main/src/middleware/rate-limit.middleware.ts`
 
 **Features:**
+
 - Per-user rate limiting
 - Different limits for different action types
 - Automatic blocking for repeated violations
@@ -105,15 +122,18 @@ This document describes the comprehensive bot menu system implementation for the
 - In-memory storage with automatic cleanup
 
 **Configuration:**
+
 - Messages: 20 requests/minute
 - Callbacks: 30 requests/minute
 - Withdrawals: 3 requests/hour
 - Order Creation: 10 requests/hour
 
 ### 2. CSRF Protection
+
 **Location:** `/monorepo/libs/feature/bot/main/src/middleware/csrf-protection.middleware.ts`
 
 **Features:**
+
 - Token generation for protected actions
 - Session-based token storage
 - Token validation and expiration (30 minutes)
@@ -121,6 +141,7 @@ This document describes the comprehensive bot menu system implementation for the
 - Protected callback data generation
 
 **Protected Actions:**
+
 - Withdrawal operations
 - Order creation/cancellation
 - Settings updates
@@ -128,9 +149,11 @@ This document describes the comprehensive bot menu system implementation for the
 - Payment confirmations
 
 ### 3. Input Validation
+
 **Location:** `/monorepo/libs/feature/bot/main/src/util/bot-validation.util.ts`
 
 **Features:**
+
 - Comprehensive validation utilities (pre-existing)
 - Email, phone, username validation
 - Message sanitization
@@ -141,7 +164,9 @@ This document describes the comprehensive bot menu system implementation for the
 ## Architecture
 
 ### Handler Pattern
+
 Each feature area has a dedicated handler:
+
 - `MenuActionHandler` - Menu creation and navigation
 - `ProfileActionHandler` - Profile operations
 - `BalanceActionHandler` - Balance operations
@@ -150,9 +175,11 @@ Each feature area has a dedicated handler:
 - `SettingsActionHandler` - Settings management
 
 ### Router Pattern
+
 **Location:** `/monorepo/libs/feature/bot/main/src/handler/callback-router.handler.ts`
 
 The `CallbackRouterHandler` provides centralized routing:
+
 - Parses callback data
 - Applies rate limiting
 - Routes to appropriate handler
@@ -160,7 +187,9 @@ The `CallbackRouterHandler` provides centralized routing:
 - Provides answer callback query
 
 ### State Management
+
 Session-based state management for multi-step actions:
+
 - `conversationState` - Current conversation context
 - `formData` - Data collected during multi-step flows
 - `temp` - Temporary data (CSRF tokens, etc.)
@@ -168,15 +197,18 @@ Session-based state management for multi-step actions:
 ## Integration
 
 ### Main Bot Service
+
 **Location:** `/monorepo/libs/feature/bot/main/src/service/bot.service.ts`
 
 **Changes:**
+
 1. Updated callback query handler to use `CallbackRouterHandler`
 2. Updated command handlers to use action handlers
 3. Integrated rate limiting
 4. Added proper error handling
 
 ### Command Mapping
+
 - `/profile` → `ProfileActionHandler.handleProfileView()`
 - `/balance` → `BalanceActionHandler.handleBalanceView()`
 - `/settings` → `SettingsActionHandler.handleSettingsView()`
@@ -185,14 +217,18 @@ Session-based state management for multi-step actions:
 ## Error Handling
 
 ### User-Friendly Messages
+
 All errors are translated to user-friendly messages:
+
 - `USER_NOT_FOUND` → "User account not found. Please use /start to register."
 - `INSUFFICIENT_BALANCE` → "Insufficient balance for this operation."
 - `INVALID_INPUT` → "Invalid input provided. Please check and try again."
 - `RATE_LIMIT_EXCEEDED` → "Too many requests. Please wait a moment and try again."
 
 ### Comprehensive Logging
+
 All actions are logged with:
+
 - User ID
 - Action type
 - Parameters
@@ -202,6 +238,7 @@ All actions are logged with:
 ## Database Integration
 
 ### Entities Used
+
 - `UserEntity` - User information
 - `UserBalanceEntity` - Balance data
 - `UserBalanceHistoryEntity` - Transaction history
@@ -209,7 +246,9 @@ All actions are logged with:
 - `TrafficOrderEntity` - Order information
 
 ### Repository Pattern
+
 All handlers use EntityManager for database operations:
+
 - `em.findOne()` - Find single entity
 - `em.find()` - Find multiple entities
 - `em.findAndCount()` - Find with pagination
@@ -218,21 +257,27 @@ All handlers use EntityManager for database operations:
 ## Testing Considerations
 
 ### Unit Testing
+
 Each handler should be tested with:
+
 - Mock EntityManager
 - Mock BotContext
 - Various input scenarios
 - Error scenarios
 
 ### Integration Testing
+
 Test complete flows:
+
 1. User views profile
 2. User edits profile field
 3. Profile is updated in database
 4. Success message is shown
 
 ### Security Testing
+
 Test security features:
+
 - Rate limiting triggers correctly
 - CSRF tokens are validated
 - Input sanitization works
@@ -241,6 +286,7 @@ Test security features:
 ## Future Enhancements
 
 ### Planned Features
+
 1. Referral system implementation
 2. Payment method integration
 3. Advanced order filters
@@ -248,12 +294,14 @@ Test security features:
 5. Admin panel integration
 
 ### Performance Optimizations
+
 1. Caching layer for frequently accessed data
 2. Database connection pooling
 3. Query optimization
 4. Background job processing for heavy operations
 
 ### UX Improvements
+
 1. Inline query support
 2. Custom keyboards for frequent actions
 3. Quick action buttons
@@ -262,6 +310,7 @@ Test security features:
 ## Usage Examples
 
 ### Basic Menu Navigation
+
 ```typescript
 // User sends /menu
 // Bot displays main menu with inline keyboard
@@ -271,6 +320,7 @@ Test security features:
 ```
 
 ### Multi-Step Action (Profile Edit)
+
 ```typescript
 // User clicks "Edit Profile"
 // Session state: conversationState = 'profile_edit'
@@ -284,6 +334,7 @@ Test security features:
 ```
 
 ### Paginated List
+
 ```typescript
 // User clicks "Transaction History"
 // Handler fetches first 10 transactions
@@ -297,21 +348,28 @@ Test security features:
 ## Deployment Notes
 
 ### Environment Variables
+
 No new environment variables required. Uses existing:
+
 - `BOT_TOKEN` - Telegram bot token
 - Database connection configuration
 
 ### Dependencies
+
 All dependencies are already in package.json:
+
 - `grammy` - Telegram bot framework
 - `@mikro-orm/core` - ORM
 - `@nestjs/common` - NestJS framework
 
 ### Database Migrations
+
 No new migrations required. Uses existing entities.
 
 ### Monitoring
+
 Monitor these metrics:
+
 - Rate limit violations per hour
 - CSRF validation failures
 - Error rates by handler
@@ -321,6 +379,7 @@ Monitor these metrics:
 ## Support
 
 For questions or issues:
+
 - Check logs in `/var/log/bot/`
 - Review error tracking dashboard
 - Contact development team

@@ -1,6 +1,6 @@
 export enum SocketExceptionCode {
   ValidationError = -32602,
-  InvalidParams = -32602,
+  InvalidParams = -32600,
   InternalError = -32603,
   NotFound = -32004,
   Unauthorized = -32001,

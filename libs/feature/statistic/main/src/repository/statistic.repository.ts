@@ -50,6 +50,7 @@ export class StatisticRepository {
   /**
    * Get user statistics with proper user filtering
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   async getUserStatistics(
     userId: string,
     dateFilter?: StatisticDateFilter,
@@ -131,47 +132,13 @@ export class StatisticRepository {
     totalReward: number;
     avgRewardPerAction: number;
   }> {
-    // Traffic source statistics using raw SQL
-    let query = `
-      SELECT
-        COUNT(DISTINCT ts.id) as unique_sources_count,
-        COUNT(ta.id) as total_actions,
-        COALESCE(SUM(CAST(ta.reward AS DECIMAL)), 0) as total_reward
-      FROM traffic_sources ts
-      LEFT JOIN traffic_actions ta ON ts.id = ta.traffic_source_id
-      LEFT JOIN traffic_orders tor ON ta.traffic_order_id = tor.id
-      LEFT JOIN users u ON tor.creator_id = u.id
-      WHERE (ts.managed_by_id = $1 OR u.id = $1)
-    `;
+    const baseQuery = this.buildTrafficSourceQuery(userId, sourceId);
+    const dateFilterCondition = dateFilter ? ` AND ${this.buildDateFilter('ta.created_at', dateFilter)}` : '';
+    const query = baseQuery + dateFilterCondition;
 
     const params: unknown[] = [userId];
-    let paramIndex = 2;
-
     if (sourceId) {
-      query += ` AND ts.id = $${paramIndex}`;
       params.push(sourceId);
-      paramIndex++;
-    }
-
-    // Apply date filtering to actions
-    if (dateFilter?.fromDate || dateFilter?.endDate) {
-      const dateConditions: string[] = [];
-
-      if (dateFilter.fromDate) {
-        dateConditions.push(`ta.created_at >= $${paramIndex}`);
-        params.push(dateFilter.fromDate);
-        paramIndex++;
-      }
-
-      if (dateFilter.endDate) {
-        dateConditions.push(`ta.created_at <= $${paramIndex}`);
-        params.push(dateFilter.endDate);
-        paramIndex++;
-      }
-
-      if (dateConditions.length > 0) {
-        query += ` AND (${dateConditions.join(' AND ')})`;
-      }
     }
 
     const statsRaw = await this.em.getConnection().execute(query, params);
@@ -203,46 +170,13 @@ export class StatisticRepository {
     totalEarned: number;
     avgPricePerMember: number;
   }> {
-    // Traffic target statistics using raw SQL
-    let query = `
-      SELECT
-        COUNT(DISTINCT CASE WHEN tt.is_active = true THEN tt.id END) as active_targets_count,
-        COUNT(tor.id) as total_orders_count,
-        COALESCE(SUM(CAST(tor.spent_amount AS DECIMAL)), 0) as total_earned
-      FROM traffic_targets tt
-      LEFT JOIN traffic_orders tor ON tt.id = tor.traffic_target_id
-      LEFT JOIN users u ON tor.creator_id = u.id
-      WHERE (tt.managed_by_id = $1 OR u.id = $1)
-    `;
+    const baseQuery = this.buildTrafficTargetQuery(userId, targetId);
+    const dateFilterCondition = dateFilter ? ` AND ${this.buildDateFilter('tor.created_at', dateFilter)}` : '';
+    const query = baseQuery + dateFilterCondition;
 
     const params: unknown[] = [userId];
-    let paramIndex = 2;
-
     if (targetId) {
-      query += ` AND tt.id = $${paramIndex}`;
       params.push(targetId);
-      paramIndex++;
-    }
-
-    // Apply date filtering to orders
-    if (dateFilter?.fromDate || dateFilter?.endDate) {
-      const dateConditions: string[] = [];
-
-      if (dateFilter.fromDate) {
-        dateConditions.push(`tor.created_at >= $${paramIndex}`);
-        params.push(dateFilter.fromDate);
-        paramIndex++;
-      }
-
-      if (dateFilter.endDate) {
-        dateConditions.push(`tor.created_at <= $${paramIndex}`);
-        params.push(dateFilter.endDate);
-        paramIndex++;
-      }
-
-      if (dateConditions.length > 0) {
-        query += ` AND (${dateConditions.join(' AND ')})`;
-      }
     }
 
     const statsRaw = await this.em.getConnection().execute(query, params);
@@ -381,20 +315,24 @@ export class StatisticRepository {
   ): Promise<TimeSeriesData[]> {
     const dateFormat = this.getDateFormatForInterval(interval);
 
-    switch (entityType) {
-      case 'source':
-        return this.getSourceTimeSeriesData(userId, resourceId, dateFilter, dateFormat);
-      case 'target':
-        return this.getTargetTimeSeriesData(userId, resourceId, dateFilter, dateFormat);
-      case 'order':
-        return this.getOrderTimeSeriesData(userId, resourceId, dateFilter, dateFormat);
-      case 'action':
-        return this.getActionTimeSeriesData(userId, resourceId, dateFilter, dateFormat);
-      case 'user':
-        return this.getUserTimeSeriesData(userId, resourceId, dateFilter, dateFormat);
-      default:
-        return [];
-    }
+    type TimeSeriesHandler = (
+      userId: string,
+      resourceId: string | undefined,
+      dateFilter: StatisticDateFilter | undefined,
+      dateFormat: string,
+    ) => Promise<TimeSeriesData[]>;
+
+    const handlerMap: Record<string, TimeSeriesHandler> = {
+      source: this.getSourceTimeSeriesData.bind(this),
+      target: this.getTargetTimeSeriesData.bind(this),
+      order: this.getOrderTimeSeriesData.bind(this),
+      action: this.getActionTimeSeriesData.bind(this),
+      user: this.getUserTimeSeriesData.bind(this),
+    };
+
+    const handler = handlerMap[entityType];
+
+    return handler ? handler(userId, resourceId, dateFilter, dateFormat) : [];
   }
 
   /**
@@ -414,21 +352,62 @@ export class StatisticRepository {
   }
 
   /**
+   * Build base query for traffic source statistics
+   */
+  private buildTrafficSourceQuery(_userId: string, sourceId?: string): string {
+    let query = `
+      SELECT
+        COUNT(DISTINCT ts.id) as unique_sources_count,
+        COUNT(ta.id) as total_actions,
+        COALESCE(SUM(CAST(ta.reward AS DECIMAL)), 0) as total_reward
+      FROM traffic_sources ts
+      LEFT JOIN traffic_actions ta ON ts.id = ta.traffic_source_id
+      LEFT JOIN traffic_orders tor ON ta.traffic_order_id = tor.id
+      LEFT JOIN users u ON tor.creator_id = u.id
+      WHERE (ts.managed_by_id = $1 OR u.id = $1)
+    `;
+
+    if (sourceId) {
+      query += ' AND ts.id = $2';
+    }
+
+    return query;
+  }
+
+  /**
+   * Build base query for traffic target statistics
+   */
+  private buildTrafficTargetQuery(_userId: string, targetId?: string): string {
+    let query = `
+      SELECT
+        COUNT(DISTINCT CASE WHEN tt.is_active = true THEN tt.id END) as active_targets_count,
+        COUNT(tor.id) as total_orders_count,
+        COALESCE(SUM(CAST(tor.spent_amount AS DECIMAL)), 0) as total_earned
+      FROM traffic_targets tt
+      LEFT JOIN traffic_orders tor ON tt.id = tor.traffic_target_id
+      LEFT JOIN users u ON tor.creator_id = u.id
+      WHERE (tt.managed_by_id = $1 OR u.id = $1)
+    `;
+
+    if (targetId) {
+      query += ' AND tt.id = $2';
+    }
+
+    return query;
+  }
+
+  /**
    * Get PostgreSQL date format string for different intervals
    */
   private getDateFormatForInterval(interval: string): string {
-    switch (interval) {
-      case 'hour':
-        return "TO_CHAR(created_at, 'YYYY-MM-DD HH24:00:00')";
-      case 'day':
-        return "TO_CHAR(created_at, 'YYYY-MM-DD')";
-      case 'week':
-        return "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')";
-      case 'month':
-        return "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')";
-      default:
-        return "TO_CHAR(created_at, 'YYYY-MM-DD')";
-    }
+    const formatMap: Record<string, string> = {
+      hour: "TO_CHAR(created_at, 'YYYY-MM-DD HH24:00:00')",
+      day: "TO_CHAR(created_at, 'YYYY-MM-DD')",
+      week: "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')",
+      month: "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')",
+    };
+
+    return formatMap[interval] ?? "TO_CHAR(created_at, 'YYYY-MM-DD')";
   }
 
   private async getSourceTimeSeriesData(
@@ -437,7 +416,20 @@ export class StatisticRepository {
     dateFilter?: StatisticDateFilter,
     dateFormat = "TO_CHAR(created_at, 'YYYY-MM-DD')",
   ): Promise<TimeSeriesData[]> {
-    let query = `
+    const { query, params } = this.buildSourceTimeSeriesQuery(userId, sourceId, dateFilter, dateFormat);
+    const resultsRaw = await this.em.getConnection().execute(query, params);
+    const results = Array.isArray(resultsRaw) ? resultsRaw : [];
+
+    return this.mapTimeSeriesResults(results);
+  }
+
+  private buildSourceTimeSeriesQuery(
+    userId: string,
+    sourceId: string | undefined,
+    dateFilter: StatisticDateFilter | undefined,
+    dateFormat: string,
+  ): { query: string; params: unknown[] } {
+    const baseQuery = `
       SELECT
         ${dateFormat} as date,
         COUNT(*) as count,
@@ -450,27 +442,18 @@ export class StatisticRepository {
     `;
 
     const params: unknown[] = [userId];
-    let paramIndex = 2;
-
+    const sourceFilter = sourceId ? ` AND ta.traffic_source_id = $2` : '';
     if (sourceId) {
-      query += ` AND ta.traffic_source_id = $${paramIndex}`;
       params.push(sourceId);
-      paramIndex++;
     }
 
-    query += ` AND ${this.buildDateFilter('ta.created_at', dateFilter)}`;
-    query += ` GROUP BY ${dateFormat} ORDER BY ${dateFormat} ASC`;
+    const dateFilterClause = ` AND ${this.buildDateFilter('ta.created_at', dateFilter)}`;
+    const groupByClause = ` GROUP BY ${dateFormat} ORDER BY ${dateFormat} ASC`;
 
-    const resultsRaw = await this.em.getConnection().execute(query, params);
-    const results = Array.isArray(resultsRaw) ? resultsRaw : [];
-
-    return results
-      .filter((row): row is Record<string, unknown> => row !== null && typeof row === 'object')
-      .map((row) => ({
-        date: safeStringify(row && 'date' in row ? row['date'] : ''),
-        count: Number(row && 'count' in row ? row['count'] : 0) || 0,
-        amount: Number(row && 'amount' in row ? row['amount'] : 0) || 0,
-      }));
+    return {
+      query: baseQuery + sourceFilter + dateFilterClause + groupByClause,
+      params,
+    };
   }
 
   private async getTargetTimeSeriesData(
@@ -479,7 +462,20 @@ export class StatisticRepository {
     dateFilter?: StatisticDateFilter,
     dateFormat = "TO_CHAR(created_at, 'YYYY-MM-DD')",
   ): Promise<TimeSeriesData[]> {
-    let query = `
+    const { query, params } = this.buildTargetTimeSeriesQuery(userId, targetId, dateFilter, dateFormat);
+    const resultsRaw = await this.em.getConnection().execute(query, params);
+    const results = Array.isArray(resultsRaw) ? resultsRaw : [];
+
+    return this.mapTimeSeriesResults(results);
+  }
+
+  private buildTargetTimeSeriesQuery(
+    userId: string,
+    targetId: string | undefined,
+    dateFilter: StatisticDateFilter | undefined,
+    dateFormat: string,
+  ): { query: string; params: unknown[] } {
+    const baseQuery = `
       SELECT
         ${dateFormat} as date,
         COUNT(*) as count,
@@ -491,20 +487,21 @@ export class StatisticRepository {
     `;
 
     const params: unknown[] = [userId];
-    let paramIndex = 2;
-
+    const targetFilter = targetId ? ` AND tor.traffic_target_id = $2` : '';
     if (targetId) {
-      query += ` AND tor.traffic_target_id = $${paramIndex}`;
       params.push(targetId);
-      paramIndex++;
     }
 
-    query += ` AND ${this.buildDateFilter('tor.created_at', dateFilter)}`;
-    query += ` GROUP BY ${dateFormat} ORDER BY ${dateFormat} ASC`;
+    const dateFilterClause = ` AND ${this.buildDateFilter('tor.created_at', dateFilter)}`;
+    const groupByClause = ` GROUP BY ${dateFormat} ORDER BY ${dateFormat} ASC`;
 
-    const resultsRaw = await this.em.getConnection().execute(query, params);
-    const results = Array.isArray(resultsRaw) ? resultsRaw : [];
+    return {
+      query: baseQuery + targetFilter + dateFilterClause + groupByClause,
+      params,
+    };
+  }
 
+  private mapTimeSeriesResults(results: unknown[]): TimeSeriesData[] {
     return results
       .filter((row): row is Record<string, unknown> => row !== null && typeof row === 'object')
       .map((row) => ({

@@ -1,12 +1,15 @@
 # Payment Webhook Implementation - Complete
 
 ## Overview
+
 Successfully implemented comprehensive webhook processing functionality for the payment system with enhanced security, error handling, and logging capabilities.
 
 ## Files Modified
 
 ### 1. `/monorepo/libs/feature/payment/main/src/controller/payment-webhook.controller.ts`
+
 **Changes:**
+
 - ✅ Injected `PaymentService` dependency (removed TODO comments)
 - ✅ Added request ID tracking using `randomUUID()` for debugging
 - ✅ Enhanced signature verification with HMAC-SHA256
@@ -17,7 +20,9 @@ Successfully implemented comprehensive webhook processing functionality for the 
 - ✅ Properly integrated with `PaymentService.processWebhook()`
 
 ### 2. `/monorepo/libs/feature/payment/main/src/service/payment.service.ts`
+
 **Changes:**
+
 - ✅ Enhanced `processWebhook()` method to accept `requestId` parameter
 - ✅ Implemented webhook event routing with switch-case pattern
 - ✅ Added handler for `invoice_paid` - credits user balance
@@ -33,15 +38,18 @@ Successfully implemented comprehensive webhook processing functionality for the 
 ## Security Features Implemented
 
 ### 1. Webhook Signature Verification
+
 - HMAC-SHA256 signature verification using CryptoBot provider
 - Signature validation before processing any webhook data
 - Logs all signature validation failures with context
 
 ### 2. Rate Limiting
+
 - Already implemented via `@Throttle` decorator: 100 requests per minute
 - Prevents webhook endpoint abuse
 
 ### 3. Input Sanitization
+
 - `sanitizeBody()` method validates and sanitizes webhook payload
 - Size limit of 100KB to prevent DoS attacks
 - String field sanitization to prevent injection attacks
@@ -50,6 +58,7 @@ Successfully implemented comprehensive webhook processing functionality for the 
 - Regex-based cleaning of updateType field
 
 ### 4. Request ID Tracking
+
 - Unique UUID generated for each webhook request
 - Request ID passed through entire processing pipeline
 - Stored in transaction metadata for debugging
@@ -60,18 +69,21 @@ Successfully implemented comprehensive webhook processing functionality for the 
 ### Invoice Events
 
 #### 1. `invoice_paid`
+
 - **Action:** Credits user balance
 - **Status Transition:** PENDING → COMPLETED
 - **Side Effects:** Calls `creditUserBalance()` with idempotency check
 - **Metadata:** Stores webhook data and requestId
 
 #### 2. `invoice_expired`
+
 - **Action:** Marks invoice as expired
 - **Status Transition:** PENDING → EXPIRED
 - **Idempotency:** Skips if already in terminal state (COMPLETED, EXPIRED, CANCELLED)
 - **Side Effects:** None
 
 #### 3. `invoice_cancelled`
+
 - **Action:** Marks invoice as cancelled
 - **Status Transition:** PENDING → CANCELLED
 - **Idempotency:** Skips if already in terminal state
@@ -80,12 +92,14 @@ Successfully implemented comprehensive webhook processing functionality for the 
 ### Transfer Events
 
 #### 4. `transfer_completed`
+
 - **Action:** Marks withdrawal as completed
 - **Status Transition:** PROCESSING → COMPLETED
 - **Idempotency:** Skips if already completed
 - **Side Effects:** None (balance already deducted during withdrawal creation)
 
 #### 5. `transfer_failed`
+
 - **Action:** Marks withdrawal as failed and refunds balance
 - **Status Transition:** PROCESSING → FAILED
 - **Idempotency:** Skips if already in terminal state (COMPLETED, FAILED)
@@ -94,21 +108,25 @@ Successfully implemented comprehensive webhook processing functionality for the 
 ## Error Handling
 
 ### Transaction Not Found
+
 - Returns `NotFoundException` with descriptive message
 - Logs warning with request context
 - Provider receives success response to prevent retries
 
 ### Duplicate Webhook Processing
+
 - Idempotency checks prevent duplicate balance credits/refunds
 - Logs informational message and returns existing transaction
 - Safe to process same webhook multiple times
 
 ### Balance Operations Failures
+
 - Comprehensive error logging with full context
 - Transaction metadata tracks all balance operations
 - Failed operations throw errors for proper transaction rollback
 
 ### Malformed Webhook Data
+
 - Validation errors caught and logged
 - Returns success to provider to prevent retries of bad data
 - Detailed error messages for debugging
@@ -118,12 +136,14 @@ Successfully implemented comprehensive webhook processing functionality for the 
 ### Log Levels Used
 
 #### INFO (`logger.log`)
+
 - Webhook received
 - Valid webhook validated
 - Webhook processing successful
 - Balance credited/refunded successfully
 
 #### WARN (`logger.warn`)
+
 - Missing signature header
 - Invalid signature
 - Transaction not found
@@ -131,12 +151,14 @@ Successfully implemented comprehensive webhook processing functionality for the 
 - Already in terminal state
 
 #### ERROR (`logger.error`)
+
 - Failed to parse webhook data
 - Webhook processing failed
 - Balance operation failures
 - Unexpected errors
 
 ### Log Context Structure
+
 ```typescript
 {
   requestId: string,          // Unique request identifier
@@ -166,6 +188,7 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 ```
 
 ### Terminal States
+
 - **COMPLETED**: Final success state, no further changes
 - **EXPIRED**: Invoice expired, no further changes
 - **CANCELLED**: Invoice cancelled, no further changes
@@ -174,6 +197,7 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 ## Balance Management
 
 ### Credit Flow (Top-up)
+
 1. Invoice created → Transaction saved with PENDING status
 2. Webhook `invoice_paid` received
 3. Transaction status updated to COMPLETED
@@ -182,6 +206,7 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 6. Metadata updated with balance before/after values
 
 ### Debit Flow (Withdrawal)
+
 1. Withdrawal created → Balance deducted, Transaction saved with PROCESSING status
 2. Webhook `transfer_completed` received → Transaction marked COMPLETED
 3. OR Webhook `transfer_failed` received → Transaction marked FAILED
@@ -190,6 +215,7 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 6. Metadata updated with refund information
 
 ### Idempotency Guarantees
+
 - Balance credited only once: `metadata.balanceCredited` flag
 - Balance refunded only once: `metadata.balanceRefunded` flag
 - Safe to process duplicate webhooks
@@ -198,6 +224,7 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 ## Testing Recommendations
 
 ### Unit Tests Needed
+
 1. ✅ Test each webhook event type handler
 2. ✅ Test idempotency for all handlers
 3. ✅ Test balance credit operations
@@ -209,6 +236,7 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 9. ✅ Test terminal state transitions
 
 ### Integration Tests Needed
+
 1. End-to-end webhook processing
 2. Concurrent webhook processing (race conditions)
 3. Database transaction rollback scenarios
@@ -216,6 +244,7 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 5. Large payload handling
 
 ### Security Tests Needed
+
 1. Invalid signature rejection
 2. Missing signature rejection
 3. Payload size limits
@@ -225,26 +254,31 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 ## Configuration
 
 ### Environment Variables Used
+
 - `CRYPTO_BOT_API_TOKEN` - CryptoBot API token for signature verification
 - `CRYPTO_BOT_WEBHOOK_VERIFY` - Enable/disable signature verification (default: true)
 
 ### Rate Limiting
+
 - **Default:** 100 requests per 60 seconds (1 minute)
 - **Configurable via:** `@Throttle` decorator parameters
 
 ## Performance Considerations
 
 ### Database Queries
+
 - Single query to find transaction by `providerTransactionId`
 - Index on `providerTransactionId` for fast lookup
 - Minimal database round-trips
 
 ### Memory Usage
+
 - Request ID stored in metadata (negligible)
 - Webhook data stored in metadata (typical size: 100-500 bytes)
 - Payload size limit prevents memory exhaustion
 
 ### Concurrency
+
 - Uses MikroORM's EntityManager for transaction safety
 - Balance operations are atomic
 - Idempotency prevents race condition issues
@@ -252,11 +286,13 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 ## Monitoring & Debugging
 
 ### Request Tracking
+
 - Every webhook has unique `requestId` (UUID v4)
 - Request ID stored in transaction metadata
 - Request ID in all log messages for correlation
 
 ### Metrics to Track
+
 - Webhook processing latency
 - Webhook success/failure rates by type
 - Signature verification failures
@@ -264,6 +300,7 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 - Balance credit/refund operations
 
 ### Debugging Guide
+
 1. Find request ID in logs
 2. Grep all logs by request ID
 3. Check transaction metadata for stored webhook data
@@ -291,16 +328,19 @@ PROCESSING → FAILED (via transfer_failed, triggers refund)
 ## API Documentation
 
 ### Endpoint
+
 ```
 POST /payment/webhook/crypto-bot
 ```
 
 ### Headers
+
 ```
 crypto-pay-api-signature: <HMAC-SHA256 signature>
 ```
 
 ### Request Body
+
 ```json
 {
   "updateType": "invoice_paid",
@@ -318,6 +358,7 @@ crypto-pay-api-signature: <HMAC-SHA256 signature>
 ```
 
 ### Response
+
 ```json
 {
   "ok": true
@@ -325,6 +366,7 @@ crypto-pay-api-signature: <HMAC-SHA256 signature>
 ```
 
 ### Status Codes
+
 - `200 OK` - Webhook processed (or intentionally ignored)
 - `401 Unauthorized` - Invalid or missing signature
 - `429 Too Many Requests` - Rate limit exceeded
@@ -332,6 +374,7 @@ crypto-pay-api-signature: <HMAC-SHA256 signature>
 ## Future Enhancements
 
 ### Recommended Improvements
+
 1. Add webhook replay functionality for debugging
 2. Implement webhook event queue for high throughput
 3. Add webhook delivery confirmation to provider
@@ -342,6 +385,7 @@ crypto-pay-api-signature: <HMAC-SHA256 signature>
 8. Add real-time webhook notifications (WebSocket)
 
 ### Performance Optimizations
+
 1. Batch webhook processing for high volume
 2. Implement webhook event caching
 3. Add read replicas for transaction lookup
@@ -352,6 +396,7 @@ crypto-pay-api-signature: <HMAC-SHA256 signature>
 The payment webhook processing functionality is now fully implemented with enterprise-grade security, comprehensive error handling, and detailed logging. All webhook event types are supported, all payment statuses are properly handled, and the system includes idempotency guarantees to prevent duplicate processing.
 
 **Key Achievements:**
+
 - 5 webhook event types fully implemented
 - 6 payment statuses properly handled
 - HMAC-SHA256 signature verification

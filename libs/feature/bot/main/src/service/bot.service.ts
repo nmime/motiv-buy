@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
 import { BotCommand, BotContext } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
-import { getErrorMessage, unknownToError, toError } from '@app/common-shared';
+import { unknownToError, toError } from '@app/common-shared';
 import { OrderHandler } from '../features/order/order.handler';
 import { I18nService } from 'nestjs-i18n';
 import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl';
@@ -529,6 +529,7 @@ For support, contact @support or use the /support command.
       ...ctx,
       callbackQuery: {
         id: 'cmd_profile',
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         from: ctx.from!,
         data: 'profile:view',
         chat_instance: '',
@@ -542,8 +543,10 @@ For support, contact @support or use the /support command.
     // Simulate callback query for settings:view action
     const simulatedCallback = {
       ...ctx,
+
       callbackQuery: {
         id: 'cmd_settings',
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         from: ctx.from!,
         data: 'settings',
         chat_instance: '',
@@ -559,6 +562,7 @@ For support, contact @support or use the /support command.
       ...ctx,
       callbackQuery: {
         id: 'cmd_balance',
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         from: ctx.from!,
         data: 'balance:view',
         chat_instance: '',
@@ -570,10 +574,12 @@ For support, contact @support or use the /support command.
 
   private async handleMenuCommand(ctx: BotContext): Promise<void> {
     // Simulate callback query for menu:main action
+
     const simulatedCallback = {
       ...ctx,
       callbackQuery: {
         id: 'cmd_menu',
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         from: ctx.from!,
         data: 'menu:main',
         chat_instance: '',

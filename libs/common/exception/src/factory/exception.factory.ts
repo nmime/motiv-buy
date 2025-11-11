@@ -38,6 +38,8 @@ export function Exception<DataType extends OptionalClassConstructor = undefined>
     problemType = optionsProblemType ?? 'internal_error';
     title = optionsTitle;
   } else {
+    // Type assertion required: Union type narrowing in function overloads
+    // TypeScript cannot automatically narrow kindOrOptions to ExceptionKind in this branch
     kind = (kindOrOptions as ExceptionKind) ?? ExceptionKind.Internal;
     dataType = dataTypeParam;
     problemType = problemTypeParam ?? 'internal_error';
@@ -52,9 +54,13 @@ export function Exception<DataType extends OptionalClassConstructor = undefined>
 
     constructor(props: Omit<ExceptionProps<DataType>, 'type'>) {
       const finalTitle = props.title || title;
+      // Type assertion required: Adding type property to satisfy generic constraint
+      // The spread operator loses type information that this assertion restores
       super(kind, { ...props, type: problemType, title: finalTitle } as ExceptionProps<DataType>);
     }
   };
 
+  // Type assertion required: Class expression needs explicit type for factory pattern
+  // TypeScript cannot infer the return type from the class expression
   return ExceptionClass as ExceptionClass<DataType>;
 }

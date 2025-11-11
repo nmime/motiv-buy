@@ -19,7 +19,7 @@ interface CsrfToken {
 @Injectable()
 export class CsrfProtectionMiddleware {
   private readonly logger = new Logger(CsrfProtectionMiddleware.name);
-  private readonly TOKEN_LIFETIME = 30 * 60 * 1000; // 30 minutes
+  private readonly tokenLifetime = 30 * 60 * 1000; // 30 minutes
 
   /**
    * Generate CSRF token for action
@@ -36,7 +36,7 @@ export class CsrfProtectionMiddleware {
       token,
       action,
       createdAt: now,
-      expiresAt: now + this.TOKEN_LIFETIME,
+      expiresAt: now + this.tokenLifetime,
     };
 
     // Store token in session
@@ -187,6 +187,7 @@ export class CsrfProtectionMiddleware {
       return;
     }
 
+    // eslint-disable-next-line prefer-destructuring
     const token = tokenMatch[1];
     const isValid = await this.validateToken(ctx, token, action);
 

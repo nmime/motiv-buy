@@ -154,6 +154,7 @@ export class MessageService {
   /**
    * Clear stored message ID
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   clearMessageId(ctx: BotContext): void {
     // Not needed anymore - using callbackQuery.message
   }

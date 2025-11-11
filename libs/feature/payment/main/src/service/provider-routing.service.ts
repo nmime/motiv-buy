@@ -7,7 +7,6 @@ import {
   ProviderCurrencyRepository,
   ProviderRoutingRepository,
 } from '@app/database';
-import { RoutingRuleType } from '@app/database';
 
 /**
  * Context for routing decisions
@@ -120,6 +119,7 @@ export class ProviderRoutingService {
   /**
    * Apply routing rules to select provider
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private async applyRoutingRules(context: RoutingContext): Promise<Result<PaymentProvider, Error>> {
     try {
       // Find applicable rules
@@ -150,10 +150,12 @@ export class ProviderRoutingService {
           const { provider } = rule.provider.unwrap();
 
           // Validate provider supports this operation
+          // eslint-disable-next-line no-await-in-loop
           const isValid = await this.validateProvider(provider, context.currency, context.operation);
 
           if (isValid) {
             // Record rule usage
+            // eslint-disable-next-line no-await-in-loop
             await this.routingRuleRepo.recordUsage(rule.id, true);
 
             this.logger.log(`Provider ${provider} selected via rule: ${rule.name} (${rule.ruleType})`);
@@ -164,10 +166,12 @@ export class ProviderRoutingService {
 
         // Try fallback if available
         if (rule.fallbackRuleId) {
+          // eslint-disable-next-line no-await-in-loop
           const fallbackRule = await this.routingRuleRepo.findFallbackRule(rule.id);
 
           if (fallbackRule && fallbackRule.provider) {
             const { provider } = fallbackRule.provider.unwrap();
+            // eslint-disable-next-line no-await-in-loop
             const isValid = await this.validateProvider(provider, context.currency, context.operation);
 
             if (isValid) {
@@ -217,7 +221,7 @@ export class ProviderRoutingService {
   /**
    * Get default provider as final fallback
    */
-  private async getDefaultProvider(context: RoutingContext): Promise<Result<PaymentProvider, Error>> {
+  private async getDefaultProvider(_context: RoutingContext): Promise<Result<PaymentProvider, Error>> {
     try {
       // Try to find default routing rule
       const defaultRule = await this.routingRuleRepo.findDefaultRule();

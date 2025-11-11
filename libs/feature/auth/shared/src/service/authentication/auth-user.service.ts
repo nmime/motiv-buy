@@ -36,10 +36,10 @@ export class AuthUserService {
 
   async findOrCreateByBot(telegramAuthParams: TelegramAuthParams, options?: FindOrCreateOptions): Promise<UserEntity> {
     const result = await this.findOrCreateWithVisit(telegramAuthParams, {
+      ...options,
       trackUserVisit: false,
       trackAnalytics: false,
       updateUserFields: true,
-      ...options,
     });
 
     return result.user;
@@ -63,9 +63,18 @@ export class AuthUserService {
     const em = this.usersRepository.getEntityManager();
 
     return await em.transactional(async (entityManager: EntityManager) => {
-      const sourceParams = telegramAuthParams.userSource
-        ? this.getSourceParamsService.parseRequest(telegramAuthParams.userSource)
-        : telegramAuthParams.sourceParams;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let sourceParams: any;
+
+      const { sourceParams: directSourceParams, userSource } = telegramAuthParams;
+
+      if (directSourceParams) {
+        sourceParams = directSourceParams;
+      } else if (userSource) {
+        sourceParams = this.getSourceParamsService.parseRequest(userSource);
+      } else {
+        sourceParams = undefined;
+      }
 
       let userRefLink: UserRefLink | undefined;
 

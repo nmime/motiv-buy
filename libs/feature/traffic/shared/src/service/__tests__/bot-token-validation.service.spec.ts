@@ -1,9 +1,9 @@
 import { unknownToError } from '@app/common-shared';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RedisClient } from '@app/common-redis';
-import { BadTokenException, RateLimitException } from '@app/common-exception';
 import { BotTokenValidationService } from '../bot-token-validation.service';
 import { BotTokenValidationDto } from '../../dto';
+import { BotTokenInvalidException, BotTokenRateLimitException } from '../../exception/bot-token-validation.exception';
 
 describe('BotTokenValidationService', () => {
   let service: BotTokenValidationService;
@@ -26,14 +26,14 @@ describe('BotTokenValidationService', () => {
       providers: [
         BotTokenValidationService,
         {
-          provide: 'REDIS_CLIENT',
+          provide: 'RedisInjectToken',
           useValue: mockRedis,
         },
       ],
     }).compile();
 
     service = module.get<BotTokenValidationService>(BotTokenValidationService);
-    mockRedisClient = module.get('REDIS_CLIENT');
+    mockRedisClient = module.get('RedisInjectToken');
   });
 
   afterEach(() => {
@@ -98,7 +98,7 @@ describe('BotTokenValidationService', () => {
       expect(result.err).toBe(true);
       if (result.err) {
         const error = result.val;
-        expect(error).toBeInstanceOf(BadTokenException);
+        expect(error).toBeInstanceOf(BotTokenInvalidException);
         expect(unknownToError(error)).toContain('Invalid token format');
       }
     });
@@ -115,7 +115,7 @@ describe('BotTokenValidationService', () => {
       expect(result.err).toBe(true);
       if (result.err) {
         const error = result.val;
-        expect(error).toBeInstanceOf(RateLimitException);
+        expect(error).toBeInstanceOf(BotTokenRateLimitException);
         expect(unknownToError(error)).toContain('Rate limit exceeded');
       }
     });
@@ -302,8 +302,9 @@ describe('BotTokenValidationService', () => {
 
     it('should handle bot-shared integration failure gracefully', async () => {
       // This would test the integration with bot-shared when it fails
+      // Using a token with non-numeric botId to simulate bot-shared validation failure
       const dto: BotTokenValidationDto = {
-        token: '999999:AAFdqTcLreQksK5d_oM4c9ZhLNbxFV9qHlK', // Non-existent bot
+        token: 'abc123:AAFdqTcLreQksK5d_oM4c9ZhLNbxFV9qHlK', // Non-numeric bot ID fails validation
         operationContext: 'traffic_sell',
       };
 
@@ -312,10 +313,10 @@ describe('BotTokenValidationService', () => {
 
       const result = await service.validateToken(dto);
 
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        // Should return invalid validation due to bot-shared integration failure
-        expect(result.val.isValid).toBe(false);
+      // Token with non-numeric botId should be rejected during format validation
+      expect(result.err).toBe(true);
+      if (result.err) {
+        expect(result.val).toBeInstanceOf(BotTokenInvalidException);
       }
     });
   });

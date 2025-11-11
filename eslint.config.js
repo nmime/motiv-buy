@@ -142,8 +142,10 @@ module.exports = [
         },
         {
           // Only allow: snake_case (my_value), short uppercase (USD, BTC), or numeric strings (10, 0.5)
-          selector: 'TSEnumMember[initializer.type="Literal"][initializer.value=/./]:not([initializer.value=/^([a-z][a-z0-9]*(_[a-z0-9]+)*|[A-Z]{2,5}|\\d+(\\.\\d+)?)$/])',
-          message: 'Enum values must be lowercase snake_case (e.g., "my_value"), short uppercase codes (e.g., "USD"), or numeric strings (e.g., "10"). Keys must be PascalCase.',
+          selector:
+            'TSEnumMember[initializer.type="Literal"][initializer.value=/./]:not([initializer.value=/^([a-z][a-z0-9]*(_[a-z0-9]+)*|[A-Z]{2,5}|\\d+(\\.\\d+)?)$/])',
+          message:
+            'Enum values must be lowercase snake_case (e.g., "my_value"), short uppercase codes (e.g., "USD"), or numeric strings (e.g., "10"). Keys must be PascalCase.',
         },
       ],
 

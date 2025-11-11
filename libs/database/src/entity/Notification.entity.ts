@@ -1,7 +1,6 @@
-import { Collection, Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property } from '@mikro-orm/core';
+import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property } from '@mikro-orm/core';
 import { EntityConstructorData } from '../type';
 import type { NotificationTemplateEntity } from './NotificationTemplate.entity';
-import type { UserEntity } from './User.entity';
 
 export enum NotificationChannel {
   Bot = 'bot',

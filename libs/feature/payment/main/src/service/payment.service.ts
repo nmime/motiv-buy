@@ -2,8 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { I18nService } from 'nestjs-i18n';
-import { Result, Ok, Err, AsyncResult, toError } from '@app/common-shared';
-import { decimal, add, subtract, toDbString, greaterThanOrEqual, lessThan } from '@app/common-shared';
+import { Ok, Err, AsyncResult, toError } from '@app/common-shared';
+import { decimal, add, subtract, toDbString, lessThan } from '@app/common-shared';
 import { PaymentProviderFactory } from './payment-provider.factory';
 import { ProviderRoutingService, RoutingContext } from './provider-routing.service';
 import {
@@ -156,10 +156,10 @@ export class PaymentService {
         amount: transaction.amount,
         currency: transaction.currency,
         status: transaction.status,
-        payUrl: transaction.payUrl!,
+        payUrl: transaction.payUrl || '',
         description: transaction.description || undefined,
         createdAt: transaction.createdAt?.toISOString() || new Date().toISOString(),
-        expiresAt: transaction.expiresAt!.toISOString(),
+        expiresAt: transaction.expiresAt?.toISOString() || new Date().toISOString(),
       };
 
       return Ok(response);
@@ -394,7 +394,7 @@ export class PaymentService {
       if (transferCreated && balanceBeforeTransaction !== null) {
         try {
           // FIXED: Rollback in REQUESTED currency, not always RUB
-          await this.userBalanceRepository.createOrUpdateBalance(userId, dto.currency, balanceBeforeTransaction!);
+          await this.userBalanceRepository.createOrUpdateBalance(userId, dto.currency, balanceBeforeTransaction);
 
           this.logger.warn(
             `Balance rollback performed for user ${userId} in ${dto.currency}: restored to ${balanceBeforeTransaction}`,
@@ -568,28 +568,28 @@ export class PaymentService {
     try {
       this.logger.log(`Processing webhook: ${updateDto.updateType}`, logContext);
 
-      // Route to appropriate handler based on webhook type
-      switch (updateDto.updateType) {
-        case 'invoice_paid':
-          return await this.handleInvoicePaid(updateDto, logContext);
+      // Route to appropriate handler based on webhook type using Map-based lookup
+      type WebhookHandler = (
+        updateDto: WebhookUpdateDto,
+        logContext: Record<string, unknown>,
+      ) => AsyncResult<PaymentTransactionEntity, Error>;
 
-        case 'invoice_expired':
-          return await this.handleInvoiceExpired(updateDto, logContext);
+      const webhookHandlers: Record<string, WebhookHandler> = {
+        invoice_paid: this.handleInvoicePaid.bind(this),
+        invoice_expired: this.handleInvoiceExpired.bind(this),
+        invoice_cancelled: this.handleInvoiceCancelled.bind(this),
+        transfer_completed: this.handleTransferCompleted.bind(this),
+        transfer_failed: this.handleTransferFailed.bind(this),
+      };
 
-        case 'invoice_cancelled':
-          return await this.handleInvoiceCancelled(updateDto, logContext);
+      const handler = webhookHandlers[updateDto.updateType];
+      if (!handler) {
+        this.logger.warn(`Unsupported webhook type: ${updateDto.updateType}`, logContext);
 
-        case 'transfer_completed':
-          return await this.handleTransferCompleted(updateDto, logContext);
-
-        case 'transfer_failed':
-          return await this.handleTransferFailed(updateDto, logContext);
-
-        default:
-          this.logger.warn(`Unsupported webhook type: ${updateDto.updateType}`, logContext);
-
-          return Err(new Error(`Unsupported webhook type: ${updateDto.updateType}`));
+        return Err(new Error(`Unsupported webhook type: ${updateDto.updateType}`));
       }
+
+      return await handler(updateDto, logContext);
     } catch (error) {
       this.logger.error('Error processing webhook', { ...logContext, error: toError(error).message });
 
@@ -962,6 +962,7 @@ export class PaymentService {
    * Sync transaction status from payment provider
    * Manually synchronize status when needed
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   async syncTransactionStatus(transactionId: string): AsyncResult<PaymentTransactionEntity, Error> {
     try {
       this.logger.log(`Syncing transaction status: ${transactionId}`);

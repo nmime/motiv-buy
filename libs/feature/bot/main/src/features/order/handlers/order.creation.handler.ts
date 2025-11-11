@@ -18,7 +18,7 @@ import { createAddBotAdminKeyboard, createChannelLinkHelpKeyboard, createModerat
 export class OrderCreationHandler {
   private readonly logger = new Logger(OrderCreationHandler.name);
   private composer: Composer<BotContext>;
-  private readonly BOT_USERNAME = 'subgram_checksub_1_bot';
+  private readonly botUsername = 'subgram_checksub_1_bot';
 
   constructor(private readonly orderService: OrderService) {
     this.composer = new Composer<BotContext>();
@@ -134,7 +134,7 @@ export class OrderCreationHandler {
     // Move to next step (A3: Add bot as admin)
     this.orderService.moveToNextStep(ctx, OrderFlowStep.AddBotAdmin);
 
-    const message = `${ctx.t('bot.order.channel_found')}\n\n${ctx.t('bot.order.channel_name')} ${channel.title}\n${ctx.t('bot.order.channel_subscribers')} ${channel.subscriberCount || 0}\n\n${ctx.t('bot.order.bot_admin_instruction')}\n@${this.BOT_USERNAME}\n\n${ctx.t('bot.order.requirement')}`;
+    const message = `${ctx.t('bot.order.channel_found')}\n\n${ctx.t('bot.order.channel_name')} ${channel.title}\n${ctx.t('bot.order.channel_subscribers')} ${channel.subscriberCount || 0}\n\n${ctx.t('bot.order.bot_admin_instruction')}\n@${this.botUsername}\n\n${ctx.t('bot.order.requirement')}`;
     const keyboard = createAddBotAdminKeyboard(channel.username);
 
     await ctx.reply(message, {

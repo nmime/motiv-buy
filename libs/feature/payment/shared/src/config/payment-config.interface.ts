@@ -4,11 +4,11 @@
  */
 export enum PaymentUpdateStrategy {
   /** Use webhooks only (push-based) */
-  Webhook = 'WEBHOOK',
+  Webhook = 'webhook',
   /** Use polling only (pull-based) */
-  Polling = 'POLLING',
+  Polling = 'polling',
   /** Use both webhooks and polling (hybrid - most reliable) */
-  Hybrid = 'HYBRID',
+  Hybrid = 'hybrid',
 }
 
 /**

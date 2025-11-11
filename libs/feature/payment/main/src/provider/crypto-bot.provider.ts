@@ -170,6 +170,7 @@ export class CryptoBotProvider implements IPaymentProvider {
         return Err(new Error(`Invoice not found: ${invoiceId}`));
       }
 
+      // eslint-disable-next-line prefer-destructuring
       const invoice = response.result.items[0];
       const transaction: PaymentTransaction = {
         transactionId: invoice.invoice_id.toString(),
@@ -256,6 +257,7 @@ export class CryptoBotProvider implements IPaymentProvider {
         user_id: parseInt(params.userId, 10),
         asset: this.mapCryptocurrencyToAsset(params.currency),
         amount: params.amount,
+        // eslint-disable-next-line sonarjs/pseudo-random
         spend_id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
       };
 
@@ -307,7 +309,7 @@ export class CryptoBotProvider implements IPaymentProvider {
         return Err(new Error(`Transfer not found: ${transferId}`));
       }
 
-      const transfer = response.result.items[0];
+      const [transfer] = response.result.items;
       const paymentTransfer: PaymentTransfer = {
         transferId: transfer.transfer_id.toString(),
         amount: transfer.amount,

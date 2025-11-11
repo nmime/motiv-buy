@@ -15,12 +15,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ## ✅ All Available Menus (14 Total)
 
 ### 1. **Main Menu** (`MenuType.Main`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:11`, `menu.service.ts:208-236`, `main-menu.composer.ts:70-112`
 
 **Description:** Primary bot interface with access to all major features.
 
 **Buttons:**
+
 - 📈 Statistics → `menu:statistics`
 - 💰 Balance → `menu:balance`
 - 🎯 Traffic → `menu:traffic`
@@ -32,6 +34,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ❓ Help → `menu:help`
 
 **Features:**
+
 - Dynamic greeting based on user language
 - Real-time balance display
 - Notification indicator
@@ -41,12 +44,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 2. **Profile Menu** (`MenuType.Profile`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:14`, `menu.service.ts:238-256`
 
 **Description:** User profile management and account information.
 
 **Buttons:**
+
 - 📝 Edit Info → `profile:edit`
 - 📊 View Stats → `profile:stats`
 - 🔒 Security → `profile:security`
@@ -54,6 +59,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Features:**
+
 - Display user information (name, username, status)
 - Show verification status
 - Member since date
@@ -63,12 +69,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 3. **Settings Menu** (`MenuType.Settings`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:17`, `menu.service.ts:258-280`
 
 **Description:** Configuration and preferences management.
 
 **Buttons:**
+
 - 🌍 Language → `settings:language`
 - 🔔 Notifications → `settings:notifications`
 - 🎨 Theme → `settings:theme`
@@ -78,6 +86,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Features:**
+
 - Multi-language support (6 languages)
 - Notification preferences
 - Privacy controls
@@ -88,12 +97,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 4. **Balance Menu** (`MenuType.Balance`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:23`, `menu.service.ts:282-300`
 
 **Description:** Financial operations and earnings tracking.
 
 **Buttons:**
+
 - 💵 Current Balance → `balance:current`
 - 📈 Earnings History → `balance:history`
 - 💸 Request Withdrawal → `menu:withdrawal`
@@ -101,6 +112,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Features:**
+
 - Real-time balance display
 - Available, pending, and total earned amounts
 - Last transaction timestamp
@@ -111,12 +123,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 5. **Traffic Menu** (`MenuType.Traffic`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:26`, `menu.service.ts:302-323`
 
 **Description:** Traffic source management and analytics.
 
 **Buttons:**
+
 - 📉 Live Stats → `traffic:live`
 - 🎯 Sources → `traffic:sources`
 - 🔍 Analytics → `traffic:analytics`
@@ -125,6 +139,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Features:**
+
 - Active source count display
 - Total visits tracking
 - Traffic status indicator
@@ -134,12 +149,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 6. **Statistics Menu** (`MenuType.Statistics`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:29`, `menu.service.ts:325-346`
 
 **Description:** Detailed performance metrics and analytics.
 
 **Buttons:**
+
 - 📈 Overview → `stats:overview`
 - 📅 Daily → `stats:daily`
 - 📅 Weekly → `stats:weekly`
@@ -148,6 +165,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Features:**
+
 - Today's performance summary (clicks, conversions, earnings)
 - Multiple time range views
 - Export capabilities
@@ -157,12 +175,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 7. **Help Menu** (`MenuType.Help`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:32`, `menu.service.ts:348-370`
 
 **Description:** Assistance, documentation, and support.
 
 **Buttons:**
+
 - 📝 FAQ → `help:faq`
 - 📞 Contact Support → `help:contact`
 - 📚 Tutorials → `help:tutorials`
@@ -172,6 +192,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Features:**
+
 - Comprehensive FAQ section
 - Support contact information (@motivbuy_support, support@motivbuy.com)
 - Tutorial access
@@ -181,12 +202,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 8. **Campaign Menu** (`MenuType.Campaign`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:38`, `menu.service.ts:372-390`
 
 **Description:** Marketing campaign management.
 
 **Buttons:**
+
 - ➕ Create Campaign → `campaign:create`
 - 📋 Active Campaigns → `campaign:active`
 - 📈 Performance → `campaign:performance`
@@ -194,6 +217,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Features:**
+
 - Campaign creation wizard
 - Active campaign listing
 - Performance tracking
@@ -202,12 +226,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 9. **Withdrawal Menu** (`MenuType.Withdrawal`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:41`, `menu.service.ts:392-410`
 
 **Description:** Withdrawal request and payment management.
 
 **Buttons:**
+
 - 💸 Request Withdrawal → `withdrawal:request`
 - 📋 History → `withdrawal:history`
 - 🏦 Payment Methods → `withdrawal:methods`
@@ -215,6 +241,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Features:**
+
 - Withdrawal request flow
 - Payment method configuration
 - Withdrawal history
@@ -224,12 +251,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 10. **Referral Menu** (`MenuType.Referral`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:44`, `menu.service.ts:412-430`
 
 **Description:** Referral program and earnings.
 
 **Buttons:**
+
 - 🔗 My Link → `referral:link`
 - 📈 Earnings → `referral:earnings`
 - 👥 Referrals → `referral:list`
@@ -237,6 +266,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Features:**
+
 - Personal referral link generation
 - Referral earnings tracking
 - Referral list management
@@ -245,12 +275,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 11. **Admin Menu** (`MenuType.Admin`)
+
 **Status:** ✅ Fully Implemented (Restricted)
 **Location:** `menu-type.enum.ts:35`, `menu.service.ts:432-450`
 
 **Description:** Administrative functions (admin users only).
 
 **Buttons:**
+
 - 📈 System Stats → `admin:stats`
 - 👥 User Management → `admin:users`
 - ⚙️ System Config → `admin:config`
@@ -258,6 +290,7 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 - ⬅️ Back → `menu:main`
 
 **Access Control:**
+
 - Requires `user.isAdmin = true`
 - Permission check in CommandHandler:448-463
 - Access denied message for non-admin users
@@ -265,12 +298,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 12. **Notifications Menu** (`MenuType.Notifications`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:47`
 
 **Description:** Notification preferences management.
 
 **Features:**
+
 - Push notification toggle
 - Email notification toggle
 - SMS notification toggle
@@ -282,18 +317,21 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 13. **Verification Menu** (`MenuType.Verification`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:50`
 
 **Description:** Account verification process.
 
 **Buttons:**
+
 - 📧 Verify Email → `verify:email`
 - 📱 Verify Phone → `verify:phone`
 - 🆔 Identity Verification → `verify:identity`
 - ⬅️ Back → `menu:profile`
 
 **Features:**
+
 - Email verification
 - Phone verification
 - Identity document upload
@@ -303,12 +341,14 @@ The MotivBuy Telegram bot features a comprehensive menu system with 14 distinct 
 ---
 
 ### 14. **Auth Menu** (`MenuType.Auth`)
+
 **Status:** ✅ Fully Implemented
 **Location:** `menu-type.enum.ts:20`
 
 **Description:** Authentication and login flows.
 
 **Features:**
+
 - User registration via `auth:register`
 - Platform authentication (Telegram Bot)
 - Session creation
@@ -324,52 +364,52 @@ All commands are defined in `bot-command.enum.ts` and implemented in `command.ha
 
 ### Core Commands
 
-| Command | Status | Description | Handler Location |
-|---------|--------|-------------|------------------|
+| Command  | Status     | Description                        | Handler Location           |
+| -------- | ---------- | ---------------------------------- | -------------------------- |
 | `/start` | ✅ Working | Initialize bot / User registration | command.handler.ts:139-226 |
-| `/help` | ✅ Working | Display help information | command.handler.ts:231-289 |
-| `/menu` | ✅ Working | Open main menu | command.handler.ts:496-498 |
+| `/help`  | ✅ Working | Display help information           | command.handler.ts:231-289 |
+| `/menu`  | ✅ Working | Open main menu                     | command.handler.ts:496-498 |
 
 ### User Management Commands
 
-| Command | Status | Description | Handler Location |
-|---------|--------|-------------|------------------|
-| `/profile` | ✅ Working | View user profile | command.handler.ts:294-300 |
-| `/settings` | ✅ Working | Open settings menu | command.handler.ts:305-311 |
-| `/status` | ✅ Working | Show account status | command.handler.ts:717-787 |
-| `/verify` | ✅ Working | Account verification | command.handler.ts:580-621 |
+| Command     | Status     | Description          | Handler Location           |
+| ----------- | ---------- | -------------------- | -------------------------- |
+| `/profile`  | ✅ Working | View user profile    | command.handler.ts:294-300 |
+| `/settings` | ✅ Working | Open settings menu   | command.handler.ts:305-311 |
+| `/status`   | ✅ Working | Show account status  | command.handler.ts:717-787 |
+| `/verify`   | ✅ Working | Account verification | command.handler.ts:580-621 |
 
 ### Financial Commands
 
-| Command | Status | Description | Handler Location |
-|---------|--------|-------------|------------------|
-| `/balance` | ✅ Working | Check balance | command.handler.ts:316-377 |
+| Command     | Status     | Description        | Handler Location           |
+| ----------- | ---------- | ------------------ | -------------------------- |
+| `/balance`  | ✅ Working | Check balance      | command.handler.ts:316-377 |
 | `/withdraw` | ✅ Working | Request withdrawal | command.handler.ts:404-410 |
 
 ### Analytics Commands
 
-| Command | Status | Description | Handler Location |
-|---------|--------|-------------|------------------|
-| `/stats` | ✅ Working | View statistics | command.handler.ts:382-388 |
-| `/traffic` | ✅ Working | Traffic analytics | command.handler.ts:426-432 |
+| Command     | Status     | Description         | Handler Location           |
+| ----------- | ---------- | ------------------- | -------------------------- |
+| `/stats`    | ✅ Working | View statistics     | command.handler.ts:382-388 |
+| `/traffic`  | ✅ Working | Traffic analytics   | command.handler.ts:426-432 |
 | `/campaign` | ✅ Working | Campaign management | command.handler.ts:393-399 |
 
 ### Support & Utility Commands
 
-| Command | Status | Description | Handler Location |
-|---------|--------|-------------|------------------|
-| `/support` | ✅ Working | Contact support | command.handler.ts:503-542 |
-| `/language` | ✅ Working | Change language | command.handler.ts:547-575 |
-| `/export` | ✅ Working | Export data | command.handler.ts:626-667 |
-| `/reset` | ✅ Working | Reset account data | command.handler.ts:672-712 |
-| `/cancel` | ✅ Working | Cancel current operation | command.handler.ts:469-491 |
+| Command     | Status     | Description              | Handler Location           |
+| ----------- | ---------- | ------------------------ | -------------------------- |
+| `/support`  | ✅ Working | Contact support          | command.handler.ts:503-542 |
+| `/language` | ✅ Working | Change language          | command.handler.ts:547-575 |
+| `/export`   | ✅ Working | Export data              | command.handler.ts:626-667 |
+| `/reset`    | ✅ Working | Reset account data       | command.handler.ts:672-712 |
+| `/cancel`   | ✅ Working | Cancel current operation | command.handler.ts:469-491 |
 
 ### Special Commands
 
-| Command | Status | Description | Handler Location |
-|---------|--------|-------------|------------------|
-| `/referral` | ✅ Working | Referral program | command.handler.ts:415-421 |
-| `/admin` | ✅ Working | Admin panel (restricted) | command.handler.ts:437-464 |
+| Command     | Status     | Description              | Handler Location           |
+| ----------- | ---------- | ------------------------ | -------------------------- |
+| `/referral` | ✅ Working | Referral program         | command.handler.ts:415-421 |
+| `/admin`    | ✅ Working | Admin panel (restricted) | command.handler.ts:437-464 |
 
 ---
 
@@ -378,6 +418,7 @@ All commands are defined in `bot-command.enum.ts` and implemented in `command.ha
 ### Key Components
 
 #### 1. **MenuService** (`menu.service.ts`)
+
 - **Purpose:** Core menu generation and navigation logic
 - **Features:**
   - Dynamic menu generation
@@ -386,6 +427,7 @@ All commands are defined in `bot-command.enum.ts` and implemented in `command.ha
   - Inline keyboard creation
 
 #### 2. **MenuHandler** (`menu.handler.ts`)
+
 - **Purpose:** Menu interaction and state management
 - **Features:**
   - Menu navigation with breadcrumbs
@@ -395,6 +437,7 @@ All commands are defined in `bot-command.enum.ts` and implemented in `command.ha
   - Back navigation support
 
 #### 3. **MainMenuComposer** (`main-menu.composer.ts`)
+
 - **Purpose:** Grammy-based UI composition
 - **Features:**
   - Dynamic main menu composition
@@ -404,6 +447,7 @@ All commands are defined in `bot-command.enum.ts` and implemented in `command.ha
   - Navigation button management
 
 #### 4. **CommandHandler** (`command.handler.ts`)
+
 - **Purpose:** Slash command processing
 - **Features:**
   - 18 command handlers
@@ -412,6 +456,7 @@ All commands are defined in `bot-command.enum.ts` and implemented in `command.ha
   - Error handling
 
 #### 5. **CallbackHandler** (`callback.handler.ts`)
+
 - **Purpose:** Inline keyboard callback processing
 - **Features:**
   - Callback routing (15+ action types)
@@ -423,7 +468,9 @@ All commands are defined in `bot-command.enum.ts` and implemented in `command.ha
 ### Menu Enhancement Features
 
 #### Dynamic Content
+
 Each menu is enhanced with real-time data:
+
 - **Main Menu:** Balance, notifications, user status
 - **Balance Menu:** Current balance, total earned, pending amounts
 - **Profile Menu:** User info, verification status, member since
@@ -432,13 +479,16 @@ Each menu is enhanced with real-time data:
 - **Settings Menu:** Current language, theme, notification status
 
 #### Navigation Features
+
 - **Breadcrumb Navigation:** Shows path through menus (max 5 levels)
 - **Back Button:** Returns to previous menu
 - **Navigation History:** Tracks menu path for back navigation
 - **Menu State Persistence:** Session-based state management
 
 #### Keyboard Utilities
+
 Comprehensive keyboard generation (`keyboard.util.ts`):
+
 - Inline keyboards
 - Reply keyboards
 - Pagination controls
@@ -452,32 +502,33 @@ Comprehensive keyboard generation (`keyboard.util.ts`):
 
 ### Implementation Status
 
-| Category | Count | Status |
-|----------|-------|--------|
-| **Total Menus** | 14 | ✅ 100% Implemented |
-| **Total Commands** | 18 | ✅ 100% Implemented |
-| **Menu Handlers** | 14 | ✅ All Working |
-| **Command Handlers** | 18 | ✅ All Working |
-| **Callback Handlers** | 15+ | ✅ All Working |
+| Category              | Count | Status              |
+| --------------------- | ----- | ------------------- |
+| **Total Menus**       | 14    | ✅ 100% Implemented |
+| **Total Commands**    | 18    | ✅ 100% Implemented |
+| **Menu Handlers**     | 14    | ✅ All Working      |
+| **Command Handlers**  | 18    | ✅ All Working      |
+| **Callback Handlers** | 15+   | ✅ All Working      |
 
 ### Feature Completeness
 
-| Feature | Status | Details |
-|---------|--------|---------|
-| **Core Navigation** | ✅ Complete | All menus accessible |
-| **Dynamic Content** | ✅ Complete | Real-time data integration |
-| **User Authentication** | ✅ Complete | Registration, login, session management |
-| **Balance System** | ✅ Complete | Multi-currency rates, payment integration |
-| **Settings Management** | ✅ Complete | Language, notifications, privacy |
-| **Help System** | ✅ Complete | FAQ, support, tutorials |
-| **Admin Panel** | ✅ Complete | Role-based access control |
-| **Error Handling** | ✅ Complete | Comprehensive error management |
+| Feature                 | Status      | Details                                   |
+| ----------------------- | ----------- | ----------------------------------------- |
+| **Core Navigation**     | ✅ Complete | All menus accessible                      |
+| **Dynamic Content**     | ✅ Complete | Real-time data integration                |
+| **User Authentication** | ✅ Complete | Registration, login, session management   |
+| **Balance System**      | ✅ Complete | Multi-currency rates, payment integration |
+| **Settings Management** | ✅ Complete | Language, notifications, privacy          |
+| **Help System**         | ✅ Complete | FAQ, support, tutorials                   |
+| **Admin Panel**         | ✅ Complete | Role-based access control                 |
+| **Error Handling**      | ✅ Complete | Comprehensive error management            |
 
 ---
 
 ## 🔄 Callback Data Patterns
 
 ### Menu Navigation
+
 - `menu:main` → Main menu
 - `menu:profile` → Profile menu
 - `menu:settings` → Settings menu
@@ -491,6 +542,7 @@ Comprehensive keyboard generation (`keyboard.util.ts`):
 - `menu:admin` → Admin menu
 
 ### Action Callbacks
+
 - `auth:register` → User registration
 - `auth:logout` → User logout
 - `profile:edit` → Edit profile
@@ -503,6 +555,7 @@ Comprehensive keyboard generation (`keyboard.util.ts`):
 - `help:faq` → FAQ display
 
 ### Utility Callbacks
+
 - `back` → Navigate back
 - `close` → Close menu
 - `refresh` → Refresh current menu
@@ -514,16 +567,17 @@ Comprehensive keyboard generation (`keyboard.util.ts`):
 
 The bot supports 6 languages with personalized greetings:
 
-| Language | Code | Greeting |
-|----------|------|----------|
-| English | `en` | Welcome back, {name}! 🚀 |
-| Spanish | `es` | ¡Bienvenido de vuelta, {name}! 🚀 |
-| French | `fr` | Bon retour, {name}! 🚀 |
-| German | `de` | Willkommen zurück, {name}! 🚀 |
-| Russian | `ru` | С возвращением, {name}! 🚀 |
-| Chinese | `zh` | 欢迎回来, {name}! 🚀 |
+| Language | Code | Greeting                          |
+| -------- | ---- | --------------------------------- |
+| English  | `en` | Welcome back, {name}! 🚀          |
+| Spanish  | `es` | ¡Bienvenido de vuelta, {name}! 🚀 |
+| French   | `fr` | Bon retour, {name}! 🚀            |
+| German   | `de` | Willkommen zurück, {name}! 🚀     |
+| Russian  | `ru` | С возвращением, {name}! 🚀        |
+| Chinese  | `zh` | 欢迎回来, {name}! 🚀              |
 
 Language settings are accessible via:
+
 - `/language` command
 - Settings menu → Language
 - Direct callback: `language:{code}`
@@ -533,11 +587,13 @@ Language settings are accessible via:
 ## 🔐 Security & Permissions
 
 ### Role-Based Access
+
 - **Admin Features:** Restricted to `user.isAdmin = true`
 - **Verification Required:** Withdrawal features require verified account
 - **Session-Based:** All operations tracked in user sessions
 
 ### Authentication Flow
+
 1. User starts bot with `/start`
 2. System checks for existing user
 3. New users: Registration flow via `auth:register`
@@ -550,6 +606,7 @@ Language settings are accessible via:
 ## 📈 Integration Points
 
 ### Services Used
+
 - **AuthService:** User authentication and registration
 - **AuthUserService:** User data retrieval
 - **BalanceService:** Financial operations
@@ -558,6 +615,7 @@ Language settings are accessible via:
 - **SessionService:** Session state management
 
 ### Database Entities
+
 - **User:** User profile and settings
 - **Balance:** Financial data
 - **Session:** Navigation and conversation state
@@ -567,35 +625,39 @@ Language settings are accessible via:
 
 ## 🛠️ Configuration Files
 
-| File | Purpose | Location |
-|------|---------|----------|
-| `menu-type.enum.ts` | Menu type definitions | `libs/feature/bot/shared/src/enum/` |
-| `bot-command.enum.ts` | Command definitions | `libs/feature/bot/shared/src/enum/` |
-| `menu.service.ts` | Menu generation logic | `libs/feature/bot/main/src/service/` |
-| `menu.handler.ts` | Menu interaction handling | `libs/feature/bot/main/src/handler/` |
-| `command.handler.ts` | Command processing | `libs/feature/bot/main/src/handler/` |
-| `callback.handler.ts` | Callback query handling | `libs/feature/bot/main/src/handler/` |
+| File                    | Purpose                   | Location                              |
+| ----------------------- | ------------------------- | ------------------------------------- |
+| `menu-type.enum.ts`     | Menu type definitions     | `libs/feature/bot/shared/src/enum/`   |
+| `bot-command.enum.ts`   | Command definitions       | `libs/feature/bot/shared/src/enum/`   |
+| `menu.service.ts`       | Menu generation logic     | `libs/feature/bot/main/src/service/`  |
+| `menu.handler.ts`       | Menu interaction handling | `libs/feature/bot/main/src/handler/`  |
+| `command.handler.ts`    | Command processing        | `libs/feature/bot/main/src/handler/`  |
+| `callback.handler.ts`   | Callback query handling   | `libs/feature/bot/main/src/handler/`  |
 | `main-menu.composer.ts` | Menu composition (Grammy) | `libs/feature/bot/main/src/composer/` |
-| `keyboard.util.ts` | Keyboard utilities | `libs/feature/bot/shared/src/util/` |
+| `keyboard.util.ts`      | Keyboard utilities        | `libs/feature/bot/shared/src/util/`   |
 
 ---
 
 ## 🚀 Quick Start Guide
 
 ### Access Main Menu
+
 ```
 /start → Welcome message with menu
 /menu → Direct main menu access
 ```
 
 ### Navigate Menus
+
 1. Use inline buttons to navigate between menus
 2. Back button returns to previous menu
 3. Breadcrumb shows current navigation path
 4. Use /menu to return to main menu from anywhere
 
 ### Execute Commands
+
 All 18 commands are available:
+
 ```
 /balance → Check your balance
 /stats → View statistics

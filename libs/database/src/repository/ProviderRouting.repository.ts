@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { ProviderRoutingEntity, RoutingRuleType, ConditionOperator } from '../entity/ProviderRouting.entity';
+import { ProviderRoutingEntity, RoutingRuleType } from '../entity/ProviderRouting.entity';
 import { CurrencyCode } from '../entity/Currency.entity';
 import { PaymentProvider } from '../enum';
 
@@ -106,6 +106,7 @@ export class ProviderRoutingRepository {
     });
 
     // Further filter rules based on context
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     return rules.filter((rule) => {
       // Check if rule is currently active (time/date constraints)
       if (!rule.isCurrentlyActive()) {

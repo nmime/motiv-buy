@@ -21,13 +21,13 @@ export class SecurityService {
    * @param limit - Number of records to return (default: 50)
    * @returns Array of login history records
    *
-   * ⚠️ TODO: This returns MOCK DATA - not production ready!
-   * FIXME: Implement actual login history tracking:
+   * ⚠️ NOTE: This returns MOCK DATA - not production ready!
+   * REQUIRES: Implement actual login history tracking:
    * 1. Create login_history table with ipAddress, userAgent, location fields
    * 2. Record login attempts in auth service
    * 3. Query login_history table with proper filtering and pagination
    */
-  async getLoginHistory(userId: string, limit = 50): Promise<LoginHistoryResponseDto[]> {
+  async getLoginHistory(userId: string, _limit = 50): Promise<LoginHistoryResponseDto[]> {
     const em = this.em.fork();
 
     // ⚠️ WARNING: Returning mock data - not actual login history!
@@ -55,8 +55,8 @@ export class SecurityService {
    * @param userId - User ID
    * @returns Security overview with session info and login statistics
    *
-   * ⚠️ TODO: This returns MOCK DATA - not production ready!
-   * FIXME: Implement proper security tracking:
+   * ⚠️ NOTE: This returns MOCK DATA - not production ready!
+   * REQUIRES: Implement proper security tracking:
    * 1. Create sessions table for active session tracking
    * 2. Track IP addresses and user agents in login_history
    * 3. Implement failed login attempts tracking

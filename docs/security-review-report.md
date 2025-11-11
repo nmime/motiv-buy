@@ -1,4 +1,5 @@
 # Security and Quality Review Report
+
 ## Payment and Bot Features
 
 **Review Date:** 2025-11-03
@@ -20,10 +21,12 @@ The Payment and Bot features have been reviewed for security vulnerabilities, co
 ## 🔴 CRITICAL Issues (Immediate Action Required)
 
 ### 1. CRITICAL: Incomplete Webhook Processing Implementation
+
 **File:** `/monorepo/libs/feature/payment/main/src/controller/payment-webhook.controller.ts`
 **Lines:** 120-130
 
 **Issue:**
+
 ```typescript
 // TODO: Uncomment when PaymentService is implemented
 // await this.paymentService.processWebhook(webhookData);
@@ -33,12 +36,14 @@ this.logger.log('Webhook data ready for processing', {...});
 ```
 
 **Impact:** Webhook notifications from CryptoPay are received and validated but NOT PROCESSED. This means:
+
 - Invoices paid by users will NOT credit their balance
 - Completed transfers will NOT be tracked
 - Revenue is lost
 - User experience is broken
 
 **Recommendation:**
+
 - Immediately uncomment the webhook processing call
 - The `PaymentService.processWebhook()` method exists and is ready (lines 384-437 in payment.service.ts)
 - Add integration tests to verify end-to-end webhook flow
@@ -48,10 +53,12 @@ this.logger.log('Webhook data ready for processing', {...});
 ---
 
 ### 2. CRITICAL: Race Condition in Balance Crediting
+
 **File:** `/monorepo/libs/feature/payment/main/src/service/payment.service.ts`
 **Lines:** 520-567
 
 **Issue:**
+
 ```typescript
 private async creditUserBalance(transaction: PaymentTransactionEntity): Promise<void> {
   // Idempotency check
@@ -87,11 +94,13 @@ Result: User credited twice! (200 instead of 100)
 ```
 
 **Impact:**
+
 - Users can receive double credits
 - Financial loss for the platform
 - Potential for exploitation if users discover the race condition
 
 **Recommendation:**
+
 ```typescript
 private async creditUserBalance(transaction: PaymentTransactionEntity): Promise<void> {
   await this.em.transactional(async (em) => {
@@ -121,11 +130,14 @@ private async creditUserBalance(transaction: PaymentTransactionEntity): Promise<
 ---
 
 ### 3. CRITICAL: Missing Amount Validation
+
 **Files:**
+
 - `/monorepo/libs/feature/payment/shared/src/dto/create-invoice.dto.ts`
 - `/monorepo/libs/feature/payment/shared/src/dto/create-transfer.dto.ts`
 
 **Issue:**
+
 ```typescript
 @Matches(/^\d+(\.\d+)?$/, {
   message: 'Amount must be a positive number string',
@@ -134,18 +146,21 @@ amount!: string;
 ```
 
 The regex validates format but NOT:
+
 - Minimum amount (e.g., 0.01)
 - Maximum amount (e.g., 1,000,000)
 - Zero values (0.00)
 - Extremely large decimals (e.g., 0.000000000001)
 
 **Impact:**
+
 - Users can create invoices for $0.00
 - Users can create withdrawals for astronomical amounts (limited only by balance)
 - Gas fees may exceed transaction value for tiny amounts
 - Provider API may reject invalid amounts, causing errors
 
 **Recommendation:**
+
 ```typescript
 import { Min, Max } from 'class-validator';
 
@@ -157,6 +172,7 @@ amount!: number;
 ```
 
 Add business logic validation in service layer:
+
 ```typescript
 if (parseFloat(dto.amount) < MIN_TRANSACTION_AMOUNT) {
   return Err(new Error(`Minimum transaction amount is ${MIN_TRANSACTION_AMOUNT}`));
@@ -173,10 +189,12 @@ if (parseFloat(dto.amount) > MAX_TRANSACTION_AMOUNT) {
 ## 🟠 HIGH Priority Issues
 
 ### 4. HIGH: Authorization Bypass in Withdrawal
+
 **File:** `/monorepo/libs/feature/payment/main/src/controller/payment.controller.ts`
 **Lines:** 180-192
 
 **Issue:**
+
 ```typescript
 async createWithdrawal(
   @CurrentUserId() userId: string,
@@ -190,6 +208,7 @@ async createWithdrawal(
 The `CreateTransferDto` accepts `userId` in the request body (line 11-19 in create-transfer.dto.ts). While the service uses the authenticated `userId` parameter, the DTO still allows arbitrary userId in the body, which could confuse developers or lead to bugs.
 
 **Vulnerability Scenario:**
+
 ```json
 POST /payment/withdraw
 Authorization: Bearer <user_123_token>
@@ -201,17 +220,20 @@ Authorization: Bearer <user_123_token>
 ```
 
 Currently safe because the service ignores `dto.userId` and uses authenticated `userId`, but:
+
 1. Confusing API design (why accept userId if not used?)
 2. Future developer might accidentally use `dto.userId`
 3. Creates attack surface for mistakes
 
 **Impact:**
+
 - Potential authorization bypass if code is modified
 - Confused API design
 - Security through obscurity (not explicit)
 
 **Recommendation:**
 Remove `userId` from `CreateTransferDto` entirely:
+
 ```typescript
 export class CreateTransferDto {
   // Remove userId field - it comes from authentication
@@ -228,6 +250,7 @@ export class CreateTransferDto {
 ```
 
 Update service signature:
+
 ```typescript
 async createWithdrawal(authenticatedUserId: string, dto: CreateTransferDto) {
   // Use provider's getUserId() method to get Telegram ID
@@ -248,21 +271,25 @@ async createWithdrawal(authenticatedUserId: string, dto: CreateTransferDto) {
 ---
 
 ### 5. HIGH: Missing Webhook Replay Protection
+
 **File:** `/monorepo/libs/feature/payment/main/src/controller/payment-webhook.controller.ts`
 **Lines:** 70-149
 
 **Issue:**
 The webhook handler verifies HMAC signature but does NOT check:
+
 - Timestamp freshness (webhooks could be replayed hours later)
 - Nonce/request ID (same webhook could be sent multiple times)
 - Idempotency at controller level (only at service level)
 
 **Attack Scenario:**
+
 1. Attacker intercepts valid webhook (MITM)
 2. Attacker replays webhook multiple times
 3. Even with idempotency check, creates unnecessary DB queries and logs
 
 **Current Protection:**
+
 ```typescript
 verifyWebhook(signature: string, body: string): boolean {
   const secret = createHash('sha256').update(this.apiToken).digest();
@@ -272,6 +299,7 @@ verifyWebhook(signature: string, body: string): boolean {
 ```
 
 **Recommendation:**
+
 ```typescript
 @Post('crypto-bot')
 async handleCryptoBotWebhook(
@@ -309,10 +337,12 @@ async handleCryptoBotWebhook(
 ---
 
 ### 6. HIGH: Non-Atomic Balance Rollback
+
 **File:** `/monorepo/libs/feature/payment/main/src/service/payment.service.ts`
 **Lines:** 226-238
 
 **Issue:**
+
 ```typescript
 } catch (error) {
   this.logger.error('Error creating withdrawal', error);
@@ -335,6 +365,7 @@ async handleCryptoBotWebhook(
 ```
 
 **Problems:**
+
 1. Balance already deducted (line 166) outside the transaction scope
 2. Rollback happens in catch block (not guaranteed to execute)
 3. Rollback itself can fail (nested try-catch)
@@ -342,12 +373,14 @@ async handleCryptoBotWebhook(
 
 **Impact:**
 If withdrawal fails AFTER balance deduction but BEFORE transaction commit:
+
 - User's balance is decreased
 - Withdrawal never completes
 - Money is lost in limbo
 - Manual intervention required
 
 **Recommendation:**
+
 ```typescript
 async createWithdrawal(userId: string, dto: CreateTransferDto): AsyncResult<TransferResponseDto, Error> {
   try {
@@ -388,15 +421,18 @@ async createWithdrawal(userId: string, dto: CreateTransferDto): AsyncResult<Tran
 ---
 
 ### 7. HIGH: Missing Audit Logging for Financial Operations
+
 **Files:** All payment operations
 
 **Issue:**
 Current logging is informational but NOT audit-trail compliant:
+
 ```typescript
 this.logger.log(`Creating withdrawal for user ${userId}: ${dto.amount} ${dto.currency}`);
 ```
 
 Missing:
+
 - Immutable audit trail (separate from application logs)
 - User IP address, user agent
 - Request ID for correlation
@@ -404,6 +440,7 @@ Missing:
 - Compliance metadata (PCI-DSS, GDPR)
 
 **Impact:**
+
 - Cannot investigate fraud
 - Cannot prove compliance
 - Cannot reconstruct transaction history
@@ -411,6 +448,7 @@ Missing:
 
 **Recommendation:**
 Create `AuditService`:
+
 ```typescript
 @Injectable()
 export class AuditService {
@@ -433,6 +471,7 @@ export class AuditService {
 ```
 
 Use in all financial operations:
+
 ```typescript
 await this.auditService.logFinancialOperation({
   type: 'WITHDRAWAL_CREATED',
@@ -455,16 +494,19 @@ await this.auditService.logFinancialOperation({
 ## 🟡 MEDIUM Priority Issues
 
 ### 8. MEDIUM: Insufficient Input Sanitization
+
 **File:** `/monorepo/libs/feature/payment/shared/src/dto/create-invoice.dto.ts`
 **Lines:** 31-41
 
 **Issue:**
+
 ```typescript
 @MaxLength(1024)
 description?: string;
 ```
 
 No sanitization for:
+
 - HTML/script tags
 - SQL injection characters
 - XSS payloads
@@ -472,11 +514,13 @@ No sanitization for:
 
 **Impact:**
 While stored as JSON in database (safe from SQL injection), could cause:
+
 - XSS if displayed in admin panel
 - Log injection attacks
 - Provider API rejection
 
 **Recommendation:**
+
 ```typescript
 import { Transform } from 'class-transformer';
 import { sanitize } from 'class-sanitizer';
@@ -498,15 +542,18 @@ description?: string;
 ---
 
 ### 9. MEDIUM: Missing CSRF Protection
+
 **File:** All POST endpoints in payment and bot controllers
 
 **Issue:**
 No CSRF tokens for state-changing operations. While JWT auth provides some protection, still vulnerable to:
+
 - Malicious websites triggering requests
 - XSS-based CSRF attacks
 
 **Recommendation:**
 Add CSRF middleware:
+
 ```typescript
 import { csurf } from 'csurf';
 
@@ -520,16 +567,19 @@ Or use double-submit cookie pattern with JWT.
 ---
 
 ### 10. MEDIUM: Session Security Gaps
+
 **File:** `/monorepo/libs/feature/bot/main/src/service/auth/bot-session.service.ts`
 
 **Issue:**
 Bot sessions don't have:
+
 - Explicit expiration time
 - Session rotation after sensitive operations
 - Maximum concurrent sessions per user
 - Session invalidation on password change
 
 **Recommendation:**
+
 ```typescript
 interface SessionData {
   userId: string;
@@ -565,19 +615,23 @@ async validateSession(sessionId: string): Promise<boolean> {
 ---
 
 ### 11. MEDIUM: Information Disclosure in Error Messages
+
 **Files:** Various error handling blocks
 
 **Issue:**
+
 ```typescript
 throw new BadRequestException(error.message || 'Failed to create top-up invoice');
 ```
 
 Raw error messages from provider/database could leak:
+
 - Internal implementation details
 - Database schema
 - API keys (if accidentally logged)
 
 **Recommendation:**
+
 ```typescript
 if (result.err) {
   const error = result.val;
@@ -600,20 +654,24 @@ if (result.err) {
 ---
 
 ### 12. MEDIUM: Rate Limiting Not Risk-Based
+
 **File:** `/monorepo/libs/feature/payment/main/src/controller/payment.controller.ts`
 
 **Issue:**
+
 ```typescript
 @Throttle({ default: { limit: 10, ttl: 60000 } }) // Same for all users
 ```
 
 All users get same rate limits regardless of:
+
 - Account age
 - Verification status
 - Historical behavior
 - Risk score
 
 **Recommendation:**
+
 ```typescript
 @UseGuards(AdaptiveRateLimitGuard)
 @Post('topup')
@@ -650,11 +708,13 @@ export class AdaptiveRateLimitGuard implements CanActivate {
 ## 🟢 LOW Priority Issues
 
 ### 13. LOW: Code Duplication in Mappers
+
 **File:** `/monorepo/libs/feature/payment/main/src/provider/crypto-bot.provider.ts`
 **Lines:** 342-404
 
 **Issue:**
 Mapping functions have duplicated logic:
+
 ```typescript
 private mapAssetToCryptocurrency(asset: string): Cryptocurrency {
   const mapping: Record<string, Cryptocurrency> = {
@@ -676,6 +736,7 @@ private mapStatusToPaymentStatus(status: string): PaymentStatus {
 
 **Recommendation:**
 Extract to utility class:
+
 ```typescript
 export class PaymentMapper {
   static assetToCurrency(asset: string): Cryptocurrency { ... }
@@ -689,21 +750,25 @@ export class PaymentMapper {
 ---
 
 ### 14. LOW: Missing Test Coverage
+
 **Finding:** NO test files found for payment features
 
 **Impact:**
+
 - Cannot verify security fixes
 - Regressions likely
 - Difficult to refactor
 
 **Recommendation:**
 Create comprehensive test suite:
+
 - `payment.controller.spec.ts`
 - `payment.service.spec.ts`
 - `crypto-bot.provider.spec.ts`
 - `payment-webhook.controller.spec.ts`
 
 Minimum coverage targets:
+
 - Unit tests: 80%
 - Integration tests: 60%
 - E2E tests for critical flows: 100%
@@ -713,10 +778,12 @@ Minimum coverage targets:
 ---
 
 ### 15. LOW: Production TODOs
+
 **File:** `/monorepo/libs/feature/bot/main/src/handler/menu.handler.ts`
 **Line:** 338
 
 **Issue:**
+
 ```typescript
 * TODO: Notification System Integration
 ```
@@ -731,6 +798,7 @@ Create tracking tickets and remove TODOs from code.
 ## Code Quality Assessment
 
 ### Strengths ✅
+
 1. **Excellent Architecture:** Clean separation of concerns with DTOs, Services, Controllers
 2. **Type Safety:** Comprehensive TypeScript usage with proper types
 3. **Error Handling:** Result pattern used consistently
@@ -740,6 +808,7 @@ Create tracking tickets and remove TODOs from code.
 7. **Webhook Security:** HMAC signature verification implemented correctly
 
 ### Weaknesses ❌
+
 1. **Missing Tests:** No payment-related test files found
 2. **Long Methods:** Some methods exceed 50 lines (e.g., `creditUserBalance`)
 3. **Magic Numbers:** Hardcoded values (e.g., rate limits, timeouts)
@@ -747,6 +816,7 @@ Create tracking tickets and remove TODOs from code.
 5. **Poor Transaction Management:** Some operations not properly atomic
 
 ### Code Metrics
+
 - **Average Complexity:** 4.2 (Good, target < 10)
 - **Code Duplication:** ~3% (Acceptable, target < 5%)
 - **Test Coverage:** 0% for payment features (Target: 80%)
@@ -758,6 +828,7 @@ Create tracking tickets and remove TODOs from code.
 ## Test Coverage Analysis
 
 ### Current State
+
 ```
 Payment Feature Test Files: 0 ❌
 Bot Feature Test Files: 4 ✅
@@ -768,6 +839,7 @@ Bot Feature Test Files: 4 ✅
 ```
 
 ### Missing Tests
+
 1. `payment.controller.spec.ts` - ❌ CRITICAL
 2. `payment.service.spec.ts` - ❌ CRITICAL
 3. `payment-webhook.controller.spec.ts` - ❌ CRITICAL
@@ -778,6 +850,7 @@ Bot Feature Test Files: 4 ✅
 ### Recommended Test Scenarios
 
 **Payment Controller Tests:**
+
 ```typescript
 describe('PaymentController', () => {
   describe('createTopUp', () => {
@@ -798,6 +871,7 @@ describe('PaymentController', () => {
 ```
 
 **Security Tests:**
+
 ```typescript
 describe('Security', () => {
   it('should reject webhooks with invalid signature');
@@ -813,24 +887,28 @@ describe('Security', () => {
 ## Recommendations Summary
 
 ### Immediate Actions (This Week)
+
 1. ✅ Uncomment webhook processing in `payment-webhook.controller.ts` (Issue #1)
 2. ✅ Fix race condition in `creditUserBalance` with pessimistic locking (Issue #2)
 3. ✅ Add amount validation (min/max) to payment DTOs (Issue #3)
 4. ✅ Remove userId from withdrawal DTO (Issue #4)
 
 ### Short-term Actions (This Month)
+
 1. Implement webhook replay protection (Issue #5)
 2. Fix non-atomic balance rollback (Issue #6)
 3. Add comprehensive audit logging (Issue #7)
 4. Create test suite for payment features (Issue #14)
 
 ### Medium-term Actions (This Quarter)
+
 1. Implement CSRF protection (Issue #9)
 2. Enhance session security (Issue #10)
 3. Add risk-based rate limiting (Issue #12)
 4. Improve input sanitization (Issue #8)
 
 ### Long-term Improvements
+
 1. Implement fraud detection system
 2. Add real-time monitoring and alerting
 3. Create admin dashboard for transaction monitoring
@@ -842,6 +920,7 @@ describe('Security', () => {
 ## Security Best Practices Checklist
 
 ### Authentication & Authorization
+
 - ✅ JWT-based authentication implemented
 - ✅ User ID extracted from token (CurrentUserId decorator)
 - ❌ Missing CSRF protection
@@ -849,12 +928,14 @@ describe('Security', () => {
 - ⚠️ Withdrawal userId confusion (being fixed)
 
 ### Input Validation
+
 - ✅ class-validator decorators on DTOs
 - ✅ NestJS ValidationPipe enabled globally
 - ⚠️ Missing min/max amount validation
 - ⚠️ Insufficient sanitization for descriptions
 
 ### Data Protection
+
 - ✅ Using ORM (MikroORM) - SQL injection protected
 - ✅ Parameterized queries
 - ✅ Passwords hashed (in auth module)
@@ -862,6 +943,7 @@ describe('Security', () => {
 - ✅ HTTPS enforced (assumed)
 
 ### API Security
+
 - ✅ Rate limiting implemented
 - ✅ Swagger/OpenAPI documentation
 - ❌ Not risk-based rate limiting
@@ -869,12 +951,14 @@ describe('Security', () => {
 - ✅ Webhook signature verification
 
 ### Logging & Monitoring
+
 - ✅ Structured logging with context
 - ❌ Missing audit trail for compliance
 - ❌ No alerting for critical errors
 - ❌ No request ID correlation
 
 ### Transaction Safety
+
 - ⚠️ Some operations not atomic
 - ⚠️ Race conditions possible
 - ❌ Rollback logic flawed
@@ -887,6 +971,7 @@ describe('Security', () => {
 The Payment and Bot features demonstrate solid architectural foundations with good separation of concerns, proper use of TypeScript, and security-conscious design patterns. However, several critical issues must be addressed before production deployment, particularly around webhook processing, race conditions, and transaction atomicity.
 
 **Recommended Actions:**
+
 1. **Block Production Deploy** until Critical issues #1, #2, #3 are fixed
 2. **Prioritize High issues** for next sprint
 3. **Create comprehensive test suite** to prevent regressions
@@ -894,6 +979,7 @@ The Payment and Bot features demonstrate solid architectural foundations with go
 5. **Schedule security audit** by external firm before launch
 
 **Estimated Effort:**
+
 - Critical fixes: 2-3 days
 - High priority fixes: 1 week
 - Medium priority: 2 weeks
@@ -905,6 +991,7 @@ The Payment and Bot features demonstrate solid architectural foundations with go
 ## Appendix: Files Reviewed
 
 ### Payment Feature
+
 - `payment.controller.ts` - REST API endpoints
 - `payment-webhook.controller.ts` - Webhook handler
 - `payment.service.ts` - Business logic
@@ -915,6 +1002,7 @@ The Payment and Bot features demonstrate solid architectural foundations with go
 - `webhook-update.dto.ts` - Webhook validation
 
 ### Bot Feature
+
 - `bot.service.ts` - Core bot service
 - `bot-auth.middleware.ts` - Authentication
 - `bot-validation.util.ts` - Input validation
@@ -922,6 +1010,7 @@ The Payment and Bot features demonstrate solid architectural foundations with go
 - `bot-session.service.ts` - Session management
 
 ### Infrastructure
+
 - `redis-rate-limit.service.ts` - Rate limiting
 - `auth-jwt-validation.service.ts` - JWT validation
 - Various configuration files

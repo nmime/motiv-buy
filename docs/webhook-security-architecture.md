@@ -16,17 +16,20 @@ const isValid = this.cryptoBotProvider.verifyWebhook(signature, bodyString);
 ```
 
 **How it works:**
+
 1. Payment provider calculates HMAC-SHA256 hash of request body using shared secret
 2. Provider includes hash in `crypto-pay-api-signature` header
 3. Our server recalculates hash using same secret
 4. If hashes match, request is authentic
 
 **Security guarantees:**
+
 - ✅ Proves request came from payment provider (only they have the secret)
 - ✅ Proves request body hasn't been tampered with (hash includes entire body)
 - ✅ Cryptographically strong (SHA-256 is industry standard)
 
 **Rejection criteria:**
+
 - Missing `crypto-pay-api-signature` header → 401 Unauthorized
 - Invalid signature (hash mismatch) → 401 Unauthorized
 
@@ -40,16 +43,19 @@ const isValid = this.cryptoBotProvider.verifyWebhook(signature, bodyString);
 ```
 
 **Configuration:**
+
 - 100 requests per minute per IP address
 - TTL: 60,000ms (1 minute)
 
 **Why 100 req/min:**
+
 - Legitimate webhooks: typically <10 requests/minute
 - Allows burst traffic during high activity
 - Prevents brute force signature guessing
 - Prevents memory exhaustion from excessive requests
 
 **Rejection criteria:**
+
 - Exceeds 100 requests in 1 minute → 429 Too Many Requests
 
 ### 3. Input Validation (Injection Prevention)
@@ -58,39 +64,47 @@ const isValid = this.cryptoBotProvider.verifyWebhook(signature, bodyString);
 **Location:** `payment-webhook.controller.ts:186-271`
 
 #### 3.1 Payload Size Limit
+
 ```typescript
 if (jsonString.length > 100000) {
   throw new BadRequestException('Webhook payload too large');
 }
 ```
+
 - Maximum: 100KB (100,000 bytes)
 - Prevents memory exhaustion attacks
 - Typical webhook: ~1-5KB
 
 #### 3.2 Type Validation
+
 ```typescript
 if (typeof data.updateType !== 'string' || data.updateType.trim().length === 0) {
   throw new Error('Invalid webhook payload: missing or invalid updateType');
 }
 ```
+
 - Strict type checking for all fields
 - Null/undefined rejection
 - Empty string rejection
 
 #### 3.3 Date Validation
+
 ```typescript
 const date = new Date(data.requestDate);
 if (isNaN(date.getTime())) {
   throw new Error('Invalid webhook payload: requestDate is not a valid date');
 }
 ```
+
 - ISO 8601 date format required
 - Prevents invalid date objects
 
 #### 3.4 String Sanitization
+
 ```typescript
 const sanitizedUpdateType = data.updateType.trim().replace(/[^\w-]/g, '_');
 ```
+
 - Removes special characters
 - Prevents SQL injection
 - Prevents XSS attacks
@@ -105,12 +119,14 @@ const requestId = randomUUID();
 ```
 
 **Benefits:**
+
 - Unique identifier for each webhook request
 - Correlates logs across multiple service layers
 - Enables debugging of webhook processing issues
 - Stored in transaction metadata for audit trail
 
 **Usage:**
+
 ```typescript
 // Controller logs
 this.logger.log('Received CryptoPay webhook', { requestId });
@@ -127,12 +143,14 @@ transaction.metadata = { requestId, ... };
 **Strategy:** Always return 200 OK (except auth failures)
 
 **Why:**
+
 ```typescript
 // Return success to prevent unnecessary provider retries
 return { ok: true };
 ```
 
 **Rationale:**
+
 1. **Prevents infinite retries:** Provider won't retry if we return error status
 2. **Idempotency-safe:** Same webhook can be processed multiple times safely
 3. **Debugging-friendly:** All errors logged with full context
@@ -143,6 +161,7 @@ return { ok: true };
 ## Why CSRF Protection is NOT Used
 
 ### What is CSRF?
+
 Cross-Site Request Forgery (CSRF) protects against unauthorized actions from authenticated users via malicious websites.
 
 ### Why webhooks don't need CSRF:
@@ -169,17 +188,18 @@ Cross-Site Request Forgery (CSRF) protects against unauthorized actions from aut
 
 ### Comparison Table
 
-| Security Feature | CSRF Token | HMAC Signature |
-|-----------------|------------|----------------|
-| **Protects against** | User session hijacking | Request tampering |
-| **Authentication** | Session-based | Cryptographic |
-| **Suitable for** | User-initiated requests | Server-to-server |
-| **Strength** | Medium | Strong |
-| **Webhook compatibility** | ❌ Breaks webhooks | ✅ Perfect for webhooks |
+| Security Feature          | CSRF Token              | HMAC Signature          |
+| ------------------------- | ----------------------- | ----------------------- |
+| **Protects against**      | User session hijacking  | Request tampering       |
+| **Authentication**        | Session-based           | Cryptographic           |
+| **Suitable for**          | User-initiated requests | Server-to-server        |
+| **Strength**              | Medium                  | Strong                  |
+| **Webhook compatibility** | ❌ Breaks webhooks      | ✅ Perfect for webhooks |
 
 ## Security Testing Checklist
 
 ### Signature Verification Tests
+
 - [x] ✅ Missing signature header → 401
 - [x] ✅ Invalid signature → 401
 - [x] ✅ Valid signature → 200
@@ -187,12 +207,14 @@ Cross-Site Request Forgery (CSRF) protects against unauthorized actions from aut
 - [ ] ⚠️ Signature replay attack (use timestamp)
 
 ### Rate Limiting Tests
+
 - [x] ✅ Under limit → 200
 - [ ] ⚠️ Over limit → 429
 - [ ] ⚠️ Rate limit per IP (not global)
 - [ ] ⚠️ Rate limit reset after TTL
 
 ### Input Validation Tests
+
 - [x] ✅ Valid payload → 200
 - [x] ✅ Invalid payload → 200 (logged)
 - [x] ✅ Oversized payload → 400
@@ -201,6 +223,7 @@ Cross-Site Request Forgery (CSRF) protects against unauthorized actions from aut
 - [ ] ⚠️ XSS attempts
 
 ### Idempotency Tests
+
 - [x] ✅ Duplicate webhook → Idempotent
 - [x] ✅ Concurrent webhooks → Race-safe
 - [ ] ⚠️ Out-of-order webhooks
@@ -208,23 +231,27 @@ Cross-Site Request Forgery (CSRF) protects against unauthorized actions from aut
 ## Production Deployment Checklist
 
 ### Secrets Management
+
 - [ ] Store HMAC secret in environment variable (never in code)
 - [ ] Rotate HMAC secret periodically (quarterly)
 - [ ] Use different secrets for staging/production
 
 ### Monitoring
+
 - [ ] Alert on >50 webhook authentication failures per hour
 - [ ] Alert on rate limit violations
 - [ ] Dashboard for webhook processing metrics
 - [ ] Log retention: minimum 90 days for audit
 
 ### Network Security
+
 - [ ] Webhook endpoint uses HTTPS only (no HTTP)
 - [ ] TLS 1.2+ required
 - [ ] Certificate pinning (optional, for high security)
 - [ ] Firewall rules: only allow payment provider IPs (optional)
 
 ### Disaster Recovery
+
 - [ ] Webhook processing failure → Manual investigation procedure
 - [ ] Balance deduction failure → Automatic rollback + alert
 - [ ] Database transaction failure → Critical alert + manual fix
@@ -232,6 +259,7 @@ Cross-Site Request Forgery (CSRF) protects against unauthorized actions from aut
 ## Threat Model
 
 ### Threats Mitigated ✅
+
 1. **Unauthorized webhook injection** - Blocked by signature verification
 2. **Webhook tampering** - Detected by signature mismatch
 3. **Replay attacks** - Mitigated by idempotency checks
@@ -242,6 +270,7 @@ Cross-Site Request Forgery (CSRF) protects against unauthorized actions from aut
 8. **Memory exhaustion** - Payload size limit + rate limiting
 
 ### Threats NOT Mitigated ⚠️
+
 1. **Replay attacks (timing)** - Consider adding timestamp validation
 2. **DDoS (distributed)** - Use CloudFlare or AWS Shield
 3. **Provider key compromise** - Requires key rotation

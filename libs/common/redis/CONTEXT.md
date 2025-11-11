@@ -104,14 +104,12 @@ Used throughout the platform for:
 ### Basic Redis Operations
 
 ```typescript
-
 @Injectable()
 export class UserService {
   constructor(
     @Inject(RedisInjectToken)
     private readonly redis: IORedis | Cluster,
-  ) {
-  }
+  ) {}
 
   async cacheUser(userId: string, userData: any) {
     await this.redis.setex(
@@ -131,11 +129,9 @@ export class UserService {
 ### Caching Service Usage
 
 ```typescript
-
 @Injectable()
 export class ProductService {
-  constructor(private readonly cacheService: RedisCacheService) {
-  }
+  constructor(private readonly cacheService: RedisCacheService) {}
 
   async getProduct(productId: string) {
     // Try cache first
@@ -156,11 +152,9 @@ export class ProductService {
 ### Rate Limiting
 
 ```typescript
-
 @Injectable()
 export class ApiController {
-  constructor(private readonly rateLimitService: RedisRateLimitService) {
-  }
+  constructor(private readonly rateLimitService: RedisRateLimitService) {}
 
   @Post('api/endpoint')
   async handleRequest(@Req() request: Request) {
@@ -184,11 +178,9 @@ export class ApiController {
 ### Distributed Locking
 
 ```typescript
-
 @Injectable()
 export class PaymentService {
-  constructor(private readonly redlock: Redlock) {
-  }
+  constructor(private readonly redlock: Redlock) {}
 
   async processPayment(userId: string, amount: number) {
     const lockKey = `payment:${userId}`;
@@ -213,7 +205,6 @@ export class PaymentService {
 ### Health Check Integration
 
 ```typescript
-
 @Controller('health')
 export class HealthController extends BaseHealthController {
   constructor(private readonly redisHealth: RedisHealthIndicator) {

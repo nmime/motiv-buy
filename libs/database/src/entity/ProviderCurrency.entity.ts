@@ -13,12 +13,12 @@ export enum NetworkType {
 
   // Ethereum and EVM-compatible
   Ethereum = 'ethereum',
-  BSC = 'bsc', // Binance Smart Chain
+  Bsc = 'bsc', // Binance Smart Chain
   Polygon = 'polygon',
 
   // Other networks
   Tron = 'tron', // TRC-20
-  TON = 'ton', // Telegram Open Network
+  Ton = 'ton', // Telegram Open Network
   Solana = 'solana',
   Litecoin = 'litecoin',
   Dogecoin = 'dogecoin',

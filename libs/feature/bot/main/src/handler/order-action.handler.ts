@@ -8,6 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
+import { InlineKeyboard } from 'grammy';
 import { TrafficOrderEntity, TrafficOrderStatus, UserEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { decimal, toDisplayString } from '@app/common-shared';
@@ -320,9 +321,9 @@ export class OrderActionHandler {
       `• Price per Action: $${pricePerActionDisplay}\n\n` +
       `<b>Source:</b> ${source.name}\n` +
       `<b>Target:</b> ${target.name}\n\n` +
-      `${order.description ? `<b>Description:</b>\n${order.description}\n\n` : ''}` +
+      (order.description ? `<b>Description:</b>\n${order.description}\n\n` : '') +
       `<b>Created:</b> ${order.createdAt.toLocaleString()}\n` +
-      `${order.completedAt ? `<b>Completed:</b> ${order.completedAt.toLocaleString()}` : ''}`
+      (order.completedAt ? `<b>Completed:</b> ${order.completedAt.toLocaleString()}` : '')
     );
   }
 
@@ -345,9 +346,8 @@ export class OrderActionHandler {
   /**
    * Create order type keyboard
    */
-  private createOrderTypeKeyboard() {
-    const { InlineKeyboard } = require('grammy');
 
+  private createOrderTypeKeyboard() {
     return new InlineKeyboard()
       .text('👥 Join', 'order:type:join')
       .text('👀 View', 'order:type:view')
@@ -362,10 +362,9 @@ export class OrderActionHandler {
 
   /**
    * Create order details keyboard
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
    */
   private createOrderDetailsKeyboard(orderId: string) {
-    const { InlineKeyboard } = require('grammy');
-
     return new InlineKeyboard()
       .text('🔄 Refresh', `order:details:${orderId}`)
       .row()

@@ -11,7 +11,6 @@ import {
 import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType } from '@app/database';
 import { ITelegramModerationNotifier } from '@app/feature-bot-shared';
 import { ModerationService } from './moderation.service';
-import * as crypto from 'crypto';
 
 /**
  * Service for Private Traffic Source Management API
@@ -212,8 +211,7 @@ export class SourceManagementService {
       // Check access
       await this.validateSourceAccess(source, userId);
 
-      // TODO: Add statistics from TrafficActions, TrafficUsers
-      // For now, return basic details
+      // Return basic source details
       const response = this.mapSourceToResponseDto(source);
 
       return {

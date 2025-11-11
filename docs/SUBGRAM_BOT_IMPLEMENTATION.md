@@ -95,6 +95,7 @@ All message templates from the specification:
 Business logic for order management:
 
 **Methods:**
+
 - `getUserOrders(userId)` - Get all user orders
 - `getOrderById(orderId)` - Get single order
 - `createOrder(userId, config, channel)` - Create new order
@@ -108,6 +109,7 @@ Business logic for order management:
 - Session state management methods
 
 **Features:**
+
 - In-memory storage (replace with database in production)
 - Session state management for multi-step flows
 - Channel validation
@@ -118,6 +120,7 @@ Business logic for order management:
 Grammy bot handlers for all interactions:
 
 **Callback Query Handlers:**
+
 - Main menu navigation
 - Order list viewing
 - Order creation flow (A2-A6)
@@ -126,10 +129,12 @@ Grammy bot handlers for all interactions:
 - Statistics viewing
 
 **Text Message Handlers:**
+
 - Channel link input during order creation
 - Other text inputs based on flow state
 
 **Features:**
+
 - State-based routing
 - Error handling
 - Session management
@@ -138,6 +143,7 @@ Grammy bot handlers for all interactions:
 ### 6. Order Module (`order.module.ts`)
 
 NestJS module for dependency injection:
+
 - Provides `OrderService` and `OrderHandler`
 - Exports for use in other modules
 
@@ -161,6 +167,7 @@ export class BotMainModule {}
 ### Bot Service
 
 Updated `bot.service.ts` to:
+
 1. Import `OrderHandler`
 2. Register feature handlers with Grammy bot
 3. Update `/start` command with SubGram menu
@@ -181,17 +188,20 @@ private registerFeatureHandlers(): void {
 ### Flow A: Order Creation (A1-A6)
 
 #### Step A1: Order List
+
 - **Trigger:** `order:list` callback or "Мои заказы" button
 - **Screen:** List of all user orders with statuses
 - **Actions:** Create new order, search, view order, view deleted
 
 #### Step A2: Enter Channel Link
+
 - **Trigger:** `order:create:start` callback
 - **Screen:** Input prompt for Telegram channel link
 - **Validation:** Check link format and channel existence
 - **Next:** Automatically proceeds to A3 on success
 
 #### Step A3: Add Bot as Administrator
+
 - **Trigger:** After successful channel validation
 - **Screen:** Instructions to add bot as admin
 - **Actions:**
@@ -201,6 +211,7 @@ private registerFeatureHandlers(): void {
 - **Next:** Creates order and proceeds to A4
 
 #### Step A4: Moderation
+
 - **Trigger:** After order creation
 - **Screen:** Moderation status with options
 - **Actions:**
@@ -210,6 +221,7 @@ private registerFeatureHandlers(): void {
 - **Next:** Either A5 (configuration) or A6 (view order)
 
 #### Step A5: Configuration
+
 - **Trigger:** "Продолжить настройку" from A4
 - **Screen:** Scrollable list of all configuration options
 - **Editable:**
@@ -225,6 +237,7 @@ private registerFeatureHandlers(): void {
 - **Next:** A6 (view order)
 
 #### Step A6: View Order
+
 - **Trigger:** After configuration or "Пропустить"
 - **Screen:** Complete order information
 - **Displays:**
@@ -263,6 +276,7 @@ Stored in: `ctx.session.formData.orderCreation`
 ## Data Models
 
 ### Order Entity
+
 ```typescript
 interface Order {
   id: string;
@@ -280,6 +294,7 @@ interface Order {
 ```
 
 ### Order Configuration
+
 ```typescript
 interface OrderConfiguration {
   name: string;
@@ -344,9 +359,10 @@ try {
 
 6. **Analytics**
    - Real-time statistics updates
-  - Charts and graphs
-   - Performance tracking
-   - CR (Conversion Rate) calculations
+
+- Charts and graphs
+- Performance tracking
+- CR (Conversion Rate) calculations
 
 7. **Notifications**
    - Order status changes
@@ -383,6 +399,7 @@ To test the implementation:
 ## Code Quality
 
 All code follows project standards:
+
 - TypeScript strict mode
 - ESLint configuration
 - Prettier formatting
@@ -411,6 +428,7 @@ All code follows project standards:
 This implementation provides a complete, production-ready foundation for the SubGram Bot order management system. All screens and flows from the specification have been implemented with proper error handling, state management, and user experience features.
 
 The modular, feature-based architecture makes it easy to:
+
 - Add new features
 - Modify existing flows
 - Test independently

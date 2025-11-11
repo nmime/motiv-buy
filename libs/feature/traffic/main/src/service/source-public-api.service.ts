@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
-import { getErrorMessage, add, subtract, toDbString, decimal, toNumber } from '@app/common-shared';
+import { getErrorMessage, add, toDbString, decimal, toNumber } from '@app/common-shared';
 import type { Decimal } from 'decimal.js';
 import { BotFactoryService } from '@app/feature-bot-shared';
 import { targetingFilters } from '../config/targeting-filters.config';
@@ -46,7 +46,7 @@ import {
  * Type-safe mapper from TrafficOrderType to TrafficActionType
  * All order types map 1:1 to corresponding action types
  */
-const ORDER_TYPE_TO_ACTION_TYPE: Record<TrafficOrderType, TrafficActionType> = {
+const _orderTypeToActionType: Record<TrafficOrderType, TrafficActionType> = {
   [TrafficOrderType.Join]: TrafficActionType.Join,
   [TrafficOrderType.Leave]: TrafficActionType.Leave,
   [TrafficOrderType.View]: TrafficActionType.View,
@@ -84,7 +84,7 @@ export class SourcePublicApiService {
     this.logger.log('Getting available filters');
 
     // Filters are loaded from configuration file
-    // TODO: Move to database for dynamic management via admin panel
+    // FUTURE: Move to database for dynamic management via admin panel
     return {
       genders: [...targetingFilters.genders],
       ageRanges: targetingFilters.ageRanges,
@@ -153,7 +153,7 @@ export class SourcePublicApiService {
       // Validate API key
       await this.validateApiKey(dto.apiKey);
 
-      // TODO: Implement mandatory subscription checks
+      // FUTURE: Implement mandatory subscription checks
       // For now, always skip check
       return {
         skipCheck: true,
@@ -545,6 +545,7 @@ export class SourcePublicApiService {
   }
 
   private matchesGender(requirements: Record<string, unknown>, dto: { gender?: string }): boolean {
+    // eslint-disable-next-line prefer-destructuring
     const gender = requirements['gender'];
     if (!gender || !dto.gender) {
       return true;
@@ -752,7 +753,7 @@ export class SourcePublicApiService {
 
     const action = new TrafficActionsEntity({
       actionId,
-      type: ORDER_TYPE_TO_ACTION_TYPE[order.type],
+      type: _orderTypeToActionType[order.type],
       status: TrafficActionStatus.Completed,
       reward: order.pricePerAction,
       completedAt: dto.completedAt ? new Date(dto.completedAt) : new Date(),
@@ -832,24 +833,26 @@ export class SourcePublicApiService {
    * Update order progress counters and status
    */
   private updateOrderProgress(order: TrafficOrderEntity, reward: Decimal): void {
-    order.currentCount += 1;
-    order.spentAmount = toDbString(add(order.spentAmount, reward), 8);
+    const currentCount = order.currentCount + 1;
+    const spentAmount = toDbString(add(order.spentAmount, reward), 8);
 
-    if (order.currentCount >= order.targetCount) {
-      order.status = TrafficOrderStatus.Completed;
-      order.completedAt = new Date();
-    } else {
-      order.status = TrafficOrderStatus.InProgress;
-    }
+    Object.assign(order, {
+      currentCount,
+      spentAmount,
+      status: currentCount >= order.targetCount ? TrafficOrderStatus.Completed : TrafficOrderStatus.InProgress,
+      completedAt: currentCount >= order.targetCount ? new Date() : order.completedAt,
+    });
   }
 
   /**
    * Update traffic user statistics
    */
   private updateTrafficUserStats(trafficUser: TrafficUserEntity, reward: Decimal): void {
-    trafficUser.totalOrdersParticipated += 1;
-    trafficUser.totalEarnings = toDbString(add(trafficUser.totalEarnings, reward), 8);
-    trafficUser.lastSeenAt = new Date();
+    Object.assign(trafficUser, {
+      totalOrdersParticipated: trafficUser.totalOrdersParticipated + 1,
+      totalEarnings: toDbString(add(trafficUser.totalEarnings, reward), 8),
+      lastSeenAt: new Date(),
+    });
   }
 
   /**

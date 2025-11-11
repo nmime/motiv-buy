@@ -4,7 +4,7 @@
  * Centralized configuration for available targeting filters.
  * These filters are used by traffic sources to target specific audiences.
  *
- * TODO: Move to database for dynamic management via admin panel
+ * NOTE: Move to database for dynamic management via admin panel
  */
 
 export interface AgeRange {

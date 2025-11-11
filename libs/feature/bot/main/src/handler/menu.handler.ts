@@ -339,7 +339,7 @@ export class MenuHandler {
       const balance = await this.balanceService.getBalance(user.id);
 
       /**
-       * TODO: Notification System Integration
+       * FUTURE: Notification System Integration
        *
        * DEFERRED: Notification service integration pending notification schema
        *

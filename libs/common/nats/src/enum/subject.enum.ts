@@ -3,7 +3,9 @@
  *
  * Define all subjects/topics used in the application
  * Use hierarchical naming: domain.action.resource
+ * NATS subjects conventionally use dot notation, not snake_case
  */
+/* eslint-disable no-restricted-syntax */
 export enum Subject {
   // Job Queue Subjects
   JobEmail = 'jobs.email',
@@ -28,3 +30,4 @@ export enum Subject {
   SystemHealthCheck = 'system.health.check',
   SystemMetrics = 'system.metrics',
 }
+/* eslint-enable no-restricted-syntax */

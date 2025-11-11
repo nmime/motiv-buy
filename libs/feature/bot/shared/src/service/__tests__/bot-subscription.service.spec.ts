@@ -141,7 +141,7 @@ describe('BotSubscriptionService', () => {
       const result = await service.checkSubscription(mockBotToken, '@channel', 444555666);
 
       expect(result.isSubscribed).toBe(false);
-      expect(result.status).toBe(ChatMemberStatus.LEFT);
+      expect(result.status).toBe(ChatMemberStatus.Left);
       expect(result.isAdmin).toBe(false);
     });
 
@@ -180,7 +180,7 @@ describe('BotSubscriptionService', () => {
       const result = await service.checkSubscription(mockBotToken, '@nonexistent', 123456);
 
       expect(result.isSubscribed).toBe(false);
-      expect(result.status).toBe(ChatMemberStatus.LEFT);
+      expect(result.status).toBe(ChatMemberStatus.Left);
       expect(result.error).toBe('Chat not found');
     });
   });
@@ -358,7 +358,7 @@ describe('BotSubscriptionService', () => {
       const result = await service.getChatInfo(mockBotToken, '@testchannel');
 
       expect(result.id).toBe(-1001234567890);
-      expect(result.type).toBe(ChatType.CHANNEL);
+      expect(result.type).toBe(ChatType.Channel);
       expect(result.title).toBe('Test Channel');
       expect(result.username).toBe('testchannel');
     });
@@ -382,7 +382,7 @@ describe('BotSubscriptionService', () => {
 
       const result = await service.getChatInfo(mockBotToken, -1009876543210);
 
-      expect(result.type).toBe(ChatType.SUPERGROUP);
+      expect(result.type).toBe(ChatType.Supergroup);
       expect(result.isForum).toBe(true);
     });
 

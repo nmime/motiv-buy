@@ -18,37 +18,37 @@ GitHub Secrets are used to securely store sensitive information like SSH keys, A
 
 ### Staging Environment
 
-| Secret Name | Description | Example |
-|------------|-------------|---------|
-| `VPS_STAGING_HOST` | Staging VPS IP address or hostname | `192.168.1.100` |
-| `VPS_STAGING_USER` | SSH user for deployment | `deployer` |
-| `VPS_STAGING_SSH_KEY` | Private SSH key for authentication | Contents of `~/.ssh/id_rsa` |
-| `VPS_STAGING_DEPLOY_PATH` | Deployment directory path | `/opt/motiv-buy` |
-| `STAGING_DB_NAME` | PostgreSQL database name | `motiv_buy_staging` |
-| `STAGING_DB_USER` | PostgreSQL username | `postgres` |
-| `STAGING_DB_PASSWORD` | PostgreSQL password | Generate with `openssl rand -base64 32` |
-| `STAGING_REDIS_PASSWORD` | Redis password | Generate with `openssl rand -base64 32` |
-| `STAGING_JWT_SECRET` | JWT signing secret | Generate with `openssl rand -base64 64` |
-| `STAGING_TELEGRAM_BOT_TOKEN` | Telegram bot token | Get from @BotFather |
-| `STAGING_CRYPTO_BOT_API_KEY` | CryptoBot API key | Get from CryptoBot dashboard |
+| Secret Name                  | Description                        | Example                                 |
+| ---------------------------- | ---------------------------------- | --------------------------------------- |
+| `VPS_STAGING_HOST`           | Staging VPS IP address or hostname | `192.168.1.100`                         |
+| `VPS_STAGING_USER`           | SSH user for deployment            | `deployer`                              |
+| `VPS_STAGING_SSH_KEY`        | Private SSH key for authentication | Contents of `~/.ssh/id_rsa`             |
+| `VPS_STAGING_DEPLOY_PATH`    | Deployment directory path          | `/opt/motiv-buy`                        |
+| `STAGING_DB_NAME`            | PostgreSQL database name           | `motiv_buy_staging`                     |
+| `STAGING_DB_USER`            | PostgreSQL username                | `postgres`                              |
+| `STAGING_DB_PASSWORD`        | PostgreSQL password                | Generate with `openssl rand -base64 32` |
+| `STAGING_REDIS_PASSWORD`     | Redis password                     | Generate with `openssl rand -base64 32` |
+| `STAGING_JWT_SECRET`         | JWT signing secret                 | Generate with `openssl rand -base64 64` |
+| `STAGING_TELEGRAM_BOT_TOKEN` | Telegram bot token                 | Get from @BotFather                     |
+| `STAGING_CRYPTO_BOT_API_KEY` | CryptoBot API key                  | Get from CryptoBot dashboard            |
 
 ### Production Environment
 
-| Secret Name | Description | Example |
-|------------|-------------|---------|
-| `VPS_PRODUCTION_HOST` | Production VPS IP or hostname | `api.yourdomain.com` |
-| `VPS_PRODUCTION_USER` | SSH user for deployment | `deployer` |
-| `VPS_PRODUCTION_SSH_KEY` | Private SSH key | Contents of `~/.ssh/id_rsa` |
-| `VPS_PRODUCTION_DEPLOY_PATH` | Deployment directory path | `/opt/motiv-buy` |
-| `PRODUCTION_DB_NAME` | PostgreSQL database name | `motiv_buy_prod` |
-| `PRODUCTION_DB_USER` | PostgreSQL username | `motiv_buy_user` |
-| `PRODUCTION_DB_PASSWORD` | PostgreSQL password | Generate with `openssl rand -base64 32` |
-| `PRODUCTION_REDIS_PASSWORD` | Redis password | Generate with `openssl rand -base64 32` |
-| `PRODUCTION_JWT_SECRET` | JWT signing secret | Generate with `openssl rand -base64 64` |
-| `PRODUCTION_TELEGRAM_BOT_TOKEN` | Production Telegram bot token | Get from @BotFather |
-| `PRODUCTION_CRYPTO_BOT_API_KEY` | Production CryptoBot API key | Get from CryptoBot dashboard |
-| `PRODUCTION_DOMAIN` | Your production domain | `yourdomain.com` |
-| `LETSENCRYPT_EMAIL` | Email for SSL cert notifications | `admin@yourdomain.com` |
+| Secret Name                     | Description                      | Example                                 |
+| ------------------------------- | -------------------------------- | --------------------------------------- |
+| `VPS_PRODUCTION_HOST`           | Production VPS IP or hostname    | `api.yourdomain.com`                    |
+| `VPS_PRODUCTION_USER`           | SSH user for deployment          | `deployer`                              |
+| `VPS_PRODUCTION_SSH_KEY`        | Private SSH key                  | Contents of `~/.ssh/id_rsa`             |
+| `VPS_PRODUCTION_DEPLOY_PATH`    | Deployment directory path        | `/opt/motiv-buy`                        |
+| `PRODUCTION_DB_NAME`            | PostgreSQL database name         | `motiv_buy_prod`                        |
+| `PRODUCTION_DB_USER`            | PostgreSQL username              | `motiv_buy_user`                        |
+| `PRODUCTION_DB_PASSWORD`        | PostgreSQL password              | Generate with `openssl rand -base64 32` |
+| `PRODUCTION_REDIS_PASSWORD`     | Redis password                   | Generate with `openssl rand -base64 32` |
+| `PRODUCTION_JWT_SECRET`         | JWT signing secret               | Generate with `openssl rand -base64 64` |
+| `PRODUCTION_TELEGRAM_BOT_TOKEN` | Production Telegram bot token    | Get from @BotFather                     |
+| `PRODUCTION_CRYPTO_BOT_API_KEY` | Production CryptoBot API key     | Get from CryptoBot dashboard            |
+| `PRODUCTION_DOMAIN`             | Your production domain           | `yourdomain.com`                        |
+| `LETSENCRYPT_EMAIL`             | Email for SSL cert notifications | `admin@yourdomain.com`                  |
 
 ---
 
@@ -108,12 +108,14 @@ echo "JWT_SECRET: $(openssl rand -base64 64)"
 ### 5. Get API Tokens
 
 **Telegram Bot Token:**
+
 1. Open Telegram and search for @BotFather
 2. Send `/newbot` command
 3. Follow instructions
 4. Copy the token (format: `1234567890:ABCdefGHIjklMNOpqrsTUVwxyz`)
 
 **CryptoBot API Key:**
+
 1. Go to CryptoBot dashboard
 2. Create new API key
 3. Copy the key

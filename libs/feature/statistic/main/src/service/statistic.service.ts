@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import * as crypto from 'crypto';
+import Decimal from 'decimal.js';
+import { decimal, sum, toNumber } from '@app/common-shared';
 import {
   TrafficActionsRepository,
   TrafficActionStatus,
@@ -128,7 +130,7 @@ export class StatisticService {
 
     const dataPoints = await handler(userId, query);
     const totalActions = dataPoints.reduce((sum, point) => sum + point.countOfActions, 0);
-    const totalAmount = dataPoints.reduce((sum, point) => sum + point.amountEarnedOrSpent, 0);
+    const totalAmount = toNumber(sum(dataPoints.map((p) => p.amountEarnedOrSpent)));
 
     return {
       type: query.type,
@@ -183,7 +185,7 @@ export class StatisticService {
     const dataPoints = await handler(userId, query);
 
     const totalActions = dataPoints.reduce((sum, point) => sum + point.countOfActions, 0);
-    const totalAmount = dataPoints.reduce((sum, point) => sum + point.amountEarnedOrSpent, 0);
+    const totalAmount = toNumber(sum(dataPoints.map((p) => p.amountEarnedOrSpent)));
 
     return {
       type: statisticType,
@@ -208,6 +210,7 @@ export class StatisticService {
    * Business Rule: Users can only see sources where they have management permissions
    * Schema: TrafficSourceEntity.managedBy = userId (contractual management relationship)
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private async getTrafficSourceStatistics(
     userId: string,
     query: StatisticQueryDto,
@@ -299,7 +302,7 @@ export class StatisticService {
       );
 
     const firstResult = Array.isArray(rewardSumResult) && rewardSumResult.length > 0 ? rewardSumResult[0] : null;
-    const totalReward = parseFloat(
+    const totalRewardDecimal = decimal(
       (firstResult && typeof firstResult === 'object' && 'totalReward' in firstResult
         ? String(firstResult.totalReward)
         : '0') || '0',
@@ -308,12 +311,12 @@ export class StatisticService {
     return {
       type: StatisticType.TrafficSource,
       countOfActions: totalActions,
-      amountEarnedOrSpent: totalReward, // Positive - user earns rewards from their sources
+      amountEarnedOrSpent: toNumber(totalRewardDecimal), // Positive - user earns rewards from their sources
       period: this.formatPeriod(query.fromDate, query.endDate),
       generatedAt: new Date(),
       uniqueSourcesCount: sources.length,
       totalActions,
-      avgRewardPerAction: totalActions > 0 ? totalReward / totalActions : 0,
+      avgRewardPerAction: totalActions > 0 ? toNumber(totalRewardDecimal.dividedBy(totalActions)) : 0,
     };
   }
 
@@ -337,114 +340,24 @@ export class StatisticService {
         : {}),
     };
 
-    // Database-level aggregation for order statistics
     const totalOrders = await this.trafficOrderRepository.count(baseFilter);
+    const { whereClause, parameters } = this.buildOrderWhereConditions(baseFilter);
 
-    // Get budget sum and spent sum with database aggregation using native SQL
-    const orderWhereConditions: string[] = [];
-    const orderParameters: unknown[] = [];
-    let orderParamIndex = 1;
-
-    if (baseFilter.creator) {
-      orderWhereConditions.push(`tor.creator = $${orderParamIndex}`);
-      orderParameters.push(baseFilter.creator);
-      orderParamIndex++;
-    }
-
-    if (baseFilter.orderId) {
-      orderWhereConditions.push(`tor.order_id = $${orderParamIndex}`);
-      orderParameters.push(baseFilter.orderId);
-      orderParamIndex++;
-    }
-
-    if (baseFilter.createdAt?.$gte) {
-      orderWhereConditions.push(`tor.created_at >= $${orderParamIndex}`);
-      orderParameters.push(baseFilter.createdAt.$gte);
-      orderParamIndex++;
-    }
-
-    if (baseFilter.createdAt?.$lte) {
-      orderWhereConditions.push(`tor.created_at <= $${orderParamIndex}`);
-      orderParameters.push(baseFilter.createdAt.$lte);
-      orderParamIndex++;
-    }
-
-    const orderWhereClause = orderWhereConditions.length > 0 ? `WHERE ${orderWhereConditions.join(' AND ')}` : '';
-    const budgetSumResult = await this.em
-      .getConnection()
-      .execute(
-        `SELECT COALESCE(SUM(CAST(budget AS DECIMAL)), 0) as "totalBudget", COALESCE(SUM(CAST(spent AS DECIMAL)), 0) as "totalSpent" FROM traffic_orders tor ${orderWhereClause}`,
-        orderParameters,
-      );
-
-    const firstBudgetResult = Array.isArray(budgetSumResult) && budgetSumResult.length > 0 ? budgetSumResult[0] : null;
-
-    const totalBudget = parseFloat(
-      (firstBudgetResult && typeof firstBudgetResult === 'object' && 'totalBudget' in firstBudgetResult
-        ? String(firstBudgetResult.totalBudget)
-        : '0') || '0',
-    );
-
-    const totalSpent = parseFloat(
-      (firstBudgetResult && typeof firstBudgetResult === 'object' && 'totalSpent' in firstBudgetResult
-        ? String(firstBudgetResult.totalSpent)
-        : '0') || '0',
-    );
-
-    // Database-level conditional counting for order statuses
-    const statusCountsResult = await this.em.getConnection().execute(
-      `SELECT
-        COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Completed}' THEN 1 END) as "completedOrders",
-        COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Pending}' THEN 1 END) as "pendingOrders",
-        COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.InProgress}' THEN 1 END) as "inProgressOrders",
-        COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Active}' THEN 1 END) as "activeOrders"
-       FROM traffic_orders tor ${orderWhereClause}`,
-      orderParameters,
-    );
-
-    const statusCounts =
-      Array.isArray(statusCountsResult) && statusCountsResult.length > 0 ? statusCountsResult[0] : null;
-
-    const completedOrders = parseInt(
-      (statusCounts && typeof statusCounts === 'object' && 'completedOrders' in statusCounts
-        ? String(statusCounts.completedOrders)
-        : '0') || '0',
-      10,
-    );
-
-    const pendingOrders = parseInt(
-      (statusCounts && typeof statusCounts === 'object' && 'pendingOrders' in statusCounts
-        ? String(statusCounts.pendingOrders)
-        : '0') || '0',
-      10,
-    );
-
-    const inProgressOrders = parseInt(
-      (statusCounts && typeof statusCounts === 'object' && 'inProgressOrders' in statusCounts
-        ? String(statusCounts.inProgressOrders)
-        : '0') || '0',
-      10,
-    );
-
-    const activeOrders = parseInt(
-      (statusCounts && typeof statusCounts === 'object' && 'activeOrders' in statusCounts
-        ? String(statusCounts.activeOrders)
-        : '0') || '0',
-      10,
-    );
-
-    const pendingOrdersCount = pendingOrders + inProgressOrders + activeOrders;
+    const [budgetResult, statusResult] = await Promise.all([
+      this.getOrderBudgetStats(whereClause, parameters),
+      this.getOrderStatusCounts(whereClause, parameters),
+    ]);
 
     return {
       type: StatisticType.TrafficOrder,
       countOfActions: totalOrders,
-      amountEarnedOrSpent: -totalSpent, // Negative because user is spending money
+      amountEarnedOrSpent: -budgetResult.totalSpent,
       period: this.formatPeriod(query.fromDate, query.endDate),
       generatedAt: new Date(),
-      completedOrders,
-      pendingOrders: pendingOrdersCount,
-      totalBudget,
-      spentAmount: totalSpent,
+      completedOrders: statusResult.completed,
+      pendingOrders: statusResult.pending,
+      totalBudget: budgetResult.totalBudget,
+      spentAmount: budgetResult.totalSpent,
     };
   }
 
@@ -457,112 +370,23 @@ export class StatisticService {
     userId: string,
     query: StatisticQueryDto,
   ): Promise<TrafficTargetStatisticDto> {
-    // Use parallel database aggregations for efficient calculation with native SQL
-    const targetWhereConditions: string[] = [`tt.managed_by = $1`];
-    const targetParameters: unknown[] = [userId];
-    let targetParamIndex = 2;
+    const targetConditions = this.buildTargetWhereConditions(userId, query);
+    const orderConditions = this.buildTargetOrderWhereConditions(userId, query);
 
-    if (query.targetId) {
-      targetWhereConditions.push(`tt.id = $${targetParamIndex}`);
-      targetParameters.push(query.targetId);
-      targetParamIndex++;
-    }
-
-    if (query.fromDate) {
-      targetWhereConditions.push(`tt.created_at >= $${targetParamIndex}`);
-      targetParameters.push(new Date(query.fromDate));
-      targetParamIndex++;
-    }
-
-    if (query.endDate) {
-      targetWhereConditions.push(`tt.created_at <= $${targetParamIndex}`);
-      targetParameters.push(new Date(query.endDate));
-      targetParamIndex++;
-    }
-
-    const orderTargetWhereConditions: string[] = [`tt.managed_by = $1`, `tor.status = $2`];
-    const orderTargetParameters: unknown[] = [userId, TrafficOrderStatus.Completed];
-    let orderTargetParamIndex = 3;
-
-    if (query.targetId) {
-      orderTargetWhereConditions.push(`tt.id = $${orderTargetParamIndex}`);
-      orderTargetParameters.push(query.targetId);
-      orderTargetParamIndex++;
-    }
-
-    if (query.fromDate) {
-      orderTargetWhereConditions.push(`tor.completed_at >= $${orderTargetParamIndex}`);
-      orderTargetParameters.push(new Date(query.fromDate));
-      orderTargetParamIndex++;
-    }
-
-    if (query.endDate) {
-      orderTargetWhereConditions.push(`tor.completed_at <= $${orderTargetParamIndex}`);
-      orderTargetParameters.push(new Date(query.endDate));
-    }
-
-    const [targetStatsResults, orderStatsResults] = await Promise.all([
-      // Get target count and average price per member with native SQL
-      this.em.getConnection().execute(
-        `SELECT COUNT(tt.id) as "totalTargets",
-                SUM(CASE WHEN tt.is_active = true THEN 1 ELSE 0 END) as "activeTargets",
-                AVG(CAST(tt.price_per_member as DECIMAL)) as "avgPricePerMember"
-         FROM traffic_targets tt
-         WHERE ${targetWhereConditions.join(' AND ')}`,
-        targetParameters,
-      ),
-
-      // Get orders for user's targets with aggregated earnings
-      this.em.getConnection().execute(
-        `SELECT COUNT(tor.id) as "totalOrders",
-                COALESCE(SUM(CAST(tor.spent_amount as DECIMAL)), 0) as "totalEarned"
-         FROM traffic_orders tor
-         LEFT JOIN traffic_targets tt ON tor.traffic_target_id = tt.id
-         WHERE ${orderTargetWhereConditions.join(' AND ')}`,
-        orderTargetParameters,
-      ),
+    const [targetStats, orderStats] = await Promise.all([
+      this.getTargetStats(targetConditions.conditions, targetConditions.parameters),
+      this.getTargetOrderStats(orderConditions.conditions, orderConditions.parameters),
     ]);
-
-    const targetStats =
-      Array.isArray(targetStatsResults) && targetStatsResults.length > 0 ? targetStatsResults[0] : null;
-
-    const orderStats = Array.isArray(orderStatsResults) && orderStatsResults.length > 0 ? orderStatsResults[0] : null;
-
-    const activeTargetsCount = parseInt(
-      (targetStats && typeof targetStats === 'object' && 'activeTargets' in targetStats
-        ? String(targetStats.activeTargets)
-        : '0') || '0',
-      10,
-    );
-
-    const totalOrdersCount = parseInt(
-      (orderStats && typeof orderStats === 'object' && 'totalOrders' in orderStats
-        ? String(orderStats.totalOrders)
-        : '0') || '0',
-      10,
-    );
-
-    const totalEarned = parseFloat(
-      (orderStats && typeof orderStats === 'object' && 'totalEarned' in orderStats
-        ? String(orderStats.totalEarned)
-        : '0') || '0',
-    );
-
-    const avgPricePerMember = parseFloat(
-      (targetStats && typeof targetStats === 'object' && 'avgPricePerMember' in targetStats
-        ? String(targetStats.avgPricePerMember)
-        : '0') || '0',
-    );
 
     return {
       type: StatisticType.TrafficTarget,
-      countOfActions: totalOrdersCount,
-      amountEarnedOrSpent: totalEarned, // Positive because user earns from their targets
+      countOfActions: orderStats.totalOrders,
+      amountEarnedOrSpent: orderStats.totalEarned,
       period: this.formatPeriod(query.fromDate, query.endDate),
       generatedAt: new Date(),
-      activeTargetsCount,
-      totalOrdersCount,
-      avgPricePerMember,
+      activeTargetsCount: targetStats.activeTargets,
+      totalOrdersCount: orderStats.totalOrders,
+      avgPricePerMember: targetStats.avgPricePerMember,
     };
   }
 
@@ -621,7 +445,7 @@ export class StatisticService {
       10,
     );
 
-    const netBalanceChange = parseFloat(
+    const netBalanceChangeDecimal = decimal(
       (userTransactionStats && typeof userTransactionStats === 'object' && 'netBalanceChange' in userTransactionStats
         ? String(userTransactionStats.netBalanceChange)
         : '0') || '0',
@@ -630,12 +454,12 @@ export class StatisticService {
     return {
       type: StatisticType.User,
       countOfActions: totalTransactions,
-      amountEarnedOrSpent: netBalanceChange,
+      amountEarnedOrSpent: toNumber(netBalanceChangeDecimal),
       period: this.formatPeriod(query.fromDate, query.endDate),
       generatedAt: new Date(),
       activeUsersCount,
       totalTransactions,
-      netBalanceChange,
+      netBalanceChange: toNumber(netBalanceChangeDecimal),
     };
   }
 
@@ -731,6 +555,253 @@ export class StatisticService {
       countOfActions: point.count,
       amountEarnedOrSpent: point.amount,
     }));
+  }
+
+  /**
+   * Helper: Build WHERE conditions for traffic orders
+   */
+  private buildOrderWhereConditions(baseFilter: {
+    creator: string;
+    orderId?: string;
+    createdAt?: { $gte?: Date; $lte?: Date };
+  }): { whereClause: string; parameters: unknown[] } {
+    const conditions: string[] = [];
+    const parameters: unknown[] = [];
+    let paramIndex = 1;
+
+    if (baseFilter.creator) {
+      conditions.push(`tor.creator = $${paramIndex}`);
+      parameters.push(baseFilter.creator);
+      paramIndex++;
+    }
+
+    if (baseFilter.orderId) {
+      conditions.push(`tor.order_id = $${paramIndex}`);
+      parameters.push(baseFilter.orderId);
+      paramIndex++;
+    }
+
+    if (baseFilter.createdAt?.$gte) {
+      conditions.push(`tor.created_at >= $${paramIndex}`);
+      parameters.push(baseFilter.createdAt.$gte);
+      paramIndex++;
+    }
+
+    if (baseFilter.createdAt?.$lte) {
+      conditions.push(`tor.created_at <= $${paramIndex}`);
+      parameters.push(baseFilter.createdAt.$lte);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    return { whereClause, parameters };
+  }
+
+  /**
+   * Helper: Get order budget statistics
+   */
+  private async getOrderBudgetStats(
+    whereClause: string,
+    parameters: unknown[],
+  ): Promise<{ totalBudget: number; totalSpent: number }> {
+    const result = await this.em.getConnection().execute(
+      `SELECT COALESCE(SUM(CAST(budget AS DECIMAL)), 0) as "totalBudget",
+              COALESCE(SUM(CAST(spent AS DECIMAL)), 0) as "totalSpent"
+       FROM traffic_orders tor ${whereClause}`,
+      parameters,
+    );
+
+    const row = this.getFirstRow(result);
+    const totalBudgetDecimal = this.safeParseDecimal(row, 'totalBudget');
+    const totalSpentDecimal = this.safeParseDecimal(row, 'totalSpent');
+
+    return {
+      totalBudget: toNumber(totalBudgetDecimal),
+      totalSpent: toNumber(totalSpentDecimal),
+    };
+  }
+
+  /**
+   * Helper: Get order status counts
+   */
+  private async getOrderStatusCounts(
+    whereClause: string,
+    parameters: unknown[],
+  ): Promise<{ completed: number; pending: number }> {
+    const result = await this.em.getConnection().execute(
+      `SELECT
+        COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Completed}' THEN 1 END) as "completedOrders",
+        COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Pending}' THEN 1 END) as "pendingOrders",
+        COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.InProgress}' THEN 1 END) as "inProgressOrders",
+        COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Active}' THEN 1 END) as "activeOrders"
+       FROM traffic_orders tor ${whereClause}`,
+      parameters,
+    );
+
+    const row = this.getFirstRow(result);
+    const pendingOrders = this.safeParseInt(row, 'pendingOrders');
+    const inProgressOrders = this.safeParseInt(row, 'inProgressOrders');
+    const activeOrders = this.safeParseInt(row, 'activeOrders');
+
+    return {
+      completed: this.safeParseInt(row, 'completedOrders'),
+      pending: pendingOrders + inProgressOrders + activeOrders,
+    };
+  }
+
+  /**
+   * Helper: Build WHERE conditions for traffic targets
+   */
+  private buildTargetWhereConditions(
+    userId: string,
+    query: StatisticQueryDto,
+  ): { conditions: string; parameters: unknown[] } {
+    const conditions: string[] = ['tt.managed_by = $1'];
+    const parameters: unknown[] = [userId];
+    let paramIndex = 2;
+
+    if (query.targetId) {
+      conditions.push(`tt.id = $${paramIndex}`);
+      parameters.push(query.targetId);
+      paramIndex++;
+    }
+
+    if (query.fromDate) {
+      conditions.push(`tt.created_at >= $${paramIndex}`);
+      parameters.push(new Date(query.fromDate));
+      paramIndex++;
+    }
+
+    if (query.endDate) {
+      conditions.push(`tt.created_at <= $${paramIndex}`);
+      parameters.push(new Date(query.endDate));
+      paramIndex++;
+    }
+
+    return { conditions: conditions.join(' AND '), parameters };
+  }
+
+  /**
+   * Helper: Build WHERE conditions for target orders
+   */
+  private buildTargetOrderWhereConditions(
+    userId: string,
+    query: StatisticQueryDto,
+  ): { conditions: string; parameters: unknown[] } {
+    const conditions: string[] = ['tt.managed_by = $1', 'tor.status = $2'];
+    const parameters: unknown[] = [userId, TrafficOrderStatus.Completed];
+    let paramIndex = 3;
+
+    if (query.targetId) {
+      conditions.push(`tt.id = $${paramIndex}`);
+      parameters.push(query.targetId);
+      paramIndex++;
+    }
+
+    if (query.fromDate) {
+      conditions.push(`tor.completed_at >= $${paramIndex}`);
+      parameters.push(new Date(query.fromDate));
+      paramIndex++;
+    }
+
+    if (query.endDate) {
+      conditions.push(`tor.completed_at <= $${paramIndex}`);
+      parameters.push(new Date(query.endDate));
+      paramIndex++;
+    }
+
+    return { conditions: conditions.join(' AND '), parameters };
+  }
+
+  /**
+   * Helper: Get target statistics
+   */
+  private async getTargetStats(
+    whereConditions: string,
+    parameters: unknown[],
+  ): Promise<{ activeTargets: number; avgPricePerMember: number }> {
+    const result = await this.em.getConnection().execute(
+      `SELECT COUNT(tt.id) as "totalTargets",
+              SUM(CASE WHEN tt.is_active = true THEN 1 ELSE 0 END) as "activeTargets",
+              AVG(CAST(tt.price_per_member as DECIMAL)) as "avgPricePerMember"
+       FROM traffic_targets tt
+       WHERE ${whereConditions}`,
+      parameters,
+    );
+
+    const row = this.getFirstRow(result);
+    const avgPriceDecimal = this.safeParseDecimal(row, 'avgPricePerMember');
+
+    return {
+      activeTargets: this.safeParseInt(row, 'activeTargets'),
+      avgPricePerMember: toNumber(avgPriceDecimal),
+    };
+  }
+
+  /**
+   * Helper: Get target order statistics
+   */
+  private async getTargetOrderStats(
+    whereConditions: string,
+    parameters: unknown[],
+  ): Promise<{ totalOrders: number; totalEarned: number }> {
+    const result = await this.em.getConnection().execute(
+      `SELECT COUNT(tor.id) as "totalOrders",
+              COALESCE(SUM(CAST(tor.spent_amount as DECIMAL)), 0) as "totalEarned"
+       FROM traffic_orders tor
+       LEFT JOIN traffic_targets tt ON tor.traffic_target_id = tt.id
+       WHERE ${whereConditions}`,
+      parameters,
+    );
+
+    const row = this.getFirstRow(result);
+    const totalEarnedDecimal = this.safeParseDecimal(row, 'totalEarned');
+
+    return {
+      totalOrders: this.safeParseInt(row, 'totalOrders'),
+      totalEarned: toNumber(totalEarnedDecimal),
+    };
+  }
+
+  /**
+   * Helper: Safely get first row from query result
+   */
+  private getFirstRow(result: unknown): Record<string, unknown> | null {
+    if (!Array.isArray(result) || result.length === 0) {
+      return null;
+    }
+
+    const [firstRow] = result;
+
+    return firstRow && typeof firstRow === 'object' ? (firstRow as Record<string, unknown>) : null;
+  }
+
+  /**
+   * Helper: Safely parse integer from query result
+   */
+  private safeParseInt(row: Record<string, unknown> | null, field: string): number {
+    if (!row || !(field in row)) {
+      return 0;
+    }
+
+    const value = String(row[field] ?? '0');
+
+    return parseInt(value, 10) || 0;
+  }
+
+  /**
+   * Helper: Safely parse Decimal from query result
+   * Returns Decimal for precision-safe monetary calculations
+   */
+  private safeParseDecimal(row: Record<string, unknown> | null, field: string): Decimal {
+    if (!row || !(field in row)) {
+      return decimal(0);
+    }
+
+    const value = String(row[field] ?? '0');
+
+    return decimal(value);
   }
 
   private formatPeriod(fromDate?: string, endDate?: string): string {

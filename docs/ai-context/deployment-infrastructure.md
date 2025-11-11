@@ -5,6 +5,7 @@ This document contains deployment and infrastructure-related documentation for t
 ## Purpose
 
 This template serves as a placeholder for documenting:
+
 - Deployment strategies and procedures
 - Infrastructure architecture and configuration
 - CI/CD pipelines and automation
@@ -18,4 +19,4 @@ Replace this template with your actual deployment and infrastructure documentati
 
 ---
 
-*Customize this template based on your specific deployment and infrastructure requirements.*
+_Customize this template based on your specific deployment and infrastructure requirements._

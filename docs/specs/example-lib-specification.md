@@ -5,13 +5,16 @@
 This document outlines the implementation of the authentication domain for the xRocket platform. This serves as a template for documenting domain library specifications following domain-driven design principles.
 
 ### Library Type
+
 This is a **domain** library - following xRocket's feature organization:
+
 - **Domain libraries** (`libs/feature/*/main` and `libs/feature/*/shared`) - Domain-specific business logic
-- **Main library** (`libs/feature/auth/main`) - Core domain implementation and controllers  
+- **Main library** (`libs/feature/auth/main`) - Core domain implementation and controllers
 - **Shared library** (`libs/feature/auth/shared`) - Reusable utilities, guards, services, and DTOs
 - Libraries follow the principle of minimal surface exposure to maintain domain isolation
 
 ### Domain Objectives
+
 - Provide comprehensive authentication and authorization for xRocket platform
 - Support multiple authentication methods (TMA, Telegram Widget, Dev mode)
 - Implement JWT token lifecycle management with Redis caching
@@ -20,6 +23,7 @@ This is a **domain** library - following xRocket's feature organization:
 - Follow Controller → Mapper -> Service → Repository layers
 
 ### Key Technologies
+
 - **Language**: TypeScript with strict type checking
 - **Framework**: NestJS with decorators and dependency injection
 - **Authentication**: JWT tokens with Passport.js strategies
@@ -134,7 +138,7 @@ export class AuthService {
     if (!tmaData.isValid) {
       return Err(new InvalidTmaDataException(tmaData.error));
     }
-    
+
     return await this.processAuthentication({
       telegramId: tmaData.user.id,
       authMethod: 'tma',
@@ -142,15 +146,13 @@ export class AuthService {
     });
   }
 
-  async authTelegramWidget(
-    params: WidgetAuthParams
-  ): AsyncResult<AuthResultDto, AuthError> {
+  async authTelegramWidget(params: WidgetAuthParams): AsyncResult<AuthResultDto, AuthError> {
     // Telegram Widget authentication with hash verification
     const isValidWidget = await this.validateWidgetHash(params.dto);
     if (!isValidWidget) {
       return Err(new InvalidWidgetHashException());
     }
-    
+
     return await this.processAuthentication({
       telegramId: params.dto.id,
       authMethod: 'widget',
@@ -200,7 +202,7 @@ export class AuthJwtValidationService {
 
       // Validate premium status
       const premiumStatus = await this.authPremiumCacheService.getUserPremium(payload.userId);
-      
+
       const userData: UserData = {
         id: user.id,
         telegramId: user.telegramId,
@@ -220,7 +222,7 @@ export class AuthJwtValidationService {
         app: payload.app,
         error: error.message,
       });
-      
+
       return Err(new AuthValidationError('Validation failed'));
     }
   }
@@ -249,11 +251,7 @@ export class AuthJwtCacheService {
 
   constructor(private readonly redisService: RedisService) {}
 
-  async cacheToken(
-    jti: string,
-    payload: AuthJwtPayloadDto,
-    ttl: number = this.JWT_CACHE_TTL
-  ): Promise<void> {
+  async cacheToken(jti: string, payload: AuthJwtPayloadDto, ttl: number = this.JWT_CACHE_TTL): Promise<void> {
     const key = this.getTokenKey(jti);
     await this.redisService.setex(key, ttl, JSON.stringify(payload));
   }
@@ -264,11 +262,7 @@ export class AuthJwtCacheService {
     return cached ? JSON.parse(cached) : null;
   }
 
-  async cacheValidation(
-    jti: string,
-    userData: UserData,
-    ttl: number = this.JWT_CACHE_TTL
-  ): Promise<void> {
+  async cacheValidation(jti: string, userData: UserData, ttl: number = this.JWT_CACHE_TTL): Promise<void> {
     const key = this.getValidationKey(jti);
     await this.redisService.setex(key, ttl, JSON.stringify(userData));
   }
@@ -303,11 +297,7 @@ export class AuthBlockedCacheService {
     return cached !== null ? cached === 'true' : null;
   }
 
-  async saveIsUserBlocked(
-    userId: string,
-    isBlocked: boolean,
-    ttl: number = this.BLOCKED_CACHE_TTL
-  ): Promise<void> {
+  async saveIsUserBlocked(userId: string, isBlocked: boolean, ttl: number = this.BLOCKED_CACHE_TTL): Promise<void> {
     const key = `blocked:${userId}`;
     await this.redisService.setex(key, ttl, isBlocked.toString());
   }
@@ -334,19 +324,17 @@ import { UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class CompositeStrategy extends PassportStrategy(Strategy, 'composite') {
-  constructor(
-    private readonly authJwtValidationService: AuthJwtValidationService,
-  ) {
+  constructor(private readonly authJwtValidationService: AuthJwtValidationService) {
     super();
   }
 
   async validate(payload: AuthJwtPayloadDto): Promise<UserData> {
     const result = await this.authJwtValidationService.validate(payload);
-    
+
     if (result.err) {
       throw new UnauthorizedException(result.val.message);
     }
-    
+
     return result.val;
   }
 }
@@ -358,19 +346,11 @@ import { Observable } from 'rxjs';
 
 @Injectable()
 export class CompositeAuthGuard extends AuthGuard('composite') {
-  canActivate(
-    context: ExecutionContext
-  ): boolean | Promise<boolean> | Observable<boolean> {
+  canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
     return super.canActivate(context);
   }
 
-  handleRequest<TUser = any>(
-    err: any,
-    user: any,
-    info: any,
-    context: ExecutionContext,
-    status?: any
-  ): TUser {
+  handleRequest<TUser = any>(err: any, user: any, info: any, context: ExecutionContext, status?: any): TUser {
     if (err || !user) {
       throw err || new UnauthorizedException('Authentication required');
     }
@@ -402,15 +382,13 @@ export class UserTokensRevokeService {
     try {
       // Get all active tokens for user
       const activeTokens = await this.authJwtCacheService.getUserTokens(userId);
-      
+
       // Mark all JTIs as revoked
-      await Promise.all(
-        activeTokens.map(token => this.authJtiCacheService.revokeToken(token.jti))
-      );
-      
+      await Promise.all(activeTokens.map((token) => this.authJtiCacheService.revokeToken(token.jti)));
+
       // Clear user-specific auth caches
       await this.authJwtCacheService.clearUserTokens(userId);
-      
+
       this.logger.log(`Revoked ${activeTokens.length} tokens for user ${userId}`);
     } catch (error) {
       this.logger.error('Failed to revoke user tokens', {
@@ -428,25 +406,19 @@ export class UserTokensRevokeService {
 
   async revokeTokensByApp(userId: string, app: AuthJwtApp): Promise<void> {
     const userTokens = await this.authJwtCacheService.getUserTokens(userId);
-    const appTokens = userTokens.filter(token => token.app === app);
-    
-    await Promise.all(
-      appTokens.map(token => this.authJtiCacheService.revokeToken(token.jti))
-    );
-    
+    const appTokens = userTokens.filter((token) => token.app === app);
+
+    await Promise.all(appTokens.map((token) => this.authJtiCacheService.revokeToken(token.jti)));
+
     this.logger.log(`Revoked ${appTokens.length} ${app} tokens for user ${userId}`);
   }
 
   async revokePremiumTokens(userId: string): Promise<void> {
     const userTokens = await this.authJwtCacheService.getUserTokens(userId);
-    const premiumTokens = userTokens.filter(token => 
-      token.premiumUntil && new Date(token.premiumUntil) > new Date()
-    );
-    
-    await Promise.all(
-      premiumTokens.map(token => this.authJtiCacheService.revokeToken(token.jti))
-    );
-    
+    const premiumTokens = userTokens.filter((token) => token.premiumUntil && new Date(token.premiumUntil) > new Date());
+
+    await Promise.all(premiumTokens.map((token) => this.authJtiCacheService.revokeToken(token.jti)));
+
     this.logger.log(`Revoked ${premiumTokens.length} premium tokens for user ${userId}`);
   }
 }
@@ -455,53 +427,49 @@ export class UserTokensRevokeService {
 ### 2. Custom Decorators and DTOs
 
 #### Current User Decorator
+
 ```typescript
 // libs/feature/auth/shared/src/lib/decorator/current-user-id.decorator.ts
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { UserData } from '../dto';
 
-export const CurrentUserId = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): string => {
-    const request = ctx.switchToHttp().getRequest();
-    const user: UserData = request.user;
-    
-    if (!user) {
-      throw new Error('User not found in request context');
-    }
-    
-    return user.id;
-  },
-);
+export const CurrentUserId = createParamDecorator((data: unknown, ctx: ExecutionContext): string => {
+  const request = ctx.switchToHttp().getRequest();
+  const user: UserData = request.user;
 
-export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): UserData => {
-    const request = ctx.switchToHttp().getRequest();
-    const user: UserData = request.user;
-    
-    if (!user) {
-      throw new Error('User not found in request context');
-    }
-    
-    return user;
-  },
-);
+  if (!user) {
+    throw new Error('User not found in request context');
+  }
+
+  return user.id;
+});
+
+export const CurrentUser = createParamDecorator((data: unknown, ctx: ExecutionContext): UserData => {
+  const request = ctx.switchToHttp().getRequest();
+  const user: UserData = request.user;
+
+  if (!user) {
+    throw new Error('User not found in request context');
+  }
+
+  return user;
+});
 
 // JWT App context decorator
-export const CurrentJwtApp = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): AuthJwtApp => {
-    const request = ctx.switchToHttp().getRequest();
-    const user: UserData = request.user;
-    
-    if (!user?.jwtApp) {
-      throw new Error('JWT app context not found');
-    }
-    
-    return user.jwtApp;
-  },
-);
+export const CurrentJwtApp = createParamDecorator((data: unknown, ctx: ExecutionContext): AuthJwtApp => {
+  const request = ctx.switchToHttp().getRequest();
+  const user: UserData = request.user;
+
+  if (!user?.jwtApp) {
+    throw new Error('JWT app context not found');
+  }
+
+  return user.jwtApp;
+});
 ```
 
 #### Data Transfer Objects
+
 ```typescript
 // libs/feature/auth/shared/src/lib/dto/auth-jwt-payload.dto.ts
 import { IsString, IsNumber, IsOptional, IsEnum } from 'class-validator';
@@ -587,6 +555,7 @@ export class AuthResultDto {
 ### 3. Type Definitions
 
 #### Core Authentication Types
+
 ```typescript
 // libs/feature/auth/shared/src/lib/type/auth.type.ts
 export interface UserData {
@@ -627,7 +596,7 @@ export enum AuthJwtApp {
   MAIN = 'main',
   EXCHANGE = 'exchange',
   API = 'api',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
 }
 
 export interface JwtTokenResult {
@@ -643,17 +612,13 @@ export interface ValidationResult {
 ```
 
 #### Authentication Exception Types
+
 ```typescript
 // libs/feature/auth/shared/src/lib/exception/auth-api-problem.exception.ts
 import { ApiProblemException } from '@app/common-exception';
 
 export class AuthApiProblemException extends ApiProblemException {
-  constructor(
-    message: string,
-    code: string,
-    status: number = 401,
-    metadata?: Record<string, any>
-  ) {
+  constructor(message: string, code: string, status: number = 401, metadata?: Record<string, any>) {
     super({
       title: 'Authentication Error',
       detail: message,
@@ -662,51 +627,33 @@ export class AuthApiProblemException extends ApiProblemException {
       instance: code,
       extensions: {
         code,
-        ...metadata
-      }
+        ...metadata,
+      },
     });
   }
 }
 
 export class UserNotFoundException extends AuthApiProblemException {
   constructor(userId: string) {
-    super(
-      `User not found: ${userId}`,
-      'USER_NOT_FOUND',
-      404,
-      { userId }
-    );
+    super(`User not found: ${userId}`, 'USER_NOT_FOUND', 404, { userId });
   }
 }
 
 export class InvalidTmaDataException extends AuthApiProblemException {
   constructor(reason: string) {
-    super(
-      `Invalid Telegram Mini App data: ${reason}`,
-      'INVALID_TMA_DATA',
-      400,
-      { reason }
-    );
+    super(`Invalid Telegram Mini App data: ${reason}`, 'INVALID_TMA_DATA', 400, { reason });
   }
 }
 
 export class InvalidWidgetHashException extends AuthApiProblemException {
   constructor() {
-    super(
-      'Invalid Telegram Widget hash',
-      'INVALID_WIDGET_HASH',
-      400
-    );
+    super('Invalid Telegram Widget hash', 'INVALID_WIDGET_HASH', 400);
   }
 }
 
 export class NotInDevModeException extends AuthApiProblemException {
   constructor() {
-    super(
-      'Development authentication not available',
-      'NOT_IN_DEV_MODE',
-      403
-    );
+    super('Development authentication not available', 'NOT_IN_DEV_MODE', 403);
   }
 }
 
@@ -721,6 +668,7 @@ export class AuthValidationError extends Error {
 ### 4. Constants and Configuration
 
 #### Authentication Constants
+
 ```typescript
 // libs/feature/auth/shared/src/lib/const/jwt.const.ts
 import { JwtModuleOptions } from '@nestjs/jwt';
@@ -758,21 +706,21 @@ export const JWT_APP_CONTEXTS: Record<AuthJwtApp, { name: string; scopes: string
 
 // libs/feature/auth/shared/src/lib/const/auth.const.ts
 export const CACHE_TTL = {
-  JWT_VALIDATION: 3600,     // 1 hour
-  USER_BLOCKED: 1800,       // 30 minutes
-  USER_PREMIUM: 900,        // 15 minutes
-  USER_LANGUAGE: 7200,      // 2 hours
+  JWT_VALIDATION: 3600, // 1 hour
+  USER_BLOCKED: 1800, // 30 minutes
+  USER_PREMIUM: 900, // 15 minutes
+  USER_LANGUAGE: 7200, // 2 hours
 } as const;
 
 export const RATE_LIMITS = {
   AUTH_ATTEMPTS: {
-    ttl: 60000,        // 1 minute window
-    limit: 10,         // 10 attempts per window
+    ttl: 60000, // 1 minute window
+    limit: 10, // 10 attempts per window
     blockDuration: 300000, // 5 minute block
   },
   API_REQUESTS: {
-    ttl: 3600000,      // 1 hour window
-    limit: 1000,       // 1000 requests per hour
+    ttl: 3600000, // 1 hour window
+    limit: 1000, // 1000 requests per hour
   },
 } as const;
 ```
@@ -842,29 +790,29 @@ import {
     AuthLanguageCacheService,
     AuthJwtCacheService,
     AuthJtiCacheService,
-    
+
     // Core auth services
     AuthJwtValidationService,
     AuthCreateUserService,
     AuthUserService,
     AuthCompositeService,
-    
+
     // Specialized services
     ExchangeTokenAuthService,
     ExchangeJwtService,
     UserTokensRevokeService,
     AuthLegacyService,
     AuthUserVisitService,
-    
+
     // Referral and source services
     GetSourceParamsService,
     GetUserRefLinkService,
     SourceRegisterService,
-    
+
     // Repositories
     UserRepository,
     // ... other repositories
-    
+
     // Strategies
     CompositeStrategy,
   ],
@@ -883,6 +831,7 @@ export class AuthSharedModule {}
 ```
 
 #### Auth Main Module
+
 ```typescript
 // libs/feature/auth/main/src/lib/auth-main.module.ts
 import { Module } from '@nestjs/common';
@@ -898,20 +847,13 @@ import {
 } from '@app/mysql';
 
 @Module({
-  imports: [
-    JwtModule.register(authJwtModuleOptions),
-    AuthSharedModule,
-    AuthConfigModule,
-    RedisModule,
-  ],
+  imports: [JwtModule.register(authJwtModuleOptions), AuthSharedModule, AuthConfigModule, RedisModule],
   providers: [
     AuthService,
     UserRepository,
     // ... other repositories used by main auth service
   ],
-  exports: [
-    AuthService,
-  ],
+  exports: [AuthService],
 })
 export class AuthMainModule {}
 ```
@@ -919,6 +861,7 @@ export class AuthMainModule {}
 ## Implementation Plan
 
 ### Phase 1: Core Authentication Infrastructure (Week 1)
+
 - [ ] Set up auth domain structure: `libs/feature/auth/main` and `libs/feature/auth/shared`
 - [ ] Implement core service interfaces (AuthService, AuthJwtValidationService)
 - [ ] Set up JWT token management with Redis caching
@@ -927,6 +870,7 @@ export class AuthMainModule {}
 - [ ] Unit test foundation for core services
 
 ### Phase 2: Multi-Platform Authentication (Week 2)
+
 - [ ] Implement Telegram Mini App (TMA) authentication flow
 - [ ] Implement Telegram Widget authentication with hash verification
 - [ ] Add development mode authentication with IP restrictions
@@ -935,6 +879,7 @@ export class AuthMainModule {}
 - [ ] Unit tests for authentication methods
 
 ### Phase 3: Guards, Strategies, and Security (Week 3)
+
 - [ ] Implement Passport strategies (CompositeStrategy)
 - [ ] Create authentication guards (CompositeAuthGuard, ExchangeAuthGuard)
 - [ ] Add rate limiting and throttling protection
@@ -943,6 +888,7 @@ export class AuthMainModule {}
 - [ ] Integration tests with mock dependencies
 
 ### Phase 4: Referral System and Advanced Features (Week 4)
+
 - [ ] Implement referral tracking and source attribution
 - [ ] Add user visit tracking and analytics integration
 - [ ] Create exchange-specific authentication services
@@ -953,6 +899,7 @@ export class AuthMainModule {}
 ## Usage Examples
 
 ### Basic Authentication Flow
+
 ```typescript
 // In an authentication controller
 import { Injectable } from '@nestjs/common';
@@ -983,17 +930,18 @@ export class AuthController {
 
   async authenticateViaWidget(params: WidgetAuthParams) {
     const result = await this.authService.authTelegramWidget(params);
-    
+
     if (result.err) {
       throw new UnauthorizedException(result.val.message);
     }
-    
+
     return result.val;
   }
 }
 ```
 
 ### Guard Integration
+
 ```typescript
 // In a protected controller
 import { Controller, Get, UseGuards } from '@nestjs/common';
@@ -1023,6 +971,7 @@ export class ProtectedController {
 ```
 
 ### Token Management
+
 ```typescript
 // In a user management service
 import { Injectable } from '@nestjs/common';
@@ -1038,7 +987,7 @@ export class UserManagementService {
   async blockUser(userId: string): Promise<void> {
     // Block user in database
     await this.userRepository.update(userId, { isBlocked: true });
-    
+
     // Revoke all active tokens
     await this.userTokensRevokeService.revokeUserTokens(userId);
   }
@@ -1046,11 +995,11 @@ export class UserManagementService {
   async validateUserAccess(token: string): Promise<UserData> {
     const payload = this.jwtService.decode(token) as AuthJwtPayloadDto;
     const result = await this.authJwtValidationService.validate(payload);
-    
+
     if (result.err) {
       throw new UnauthorizedException(result.val.message);
     }
-    
+
     return result.val;
   }
 
@@ -1064,6 +1013,7 @@ export class UserManagementService {
 ## Testing Strategy
 
 ### Unit Tests
+
 ```typescript
 describe('AuthJwtValidationService', () => {
   let service: AuthJwtValidationService;
@@ -1164,6 +1114,7 @@ describe('AuthJwtValidationService', () => {
 ```
 
 ### Integration Tests
+
 ```typescript
 describe('Auth Integration', () => {
   let app: INestApplication;
@@ -1206,7 +1157,7 @@ describe('Auth Integration', () => {
     it('should protect endpoints with CompositeAuthGuard', async () => {
       // This would be a full E2E test with HTTP requests
       const validToken = await generateTestToken();
-      
+
       const response = await request(app.getHttpServer())
         .get('/protected/profile')
         .set('Authorization', `Bearer ${validToken}`)
@@ -1225,10 +1176,10 @@ describe('Auth Integration', () => {
 });
 ```
 
-
 ## Security Considerations
 
 ### Multi-Layer Security
+
 - **JWT Security**: HMAC-SHA256 signing with configurable expiration and secure secret management
 - **Token Revocation**: JTI-based token blacklisting with Redis persistence for immediate invalidation
 - **Rate Limiting**: Multi-dimensional throttling (IP, user, endpoint) with exponential backoff
@@ -1236,12 +1187,14 @@ describe('Auth Integration', () => {
 - **Cache Security**: Encrypted cache storage for sensitive authentication data with TTL management
 
 ### Authentication Security
+
 - **TMA Validation**: Telegram bot token signature verification with timestamp validation
 - **Widget Security**: Hash verification using Telegram bot token with replay attack prevention
 - **Development Mode**: IP whitelisting and restricted access for development authentication
 - **Session Management**: Secure session creation with correlation ID tracking
 
 ### Error Handling and Logging
+
 - No sensitive information (tokens, user data) in error messages or logs
 - Consistent error codes for different authentication failures
 - Security event logging (failed attempts, blocked users, token revocations)
@@ -1250,6 +1203,7 @@ describe('Auth Integration', () => {
 ## Related Files
 
 ### Auth Domain Structure
+
 - `libs/feature/auth/main/src/index.ts` - Main module public API (AuthMainModule, AuthService)
 - `libs/feature/auth/main/src/lib/auth-main.module.ts` - Main NestJS module
 - `libs/feature/auth/main/src/lib/service/auth.service.ts` - Core authentication service
@@ -1268,6 +1222,7 @@ describe('Auth Integration', () => {
 - `libs/feature/auth/CONTEXT.md` - Comprehensive domain documentation
 
 ### Integration Points
+
 - `apps/*/src/` - Applications importing AuthMainModule for authentication
 - `libs/feature/*/main/src/controller/` - Controllers using authentication guards
 - `libs/feature/*/main/src/service/` - Services using @CurrentUserId decorator
@@ -1282,4 +1237,4 @@ describe('Auth Integration', () => {
 
 ---
 
-*This auth domain specification demonstrates xRocket's architecture principles applied to a comprehensive authentication and authorization system. The structure follows the main/shared library pattern with proper dependency injection, caching strategies, and security best practices for a production-ready financial platform.*
+_This auth domain specification demonstrates xRocket's architecture principles applied to a comprehensive authentication and authorization system. The structure follows the main/shared library pattern with proper dependency injection, caching strategies, and security best practices for a production-ready financial platform._

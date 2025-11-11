@@ -162,6 +162,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
 
     // Validate API key against candidates (typically just 1 bcrypt comparison)
     for (const source of candidates) {
+      // eslint-disable-next-line no-await-in-loop
       if (source.apiKeyHash && (await bcrypt.compare(apiKey, source.apiKeyHash))) {
         return source;
       }

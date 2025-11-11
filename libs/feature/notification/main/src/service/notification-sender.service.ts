@@ -3,9 +3,7 @@ import {
   NotificationEntity,
   NotificationRepository,
   NotificationTemplateRepository,
-  NotificationStatus,
   NotificationErrorReason,
-  NotificationContentType,
 } from '@app/database';
 import { buildNotificationFromTemplate, NotificationResult } from '@app/feature-notification-shared';
 
@@ -60,6 +58,7 @@ export class NotificationSenderService {
           };
         }
 
+        // eslint-disable-next-line no-param-reassign
         notification.template = template;
       }
 
@@ -146,7 +145,7 @@ export class NotificationSenderService {
 
     const message = error.message.toLowerCase();
 
-    const ERROR_PATTERNS: Record<string, NotificationErrorReason> = {
+    const errorPatterns: Record<string, NotificationErrorReason> = {
       'bot was blocked': NotificationErrorReason.BotBlocked,
       'user is deactivated': NotificationErrorReason.UserDeactivated,
       'chat not found': NotificationErrorReason.ChatNotFound,
@@ -158,9 +157,9 @@ export class NotificationSenderService {
       'timeout': NotificationErrorReason.NetworkError,
     };
 
-    for (const [pattern, reason] of Object.entries(ERROR_PATTERNS)) {
+    for (const [pattern, reason] of Object.entries(errorPatterns)) {
       if (message.includes(pattern)) {
-        return reason;
+        return reason as NotificationErrorReason;
       }
     }
 

@@ -4,6 +4,7 @@ export class LoginHistoryResponseDto {
   @ApiProperty({ example: '2025-11-07T10:30:00Z', description: 'Login timestamp' })
   timestamp!: Date;
 
+  // eslint-disable-next-line sonarjs/no-hardcoded-ip
   @ApiProperty({ example: '192.168.1.1', description: 'IP address' })
   ipAddress!: string;
 
@@ -21,6 +22,7 @@ export class SecurityOverviewResponseDto {
   @ApiProperty({ example: '2025-11-07T10:30:00Z', description: 'Last login timestamp' })
   lastLogin!: Date;
 
+  // eslint-disable-next-line sonarjs/no-hardcoded-ip
   @ApiProperty({ example: '192.168.1.1', description: 'Last login IP' })
   lastLoginIp!: string;
 

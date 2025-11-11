@@ -8,6 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
+import { InlineKeyboard } from 'grammy';
 import { UserEntity, UserStatus } from '@app/database';
 import { BotValidationUtil } from '../util/bot-validation.util';
 import { MenuActionHandler } from './menu-action.handler';
@@ -138,32 +139,24 @@ export class ProfileActionHandler {
   /**
    * Field update map for O(1) lookup performance
    */
-  private readonly fieldUpdaters: Record<string, (user: UserEntity, value: string) => void> = {
-    username: (user, value) => {
-      user.username = value;
-    },
-    firstName: (user, value) => {
-      user.firstName = value;
-    },
-    lastName: (user, value) => {
-      user.lastName = value;
-    },
-    languageCode: (user, value) => {
-      user.languageCode = value;
-    },
+  private readonly fieldUpdaters: Record<string, keyof UserEntity> = {
+    username: 'username',
+    firstName: 'firstName',
+    lastName: 'lastName',
+    languageCode: 'languageCode',
   };
 
   /**
    * Update user field
    */
   private async updateUserField(user: UserEntity, field: string, value: string): Promise<void> {
-    const updater = this.fieldUpdaters[field];
+    const fieldName = this.fieldUpdaters[field];
 
-    if (!updater) {
+    if (!fieldName) {
       throw new Error(`Unknown field: ${field}`);
     }
 
-    updater(user, value);
+    Object.assign(user, { [fieldName]: value });
     await this.em.persistAndFlush(user);
   }
 
@@ -218,7 +211,13 @@ export class ProfileActionHandler {
    * Format profile view text
    */
   private formatProfileView(user: UserEntity): string {
-    const statusEmoji = user.status === UserStatus.Active ? '✅' : user.status === UserStatus.Restricted ? '⚠️' : '🚫';
+    const statusEmojiMap: Record<UserStatus, string> = {
+      [UserStatus.Active]: '✅',
+      [UserStatus.Restricted]: '⚠️',
+      [UserStatus.Banned]: '🚫',
+    };
+
+    const statusEmoji = statusEmojiMap[user.status] || '❓';
     const verifiedEmoji = user.isVerified ? '✅' : '❌';
 
     return (
@@ -264,8 +263,6 @@ export class ProfileActionHandler {
    * Create profile edit keyboard
    */
   private createProfileEditKeyboard() {
-    const { InlineKeyboard } = require('grammy');
-
     return new InlineKeyboard()
       .text('✏️ First Name', 'profile:edit:firstName')
       .text('✏️ Last Name', 'profile:edit:lastName')

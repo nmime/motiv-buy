@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 /* eslint-disable sonarjs/no-nested-functions */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
@@ -228,9 +229,9 @@ describe('BotService', () => {
 
   describe('Error Handling', () => {
     it('should handle unknown errors during start', async () => {
-      mockBotMainService.start.mockRejectedValue('Unknown error');
+      mockBotMainService.start.mockRejectedValue(new Error('Unknown error'));
 
-      await expect(service.start()).rejects.toThrow();
+      await expect(service.start()).rejects.toThrow('Unknown error');
     });
 
     it('should handle unknown errors during stop', async () => {
@@ -397,7 +398,8 @@ describe('BotService', () => {
     it('should handle service with no logger', async () => {
       // Remove logger temporarily
       const originalLogger = service['logger'];
-      service['logger'] = undefined as unknown as Logger;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (service as any)['logger'] = undefined as unknown as Logger;
 
       mockBotMainService.start.mockResolvedValue(undefined);
 
@@ -405,7 +407,8 @@ describe('BotService', () => {
       await expect(service.start()).rejects.toThrow();
 
       // Restore logger
-      service['logger'] = originalLogger;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (service as any)['logger'] = originalLogger;
     });
 
     it('should handle service with no BotMainService', async () => {

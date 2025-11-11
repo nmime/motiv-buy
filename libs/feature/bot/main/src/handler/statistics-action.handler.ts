@@ -228,20 +228,18 @@ export class StatisticsActionHandler {
     const orders = await this.em.find(TrafficOrderEntity, { creator: userId });
 
     const ordersByStatus = orders.reduce(
-      (acc, order) => {
-        acc[order.status] = (acc[order.status] || 0) + 1;
-
-        return acc;
-      },
+      (acc, order) =>
+        Object.assign({}, acc, {
+          [order.status]: (acc[order.status] || 0) + 1,
+        }),
       {} as Record<string, number>,
     );
 
     const ordersByType = orders.reduce(
-      (acc, order) => {
-        acc[order.type] = (acc[order.type] || 0) + 1;
-
-        return acc;
-      },
+      (acc, order) =>
+        Object.assign({}, acc, {
+          [order.type]: (acc[order.type] || 0) + 1,
+        }),
       {} as Record<string, number>,
     );
 
@@ -293,7 +291,9 @@ export class StatisticsActionHandler {
       (acc, entry) => {
         const amount = decimal(entry.amount);
         if (amount.greaterThan(0)) {
-          acc[entry.type] = toNumber(decimal(acc[entry.type] || 0).plus(amount));
+          return Object.assign({}, acc, {
+            [entry.type]: toNumber(decimal(acc[entry.type] || 0).plus(amount)),
+          });
         }
 
         return acc;

@@ -103,9 +103,9 @@ Get current user balance with details.
 ```json
 {
   "userId": "uuid",
-  "amount": 1000.50,
+  "amount": 1000.5,
   "currency": "RUB",
-  "availableAmount": 950.50,
+  "availableAmount": 950.5,
   "pendingAmount": 50,
   "totalEarned": 5000,
   "lastTransactionAt": "2025-11-03T..."
@@ -173,13 +173,13 @@ Request withdrawal to cryptocurrency wallet.
 Rates are fetched automatically every 10 minutes from:
 
 1. **CoinGecko** (95% reliability)
-    - BTC, ETH, USDT, USDC, BNB, TON, TRX, LTC
+   - BTC, ETH, USDT, USDC, BNB, TON, TRX, LTC
 
 2. **Binance** (90% reliability)
-    - BTC, ETH, BNB, LTC
+   - BTC, ETH, BNB, LTC
 
 3. **Exchange Rate API** (100% reliability)
-    - RUB, EUR fiat rates
+   - RUB, EUR fiat rates
 
 **Weighted Average:**
 
@@ -204,9 +204,9 @@ import { CurrencyRateService } from '@app/feature-balance-main';
 
 ```typescript
 const result = await currencyRateService.convertAmount(
-  '100',      // amount
-  CurrencyCode.USDT,  // from
-  CurrencyCode.RUB,   // to
+  '100', // amount
+  CurrencyCode.USDT, // from
+  CurrencyCode.RUB, // to
 );
 
 if (result.ok) {
@@ -217,9 +217,7 @@ if (result.ok) {
 ### Get Current Rate
 
 ```typescript
-const rateResult = await currencyRateService.getCurrentRate(
-  CurrencyCode.BTC
-);
+const rateResult = await currencyRateService.getCurrentRate(CurrencyCode.BTC);
 
 if (rateResult.ok) {
   console.log(`1 BTC = ${rateResult.val} USD`);

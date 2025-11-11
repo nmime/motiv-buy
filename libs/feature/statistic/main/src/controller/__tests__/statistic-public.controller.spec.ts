@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import { Test, TestingModule } from '@nestjs/testing';
 import { StatisticPublicController } from '../statistic-public.controller';
 import { StatisticService } from '../../service';
@@ -128,6 +129,7 @@ describe('StatisticPublicController', () => {
   describe('getPublicChartData', () => {
     it('should return public chart data with valid share token', async () => {
       const query = {
+        type: StatisticType.TrafficSource,
         fromDate: '2024-01-01',
         endDate: '2024-01-31',
         interval: ChartInterval.Day,
@@ -150,6 +152,7 @@ describe('StatisticPublicController', () => {
 
       for (const interval of intervals) {
         const query = {
+          type: StatisticType.TrafficSource,
           fromDate: '2024-01-01',
           endDate: '2024-01-31',
           interval,
@@ -173,6 +176,7 @@ describe('StatisticPublicController', () => {
 
       for (const { fromDate, endDate } of testCases) {
         const query = {
+          type: StatisticType.TrafficSource,
           fromDate,
           endDate,
           interval: ChartInterval.Day,
@@ -188,6 +192,7 @@ describe('StatisticPublicController', () => {
 
     it('should work without optional interval parameter', async () => {
       const query = {
+        type: StatisticType.TrafficSource,
         fromDate: '2024-01-01',
         endDate: '2024-01-31',
       };

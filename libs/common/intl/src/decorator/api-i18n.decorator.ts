@@ -11,6 +11,101 @@ import { FastifyRequest } from 'fastify';
 import { defaultLanguage, Language } from '@app/common-shared';
 
 /**
+ * Check if language is supported
+ *
+ * @param langCode - Language code to check
+ * @returns True if supported
+ */
+function isLanguageSupported(langCode: string): boolean {
+  const supportedLanguages = Object.values(Language) as string[];
+
+  return supportedLanguages.includes(langCode);
+}
+
+/**
+ * Normalize language code to supported language
+ *
+ * @param langCode - Raw language code
+ * @returns Normalized language code
+ */
+function normalizeLanguageCode(langCode: string): string {
+  if (!langCode) {
+    return defaultLanguage;
+  }
+
+  // Extract primary language code (before dash)
+  const [primaryLang] = langCode.toLowerCase().split('-');
+
+  // Check if supported
+  if (isLanguageSupported(primaryLang)) {
+    return primaryLang;
+  }
+
+  return defaultLanguage;
+}
+
+/**
+ * Detect language from Accept-Language header
+ *
+ * Priority:
+ * 1. Accept-Language header
+ * 2. Default language
+ *
+ * @param request - Fastify request object
+ * @returns Language code
+ */
+function detectLanguageFromRequest(request: FastifyRequest): string {
+  const acceptLanguage = request.headers['accept-language'];
+
+  if (!acceptLanguage) {
+    return defaultLanguage;
+  }
+
+  // Parse Accept-Language header
+  // Format: "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7"
+  const languages = acceptLanguage
+    .split(',')
+    .map((lang) => {
+      const [code, quality] = lang.trim().split(';');
+      const q = quality ? parseFloat(quality.replace('q=', '')) : 1.0;
+
+      return { code: code.trim(), quality: q };
+    })
+    .sort((a, b) => b.quality - a.quality);
+
+  // Try each language until we find a supported one
+  for (const { code } of languages) {
+    const normalized = normalizeLanguageCode(code);
+    if (isLanguageSupported(normalized)) {
+      return normalized;
+    }
+  }
+
+  return defaultLanguage;
+}
+
+/**
+ * Extract I18nService from request
+ *
+ * NestJS injects services into the request context
+ * We retrieve I18nService from there
+ *
+ * @param request - Fastify request object with i18nService
+ * @returns I18nService instance
+ */
+function getI18nServiceFromRequest(request: FastifyRequest & { i18nService?: I18nService }): I18nService {
+  // I18nService is available through nestjs-i18n resolver
+  // It's injected into the request by AcceptLanguageResolver
+  const { i18nService } = request;
+
+  if (!i18nService) {
+    throw new Error('I18nService not found in request. Ensure AppCommonIntlModule is imported.');
+  }
+
+  return i18nService;
+}
+
+/**
  * I18n Context for API routes
  *
  * Provides translation function that automatically uses
@@ -35,7 +130,7 @@ export class ApiI18nContext {
    * const error = i18n.t('order.errors.moderation_rejected', { reason: 'spam' });
    * ```
    */
-  t(key: string, options?: Record<string, any>): string {
+  t(key: string, options?: Record<string, unknown>): string {
     return this.i18nService.t(key, {
       lang: this.language,
       args: options,
@@ -50,7 +145,7 @@ export class ApiI18nContext {
    * @param options - Optional parameters
    * @returns Translated string
    */
-  tWithLang(key: string, lang: string, options?: Record<string, any>): string {
+  tWithLang(key: string, lang: string, options?: Record<string, unknown>): string {
     return this.i18nService.t(key, {
       lang: normalizeLanguageCode(lang),
       args: options,
@@ -113,7 +208,7 @@ export class ApiI18nContext {
  * }
  * ```
  */
-export const I18n = createParamDecorator((data: unknown, ctx: ExecutionContext): ApiI18nContext => {
+export const I18n = createParamDecorator((_data: unknown, ctx: ExecutionContext): ApiI18nContext => {
   const request = ctx.switchToHttp().getRequest<FastifyRequest>();
   const i18nService = getI18nServiceFromRequest(request);
 
@@ -122,101 +217,6 @@ export const I18n = createParamDecorator((data: unknown, ctx: ExecutionContext):
 
   return new ApiI18nContext(i18nService, language);
 });
-
-/**
- * Extract I18nService from request
- *
- * NestJS injects services into the request context
- * We retrieve I18nService from there
- *
- * @param request - Fastify request object
- * @returns I18nService instance
- */
-function getI18nServiceFromRequest(request: any): I18nService {
-  // I18nService is available through nestjs-i18n resolver
-  // It's injected into the request by AcceptLanguageResolver
-  const { i18nService } = request;
-
-  if (!i18nService) {
-    throw new Error('I18nService not found in request. Ensure AppCommonIntlModule is imported.');
-  }
-
-  return i18nService;
-}
-
-/**
- * Detect language from Accept-Language header
- *
- * Priority:
- * 1. Accept-Language header
- * 2. Default language
- *
- * @param request - Fastify request object
- * @returns Language code
- */
-function detectLanguageFromRequest(request: FastifyRequest): string {
-  const acceptLanguage = request.headers['accept-language'];
-
-  if (!acceptLanguage) {
-    return defaultLanguage;
-  }
-
-  // Parse Accept-Language header
-  // Format: "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7"
-  const languages = acceptLanguage
-    .split(',')
-    .map((lang) => {
-      const [code, quality] = lang.trim().split(';');
-      const q = quality ? parseFloat(quality.replace('q=', '')) : 1.0;
-
-      return { code: code.trim(), quality: q };
-    })
-    .sort((a, b) => b.quality - a.quality);
-
-  // Try each language until we find a supported one
-  for (const { code } of languages) {
-    const normalized = normalizeLanguageCode(code);
-    if (isLanguageSupported(normalized)) {
-      return normalized;
-    }
-  }
-
-  return defaultLanguage;
-}
-
-/**
- * Normalize language code to supported language
- *
- * @param langCode - Raw language code
- * @returns Normalized language code
- */
-function normalizeLanguageCode(langCode: string): string {
-  if (!langCode) {
-    return defaultLanguage;
-  }
-
-  // Extract primary language code (before dash)
-  const primaryLang = langCode.toLowerCase().split('-')[0];
-
-  // Check if supported
-  if (isLanguageSupported(primaryLang)) {
-    return primaryLang;
-  }
-
-  return defaultLanguage;
-}
-
-/**
- * Check if language is supported
- *
- * @param langCode - Language code to check
- * @returns True if supported
- */
-function isLanguageSupported(langCode: string): boolean {
-  const supportedLanguages = Object.values(Language) as string[];
-
-  return supportedLanguages.includes(langCode);
-}
 
 /**
  * @Lang() - Parameter decorator to get just the language code
@@ -232,7 +232,7 @@ function isLanguageSupported(langCode: string): boolean {
  * }
  * ```
  */
-export const Lang = createParamDecorator((data: unknown, ctx: ExecutionContext): string => {
+export const Lang = createParamDecorator((_data: unknown, ctx: ExecutionContext): string => {
   const request = ctx.switchToHttp().getRequest<FastifyRequest>();
 
   return detectLanguageFromRequest(request);

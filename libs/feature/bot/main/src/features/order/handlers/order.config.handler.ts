@@ -17,6 +17,7 @@ import {
   createLocationKeyboard,
   createTopicsKeyboard,
 } from '../order.keyboards';
+import { OrderDisplayLocation, UserGender } from '../order.types';
 
 @Injectable()
 export class OrderConfigHandler {
@@ -34,26 +35,27 @@ export class OrderConfigHandler {
 
   private setupHandlers(): void {
     // Configuration
-    this.composer.callbackQuery(/^order:config:start:(.+)$/, (ctx) => this.handleOrderConfig(ctx));
-    this.composer.callbackQuery(/^order:config:done:(.+)$/, (ctx) => this.handleConfigDone(ctx));
+    this.composer.callbackQuery(/^order:config:start:([^:]+)$/, (ctx) => this.handleOrderConfig(ctx));
+    this.composer.callbackQuery(/^order:config:done:([^:]+)$/, (ctx) => this.handleConfigDone(ctx));
 
     // Audience configuration
-    this.composer.callbackQuery(/^order:edit:audience:(.+)$/, (ctx) => this.handleEditAudience(ctx));
-    this.composer.callbackQuery(/^order:audience:gender:(.+)$/, (ctx) => this.handleAudienceGender(ctx));
-    this.composer.callbackQuery(/^order:gender:(.+):(.+)$/, (ctx) => this.handleGenderSelection(ctx));
+    this.composer.callbackQuery(/^order:edit:audience:([^:]+)$/, (ctx) => this.handleEditAudience(ctx));
+    this.composer.callbackQuery(/^order:audience:gender:([^:]+)$/, (ctx) => this.handleAudienceGender(ctx));
+    this.composer.callbackQuery(/^order:gender:([^:]+):([^:]+)$/, (ctx) => this.handleGenderSelection(ctx));
 
     // Topics configuration
-    this.composer.callbackQuery(/^order:edit:topics:(.+)$/, (ctx) => this.handleEditTopics(ctx));
-    this.composer.callbackQuery(/^order:topic:(.+):(.+)$/, (ctx) => this.handleTopicToggle(ctx));
-    this.composer.callbackQuery(/^order:topics:save:(.+)$/, (ctx) => this.handleTopicsSave(ctx));
+
+    this.composer.callbackQuery(/^order:edit:topics:([^:]+)$/, (ctx) => this.handleEditTopics(ctx));
+    this.composer.callbackQuery(/^order:topic:([^:]+):([^:]+)$/, (ctx) => this.handleTopicToggle(ctx));
+    this.composer.callbackQuery(/^order:topics:save:([^:]+)$/, (ctx) => this.handleTopicsSave(ctx));
 
     // Locations configuration
-    this.composer.callbackQuery(/^order:edit:locations:(.+)$/, (ctx) => this.handleEditLocations(ctx));
-    this.composer.callbackQuery(/^order:location:(.+):(.+)$/, (ctx) => this.handleLocationSelection(ctx));
+    this.composer.callbackQuery(/^order:edit:locations:([^:]+)$/, (ctx) => this.handleEditLocations(ctx));
+    this.composer.callbackQuery(/^order:location:([^:]+):([^:]+)$/, (ctx) => this.handleLocationSelection(ctx));
 
     // Toggles
-    this.composer.callbackQuery(/^order:toggle:distribute:(.+)$/, (ctx) => this.handleToggleDistribute(ctx));
-    this.composer.callbackQuery(/^order:toggle:unsubscribes:(.+)$/, (ctx) => this.handleToggleUnsubscribes(ctx));
+    this.composer.callbackQuery(/^order:toggle:distribute:([^:]+)$/, (ctx) => this.handleToggleDistribute(ctx));
+    this.composer.callbackQuery(/^order:toggle:unsubscribes:([^:]+)$/, (ctx) => this.handleToggleUnsubscribes(ctx));
   }
 
   /**
@@ -210,7 +212,7 @@ export class OrderConfigHandler {
    */
   private async handleGenderSelection(ctx: BotContext): Promise<void> {
     try {
-      const match = ctx.callbackQuery?.data?.match(/^order:gender:(.+):(.+)$/);
+      const match = ctx.callbackQuery?.data?.match(/^order:gender:([^:]+):([^:]+)$/);
       const gender = match?.[1];
       const orderId = match?.[2];
 
@@ -231,7 +233,7 @@ export class OrderConfigHandler {
       await this.orderService.updateOrderConfig(orderId, {
         targetAudience: {
           ...order.config.targetAudience,
-          gender: gender as any,
+          gender: gender as UserGender,
         },
       });
 
@@ -291,7 +293,7 @@ export class OrderConfigHandler {
    */
   private async handleTopicToggle(ctx: BotContext): Promise<void> {
     try {
-      const match = ctx.callbackQuery?.data?.match(/^order:topic:(.+):(.+)$/);
+      const match = ctx.callbackQuery?.data?.match(/^order:topic:([^:]+):([^:]+)$/);
       const topicId = match?.[1];
       const orderId = match?.[2];
 
@@ -380,7 +382,7 @@ export class OrderConfigHandler {
    */
   private async handleLocationSelection(ctx: BotContext): Promise<void> {
     try {
-      const match = ctx.callbackQuery?.data?.match(/^order:location:(.+):(.+)$/);
+      const match = ctx.callbackQuery?.data?.match(/^order:location:([^:]+):([^:]+)$/);
       const location = match?.[1];
       const orderId = match?.[2];
 
@@ -392,6 +394,7 @@ export class OrderConfigHandler {
 
       // Authorization check and update
       const order = await this.orderService.getOrderById(orderId);
+
       if (!order || order.userId !== ctx.from?.id.toString()) {
         await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
 
@@ -399,7 +402,7 @@ export class OrderConfigHandler {
       }
 
       await this.orderService.updateOrderConfig(orderId, {
-        displayLocation: location as any,
+        displayLocation: location as OrderDisplayLocation,
       });
 
       await this.handleOrderConfig(ctx);
