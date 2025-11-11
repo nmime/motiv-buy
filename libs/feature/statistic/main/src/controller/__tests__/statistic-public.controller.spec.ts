@@ -11,7 +11,7 @@ describe('StatisticPublicController', () => {
   let mapper: jest.Mocked<StatisticMapper>;
 
   const mockUserId = 'user-123';
-  const mockShareToken = `tra-${mockUserId}-${Date.now()}-abc123`;
+  const mockShareToken = `tra.${mockUserId}.${Date.now()}.abc123`;
 
   beforeEach(async () => {
     const mockService = {
@@ -94,7 +94,7 @@ describe('StatisticPublicController', () => {
     });
 
     it('should handle traffic source share tokens', async () => {
-      const sourceToken = `tra-${mockUserId}-${Date.now()}-xyz789`;
+      const sourceToken = `tra.${mockUserId}.${Date.now()}.xyz789`;
 
       await controller.getPublicStatisticsSummary(sourceToken);
 
@@ -102,7 +102,7 @@ describe('StatisticPublicController', () => {
     });
 
     it('should handle traffic order share tokens', async () => {
-      const orderToken = `ord-${mockUserId}-${Date.now()}-xyz789`;
+      const orderToken = `ord.${mockUserId}.${Date.now()}.xyz789`;
 
       await controller.getPublicStatisticsSummary(orderToken);
 
@@ -110,7 +110,7 @@ describe('StatisticPublicController', () => {
     });
 
     it('should handle traffic target share tokens', async () => {
-      const targetToken = `tar-${mockUserId}-${Date.now()}-xyz789`;
+      const targetToken = `tar.${mockUserId}.${Date.now()}.xyz789`;
 
       await controller.getPublicStatisticsSummary(targetToken);
 
@@ -118,7 +118,7 @@ describe('StatisticPublicController', () => {
     });
 
     it('should handle user share tokens', async () => {
-      const userToken = `use-${mockUserId}-${Date.now()}-xyz789`;
+      const userToken = `use.${mockUserId}.${Date.now()}.xyz789`;
 
       await controller.getPublicStatisticsSummary(userToken);
 
