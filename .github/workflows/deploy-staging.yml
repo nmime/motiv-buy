@@ -95,7 +95,7 @@ jobs:
     needs: build-and-push
     environment:
       name: staging
-      url: https://staging.yourdomain.com
+      url: https://st.motivbuy.com
 
     steps:
       - name: Checkout code
@@ -160,6 +160,12 @@ jobs:
 
           # Logging
           LOG_LEVEL=debug
+
+          # Domains
+          API_DOMAIN=api.st.motivbuy.com
+          BOT_DOMAIN=bot.st.motivbuy.com
+          MAIN_DOMAIN=st.motivbuy.com
+          LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
           EOF
           "
 

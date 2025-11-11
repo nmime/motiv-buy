@@ -136,7 +136,7 @@ jobs:
     needs: [build-and-push, backup]
     environment:
       name: production
-      url: https://api.yourdomain.com
+      url: https://motivbuy.com
 
     steps:
       - name: Checkout code
@@ -195,8 +195,10 @@ jobs:
           # Logging
           LOG_LEVEL=warn
 
-          # Domain
-          DOMAIN=${{ secrets.PRODUCTION_DOMAIN }}
+          # Domains
+          API_DOMAIN=api.motivbuy.com
+          BOT_DOMAIN=bot.motivbuy.com
+          MAIN_DOMAIN=motivbuy.com
           LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
           EOF
           "
