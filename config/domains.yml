@@ -1,0 +1,36 @@
+# Domain Configuration for SSL Certificates
+#
+# How to add a new subdomain:
+# 1. Add domain to the appropriate environment (staging or production)
+# 2. Commit and push: git add config/domains.yml && git commit -m "Add new domain" && git push
+# 3. GitHub Actions will automatically update SSL certificate
+#
+# Note: DNS A records must be configured BEFORE adding domain here
+
+staging:
+  # Server IP: 157.180.64.229
+  base_domain: st.motivbuy.com
+  email: admin@motivbuy.com
+
+  # List all subdomains that need SSL certificates
+  domains:
+    - st.motivbuy.com
+    - api.st.motivbuy.com
+    - bot.st.motivbuy.com
+    # Add new staging subdomains below:
+    # - admin.st.motivbuy.com
+    # - analytics.st.motivbuy.com
+
+production:
+  # Server IP: 65.108.218.78
+  base_domain: motivbuy.com
+  email: admin@motivbuy.com
+
+  # List all subdomains that need SSL certificates
+  domains:
+    - motivbuy.com
+    - api.motivbuy.com
+    - bot.motivbuy.com
+    # Add new production subdomains below:
+    # - admin.motivbuy.com
+    # - analytics.motivbuy.com

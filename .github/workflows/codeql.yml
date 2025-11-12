@@ -1,24 +1,29 @@
-name: "CodeQL Analysis"
+name: CI - Security (CodeQL)
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
   schedule:
     # Run at 2 AM UTC every Monday
     - cron: '0 2 * * 1'
 
 jobs:
-  analyze:
-    name: CodeQL Security Analysis
+  codeql:
+    name: CodeQL Analysis
     runs-on: ubuntu-latest
     continue-on-error: true
+
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
 
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript-typescript' ]
+        language: ['javascript-typescript']
 
     steps:
       - name: Checkout repository

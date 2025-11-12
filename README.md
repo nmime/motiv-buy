@@ -18,6 +18,14 @@ pnpm run build
 pnpm run test
 ```
 
+## Deployment
+
+**Server Setup:** See [SETUP-INSTRUCTIONS.md](SETUP-INSTRUCTIONS.md) for complete deployment guide.
+
+**Quick Start:**
+- Staging: `157.180.64.229`
+- Production: `65.108.218.78`
+
 ## Documentation
 
 See `docs/` for detailed project documentation.
