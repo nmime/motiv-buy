@@ -108,7 +108,7 @@ export class YooKassaProvider implements IPaymentProvider {
     if (!this.shopId || !this.secretKey) {
       this.logger.warn(
         'YooKassaProvider initialized without credentials - provider will be disabled. ' +
-          'Set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY in environment or configure via database.',
+          'Set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY in environment variables.',
       );
     } else {
       this.logger.log(`YooKassaProvider initialized (shopId: ${this.shopId}, testMode: ${this.testMode})`);
@@ -121,7 +121,7 @@ export class YooKassaProvider implements IPaymentProvider {
   private getAuthHeader(): string {
     if (!this.shopId || !this.secretKey) {
       throw new Error(
-        'YooKassa API credentials not configured. Set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY in environment or configure via database.',
+        'YooKassa API credentials not configured. Set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY in environment variables.',
       );
     }
 

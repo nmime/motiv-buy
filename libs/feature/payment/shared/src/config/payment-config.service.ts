@@ -24,7 +24,7 @@ export class PaymentConfigService {
    */
   static readonly validationSchema: Joi.ObjectSchema = Joi.object({
     // CryptoPay Configuration
-    // Optional: Can be configured via database for active providers
+    // Optional: Can be configured in environment
     CRYPTO_BOT_API_TOKEN: Joi.string().optional().messages({
       'string.empty': 'CRYPTO_BOT_API_TOKEN cannot be empty',
     }),
@@ -34,14 +34,14 @@ export class PaymentConfigService {
     CRYPTO_BOT_MAX_RETRIES: Joi.number().min(0).max(5).default(3),
 
     // Heleket Configuration
-    // Optional: Can be configured via database for active providers
+    // Optional: Can be configured in environment
     HELEKET_API_TOKEN: Joi.string().optional().messages({
       'string.empty': 'HELEKET_API_TOKEN cannot be empty',
     }),
     HELEKET_MERCHANT_ID: Joi.string().optional().messages({
       'string.empty': 'HELEKET_MERCHANT_ID cannot be empty',
     }),
-    HELEKET_API_URL: Joi.string().uri().optional(),
+    HELEKET_API_URL: Joi.string().uri().default('https://api.heleket.com/v1'),
     HELEKET_TEST_MODE: Joi.boolean().default(false),
     HELEKET_TIMEOUT: Joi.number().min(1000).max(30000).default(10000),
     HELEKET_MAX_RETRIES: Joi.number().min(0).max(5).default(3),
@@ -49,14 +49,14 @@ export class PaymentConfigService {
     HELEKET_FAIL_URL: Joi.string().uri().optional(),
 
     // YooKassa Configuration
-    // Optional: Can be configured via database for active providers
+    // Optional: Can be configured in environment
     YOOKASSA_SHOP_ID: Joi.string().optional().messages({
       'string.empty': 'YOOKASSA_SHOP_ID cannot be empty',
     }),
     YOOKASSA_SECRET_KEY: Joi.string().optional().messages({
       'string.empty': 'YOOKASSA_SECRET_KEY cannot be empty',
     }),
-    YOOKASSA_API_URL: Joi.string().uri().optional(),
+    YOOKASSA_API_URL: Joi.string().uri().default('https://api.yookassa.ru/v3'),
     YOOKASSA_TEST_MODE: Joi.boolean().default(false),
     YOOKASSA_TIMEOUT: Joi.number().min(1000).max(30000).default(10000),
     YOOKASSA_MAX_RETRIES: Joi.number().min(0).max(5).default(3),
@@ -131,7 +131,7 @@ export class PaymentConfigService {
   }
 
   /**
-   * Get CryptoPay API token (optional, can be configured via database)
+   * Get CryptoPay API token (optional, configured via environment)
    */
   getCryptoBotApiToken(): string | undefined {
     return this.configService.get<string>('CRYPTO_BOT_API_TOKEN');

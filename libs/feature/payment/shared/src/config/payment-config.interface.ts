@@ -49,7 +49,7 @@ export interface PaymentConfig {
  * Configuration for CryptoPay API integration.
  */
 export interface CryptoBotConfig {
-  /** CryptoPay API token (optional, can be configured via database) */
+  /** CryptoPay API token (optional, configured via environment) */
   apiToken?: string;
 
   /** API base URL (optional, defaults to production) */
@@ -173,10 +173,10 @@ export interface PaymentLimitsConfig {
  * Heleket is a Russian payment gateway supporting cards, SBP, and electronic wallets.
  */
 export interface HelekeConfiguration {
-  /** Heleket API token (optional, can be configured via database) */
+  /** Heleket API token (optional, configured via environment) */
   apiToken?: string;
 
-  /** Heleket merchant ID (optional, can be configured via database) */
+  /** Heleket merchant ID (optional, configured via environment) */
   merchantId?: string;
 
   /** API base URL (optional, defaults to production) */
@@ -211,10 +211,10 @@ export interface HelekeConfiguration {
  * YooKassa supports various payment methods including cards, wallets, and bank transfers.
  */
 export interface YooKassaConfig {
-  /** YooKassa shop ID (optional, can be configured via database) */
+  /** YooKassa shop ID (optional, configured via environment) */
   shopId?: string;
 
-  /** YooKassa secret key (optional, can be configured via database) */
+  /** YooKassa secret key (optional, configured via environment) */
   secretKey?: string;
 
   /** API base URL (optional, defaults to production) */

@@ -106,7 +106,7 @@ export class HeleketProvider implements IPaymentProvider {
     if (!this.apiToken || !this.merchantId) {
       this.logger.warn(
         'HeleketProvider initialized without credentials - provider will be disabled. ' +
-          'Set HELEKET_API_TOKEN and HELEKET_MERCHANT_ID in environment or configure via database.',
+          'Set HELEKET_API_TOKEN and HELEKET_MERCHANT_ID in environment variables.',
       );
     } else {
       this.logger.log(
@@ -126,7 +126,7 @@ export class HeleketProvider implements IPaymentProvider {
   ): Promise<HelekeResponse<T>> {
     if (!this.apiToken || !this.merchantId) {
       throw new Error(
-        'Heleket API credentials not configured. Set HELEKET_API_TOKEN and HELEKET_MERCHANT_ID in environment or configure via database.',
+        'Heleket API credentials not configured. Set HELEKET_API_TOKEN and HELEKET_MERCHANT_ID in environment variables.',
       );
     }
 

@@ -98,7 +98,7 @@ export class CryptoBotProvider implements IPaymentProvider {
     if (!this.apiToken) {
       this.logger.warn(
         'CryptoBotProvider initialized without API token - provider will be disabled. ' +
-          'Set CRYPTO_BOT_API_TOKEN in environment or configure via database.',
+          'Set CRYPTO_BOT_API_TOKEN in environment variables.',
       );
     } else {
       this.logger.log(`CryptoBotProvider initialized (testnet: ${this.paymentConfig.isTestnet()})`);
@@ -446,9 +446,7 @@ export class CryptoBotProvider implements IPaymentProvider {
     params?: Record<string, unknown>,
   ): Promise<CryptoPayResponse<T>> {
     if (!this.apiToken) {
-      throw new Error(
-        'CryptoBot API token not configured. Set CRYPTO_BOT_API_TOKEN in environment or configure via database.',
-      );
+      throw new Error('CryptoBot API token not configured. Set CRYPTO_BOT_API_TOKEN in environment variables.');
     }
 
     const url = `${this.baseUrl}/${endpoint}`;
