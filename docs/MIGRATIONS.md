@@ -102,7 +102,7 @@ pnpm run migration:fresh
 
 ### Migration Workflow
 
-Migrations are **ALWAYS** run manually using GitHub Actions workflows:
+Migrations are run using GitHub Actions from the Actions menu:
 
 1. **Prepare**:
    - Create and test migration locally
@@ -110,12 +110,10 @@ Migrations are **ALWAYS** run manually using GitHub Actions workflows:
    - Push to appropriate branch
 
 2. **Run on Staging**:
-   - Go to Actions → "Database Migration - Manual"
+   - Go to Actions → "Run Database Migrations"
    - Select environment: `staging`
-   - Select action: `status` (check first)
-   - Type `CONFIRM` and run
-   - Review output
-   - Run again with action: `up`
+   - Select action: `status` (check first) or `up` (to apply)
+   - Click "Run workflow"
 
 3. **Deploy Staging Application**:
    - After migration succeeds, deploy app
@@ -123,26 +121,23 @@ Migrations are **ALWAYS** run manually using GitHub Actions workflows:
    - Run deployment workflow
 
 4. **Run on Production**:
-   - Go to Actions → "Database Migration - Manual"
+   - Go to Actions → "Run Database Migrations"
    - Select environment: `production`
-   - Select action: `status` (check first)
-   - Type `CONFIRM` and run
-   - Review output
-   - **Database is automatically backed up**
-   - Run again with action: `up`
+   - Select action: `status` (check first) or `up` (to apply)
+   - Click "Run workflow"
+   - **Database is automatically backed up before up/down actions**
 
 5. **Deploy Production Application**:
    - After migration succeeds, deploy app
    - Go to Actions → "Deploy - Production"
    - Run deployment workflow
 
-### Manual Migration Workflow Inputs
+### Migration Workflow Inputs
 
 | Input         | Options                    | Description                           |
 | ------------- | -------------------------- | ------------------------------------- |
 | `environment` | `staging`, `production`    | Target environment                    |
 | `action`      | `status`, `up`, `down`     | Migration action to perform           |
-| `confirm`     | Must type `CONFIRM`        | Safety confirmation                   |
 
 ### Migration Actions
 

@@ -1,0 +1,220 @@
+name: Run Database Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      action:
+        description: 'Migration action'
+        required: true
+        type: choice
+        options:
+          - status
+          - up
+          - down
+        default: up
+
+concurrency:
+  group: migration-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  PNPM_VERSION: 9
+  DOCKER_REGISTRY: ghcr.io
+
+jobs:
+  # ==============================================
+  # Build Migration Container
+  # ==============================================
+  build:
+    name: Build Migration Image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push migration image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            APP_NAME=migration
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:${{ inputs.environment }}
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:${{ inputs.environment }}-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==============================================
+  # Run Migration on Staging
+  # ==============================================
+  migrate-staging:
+    name: Migrate Staging DB
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://st.motivbuy.com
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run migration ${{ inputs.action }}
+        run: |
+          ssh ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} "
+            cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
+
+            # Login to registry
+            echo '${{ secrets.GITHUB_TOKEN }}' | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+            # Pull latest migration image
+            docker pull ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:staging
+
+            # Run migration
+            echo '🔄 Running migration: ${{ inputs.action }}'
+
+            docker run --rm \
+              --network ${{ secrets.VPS_STAGING_DEPLOY_PATH }}_default \
+              -e NODE_ENV=staging \
+              -e DB_HOST=postgres-prod \
+              -e DB_PORT=5432 \
+              -e DB_NAME=${{ secrets.STAGING_DB_NAME }} \
+              -e DB_USER=${{ secrets.STAGING_DB_USER }} \
+              -e DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+              ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:staging \
+              node dist/apps/migration/main.js ${{ inputs.action }}
+
+            echo '✅ Migration completed'
+          "
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### 📊 Migration - Staging" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action**: ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  # ==============================================
+  # Run Migration on Production
+  # ==============================================
+  migrate-production:
+    name: Migrate Production DB
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://motivbuy.com
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create database backup
+        if: inputs.action == 'up' || inputs.action == 'down'
+        run: |
+          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
+            mkdir -p ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups
+
+            BACKUP_FILE=${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/pre-migration-\$(date +%Y%m%d-%H%M%S).sql
+            docker compose -f ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/docker-compose.yml exec -T postgres \
+              pg_dump -U ${{ secrets.PRODUCTION_DB_USER }} ${{ secrets.PRODUCTION_DB_NAME }} > \$BACKUP_FILE
+
+            echo '✅ Backup: '\$BACKUP_FILE
+
+            ls -t ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | xargs rm -f || true
+          "
+
+      - name: Run migration ${{ inputs.action }}
+        run: |
+          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
+            cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
+
+            # Login to registry
+            echo '${{ secrets.GITHUB_TOKEN }}' | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+            # Pull latest migration image
+            docker pull ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:production
+
+            # Run migration
+            echo '🔄 Running migration: ${{ inputs.action }}'
+
+            docker run --rm \
+              --network ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}_default \
+              -e NODE_ENV=production \
+              -e DB_HOST=postgres-prod \
+              -e DB_PORT=5432 \
+              -e DB_NAME=${{ secrets.PRODUCTION_DB_NAME }} \
+              -e DB_USER=${{ secrets.PRODUCTION_DB_USER }} \
+              -e DB_PASSWORD=${{ secrets.PRODUCTION_DB_PASSWORD }} \
+              ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:production \
+              node dist/apps/migration/main.js ${{ inputs.action }}
+
+            echo '✅ Migration completed'
+          "
+
+      - name: Verify migration
+        if: inputs.action == 'up' || inputs.action == 'down'
+        run: |
+          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
+            cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
+
+            echo '📊 Current migration status:'
+            docker run --rm \
+              --network ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}_default \
+              -e NODE_ENV=production \
+              -e DB_HOST=postgres-prod \
+              -e DB_PORT=5432 \
+              -e DB_NAME=${{ secrets.PRODUCTION_DB_NAME }} \
+              -e DB_USER=${{ secrets.PRODUCTION_DB_USER }} \
+              -e DB_PASSWORD=${{ secrets.PRODUCTION_DB_PASSWORD }} \
+              ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:production \
+              node dist/apps/migration/main.js status
+          "
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### 📊 Migration - Production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action**: ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ job.status }}" == "failure" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Database backup available in backups/ directory" >> $GITHUB_STEP_SUMMARY
+          fi
