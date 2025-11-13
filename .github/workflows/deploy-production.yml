@@ -219,9 +219,9 @@ jobs:
             # Pull latest images
             docker compose pull
 
-            # Run database migrations
-            echo '🔄 Running database migrations...'
-            docker compose run --rm api node dist/apps/api/main.js migrate || true
+            # NOTE: Database migrations must be run manually using the
+            # 'Database Migration - Manual' workflow before deployment
+            # This ensures migrations are reviewed and controlled in production
 
             # Deploy with zero-downtime rolling update
             echo '🚀 Deploying application...'

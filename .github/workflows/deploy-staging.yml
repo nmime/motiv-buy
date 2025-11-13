@@ -200,8 +200,9 @@ jobs:
             # Pull latest images
             docker compose pull
 
-            # Run database migrations
-            docker compose run --rm api node dist/apps/api/main.js migrate || true
+            # NOTE: Database migrations must be run manually using the
+            # 'Database Migration - Manual' workflow before deployment
+            # This ensures migrations are reviewed and controlled
 
             # Deploy with zero-downtime
             docker compose up -d --remove-orphans

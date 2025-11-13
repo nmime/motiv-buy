@@ -86,7 +86,7 @@ jobs:
 
     strategy:
       matrix:
-        app: [api, bot]
+        app: [api, bot, migration]
 
     steps:
       - name: Checkout code
