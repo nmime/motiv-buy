@@ -145,6 +145,22 @@ Migrations are run using GitHub Actions from the Actions menu:
 - **`up`**: Run all pending migrations
 - **`down`**: Rollback the last migration (⚠️ destructive)
 
+### Viewing Migration Status
+
+To see which migrations have been applied and which are pending:
+
+1. **Go to Actions** → "Run Database Migrations"
+2. **Select environment**: `staging` or `production`
+3. **Select action**: `status`
+4. **Click "Run workflow"**
+
+The workflow will display:
+- ✅ **Executed migrations**: List of all migrations that have been applied (with execution dates)
+- ⏳ **Pending migrations**: List of migrations waiting to be applied
+- 📊 **Summary**: Total count of executed and pending migrations
+
+**Note**: After running `up` or `down` actions, the workflow automatically displays the updated migration status to confirm the changes.
+
 ---
 
 ## Migration Commands

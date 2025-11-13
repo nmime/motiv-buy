@@ -89,6 +89,7 @@ jobs:
           ssh-keyscan -H ${{ secrets.VPS_STAGING_HOST }} >> ~/.ssh/known_hosts
 
       - name: Run migration ${{ inputs.action }}
+        id: migration
         run: |
           ssh ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} "
             cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
@@ -114,6 +115,25 @@ jobs:
               node dist/apps/migration/main.js ${{ inputs.action }}
 
             echo '✅ Migration completed'
+          " | tee /tmp/migration-output.log
+
+      - name: Display migration status
+        if: always() && inputs.action == 'status'
+        run: |
+          ssh ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} "
+            cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
+
+            echo '📋 Migration Status Details:'
+            docker run --rm \
+              --network ${{ secrets.VPS_STAGING_DEPLOY_PATH }}_default \
+              -e NODE_ENV=staging \
+              -e DB_HOST=postgres-prod \
+              -e DB_PORT=5432 \
+              -e DB_NAME=${{ secrets.STAGING_DB_NAME }} \
+              -e DB_USER=${{ secrets.STAGING_DB_USER }} \
+              -e DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+              ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:staging \
+              node dist/apps/migration/main.js status
           "
 
       - name: Summary
@@ -121,8 +141,19 @@ jobs:
         run: |
           echo "### 📊 Migration - Staging" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Staging" >> $GITHUB_STEP_SUMMARY
           echo "- **Action**: ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.action }}" == "status" ]]; then
+            echo "**Migration Status**" >> $GITHUB_STEP_SUMMARY
+            echo "Check the logs above for detailed migration status" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.action }}" == "up" ]]; then
+            echo "✅ Migrations applied successfully" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.action }}" == "down" ]]; then
+            echo "⚠️ Last migration rolled back" >> $GITHUB_STEP_SUMMARY
+          fi
 
   # ==============================================
   # Run Migration on Production
@@ -160,6 +191,7 @@ jobs:
           "
 
       - name: Run migration ${{ inputs.action }}
+        id: migration
         run: |
           ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
             cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
@@ -185,15 +217,15 @@ jobs:
               node dist/apps/migration/main.js ${{ inputs.action }}
 
             echo '✅ Migration completed'
-          "
+          " | tee /tmp/migration-output.log
 
-      - name: Verify migration
-        if: inputs.action == 'up' || inputs.action == 'down'
+      - name: Display migration status
+        if: always()
         run: |
           ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
             cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
 
-            echo '📊 Current migration status:'
+            echo '📋 Migration Status Details:'
             docker run --rm \
               --network ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}_default \
               -e NODE_ENV=production \
@@ -211,8 +243,19 @@ jobs:
         run: |
           echo "### 📊 Migration - Production" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production" >> $GITHUB_STEP_SUMMARY
           echo "- **Action**: ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.action }}" == "status" ]]; then
+            echo "**Migration Status**" >> $GITHUB_STEP_SUMMARY
+            echo "Check the logs above for detailed migration status" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.action }}" == "up" ]]; then
+            echo "✅ Migrations applied successfully" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.action }}" == "down" ]]; then
+            echo "⚠️ Last migration rolled back" >> $GITHUB_STEP_SUMMARY
+          fi
 
           if [[ "${{ job.status }}" == "failure" ]]; then
             echo "" >> $GITHUB_STEP_SUMMARY
