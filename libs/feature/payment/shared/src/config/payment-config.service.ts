@@ -24,8 +24,8 @@ export class PaymentConfigService {
    */
   static readonly validationSchema: Joi.ObjectSchema = Joi.object({
     // CryptoPay Configuration
-    CRYPTO_BOT_API_TOKEN: Joi.string().required().messages({
-      'any.required': 'CRYPTO_BOT_API_TOKEN is required for payment system',
+    // Optional: Can be configured via database for active providers
+    CRYPTO_BOT_API_TOKEN: Joi.string().optional().messages({
       'string.empty': 'CRYPTO_BOT_API_TOKEN cannot be empty',
     }),
     CRYPTO_BOT_API_URL: Joi.string().uri().optional(),
@@ -34,12 +34,11 @@ export class PaymentConfigService {
     CRYPTO_BOT_MAX_RETRIES: Joi.number().min(0).max(5).default(3),
 
     // Heleket Configuration
-    HELEKET_API_TOKEN: Joi.string().required().messages({
-      'any.required': 'HELEKET_API_TOKEN is required for Heleket payment gateway',
+    // Optional: Can be configured via database for active providers
+    HELEKET_API_TOKEN: Joi.string().optional().messages({
       'string.empty': 'HELEKET_API_TOKEN cannot be empty',
     }),
-    HELEKET_MERCHANT_ID: Joi.string().required().messages({
-      'any.required': 'HELEKET_MERCHANT_ID is required for Heleket payment gateway',
+    HELEKET_MERCHANT_ID: Joi.string().optional().messages({
       'string.empty': 'HELEKET_MERCHANT_ID cannot be empty',
     }),
     HELEKET_API_URL: Joi.string().uri().optional(),
@@ -50,12 +49,11 @@ export class PaymentConfigService {
     HELEKET_FAIL_URL: Joi.string().uri().optional(),
 
     // YooKassa Configuration
-    YOOKASSA_SHOP_ID: Joi.string().required().messages({
-      'any.required': 'YOOKASSA_SHOP_ID is required for YooKassa payment gateway',
+    // Optional: Can be configured via database for active providers
+    YOOKASSA_SHOP_ID: Joi.string().optional().messages({
       'string.empty': 'YOOKASSA_SHOP_ID cannot be empty',
     }),
-    YOOKASSA_SECRET_KEY: Joi.string().required().messages({
-      'any.required': 'YOOKASSA_SECRET_KEY is required for YooKassa payment gateway',
+    YOOKASSA_SECRET_KEY: Joi.string().optional().messages({
       'string.empty': 'YOOKASSA_SECRET_KEY cannot be empty',
     }),
     YOOKASSA_API_URL: Joi.string().uri().optional(),
@@ -133,10 +131,10 @@ export class PaymentConfigService {
   }
 
   /**
-   * Get CryptoPay API token (required)
+   * Get CryptoPay API token (optional, can be configured via database)
    */
-  getCryptoBotApiToken(): string {
-    return this.configService.getOrThrow<string>('CRYPTO_BOT_API_TOKEN');
+  getCryptoBotApiToken(): string | undefined {
+    return this.configService.get<string>('CRYPTO_BOT_API_TOKEN');
   }
 
   /**
@@ -147,7 +145,7 @@ export class PaymentConfigService {
     const updateStrategy = strategyStr as PaymentUpdateStrategy;
 
     return {
-      apiToken: this.getCryptoBotApiToken(),
+      apiToken: this.getCryptoBotApiToken() ?? undefined,
       apiUrl: this.configService.get<string>('CRYPTO_BOT_API_URL'),
       testnet: this.configService.get<boolean>('CRYPTO_BOT_TESTNET') ?? false,
       timeout: this.configService.get<number>('CRYPTO_BOT_TIMEOUT') ?? 10000,
@@ -165,8 +163,8 @@ export class PaymentConfigService {
     const updateStrategy = strategyStr as PaymentUpdateStrategy;
 
     return {
-      apiToken: this.configService.getOrThrow<string>('HELEKET_API_TOKEN'),
-      merchantId: this.configService.getOrThrow<string>('HELEKET_MERCHANT_ID'),
+      apiToken: this.configService.get<string>('HELEKET_API_TOKEN') ?? undefined,
+      merchantId: this.configService.get<string>('HELEKET_MERCHANT_ID') ?? undefined,
       apiUrl: this.configService.get<string>('HELEKET_API_URL'),
       testMode: this.configService.get<boolean>('HELEKET_TEST_MODE') ?? false,
       timeout: this.configService.get<number>('HELEKET_TIMEOUT') ?? 10000,
@@ -190,8 +188,8 @@ export class PaymentConfigService {
     const allowedWebhookIps = ipString ? ipString.split(',').map((ip) => ip.trim()) : undefined;
 
     return {
-      shopId: this.configService.getOrThrow<string>('YOOKASSA_SHOP_ID'),
-      secretKey: this.configService.getOrThrow<string>('YOOKASSA_SECRET_KEY'),
+      shopId: this.configService.get<string>('YOOKASSA_SHOP_ID') ?? undefined,
+      secretKey: this.configService.get<string>('YOOKASSA_SECRET_KEY') ?? undefined,
       apiUrl: this.configService.get<string>('YOOKASSA_API_URL'),
       testMode: this.configService.get<boolean>('YOOKASSA_TEST_MODE') ?? false,
       timeout: this.configService.get<number>('YOOKASSA_TIMEOUT') ?? 10000,

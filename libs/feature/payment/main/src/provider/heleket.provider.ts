@@ -89,8 +89,8 @@ interface HelekeBalance {
 @Injectable()
 export class HeleketProvider implements IPaymentProvider {
   private readonly logger = new Logger(HeleketProvider.name);
-  private readonly apiToken: string;
-  private readonly merchantId: string;
+  private readonly apiToken?: string;
+  private readonly merchantId?: string;
   private readonly baseUrl: string;
   private readonly timeout: number;
   private readonly maxRetries: number;
@@ -103,9 +103,16 @@ export class HeleketProvider implements IPaymentProvider {
     this.timeout = config.timeout || 10000;
     this.maxRetries = config.maxRetries || 3;
 
-    this.logger.log(
-      `HeleketProvider initialized (merchantId: ${this.merchantId}, testMode: ${config.testMode || false})`,
-    );
+    if (!this.apiToken || !this.merchantId) {
+      this.logger.warn(
+        'HeleketProvider initialized without credentials - provider will be disabled. ' +
+          'Set HELEKET_API_TOKEN and HELEKET_MERCHANT_ID in environment or configure via database.',
+      );
+    } else {
+      this.logger.log(
+        `HeleketProvider initialized (merchantId: ${this.merchantId}, testMode: ${config.testMode || false})`,
+      );
+    }
   }
 
   /**
@@ -117,6 +124,12 @@ export class HeleketProvider implements IPaymentProvider {
     endpoint: string,
     params?: Record<string, unknown>,
   ): Promise<HelekeResponse<T>> {
+    if (!this.apiToken || !this.merchantId) {
+      throw new Error(
+        'Heleket API credentials not configured. Set HELEKET_API_TOKEN and HELEKET_MERCHANT_ID in environment or configure via database.',
+      );
+    }
+
     const url = `${this.baseUrl}/${endpoint}`;
     let lastError: Error | null = null;
 
@@ -472,6 +485,12 @@ export class HeleketProvider implements IPaymentProvider {
    * Verify webhook signature using HMAC-SHA256
    */
   verifyWebhook(signature: string, body: string): boolean {
+    if (!this.apiToken) {
+      this.logger.warn('Cannot verify webhook signature - API token not configured');
+
+      return false;
+    }
+
     try {
       const hmac = createHmac('sha256', this.apiToken);
       hmac.update(body);

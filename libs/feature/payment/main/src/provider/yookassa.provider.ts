@@ -86,8 +86,8 @@ interface YooKassaPayout {
 @Injectable()
 export class YooKassaProvider implements IPaymentProvider {
   private readonly logger = new Logger(YooKassaProvider.name);
-  private readonly shopId: string;
-  private readonly secretKey: string;
+  private readonly shopId?: string;
+  private readonly secretKey?: string;
   private readonly baseUrl: string;
   private readonly timeout: number;
   private readonly maxRetries: number;
@@ -105,13 +105,26 @@ export class YooKassaProvider implements IPaymentProvider {
     this.maxRetries = config.maxRetries || 3;
     this.testMode = config.testMode || false;
 
-    this.logger.log(`YooKassaProvider initialized (shopId: ${this.shopId}, testMode: ${this.testMode})`);
+    if (!this.shopId || !this.secretKey) {
+      this.logger.warn(
+        'YooKassaProvider initialized without credentials - provider will be disabled. ' +
+          'Set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY in environment or configure via database.',
+      );
+    } else {
+      this.logger.log(`YooKassaProvider initialized (shopId: ${this.shopId}, testMode: ${this.testMode})`);
+    }
   }
 
   /**
    * Get Basic Auth credentials for YooKassa
    */
   private getAuthHeader(): string {
+    if (!this.shopId || !this.secretKey) {
+      throw new Error(
+        'YooKassa API credentials not configured. Set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY in environment or configure via database.',
+      );
+    }
+
     const credentials = Buffer.from(`${this.shopId}:${this.secretKey}`).toString('base64');
 
     return `Basic ${credentials}`;
