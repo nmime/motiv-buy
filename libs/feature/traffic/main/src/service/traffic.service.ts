@@ -41,6 +41,7 @@ import {
   TrafficTargetEntity,
   TrafficTargetRepository,
   TrafficTargetType,
+  TrafficTargetStatus,
   UserEntity,
 } from '@app/database';
 import { ITelegramModerationNotifier } from '@app/feature-bot-shared';
@@ -812,6 +813,7 @@ export class TrafficService {
       name: data.name,
       description: data.description,
       type: data.type,
+      status: TrafficTargetStatus.Active,
       username: data.username,
       pricePerMember: data.pricePerMember ? toNumber(decimal(data.pricePerMember)) : undefined,
     });

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { TrafficTargetEntity, TrafficTargetType, UserEntity } from '@app/database';
+import { TrafficTargetEntity, TrafficTargetType, TrafficTargetStatus, UserEntity } from '@app/database';
 import { ITrafficTargetRepository } from '../repository';
 
 /**
@@ -23,6 +23,7 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
     name: string;
     description?: string;
     type: TrafficTargetType;
+    status: TrafficTargetStatus;
     telegramId?: string;
     username?: string;
     inviteLink?: string;
@@ -38,6 +39,7 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
       name: string;
       description?: string;
       type: TrafficTargetType;
+      status: TrafficTargetStatus;
       telegramId?: string;
       username?: string;
       inviteLink?: string;
@@ -50,6 +52,7 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
       name: data.name,
       description: data.description,
       type: data.type,
+      status: data.status,
       telegramId: data.telegramId,
       username: data.username,
       inviteLink: data.inviteLink,
@@ -115,6 +118,7 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
 
     const target = await this.trafficTargetRepository.findOneOrFail({ id });
     target.isActive = false;
+    target.status = TrafficTargetStatus.Inactive;
     await this.em.flush();
 
     this.logger.log(`Traffic target deactivated: ${id}`);

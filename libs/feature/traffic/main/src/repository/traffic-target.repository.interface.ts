@@ -1,4 +1,4 @@
-import { TrafficTargetEntity, TrafficTargetType } from '@app/database';
+import { TrafficTargetEntity, TrafficTargetType, TrafficTargetStatus } from '@app/database';
 
 /**
  * Repository interface for traffic target operations
@@ -11,6 +11,7 @@ export interface ITrafficTargetRepository {
     name: string;
     description?: string;
     type: TrafficTargetType;
+    status: TrafficTargetStatus;
     telegramId?: string;
     username?: string;
     inviteLink?: string;

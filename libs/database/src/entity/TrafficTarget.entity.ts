@@ -10,9 +10,17 @@ export enum TrafficTargetType {
   WithChecking = 'with_checking',
 }
 
+export enum TrafficTargetStatus {
+  Active = 'active', // Active and receiving traffic
+  Inactive = 'inactive', // Inactive/disabled by owner
+  PendingVerification = 'pending_verification', // Awaiting verification
+  Suspended = 'suspended', // Suspended by moderation
+}
+
 @Entity({ tableName: 'traffic_targets' })
 @Index({ name: 'ix__traffic_targets__telegram_id', properties: ['telegramId'] })
 @Index({ name: 'ix__traffic_targets__type', properties: ['type'] })
+@Index({ name: 'ix__traffic_targets__status', properties: ['status'] })
 @Index({ name: 'ix__traffic_targets__is_active', properties: ['isActive'] })
 export class TrafficTargetEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
@@ -27,6 +35,10 @@ export class TrafficTargetEntity {
   @Property({ type: 'varchar', length: 20, fieldName: 'type' })
   @Enum(() => TrafficTargetType)
   type!: TrafficTargetType;
+
+  @Property({ type: 'varchar', length: 30, fieldName: 'status', default: TrafficTargetStatus.Active })
+  @Enum(() => TrafficTargetStatus)
+  status!: TrafficTargetStatus;
 
   @Property({ type: 'bigint', nullable: true, fieldName: 'telegram_id' })
   telegramId?: string;
