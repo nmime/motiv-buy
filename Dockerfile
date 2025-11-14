@@ -36,10 +36,18 @@ COPY libs ./libs
 COPY packages ./packages
 
 # Build all shared libraries and packages (this stage is cached and reused by all app builds)
-RUN pnpm run build:libs
+RUN pnpm run build:libs && \
+    test -d dist/libs || (echo "ERROR: libs build failed - dist/libs not found" && exit 1)
 
 # Build packages if they exist (future-proofing for when packages are added)
-RUN pnpm nx run-many -t build --projects='packages/*' 2>/dev/null || echo "No packages to build yet"
+RUN if [ -d packages ] && [ "$(ls -A packages 2>/dev/null)" ]; then \
+      echo "Building packages..." && \
+      pnpm nx run-many -t build --projects='packages/*' || \
+      echo "WARNING: Package build failed, but continuing..."; \
+    else \
+      echo "No packages directory or empty packages - skipping"; \
+    fi && \
+    mkdir -p dist/packages
 
 # ============================================
 # Stage 3: App Builder (Build specific app)
@@ -71,8 +79,15 @@ COPY packages ./packages
 COPY --from=libs-builder /app/dist/libs ./dist/libs
 COPY --from=libs-builder /app/dist/packages ./dist/packages
 
+# Verify libs were copied successfully
+RUN test -d dist/libs || (echo "ERROR: Pre-built libs not found in dist/libs" && exit 1)
+
 # Build only the specified application (libs and packages are already built, so Nx skips them)
 RUN pnpm run build:${APP_NAME}
+
+# Verify app was built successfully
+RUN test -f dist/apps/${APP_NAME}/main.js || \
+    (echo "ERROR: App build failed - dist/apps/${APP_NAME}/main.js not found" && exit 1)
 
 # ============================================
 # Stage 4: Production Dependencies
@@ -108,14 +123,19 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-# Copy workspace configuration (minimal)
+# Copy workspace configuration (needed by Nx at runtime)
 COPY --chown=nodejs:nodejs package.json pnpm-workspace.yaml ./
+COPY --chown=nodejs:nodejs nx.json tsconfig.json ./
 
 # Copy production dependencies from prod-deps stage
 COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
 
 # Copy built application from app-builder
 COPY --from=app-builder --chown=nodejs:nodejs /app/dist ./dist
+
+# Verify production image has required files
+RUN test -f dist/apps/${APP_NAME}/main.js || \
+    (echo "ERROR: Production image missing app entrypoint" && exit 1)
 
 # Switch to non-root user
 USER nodejs
