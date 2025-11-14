@@ -29,7 +29,7 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Copy all workspace configs
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY nx.json tsconfig.base.json ./
+COPY nx.json tsconfig.json ./
 
 # Copy all source code for libs and packages
 COPY libs ./libs
@@ -60,7 +60,7 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Copy workspace configs
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY nx.json tsconfig.base.json ./
+COPY nx.json tsconfig.json ./
 
 # Copy all source code
 COPY apps ./apps
