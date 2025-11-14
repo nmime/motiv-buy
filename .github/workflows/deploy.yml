@@ -159,16 +159,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ==============================================
-  # Job 3: Deploy to Staging
+  # Job 3: Deploy
   # ==============================================
-  deploy-staging:
-    name: Deploy Staging
+  deploy:
+    name: Deploy ${{ inputs.environment }}
     runs-on: [self-hosted, linux]
     needs: [validate, build]
-    if: needs.validate.outputs.deploy-staging == 'true'
-    environment:
-      name: staging
-      url: https://st.motivbuy.com
 
     steps:
       - name: Checkout code
@@ -176,7 +172,11 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.ref }}
 
-      - name: Setup SSH
+      # ==============================================
+      # Staging Deployment
+      # ==============================================
+      - name: Setup SSH for Staging
+        if: needs.validate.outputs.deploy-staging == 'true'
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
@@ -185,16 +185,19 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.VPS_STAGING_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create deployment directory
+      - name: Deploy to Staging
+        if: needs.validate.outputs.deploy-staging == 'true'
+        env:
+          ENVIRONMENT: staging
         run: |
           set -euo pipefail
+          
+          # Create deployment directory
           ssh -o StrictHostKeyChecking=yes \
             ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} \
             "mkdir -p ${{ secrets.VPS_STAGING_DEPLOY_PATH }}"
 
-      - name: Copy deployment files
-        run: |
-          set -euo pipefail
+          # Copy deployment files
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_STAGING_DEPLOY_PATH }}/docker-compose.yml
 
@@ -203,122 +206,74 @@ jobs:
               ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_STAGING_DEPLOY_PATH }}/
           fi
 
-      - name: Create environment file
-        run: |
-          set -euo pipefail
+          # Create environment file
           ssh -o StrictHostKeyChecking=yes \
             ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} << "ENV_EOF"
           set -euo pipefail
-          cat > ${{ secrets.VPS_STAGING_DEPLOY_PATH }}/.env << 'EOF'
+          cat > ${{ secrets.VPS_STAGING_DEPLOY_PATH }}/.env << 'ENVFILE'
           NODE_ENV=staging
-
-          # Docker
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=staging
-
-          # Database
           DB_NAME=${{ secrets.STAGING_DB_NAME }}
           DB_USER=${{ secrets.STAGING_DB_USER }}
           DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}
-
-          # Redis
           REDIS_PASSWORD=${{ secrets.STAGING_REDIS_PASSWORD }}
-
-          # JWT
           JWT_SECRET=${{ secrets.STAGING_JWT_SECRET }}
           JWT_EXPIRES_IN=7d
-
-          # Telegram
           TELEGRAM_BOT_TOKEN=${{ secrets.STAGING_TELEGRAM_BOT_TOKEN }}
-
-          # Payment Providers
           CRYPTO_BOT_API_TOKEN=${{ secrets.STAGING_CRYPTO_BOT_API_TOKEN }}
-
-          # Logging
           LOG_LEVEL=debug
-
-          # Domains
           API_DOMAIN=api.st.motivbuy.com
           BOT_DOMAIN=bot.st.motivbuy.com
           MAIN_DOMAIN=st.motivbuy.com
           LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
-          EOF
+          ENVFILE
           ENV_EOF
 
-      - name: Deploy with Docker Compose
-        run: |
-          set -euo pipefail
-
+          # Deploy
           cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
-
           cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
-
-          # Login to registry
           docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-          # Pull latest images
           docker compose pull
-
-          # Deploy
           echo '🚀 Deploying staging...'
           docker compose up -d --remove-orphans
-
-          # Clean up old images
           docker image prune -af --filter 'until=24h'
-
           echo '✅ Staging deployment completed'
           SCRIPT_EOF
 
           chmod +x /tmp/deploy-script.sh
-
           echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
             ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} \
             'bash -s' < /tmp/deploy-script.sh
-
           rm -f /tmp/deploy-script.sh
 
-      - name: Health check
+      - name: Health Check - Staging
+        if: needs.validate.outputs.deploy-staging == 'true'
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
             ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
-
           timeout 60 sh -c 'until docker compose -f ${{ secrets.VPS_STAGING_DEPLOY_PATH }}/docker-compose.yml ps | grep -q "healthy"; do sleep 2; done' || true
-
           if curl -f http://localhost:3000/health; then
-            echo '✅ Health check passed'
+            echo '✅ Staging health check passed'
           else
-            echo '❌ Health check failed'
+            echo '❌ Staging health check failed'
             exit 1
           fi
           HEALTH_EOF
 
-      - name: Cleanup SSH keys
-        if: always()
+      - name: Cleanup SSH - Staging
+        if: needs.validate.outputs.deploy-staging == 'true' && always()
         run: rm -f ~/.ssh/id_rsa
 
-  # ==============================================
-  # Job 4: Deploy to Production
-  # ==============================================
-  deploy-production:
-    name: Deploy Production
-    runs-on: [self-hosted, linux]
-    needs: [validate, build]
-    if: needs.validate.outputs.deploy-production == 'true'
-    environment:
-      name: production
-      url: https://motivbuy.com
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref || github.ref }}
-
-      - name: Setup SSH
+      # ==============================================
+      # Production Deployment
+      # ==============================================
+      - name: Setup SSH for Production
+        if: needs.validate.outputs.deploy-production == 'true'
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
@@ -327,16 +282,19 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.VPS_PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create deployment directory
+      - name: Deploy to Production
+        if: needs.validate.outputs.deploy-production == 'true'
+        env:
+          ENVIRONMENT: production
         run: |
           set -euo pipefail
+          
+          # Create deployment directory
           ssh -o StrictHostKeyChecking=yes \
             ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} \
             "mkdir -p ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}"
 
-      - name: Copy deployment files
-        run: |
-          set -euo pipefail
+          # Copy deployment files
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }}:${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/docker-compose.yml
 
@@ -345,132 +303,94 @@ jobs:
               ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }}:${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/
           fi
 
-      - name: Create environment file
-        run: |
-          set -euo pipefail
+          # Create environment file
           ssh -o StrictHostKeyChecking=yes \
             ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << "ENV_EOF"
           set -euo pipefail
-          cat > ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/.env << 'EOF'
+          cat > ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/.env << 'ENVFILE'
           NODE_ENV=production
-
-          # Docker
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=latest
-
-          # Database
           DB_NAME=${{ secrets.PRODUCTION_DB_NAME }}
           DB_USER=${{ secrets.PRODUCTION_DB_USER }}
           DB_PASSWORD=${{ secrets.PRODUCTION_DB_PASSWORD }}
-
-          # Redis
           REDIS_PASSWORD=${{ secrets.PRODUCTION_REDIS_PASSWORD }}
-
-          # JWT
           JWT_SECRET=${{ secrets.PRODUCTION_JWT_SECRET }}
           JWT_EXPIRES_IN=7d
-
-          # Telegram
           TELEGRAM_BOT_TOKEN=${{ secrets.PRODUCTION_TELEGRAM_BOT_TOKEN }}
-
-          # Payment Providers
           CRYPTO_BOT_API_TOKEN=${{ secrets.PRODUCTION_CRYPTO_BOT_API_TOKEN }}
-
-          # Logging
           LOG_LEVEL=warn
-
-          # Domains
           API_DOMAIN=api.motivbuy.com
           BOT_DOMAIN=bot.motivbuy.com
           MAIN_DOMAIN=motivbuy.com
           LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
-          EOF
+          ENVFILE
           ENV_EOF
 
-      - name: Deploy with Docker Compose
-        run: |
-          set -euo pipefail
-
+          # Deploy
           cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
-
           cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
-
-          # Login to registry
           docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-          # Pull latest images
           docker compose pull
-
-          # Deploy with zero-downtime
           echo '🚀 Deploying production...'
           docker compose up -d --remove-orphans --no-deps api bot
-
-          # Wait for services
           echo '⏳ Waiting for services...'
           sleep 10
-
-          # Clean up old images
           docker image prune -af --filter 'until=48h'
-
           echo '✅ Production deployment completed'
           SCRIPT_EOF
 
           chmod +x /tmp/deploy-script.sh
-
           echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
             ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} \
             'bash -s' < /tmp/deploy-script.sh
-
           rm -f /tmp/deploy-script.sh
 
-      - name: Health check
+      - name: Health Check - Production
+        if: needs.validate.outputs.deploy-production == 'true'
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
             ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
-
           cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
-
           timeout 120 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 3; done' || true
-
           if curl -f http://localhost:3000/health; then
-            echo '✅ Health check passed'
+            echo '✅ Production health check passed'
           else
-            echo '❌ Health check failed'
+            echo '❌ Production health check failed'
             exit 1
           fi
           HEALTH_EOF
 
-      - name: Smoke tests
+      - name: Smoke Tests - Production
+        if: needs.validate.outputs.deploy-production == 'true'
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
             ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << 'SMOKE_EOF'
           set -euo pipefail
-
-          if curl -f http://localhost:3000/health && \
-             curl -f http://localhost:3000/api; then
-            echo '✅ Smoke tests passed'
+          if curl -f http://localhost:3000/health && curl -f http://localhost:3000/api; then
+            echo '✅ Production smoke tests passed'
           else
-            echo '❌ Smoke tests failed'
+            echo '❌ Production smoke tests failed'
             exit 1
           fi
           SMOKE_EOF
 
-      - name: Cleanup SSH keys
-        if: always()
+      - name: Cleanup SSH - Production
+        if: needs.validate.outputs.deploy-production == 'true' && always()
         run: rm -f ~/.ssh/id_rsa
 
   # ==============================================
-  # Job 5: Deployment Summary
+  # Job 4: Deployment Summary
   # ==============================================
   summary:
     name: Summary
     runs-on: [self-hosted, linux]
-    needs: [validate, deploy-staging, deploy-production]
+    needs: [validate, deploy]
     if: always()
 
     steps:
@@ -487,7 +407,7 @@ jobs:
           # Staging status
           if [[ "${{ needs.validate.outputs.deploy-staging }}" == "true" ]]; then
             echo "**Staging Deployment**" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
+            if [[ "${{ needs.deploy.result }}" == "success" ]]; then
               echo "- ✅ Deployed successfully" >> $GITHUB_STEP_SUMMARY
               echo "- API: https://api.st.motivbuy.com" >> $GITHUB_STEP_SUMMARY
               echo "- Health: https://api.st.motivbuy.com/health" >> $GITHUB_STEP_SUMMARY
@@ -500,7 +420,7 @@ jobs:
           # Production status
           if [[ "${{ needs.validate.outputs.deploy-production }}" == "true" ]]; then
             echo "**Production Deployment**" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+            if [[ "${{ needs.deploy.result }}" == "success" ]]; then
               echo "- ✅ Deployed successfully" >> $GITHUB_STEP_SUMMARY
               echo "- API: https://api.motivbuy.com" >> $GITHUB_STEP_SUMMARY
               echo "- Health: https://api.motivbuy.com/health" >> $GITHUB_STEP_SUMMARY
