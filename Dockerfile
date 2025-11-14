@@ -58,10 +58,18 @@ RUN test -d dist/libs || (echo "ERROR: Pre-built libs missing" && exit 1)
 # Build app (libs already built, only app code compiles)
 RUN pnpm run build:${APP_NAME}
 
-# Verify build output
-RUN test -f dist/apps/${APP_NAME}/src/main.js || \
-    (echo "ERROR: Build failed - dist/apps/${APP_NAME}/src/main.js not found" && \
-     echo "Build output:" && ls -la dist/apps/${APP_NAME}/ && exit 1)
+# Verify build output with detailed debugging
+RUN if [ ! -f dist/apps/${APP_NAME}/src/main.js ]; then \
+      echo "ERROR: Build verification failed for ${APP_NAME}"; \
+      echo "Expected: dist/apps/${APP_NAME}/src/main.js"; \
+      echo ""; \
+      echo "Checking dist/apps/${APP_NAME}/ contents:"; \
+      ls -laR dist/apps/${APP_NAME}/ || echo "Directory does not exist!"; \
+      echo ""; \
+      echo "Checking all dist/apps contents:"; \
+      ls -la dist/apps/ || echo "dist/apps does not exist!"; \
+      exit 1; \
+    fi
 
 # -----------------------------------------------------------------------------
 # Stage 4: Production Dependencies (cached, shared by all apps)
@@ -92,8 +100,12 @@ COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=app-builder --chown=nodejs:nodejs /app/dist ./dist
 
 # Final verification
-RUN test -f dist/apps/${APP_NAME}/src/main.js || \
-    (echo "ERROR: Production image missing entrypoint" && exit 1)
+RUN if [ ! -f dist/apps/${APP_NAME}/src/main.js ]; then \
+      echo "ERROR: Production image missing entrypoint for ${APP_NAME}"; \
+      echo "Expected: dist/apps/${APP_NAME}/src/main.js"; \
+      ls -laR dist/apps/${APP_NAME}/ 2>/dev/null || echo "App directory missing!"; \
+      exit 1; \
+    fi
 
 USER nodejs
 EXPOSE 3000
