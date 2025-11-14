@@ -1,4 +1,4 @@
-name: Security - CodeQL
+name: CodeQL
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   codeql:
-    name: CodeQL Analysis
+    name: Analysis
     runs-on: ubuntu-latest
     continue-on-error: true
 
