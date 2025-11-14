@@ -15,7 +15,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # ============================================
-# Stage 2: Libs Builder (Build shared libs ONCE)
+# Stage 2: Libs & Packages Builder (Build shared code ONCE)
 # ============================================
 FROM node:20-alpine AS libs-builder
 
@@ -35,8 +35,11 @@ COPY nx.json tsconfig.base.json ./
 COPY libs ./libs
 COPY packages ./packages
 
-# Build all shared libraries (this stage is cached and reused by all app builds)
+# Build all shared libraries and packages (this stage is cached and reused by all app builds)
 RUN pnpm run build:libs
+
+# Build packages if they exist (future-proofing for when packages are added)
+RUN pnpm nx run-many -t build --projects='packages/*' 2>/dev/null || echo "No packages to build yet"
 
 # ============================================
 # Stage 3: App Builder (Build specific app)
@@ -64,11 +67,11 @@ COPY apps ./apps
 COPY libs ./libs
 COPY packages ./packages
 
-# Copy pre-built libs from libs-builder stage (Nx will skip rebuilding these)
+# Copy pre-built libs and packages from libs-builder stage (Nx will skip rebuilding these)
 COPY --from=libs-builder /app/dist/libs ./dist/libs
 COPY --from=libs-builder /app/dist/packages ./dist/packages
 
-# Build only the specified application (libs are already built, so Nx skips them)
+# Build only the specified application (libs and packages are already built, so Nx skips them)
 RUN pnpm run build:${APP_NAME}
 
 # ============================================
