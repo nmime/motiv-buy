@@ -155,8 +155,13 @@ jobs:
           build-args: |
             APP_NAME=${{ matrix.app }}
           tags: ${{ steps.tags.outputs.list }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Use shared cache for common stages (deps, libs-builder, prod-deps) + app-specific cache
+          cache-from: |
+            type=gha,scope=shared
+            type=gha,scope=${{ matrix.app }}
+          cache-to: |
+            type=gha,mode=max,scope=shared
+            type=gha,mode=max,scope=${{ matrix.app }}
 
   # ==============================================
   # Job 3: Deploy

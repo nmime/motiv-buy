@@ -93,21 +93,27 @@ jobs:
           set -euo pipefail
 
           echo "🐳 Building all images in parallel..."
+          echo "📦 Shared cache scopes will optimize build times by reusing deps and libs layers"
 
           # Build API in background
+          # Cache strategy: shared cache for common stages (deps, libs-builder, prod-deps) + app-specific cache
           docker buildx build \
             --build-arg APP_NAME=api \
             --tag motiv-buy-api:ci-${{ github.sha }} \
+            --cache-from type=gha,scope=shared \
             --cache-from type=gha,scope=api \
+            --cache-to type=gha,mode=max,scope=shared \
             --cache-to type=gha,mode=max,scope=api \
             --load \
             -f Dockerfile . &
           API_PID=$!
 
           # Build Bot in background
+          # Reuses shared cache from API build for deps and libs-builder stages
           docker buildx build \
             --build-arg APP_NAME=bot \
             --tag motiv-buy-bot:ci-${{ github.sha }} \
+            --cache-from type=gha,scope=shared \
             --cache-from type=gha,scope=bot \
             --cache-to type=gha,mode=max,scope=bot \
             --load \
@@ -115,9 +121,11 @@ jobs:
           BOT_PID=$!
 
           # Build Migration in background
+          # Reuses shared cache from API/Bot builds for deps and libs-builder stages
           docker buildx build \
             --build-arg APP_NAME=migration \
             --tag motiv-buy-migration:ci-${{ github.sha }} \
+            --cache-from type=gha,scope=shared \
             --cache-from type=gha,scope=migration \
             --cache-to type=gha,mode=max,scope=migration \
             --load \
