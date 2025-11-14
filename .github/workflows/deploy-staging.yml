@@ -159,7 +159,7 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} << 'ENV_EOF'
+            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} << "ENV_EOF"
           set -euo pipefail
           cat > ${{ secrets.VPS_STAGING_DEPLOY_PATH }}/.env << 'EOF'
           NODE_ENV=staging

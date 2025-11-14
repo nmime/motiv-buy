@@ -101,17 +101,22 @@ jobs:
 
           cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
 
-          # Verify network exists
-          NETWORK_NAME="${{ secrets.VPS_STAGING_DEPLOY_PATH }}_default"
-          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-            # Try alternative naming
-            NETWORK_NAME="$(basename ${{ secrets.VPS_STAGING_DEPLOY_PATH }})-network-prod"
+          # Detect Docker network from running containers
+          NETWORK_NAME=$(docker compose ps -q postgres 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' 2>/dev/null | head -1)
+
+          # Fallback to compose default naming
+          if [ -z "$NETWORK_NAME" ]; then
+            NETWORK_NAME="${{ secrets.VPS_STAGING_DEPLOY_PATH }}_default"
           fi
 
+          # Verify network exists
           if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-            echo "Error: Docker network not found"
+            echo "Error: Docker network not found. Is the stack running?"
+            echo "Tried: $NETWORK_NAME"
             exit 1
           fi
+
+          echo "Using network: $NETWORK_NAME"
 
           # Login to registry (token from stdin for security)
           docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
@@ -241,7 +246,7 @@ jobs:
           set -euo pipefail
 
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << 'BACKUP_EOF'
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << "BACKUP_EOF"
           set -euo pipefail
 
           mkdir -p ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups
@@ -257,7 +262,16 @@ jobs:
             # Verify backup file is not empty
             if [ -s "$BACKUP_FILE" ]; then
               BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-              echo "✅ Backup created successfully: $BACKUP_FILE ($BACKUP_SIZE)"
+
+              # Validate SQL content (check for PostgreSQL dump header)
+              if head -5 "$BACKUP_FILE" | grep -q "PostgreSQL database dump"; then
+                echo "✅ Backup created successfully: $BACKUP_FILE ($BACKUP_SIZE)"
+                echo "✅ SQL content validated"
+              else
+                echo "❌ Backup file exists but doesn't appear to be a valid PostgreSQL dump!"
+                rm -f "$BACKUP_FILE"
+                exit 1
+              fi
             else
               echo "❌ Backup file is empty!"
               rm -f "$BACKUP_FILE"
@@ -286,17 +300,22 @@ jobs:
 
           cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
 
-          # Verify network exists
-          NETWORK_NAME="${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}_default"
-          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-            # Try alternative naming
-            NETWORK_NAME="$(basename ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }})-network-prod"
+          # Detect Docker network from running containers
+          NETWORK_NAME=$(docker compose ps -q postgres 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' 2>/dev/null | head -1)
+
+          # Fallback to compose default naming
+          if [ -z "$NETWORK_NAME" ]; then
+            NETWORK_NAME="${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}_default"
           fi
 
+          # Verify network exists
           if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-            echo "Error: Docker network not found"
+            echo "Error: Docker network not found. Is the stack running?"
+            echo "Tried: $NETWORK_NAME"
             exit 1
           fi
+
+          echo "Using network: $NETWORK_NAME"
 
           # Login to registry (token from stdin for security)
           docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
