@@ -104,8 +104,8 @@ export class ModerationService implements IModerationService {
           throw new NotFoundException('Moderation request not found');
         }
 
-        // Activate the traffic source
-        await this.trafficSourceRepository.activateSource(request.entityId);
+        // Approve the traffic source (sets status=Active, isActive=true)
+        await this.trafficSourceRepository.approveSource(request.entityId);
 
         this.logger.log(`Source approved: ${request.entityId}`);
       });
@@ -131,8 +131,8 @@ export class ModerationService implements IModerationService {
           throw new NotFoundException('Moderation request not found');
         }
 
-        // Deactivate the traffic source
-        await this.trafficSourceRepository.deactivateSource(request.entityId);
+        // Decline the traffic source (sets status=Declined, isActive=false)
+        await this.trafficSourceRepository.declineSource(request.entityId);
 
         this.logger.log(`Source declined: ${request.entityId}`);
       });

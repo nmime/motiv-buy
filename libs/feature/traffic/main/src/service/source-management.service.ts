@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { getErrorMessage } from '@app/common-shared';
+import { AsyncResult, getErrorMessage } from '@app/common-shared';
+import { Err, Ok } from 'ts-results';
 import {
   CreateSourceDto,
   RegenerateApiKeyResponseDto,
@@ -8,7 +9,7 @@ import {
   SourceResponseDto,
   UpdateSourceDto,
 } from '@app/feature-traffic-shared';
-import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType } from '@app/database';
+import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType, TrafficSourceStatus } from '@app/database';
 import { ITelegramModerationNotifier, BotFactoryService } from '@app/feature-bot-shared';
 import { ModerationService } from './moderation.service';
 
@@ -19,6 +20,8 @@ import { ModerationService } from './moderation.service';
  * Supports two creation flows:
  * 1. WITH Token: Validates bot token via Telegram API (automated)
  * 2. WITHOUT Token: Validates bot username format only (manual moderation)
+ *
+ * Uses ts-results pattern - returns Err() instead of throwing exceptions
  */
 @Injectable()
 export class SourceManagementService {
@@ -40,33 +43,27 @@ export class SourceManagementService {
    * 1. WITH Token: Validates bot token via Telegram API, auto-extracts bot info
    * 2. WITHOUT Token: Validates bot username format, requires manual moderation
    */
-  async createSource(dto: CreateSourceDto, userId: string): Promise<SourceResponseDto> {
+  async createSource(dto: CreateSourceDto, userId: string): AsyncResult<SourceResponseDto, BadRequestException> {
     this.logger.log(`Creating traffic source for user ${userId}`);
 
     try {
-      return await this.em.transactional(async () => {
-        // Validate that at least one of botToken or botUsername is provided
-        if (!dto.botToken && !dto.botUsername) {
-          throw new BadRequestException('Either botToken or botUsername must be provided');
-        }
+      // Validate that at least one of botToken or botUsername is provided
+      if (!dto.botToken && !dto.botUsername) {
+        return Err(new BadRequestException({ detail: 'Either botToken or botUsername must be provided' }));
+      }
 
-        // Determine creation flow and validate accordingly
-        if (dto.botToken) {
-          // WITH Token flow: Validate token via Telegram API
-          return this.createSourceWithToken(dto, userId);
-        }
+      // Determine creation flow and validate accordingly
+      if (dto.botToken) {
+        // WITH Token flow: Validate token via Telegram API
+        return await this.createSourceWithToken(dto, userId);
+      }
 
-        // WITHOUT Token flow: Validate username format only
-        return this.createSourceWithoutToken(dto, userId);
-      });
+      // WITHOUT Token flow: Validate username format only
+      return await this.createSourceWithoutToken(dto, userId);
     } catch (err: unknown) {
       this.logger.error(`Create source failed: ${getErrorMessage(err)}`);
 
-      if (err instanceof BadRequestException) {
-        throw err;
-      }
-
-      throw new BadRequestException('Failed to create traffic source');
+      return Err(new BadRequestException({ detail: 'Failed to create traffic source' }));
     }
   }
 
@@ -74,159 +71,175 @@ export class SourceManagementService {
    * Create traffic source WITH bot token (automated validation)
    * @private
    */
-  private async createSourceWithToken(dto: CreateSourceDto, userId: string): Promise<SourceResponseDto> {
+  private async createSourceWithToken(
+    dto: CreateSourceDto,
+    userId: string,
+  ): AsyncResult<SourceResponseDto, BadRequestException> {
     this.logger.log('Creating traffic source WITH token (automated validation flow)');
 
-    // Extract and validate bot token existence
-    const { botToken } = dto;
-    if (!botToken) {
-      throw new BadRequestException('Bot token is required for WITH token flow');
-    }
+    return this.em.transactional(async () => {
+      // Extract and validate bot token existence
+      const { botToken } = dto;
+      if (!botToken) {
+        return Err(new BadRequestException({ detail: 'Bot token is required for WITH token flow' }));
+      }
 
-    // Validate bot token format
-    if (!this.isValidTelegramBotToken(botToken)) {
-      throw new BadRequestException('Invalid bot token format');
-    }
+      // Validate bot token format
+      if (!this.isValidTelegramBotToken(botToken)) {
+        return Err(new BadRequestException({ detail: 'Invalid bot token format' }));
+      }
 
-    // Validate token via Telegram API
-    const validationResult = await this.botTokenValidator.validateBotToken(botToken);
+      // Validate token via Telegram API
+      const validationResult = await this.botTokenValidator.validateBotToken(botToken);
 
-    if (!validationResult.isValid) {
-      throw new BadRequestException(validationResult.error || 'Invalid bot token');
-    }
+      if (!validationResult.isValid) {
+        return Err(new BadRequestException({ detail: validationResult.error || 'Invalid bot token' }));
+      }
 
-    const { botInfo } = validationResult;
-    if (!botInfo) {
-      throw new BadRequestException('Failed to retrieve bot information');
-    }
+      const { botInfo } = validationResult;
+      if (!botInfo) {
+        return Err(new BadRequestException({ detail: 'Failed to retrieve bot information' }));
+      }
 
-    const botId = String(botInfo.id);
+      const botId = String(botInfo.id);
 
-    // Check if bot already exists
-    const existingSource = await this.trafficSourceRepository.findByTelegramId(botId);
+      // Check if bot already exists
+      const existingSource = await this.trafficSourceRepository.findByTelegramId(botId);
 
-    if (existingSource) {
-      throw new BadRequestException('Bot already registered');
-    }
+      if (existingSource) {
+        return Err(new BadRequestException({ detail: 'Bot already registered' }));
+      }
 
-    // Create traffic source (initially inactive, pending moderation)
-    const source = new TrafficSourceEntity({
-      name: dto.name,
-      description: dto.description,
-      type: TrafficSourceType.BotWithToken,
-      botToken: dto.botToken,
-      botUsername: botInfo.username || dto.botUsername,
-      telegramId: botId,
-      isActive: false, // Inactive until approved
-      managedById: userId,
+      // Create traffic source (initially Pending status, awaiting moderation)
+      const source = new TrafficSourceEntity({
+        name: dto.name,
+        description: dto.description,
+        type: TrafficSourceType.BotWithToken,
+        status: TrafficSourceStatus.Pending, // Awaiting moderation
+        botToken: dto.botToken,
+        botUsername: botInfo.username || dto.botUsername,
+        telegramId: botId,
+        isActive: false, // Inactive until approved
+        managedById: userId,
+      });
+
+      await this.em.persistAndFlush(source);
+
+      // Generate and securely store API key
+      const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
+
+      this.logger.log(`Traffic source created WITH token: ${source.id} (@${botInfo.username})`);
+
+      // Create moderation request
+      const moderationRequest = await this.moderationService.createSourceModerationRequest(source.id);
+
+      // Send notification to Telegram moderation channel
+      const notification = await this.telegramModerationNotifier.notifySourceCreated(source, moderationRequest);
+
+      // Update moderation request with Telegram message info
+      if (notification) {
+        await this.moderationService.updateTelegramMessage(
+          moderationRequest.id,
+          notification.chatId,
+          notification.messageId,
+        );
+      }
+
+      // Return response with plain text API key (ONLY time it's visible)
+      return Ok({
+        ...this.mapSourceToResponseDto(source),
+        apiKey, // Override with real API key
+      });
     });
-
-    await this.em.persistAndFlush(source);
-
-    // Generate and securely store API key
-    const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
-
-    this.logger.log(`Traffic source created WITH token: ${source.id} (@${botInfo.username})`);
-
-    // Create moderation request
-    const moderationRequest = await this.moderationService.createSourceModerationRequest(source.id);
-
-    // Send notification to Telegram moderation channel
-    const notification = await this.telegramModerationNotifier.notifySourceCreated(source, moderationRequest);
-
-    // Update moderation request with Telegram message info
-    if (notification) {
-      await this.moderationService.updateTelegramMessage(
-        moderationRequest.id,
-        notification.chatId,
-        notification.messageId,
-      );
-    }
-
-    // Return response with plain text API key (ONLY time it's visible)
-    return {
-      ...this.mapSourceToResponseDto(source),
-      apiKey, // Override with real API key
-    };
   }
 
   /**
    * Create traffic source WITHOUT bot token (manual validation)
    * @private
    */
-  private async createSourceWithoutToken(dto: CreateSourceDto, userId: string): Promise<SourceResponseDto> {
+  private async createSourceWithoutToken(
+    dto: CreateSourceDto,
+    userId: string,
+  ): AsyncResult<SourceResponseDto, BadRequestException> {
     this.logger.log('Creating traffic source WITHOUT token (manual moderation flow)');
 
-    const { botUsername } = dto;
-    if (!botUsername) {
-      throw new BadRequestException('Bot username is required when bot token is not provided');
-    }
+    return this.em.transactional(async () => {
+      const { botUsername } = dto;
+      if (!botUsername) {
+        return Err(new BadRequestException({ detail: 'Bot username is required when bot token is not provided' }));
+      }
 
-    // Validate bot username format
-    const usernameValidation = await this.botTokenValidator.validateBotUsername(botUsername);
+      // Validate bot username format
+      const usernameValidation = await this.botTokenValidator.validateBotUsername(botUsername);
 
-    if (!usernameValidation.isValid) {
-      throw new BadRequestException(usernameValidation.error || 'Invalid bot username');
-    }
+      if (!usernameValidation.isValid) {
+        return Err(new BadRequestException({ detail: usernameValidation.error || 'Invalid bot username' }));
+      }
 
-    const { username: cleanUsername } = usernameValidation;
-    if (!cleanUsername) {
-      throw new BadRequestException('Failed to extract bot username');
-    }
+      const { username: cleanUsername } = usernameValidation;
+      if (!cleanUsername) {
+        return Err(new BadRequestException({ detail: 'Failed to extract bot username' }));
+      }
 
-    // Check if bot username already exists
-    const existingSource = await this.trafficSourceRepository.findByBotUsername(cleanUsername);
+      // Check if bot username already exists
+      const existingSource = await this.trafficSourceRepository.findByBotUsername(cleanUsername);
 
-    if (existingSource) {
-      throw new BadRequestException('Bot username already registered');
-    }
+      if (existingSource) {
+        return Err(new BadRequestException({ detail: 'Bot username already registered' }));
+      }
 
-    // Create traffic source (initially inactive, pending MANUAL moderation)
-    const source = new TrafficSourceEntity({
-      name: dto.name,
-      description: dto.description,
-      type: TrafficSourceType.Bot, // WITHOUT token type
-      botToken: undefined, // No token provided
-      botUsername: cleanUsername,
-      telegramId: undefined, // Will be set after manual verification
-      isActive: false, // Inactive until approved
-      managedById: userId,
+      // Create traffic source (initially Pending status, awaiting MANUAL moderation)
+      const source = new TrafficSourceEntity({
+        name: dto.name,
+        description: dto.description,
+        type: TrafficSourceType.Bot, // WITHOUT token type
+        status: TrafficSourceStatus.Pending, // Awaiting moderation
+        botToken: undefined, // No token provided
+        botUsername: cleanUsername,
+        telegramId: undefined, // Will be set after manual verification
+        isActive: false, // Inactive until approved
+        managedById: userId,
+      });
+
+      await this.em.persistAndFlush(source);
+
+      // Generate and securely store API key
+      const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
+
+      this.logger.log(`Traffic source created WITHOUT token: ${source.id} (@${cleanUsername})`);
+
+      // Create moderation request
+      const moderationRequest = await this.moderationService.createSourceModerationRequest(source.id);
+
+      // Send notification to Telegram moderation channel
+      const notification = await this.telegramModerationNotifier.notifySourceCreated(source, moderationRequest);
+
+      // Update moderation request with Telegram message info
+      if (notification) {
+        await this.moderationService.updateTelegramMessage(
+          moderationRequest.id,
+          notification.chatId,
+          notification.messageId,
+        );
+      }
+
+      // Return response with plain text API key (ONLY time it's visible)
+      return Ok({
+        ...this.mapSourceToResponseDto(source),
+        apiKey, // Override with real API key
+      });
     });
-
-    await this.em.persistAndFlush(source);
-
-    // Generate and securely store API key
-    const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
-
-    this.logger.log(`Traffic source created WITHOUT token: ${source.id} (@${cleanUsername})`);
-
-    // Create moderation request
-    const moderationRequest = await this.moderationService.createSourceModerationRequest(source.id);
-
-    // Send notification to Telegram moderation channel
-    const notification = await this.telegramModerationNotifier.notifySourceCreated(source, moderationRequest);
-
-    // Update moderation request with Telegram message info
-    if (notification) {
-      await this.moderationService.updateTelegramMessage(
-        moderationRequest.id,
-        notification.chatId,
-        notification.messageId,
-      );
-    }
-
-    // Return response with plain text API key (ONLY time it's visible)
-    return {
-      ...this.mapSourceToResponseDto(source),
-      apiKey, // Override with real API key
-    };
   }
 
   /**
    * Update traffic source
    * PRIVATE API with JWT auth
    */
-  async updateSource(sourceId: string, dto: UpdateSourceDto, userId: string): Promise<SourceResponseDto> {
+  async updateSource(
+    sourceId: string,
+    dto: UpdateSourceDto,
+    userId: string,
+  ): AsyncResult<SourceResponseDto, NotFoundException | ForbiddenException | BadRequestException> {
     this.logger.log(`Updating traffic source: ${sourceId}`);
 
     try {
@@ -234,11 +247,14 @@ export class SourceManagementService {
         const source = await this.trafficSourceRepository.findById(sourceId);
 
         if (!source) {
-          throw new NotFoundException('Traffic source not found');
+          return Err(new NotFoundException('Traffic source not found'));
         }
 
         // Check access
-        await this.validateSourceAccess(source, userId);
+        const accessCheck = await this.validateSourceAccess(source, userId);
+        if (accessCheck.err) {
+          return accessCheck;
+        }
 
         // Update fields
         if (dto.name !== undefined) {
@@ -251,6 +267,8 @@ export class SourceManagementService {
 
         if (dto.isActive !== undefined) {
           source.isActive = dto.isActive;
+          // Update status based on isActive
+          source.status = dto.isActive ? TrafficSourceStatus.Active : TrafficSourceStatus.Inactive;
         }
 
         if (dto.botUsername !== undefined) {
@@ -261,16 +279,12 @@ export class SourceManagementService {
 
         this.logger.log(`Traffic source updated: ${sourceId}`);
 
-        return this.mapSourceToResponseDto(source);
+        return Ok(this.mapSourceToResponseDto(source));
       });
     } catch (err: unknown) {
       this.logger.error(`Update source failed: ${getErrorMessage(err)}`);
 
-      if (err instanceof NotFoundException || err instanceof ForbiddenException) {
-        throw err;
-      }
-
-      throw new BadRequestException('Failed to update traffic source');
+      return Err(new BadRequestException({ detail: 'Failed to update traffic source' }));
     }
   }
 
@@ -278,7 +292,10 @@ export class SourceManagementService {
    * Delete traffic source
    * PRIVATE API with JWT auth
    */
-  async deleteSource(sourceId: string, userId: string): Promise<{ message: string }> {
+  async deleteSource(
+    sourceId: string,
+    userId: string,
+  ): AsyncResult<{ message: string }, NotFoundException | ForbiddenException | BadRequestException> {
     this.logger.log(`Deleting traffic source: ${sourceId}`);
 
     try {
@@ -286,27 +303,26 @@ export class SourceManagementService {
         const source = await this.trafficSourceRepository.findById(sourceId);
 
         if (!source) {
-          throw new NotFoundException('Traffic source not found');
+          return Err(new NotFoundException('Traffic source not found'));
         }
 
         // Check access
-        await this.validateSourceAccess(source, userId);
+        const accessCheck = await this.validateSourceAccess(source, userId);
+        if (accessCheck.err) {
+          return accessCheck;
+        }
 
         // Soft delete by deactivating
         await this.trafficSourceRepository.deactivate(sourceId);
 
         this.logger.log(`Traffic source deleted: ${sourceId}`);
 
-        return { message: 'Traffic source deleted successfully' };
+        return Ok({ message: 'Traffic source deleted successfully' });
       });
     } catch (err: unknown) {
       this.logger.error(`Delete source failed: ${getErrorMessage(err)}`);
 
-      if (err instanceof NotFoundException || err instanceof ForbiddenException) {
-        throw err;
-      }
-
-      throw new BadRequestException('Failed to delete traffic source');
+      return Err(new BadRequestException({ detail: 'Failed to delete traffic source' }));
     }
   }
 
@@ -314,37 +330,39 @@ export class SourceManagementService {
    * Get traffic source details
    * PRIVATE API with JWT auth
    */
-  async getSourceDetails(sourceId: string, userId: string): Promise<SourceDetailsDto> {
+  async getSourceDetails(
+    sourceId: string,
+    userId: string,
+  ): AsyncResult<SourceDetailsDto, NotFoundException | ForbiddenException | BadRequestException> {
     this.logger.log(`Getting source details: ${sourceId}`);
 
     try {
       const source = await this.trafficSourceRepository.findById(sourceId);
 
       if (!source) {
-        throw new NotFoundException('Traffic source not found');
+        return Err(new NotFoundException('Traffic source not found'));
       }
 
       // Check access
-      await this.validateSourceAccess(source, userId);
+      const accessCheck = await this.validateSourceAccess(source, userId);
+      if (accessCheck.err) {
+        return accessCheck;
+      }
 
       // Return basic source details
       const response = this.mapSourceToResponseDto(source);
 
-      return {
+      return Ok({
         ...response,
         totalTasksCompleted: 0,
         activeUsersCount: 0,
         totalEarnings: '0.00',
         categories: [],
-      };
+      });
     } catch (err: unknown) {
       this.logger.error(`Get source details failed: ${getErrorMessage(err)}`);
 
-      if (err instanceof NotFoundException || err instanceof ForbiddenException) {
-        throw err;
-      }
-
-      throw new BadRequestException('Failed to get source details');
+      return Err(new BadRequestException({ detail: 'Failed to get source details' }));
     }
   }
 
@@ -352,16 +370,17 @@ export class SourceManagementService {
    * List user's traffic sources
    * PRIVATE API with JWT auth
    */
-  async listUserSources(userId: string): Promise<SourceResponseDto[]> {
+  async listUserSources(userId: string): AsyncResult<SourceResponseDto[], BadRequestException> {
     this.logger.log(`Listing sources for user: ${userId}`);
 
     try {
       const sources = await this.trafficSourceRepository.findByManager(userId);
 
-      return sources.map((source: TrafficSourceEntity) => this.mapSourceToResponseDto(source));
+      return Ok(sources.map((source: TrafficSourceEntity) => this.mapSourceToResponseDto(source)));
     } catch (err: unknown) {
       this.logger.error(`List sources failed: ${getErrorMessage(err)}`);
-      throw new BadRequestException('Failed to list traffic sources');
+
+      return Err(new BadRequestException({ detail: 'Failed to list traffic sources' }));
     }
   }
 
@@ -370,7 +389,10 @@ export class SourceManagementService {
    * PRIVATE API with JWT auth
    * Uses repository's secure method to generate, hash, and store API key
    */
-  async regenerateApiKey(sourceId: string, userId: string): Promise<RegenerateApiKeyResponseDto> {
+  async regenerateApiKey(
+    sourceId: string,
+    userId: string,
+  ): AsyncResult<RegenerateApiKeyResponseDto, NotFoundException | ForbiddenException | BadRequestException> {
     this.logger.log(`Regenerating API key for source: ${sourceId}`);
 
     try {
@@ -378,11 +400,14 @@ export class SourceManagementService {
         const source = await this.trafficSourceRepository.findOne({ id: sourceId });
 
         if (!source) {
-          throw new NotFoundException('Traffic source not found');
+          return Err(new NotFoundException('Traffic source not found'));
         }
 
         // Check access
-        await this.validateSourceAccess(source, userId);
+        const accessCheck = await this.validateSourceAccess(source, userId);
+        if (accessCheck.err) {
+          return accessCheck;
+        }
 
         // Generate and securely store new API key using repository method
         // This automatically hashes the key and stores the prefix for fast lookup
@@ -390,19 +415,15 @@ export class SourceManagementService {
 
         this.logger.log(`API key regenerated for source: ${sourceId}`);
 
-        return {
+        return Ok({
           apiKey: newApiKey,
           message: 'API key regenerated successfully. Update your application with the new key.',
-        };
+        });
       });
     } catch (err: unknown) {
       this.logger.error(`Regenerate API key failed: ${getErrorMessage(err)}`);
 
-      if (err instanceof NotFoundException || err instanceof ForbiddenException) {
-        throw err;
-      }
-
-      throw new BadRequestException('Failed to regenerate API key');
+      return Err(new BadRequestException({ detail: 'Failed to regenerate API key' }));
     }
   }
 
@@ -413,12 +434,17 @@ export class SourceManagementService {
   /**
    * Validate user has access to source
    */
-  private async validateSourceAccess(source: TrafficSourceEntity, userId: string): Promise<void> {
+  private async validateSourceAccess(
+    source: TrafficSourceEntity,
+    userId: string,
+  ): AsyncResult<void, ForbiddenException> {
     const managedBy = await source.managedBy?.load();
 
     if (!managedBy || managedBy.id !== userId) {
-      throw new ForbiddenException('You do not have access to this traffic source');
+      return Err(new ForbiddenException('You do not have access to this traffic source'));
     }
+
+    return Ok(undefined);
   }
 
   /**

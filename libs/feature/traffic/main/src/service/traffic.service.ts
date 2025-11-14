@@ -37,6 +37,7 @@ import {
   TrafficSourceEntity,
   TrafficSourceRepository,
   TrafficSourceType,
+  TrafficSourceStatus,
   TrafficTargetEntity,
   TrafficTargetRepository,
   TrafficTargetType,
@@ -128,6 +129,7 @@ export class TrafficService {
         name: `Traffic Bot ${dto.botUsername}`,
         description: `Traffic source bot created by user ${userId}`,
         type: TrafficSourceType.BotWithToken,
+        status: TrafficSourceStatus.Pending,
         botUsername: dto.botUsername,
       });
 

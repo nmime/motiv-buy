@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { getErrorMessage } from '@app/common-shared';
-import { TrafficSourceEntity, TrafficSourceType, UserEntity } from '@app/database';
+import { TrafficSourceEntity, TrafficSourceType, TrafficSourceStatus, UserEntity } from '@app/database';
 import { ITrafficSourceRepository } from '../repository';
 
 /**
@@ -24,6 +24,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
     name: string;
     description?: string;
     type: TrafficSourceType;
+    status: TrafficSourceStatus;
     botToken?: string;
     botUsername?: string;
     telegramId?: string;
@@ -35,6 +36,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
       name: string;
       description?: string;
       type: TrafficSourceType;
+      status: TrafficSourceStatus;
       botToken?: string;
       botUsername?: string;
       telegramId?: string;
@@ -43,6 +45,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
       name: data.name,
       description: data.description,
       type: data.type,
+      status: data.status,
       botToken: data.botToken,
       botUsername: data.botUsername,
       telegramId: data.telegramId,

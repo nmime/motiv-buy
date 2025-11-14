@@ -1,5 +1,5 @@
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { TrafficSourceEntity, TrafficSourceType } from '../entity';
+import { TrafficSourceEntity, TrafficSourceType, TrafficSourceStatus } from '../entity';
 import { TrafficSourceConfig } from '../type';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -41,6 +41,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     name: string;
     description?: string;
     type: TrafficSourceType;
+    status: TrafficSourceStatus;
     botToken?: string;
     botUsername?: string;
     telegramId?: string;
@@ -48,6 +49,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
   }): Promise<TrafficSourceEntity> {
     const trafficSource = new TrafficSourceEntity({
       ...data,
+      status: data.status,
       isActive: true,
     });
 
@@ -77,9 +79,41 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
   }
 
   async activateSource(id: string): Promise<void> {
+    return this.approveSource(id);
+  }
+
+  /**
+   * Approve source - set status to Active
+   */
+  async approveSource(id: string): Promise<void> {
     const source = await this.findOne({ id });
     if (source) {
+      source.status = TrafficSourceStatus.Active;
       source.isActive = true;
+      await this.em.flush();
+    }
+  }
+
+  /**
+   * Decline source - set status to Declined
+   */
+  async declineSource(id: string): Promise<void> {
+    const source = await this.findOne({ id });
+    if (source) {
+      source.status = TrafficSourceStatus.Declined;
+      source.isActive = false;
+      await this.em.flush();
+    }
+  }
+
+  /**
+   * Set source status to Inactive (user disabled)
+   */
+  async setInactive(id: string): Promise<void> {
+    const source = await this.findOne({ id });
+    if (source) {
+      source.status = TrafficSourceStatus.Inactive;
+      source.isActive = false;
       await this.em.flush();
     }
   }

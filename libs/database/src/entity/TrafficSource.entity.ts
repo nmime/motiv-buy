@@ -11,9 +11,17 @@ export enum TrafficSourceType {
   BotWithToken = 'bot_with_token',
 }
 
+export enum TrafficSourceStatus {
+  Pending = 'pending', // Awaiting moderation approval
+  Active = 'active', // Approved and active
+  Inactive = 'inactive', // Approved but disabled by owner
+  Declined = 'declined', // Rejected by moderation
+}
+
 @Entity({ tableName: 'traffic_sources' })
 @Index({ name: 'ix__traffic_sources__telegram_id', properties: ['telegramId'] })
 @Index({ name: 'ix__traffic_sources__type', properties: ['type'] })
+@Index({ name: 'ix__traffic_sources__status', properties: ['status'] })
 @Index({ name: 'ix__traffic_sources__is_active', properties: ['isActive'] })
 @Index({ name: 'ix__traffic_sources__bot_username', properties: ['botUsername'] })
 @Index({ name: 'ix__traffic_sources__api_key_prefix', properties: ['apiKeyPrefix'] })
@@ -30,6 +38,10 @@ export class TrafficSourceEntity {
   @Property({ type: 'varchar', length: 20, fieldName: 'type' })
   @Enum(() => TrafficSourceType)
   type!: TrafficSourceType;
+
+  @Property({ type: 'varchar', length: 20, fieldName: 'status' })
+  @Enum(() => TrafficSourceStatus)
+  status!: TrafficSourceStatus;
 
   @Property({ type: 'text', nullable: true, fieldName: 'bot_token' })
   botToken?: string;
