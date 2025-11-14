@@ -34,7 +34,7 @@ jobs:
   # ==============================================
   build:
     name: Build Migration Image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
 
     permissions:
       contents: read
@@ -73,7 +73,7 @@ jobs:
   # ==============================================
   migrate-staging:
     name: Migrate Staging DB
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: build
     if: inputs.environment == 'staging'
     environment:
@@ -223,7 +223,7 @@ jobs:
   # ==============================================
   migrate-production:
     name: Migrate Production DB
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: build
     if: inputs.environment == 'production'
     environment:

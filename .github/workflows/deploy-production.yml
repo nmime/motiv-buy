@@ -22,7 +22,7 @@ jobs:
   # ==============================================
   validate:
     name: Validate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     outputs:
       version: ${{ steps.version.outputs.tag }}
 
@@ -59,7 +59,7 @@ jobs:
   # ==============================================
   build:
     name: Build & Push
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: validate
 
     permissions:
@@ -104,7 +104,7 @@ jobs:
   # ==============================================
   backup:
     name: Backup Database
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: build
 
     steps:
@@ -177,7 +177,7 @@ jobs:
   # ==============================================
   deploy:
     name: Deploy
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: [validate, build, backup]
     environment:
       name: production
@@ -373,7 +373,7 @@ jobs:
   # ==============================================
   rollback:
     name: Rollback
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     if: failure()
     needs: deploy
 

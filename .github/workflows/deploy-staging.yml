@@ -29,7 +29,7 @@ jobs:
   # ==============================================
   validate:
     name: Validate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     outputs:
       branch: ${{ steps.branch.outputs.name }}
 
@@ -69,7 +69,7 @@ jobs:
   # ==============================================
   build:
     name: Build & Push
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: validate
 
     permissions:
@@ -116,7 +116,7 @@ jobs:
   # ==============================================
   deploy:
     name: Deploy
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: [validate, build]
     environment:
       name: staging

@@ -11,7 +11,7 @@ jobs:
     # Uncomment to filter by PR author/contributor type:
     # if: contains(fromJson('["user1", "user2"]'), github.event.pull_request.user.login)
 
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
       pull-requests: read
