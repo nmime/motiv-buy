@@ -85,9 +85,9 @@ RUN test -d dist/libs || (echo "ERROR: Pre-built libs not found in dist/libs" &&
 # Build only the specified application (libs and packages are already built, so Nx skips them)
 RUN pnpm run build:${APP_NAME}
 
-# Verify app was built successfully
-RUN test -f dist/apps/${APP_NAME}/main.js || \
-    (echo "ERROR: App build failed - dist/apps/${APP_NAME}/main.js not found" && exit 1)
+# Verify app was built successfully (Nx preserves src/ directory structure)
+RUN test -f dist/apps/${APP_NAME}/src/main.js || \
+    (echo "ERROR: App build failed - dist/apps/${APP_NAME}/src/main.js not found" && exit 1)
 
 # ============================================
 # Stage 4: Production Dependencies
@@ -133,8 +133,8 @@ COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
 # Copy built application from app-builder
 COPY --from=app-builder --chown=nodejs:nodejs /app/dist ./dist
 
-# Verify production image has required files
-RUN test -f dist/apps/${APP_NAME}/main.js || \
+# Verify production image has required files (Nx preserves src/ directory structure)
+RUN test -f dist/apps/${APP_NAME}/src/main.js || \
     (echo "ERROR: Production image missing app entrypoint" && exit 1)
 
 # Switch to non-root user
@@ -143,5 +143,5 @@ USER nodejs
 # Expose port
 EXPOSE 3000
 
-# Set the command based on the app
-CMD ["sh", "-c", "node dist/apps/${APP_NAME}/main.js"]
+# Set the command based on the app (Nx preserves src/ directory structure)
+CMD ["sh", "-c", "node dist/apps/${APP_NAME}/src/main.js"]
