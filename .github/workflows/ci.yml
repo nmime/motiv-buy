@@ -88,89 +88,49 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build all Docker images in parallel
+      - name: Build Docker images in parallel
         run: |
           set -euo pipefail
+          echo "🐳 Building all apps with shared cache optimization..."
 
-          echo "🐳 Building all images in parallel..."
-          echo "📦 Shared cache scopes will optimize build times by reusing deps and libs layers"
+          APPS=("api" "bot" "migration")
+          declare -A PIDS
 
-          # Build API in background
-          # Cache strategy: shared cache for common stages (deps, libs-builder, prod-deps) + app-specific cache
-          docker buildx build \
-            --build-arg APP_NAME=api \
-            --tag motiv-buy-api:ci-${{ github.sha }} \
-            --cache-from type=gha,scope=shared \
-            --cache-from type=gha,scope=api \
-            --cache-to type=gha,mode=max,scope=shared \
-            --cache-to type=gha,mode=max,scope=api \
-            --load \
-            -f Dockerfile . &
-          API_PID=$!
+          # Launch all builds in parallel
+          for APP in "${APPS[@]}"; do
+            echo "📦 Building $APP..."
+            (
+              docker buildx build \
+                --build-arg APP_NAME=$APP \
+                --tag motiv-buy-$APP:ci-${{ github.sha }} \
+                --cache-from type=gha,scope=shared \
+                --cache-from type=gha,scope=$APP \
+                --cache-to type=gha,mode=max,scope=$([ "$APP" = "api" ] && echo "shared" || echo "$APP") \
+                --load \
+                -f Dockerfile . || exit 1
+            ) &
+            PIDS[$APP]=$!
+          done
 
-          # Build Bot in background
-          # Reuses shared cache from API build for deps and libs-builder stages
-          docker buildx build \
-            --build-arg APP_NAME=bot \
-            --tag motiv-buy-bot:ci-${{ github.sha }} \
-            --cache-from type=gha,scope=shared \
-            --cache-from type=gha,scope=bot \
-            --cache-to type=gha,mode=max,scope=bot \
-            --load \
-            -f Dockerfile . &
-          BOT_PID=$!
+          # Wait and check results
+          FAILED=()
+          for APP in "${APPS[@]}"; do
+            echo "⏳ Waiting for $APP (PID: ${PIDS[$APP]})..."
+            if wait ${PIDS[$APP]}; then
+              echo "✅ $APP succeeded"
+            else
+              echo "❌ $APP failed"
+              FAILED+=($APP)
+            fi
+          done
 
-          # Build Migration in background
-          # Reuses shared cache from API/Bot builds for deps and libs-builder stages
-          docker buildx build \
-            --build-arg APP_NAME=migration \
-            --tag motiv-buy-migration:ci-${{ github.sha }} \
-            --cache-from type=gha,scope=shared \
-            --cache-from type=gha,scope=migration \
-            --cache-to type=gha,mode=max,scope=migration \
-            --load \
-            -f Dockerfile . &
-          MIGRATION_PID=$!
-
-          # Wait for all builds and capture exit codes
-          EXIT_CODE=0
-
-          echo "⏳ Waiting for API build (PID: $API_PID)..."
-          if ! wait $API_PID; then
-            echo "❌ API build failed"
-            EXIT_CODE=1
-          else
-            echo "✅ API build succeeded"
-          fi
-
-          echo "⏳ Waiting for Bot build (PID: $BOT_PID)..."
-          if ! wait $BOT_PID; then
-            echo "❌ Bot build failed"
-            EXIT_CODE=1
-          else
-            echo "✅ Bot build succeeded"
-          fi
-
-          echo "⏳ Waiting for Migration build (PID: $MIGRATION_PID)..."
-          if ! wait $MIGRATION_PID; then
-            echo "❌ Migration build failed"
-            EXIT_CODE=1
-          else
-            echo "✅ Migration build succeeded"
-          fi
-
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo ""
-            echo "❌ One or more builds failed"
+          # Report results
+          if [ ${#FAILED[@]} -ne 0 ]; then
+            echo "❌ Failed builds: ${FAILED[*]}"
             exit 1
           fi
 
-          echo ""
           echo "✅ All builds completed successfully!"
-
-          # Show built images
-          echo ""
-          echo "📦 Built images:"
           docker images | grep "motiv-buy.*ci-${{ github.sha }}"
 
   # ==============================================
