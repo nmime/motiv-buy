@@ -8,6 +8,12 @@ import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-vali
 
 /**
  * Create traffic source request
+ *
+ * Supports two flows:
+ * 1. WITH Token: Provide botToken for automated validation via Telegram API
+ * 2. WITHOUT Token: Provide botUsername only for manual moderation
+ *
+ * At least one of botToken or botUsername must be provided
  */
 export class CreateSourceDto {
   @ApiProperty({ description: 'Source name', example: 'My Traffic Bot' })
@@ -20,14 +26,24 @@ export class CreateSourceDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ description: 'Telegram bot token', example: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11' })
-  @IsString()
-  @IsNotEmpty()
-  botToken!: string;
-
-  @ApiPropertyOptional({ description: 'Bot username', example: '@mytrafficbot' })
+  @ApiPropertyOptional({
+    description:
+      'Telegram bot token (optional). If provided, bot will be validated via Telegram API. Format: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+    example: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+  })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
+  botToken?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Bot username (required if botToken not provided). Used for manual moderation flow. Example: @mytrafficbot',
+    example: '@mytrafficbot',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
   botUsername?: string;
 
   @ApiPropertyOptional({ description: 'Categories/tags', type: [String], example: ['crypto', 'trading'] })

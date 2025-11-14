@@ -7,6 +7,7 @@ import {
   BotValidationResult,
   IBotFactory,
 } from './bot-factory.interface';
+import { IBotTokenValidator } from './bot-token-validator.interface';
 
 /**
  * Bot Factory Service
@@ -16,9 +17,10 @@ import {
  *
  * @class BotFactoryService
  * @implements {IBotFactory}
+ * @implements {IBotTokenValidator}
  */
 @Injectable()
-export class BotFactoryService implements IBotFactory {
+export class BotFactoryService implements IBotFactory, IBotTokenValidator {
   private readonly logger = new Logger(BotFactoryService.name);
 
   /**
@@ -212,6 +214,70 @@ export class BotFactoryService implements IBotFactory {
     });
 
     this.logger.debug('Middleware applied to bot instance');
+  }
+
+  /**
+   * Validate bot username format and basic checks
+   *
+   * Note: This validates the username format but cannot verify if the bot exists
+   * without making authenticated API calls. For traffic source creation without token,
+   * this provides basic validation and the actual existence check happens during
+   * manual moderation.
+   *
+   * @param username - Bot username (with or without @)
+   * @returns Validation result
+   *
+   * @example
+   * const result = await botFactory.validateBotUsername('@mybot');
+   * if (result.isValid) {
+   *   console.log('Valid username format');
+   * }
+   */
+  async validateBotUsername(username: string): Promise<{
+    isValid: boolean;
+    botId?: number;
+    username?: string;
+    error?: string;
+  }> {
+    this.logger.log(`Validating bot username: ${username}`);
+
+    if (!username || username.trim().length === 0) {
+      return {
+        isValid: false,
+        error: 'Username is empty or undefined',
+      };
+    }
+
+    // Remove @ if present
+    const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
+
+    // Validate username format
+    // Telegram usernames: 5-32 characters, alphanumeric and underscores only, must end with 'bot' (case insensitive)
+    const usernameRegex = /^\w{5,32}$/;
+    const botSuffixRegex = /bot$/i;
+
+    if (!usernameRegex.test(cleanUsername)) {
+      return {
+        isValid: false,
+        error: 'Invalid username format. Must be 5-32 characters, alphanumeric and underscores only',
+      };
+    }
+
+    if (!botSuffixRegex.test(cleanUsername)) {
+      return {
+        isValid: false,
+        error: 'Bot username must end with "bot"',
+      };
+    }
+
+    // NOTE: Without a bot token or API access, we cannot verify if the bot actually exists
+    // This will be verified during manual moderation for WITHOUT token flow
+    this.logger.log(`Bot username format validated: @${cleanUsername}`);
+
+    return {
+      isValid: true,
+      username: cleanUsername,
+    };
   }
 
   /**

@@ -9,12 +9,16 @@ import {
   UpdateSourceDto,
 } from '@app/feature-traffic-shared';
 import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType } from '@app/database';
-import { ITelegramModerationNotifier } from '@app/feature-bot-shared';
+import { ITelegramModerationNotifier, BotFactoryService } from '@app/feature-bot-shared';
 import { ModerationService } from './moderation.service';
 
 /**
  * Service for Private Traffic Source Management API
  * Handles creation, updating, and management of traffic sources
+ *
+ * Supports two creation flows:
+ * 1. WITH Token: Validates bot token via Telegram API (automated)
+ * 2. WITHOUT Token: Validates bot username format only (manual moderation)
  */
 @Injectable()
 export class SourceManagementService {
@@ -25,75 +29,35 @@ export class SourceManagementService {
     private readonly trafficSourceRepository: TrafficSourceRepository,
     private readonly moderationService: ModerationService,
     private readonly telegramModerationNotifier: ITelegramModerationNotifier,
+    private readonly botTokenValidator: BotFactoryService,
   ) {}
 
   /**
    * Create new traffic source
    * PRIVATE API with JWT auth
+   *
+   * Supports two flows:
+   * 1. WITH Token: Validates bot token via Telegram API, auto-extracts bot info
+   * 2. WITHOUT Token: Validates bot username format, requires manual moderation
    */
   async createSource(dto: CreateSourceDto, userId: string): Promise<SourceResponseDto> {
     this.logger.log(`Creating traffic source for user ${userId}`);
 
     try {
       return await this.em.transactional(async () => {
-        // Validate bot token format
-        if (!this.isValidTelegramBotToken(dto.botToken)) {
-          throw new BadRequestException('Invalid bot token format');
+        // Validate that at least one of botToken or botUsername is provided
+        if (!dto.botToken && !dto.botUsername) {
+          throw new BadRequestException('Either botToken or botUsername must be provided');
         }
 
-        // Extract bot ID from token
-        const [botId] = dto.botToken.split(':');
-
-        if (!botId) {
-          throw new BadRequestException('Invalid bot token format');
+        // Determine creation flow and validate accordingly
+        if (dto.botToken) {
+          // WITH Token flow: Validate token via Telegram API
+          return this.createSourceWithToken(dto, userId);
         }
 
-        // Check if bot already exists
-        const existingSource = await this.trafficSourceRepository.findByTelegramId(botId);
-
-        if (existingSource) {
-          throw new BadRequestException('Bot already registered');
-        }
-
-        // Create traffic source (initially inactive, pending moderation)
-        const source = new TrafficSourceEntity({
-          name: dto.name,
-          description: dto.description,
-          type: TrafficSourceType.BotWithToken,
-          botToken: dto.botToken,
-          botUsername: dto.botUsername,
-          telegramId: botId,
-          isActive: false, // Inactive until approved
-          managedById: userId,
-        });
-
-        await this.em.persistAndFlush(source);
-
-        // Generate and securely store API key
-        const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
-
-        this.logger.log(`Traffic source created: ${source.id}`);
-
-        // Create moderation request
-        const moderationRequest = await this.moderationService.createSourceModerationRequest(source.id);
-
-        // Send notification to Telegram moderation channel
-        const notification = await this.telegramModerationNotifier.notifySourceCreated(source, moderationRequest);
-
-        // Update moderation request with Telegram message info
-        if (notification) {
-          await this.moderationService.updateTelegramMessage(
-            moderationRequest.id,
-            notification.chatId,
-            notification.messageId,
-          );
-        }
-
-        // Return response with plain text API key (ONLY time it's visible)
-        return {
-          ...this.mapSourceToResponseDto(source),
-          apiKey, // Override with real API key
-        };
+        // WITHOUT Token flow: Validate username format only
+        return this.createSourceWithoutToken(dto, userId);
       });
     } catch (err: unknown) {
       this.logger.error(`Create source failed: ${getErrorMessage(err)}`);
@@ -104,6 +68,158 @@ export class SourceManagementService {
 
       throw new BadRequestException('Failed to create traffic source');
     }
+  }
+
+  /**
+   * Create traffic source WITH bot token (automated validation)
+   * @private
+   */
+  private async createSourceWithToken(dto: CreateSourceDto, userId: string): Promise<SourceResponseDto> {
+    this.logger.log('Creating traffic source WITH token (automated validation flow)');
+
+    // Extract and validate bot token existence
+    const { botToken } = dto;
+    if (!botToken) {
+      throw new BadRequestException('Bot token is required for WITH token flow');
+    }
+
+    // Validate bot token format
+    if (!this.isValidTelegramBotToken(botToken)) {
+      throw new BadRequestException('Invalid bot token format');
+    }
+
+    // Validate token via Telegram API
+    const validationResult = await this.botTokenValidator.validateBotToken(botToken);
+
+    if (!validationResult.isValid) {
+      throw new BadRequestException(validationResult.error || 'Invalid bot token');
+    }
+
+    const { botInfo } = validationResult;
+    if (!botInfo) {
+      throw new BadRequestException('Failed to retrieve bot information');
+    }
+
+    const botId = String(botInfo.id);
+
+    // Check if bot already exists
+    const existingSource = await this.trafficSourceRepository.findByTelegramId(botId);
+
+    if (existingSource) {
+      throw new BadRequestException('Bot already registered');
+    }
+
+    // Create traffic source (initially inactive, pending moderation)
+    const source = new TrafficSourceEntity({
+      name: dto.name,
+      description: dto.description,
+      type: TrafficSourceType.BotWithToken,
+      botToken: dto.botToken,
+      botUsername: botInfo.username || dto.botUsername,
+      telegramId: botId,
+      isActive: false, // Inactive until approved
+      managedById: userId,
+    });
+
+    await this.em.persistAndFlush(source);
+
+    // Generate and securely store API key
+    const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
+
+    this.logger.log(`Traffic source created WITH token: ${source.id} (@${botInfo.username})`);
+
+    // Create moderation request
+    const moderationRequest = await this.moderationService.createSourceModerationRequest(source.id);
+
+    // Send notification to Telegram moderation channel
+    const notification = await this.telegramModerationNotifier.notifySourceCreated(source, moderationRequest);
+
+    // Update moderation request with Telegram message info
+    if (notification) {
+      await this.moderationService.updateTelegramMessage(
+        moderationRequest.id,
+        notification.chatId,
+        notification.messageId,
+      );
+    }
+
+    // Return response with plain text API key (ONLY time it's visible)
+    return {
+      ...this.mapSourceToResponseDto(source),
+      apiKey, // Override with real API key
+    };
+  }
+
+  /**
+   * Create traffic source WITHOUT bot token (manual validation)
+   * @private
+   */
+  private async createSourceWithoutToken(dto: CreateSourceDto, userId: string): Promise<SourceResponseDto> {
+    this.logger.log('Creating traffic source WITHOUT token (manual moderation flow)');
+
+    const { botUsername } = dto;
+    if (!botUsername) {
+      throw new BadRequestException('Bot username is required when bot token is not provided');
+    }
+
+    // Validate bot username format
+    const usernameValidation = await this.botTokenValidator.validateBotUsername(botUsername);
+
+    if (!usernameValidation.isValid) {
+      throw new BadRequestException(usernameValidation.error || 'Invalid bot username');
+    }
+
+    const { username: cleanUsername } = usernameValidation;
+    if (!cleanUsername) {
+      throw new BadRequestException('Failed to extract bot username');
+    }
+
+    // Check if bot username already exists
+    const existingSource = await this.trafficSourceRepository.findByBotUsername(cleanUsername);
+
+    if (existingSource) {
+      throw new BadRequestException('Bot username already registered');
+    }
+
+    // Create traffic source (initially inactive, pending MANUAL moderation)
+    const source = new TrafficSourceEntity({
+      name: dto.name,
+      description: dto.description,
+      type: TrafficSourceType.Bot, // WITHOUT token type
+      botToken: undefined, // No token provided
+      botUsername: cleanUsername,
+      telegramId: undefined, // Will be set after manual verification
+      isActive: false, // Inactive until approved
+      managedById: userId,
+    });
+
+    await this.em.persistAndFlush(source);
+
+    // Generate and securely store API key
+    const apiKey = await this.trafficSourceRepository.regenerateApiKey(source.id);
+
+    this.logger.log(`Traffic source created WITHOUT token: ${source.id} (@${cleanUsername})`);
+
+    // Create moderation request
+    const moderationRequest = await this.moderationService.createSourceModerationRequest(source.id);
+
+    // Send notification to Telegram moderation channel
+    const notification = await this.telegramModerationNotifier.notifySourceCreated(source, moderationRequest);
+
+    // Update moderation request with Telegram message info
+    if (notification) {
+      await this.moderationService.updateTelegramMessage(
+        moderationRequest.id,
+        notification.chatId,
+        notification.messageId,
+      );
+    }
+
+    // Return response with plain text API key (ONLY time it's visible)
+    return {
+      ...this.mapSourceToResponseDto(source),
+      apiKey, // Override with real API key
+    };
   }
 
   /**
