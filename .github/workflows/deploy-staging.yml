@@ -42,6 +42,7 @@ jobs:
       - name: Extract branch name
         id: branch
         run: |
+          set -euo pipefail
           # Get branch name and sanitize it for Docker tag
           if [[ -n "${{ inputs.ref }}" ]]; then
             BRANCH_NAME="${{ inputs.ref }}"
@@ -54,6 +55,7 @@ jobs:
 
       - name: Check if not master branch
         run: |
+          set -euo pipefail
           BRANCH="${{ steps.branch.outputs.original }}"
           if [[ "$BRANCH" == "master" ]] || [[ "$BRANCH" == "refs/heads/master" ]]; then
             echo "❌ Staging deployments cannot be triggered from master branch"
@@ -128,31 +130,38 @@ jobs:
 
       - name: Setup SSH
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           echo "${{ secrets.VPS_STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.VPS_STAGING_HOST }} >> ~/.ssh/known_hosts
 
       - name: Create deployment directory
         run: |
-          ssh ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} "
-            mkdir -p ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
-          "
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} \
+            "mkdir -p ${{ secrets.VPS_STAGING_DEPLOY_PATH }}"
 
       - name: Copy deployment files
         run: |
-          scp docker-compose.production.yml \
+          set -euo pipefail
+          scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_STAGING_DEPLOY_PATH }}/docker-compose.yml
 
           if [ -d "docker" ]; then
-            scp -r docker \
+            scp -o StrictHostKeyChecking=yes -r docker \
               ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_STAGING_DEPLOY_PATH }}/
           fi
 
       - name: Create environment file
         run: |
-          ssh ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} "
-            cat > ${{ secrets.VPS_STAGING_DEPLOY_PATH }}/.env << 'EOF'
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} << 'ENV_EOF'
+          set -euo pipefail
+          cat > ${{ secrets.VPS_STAGING_DEPLOY_PATH }}/.env << 'EOF'
           NODE_ENV=staging
 
           # Docker
@@ -187,39 +196,71 @@ jobs:
           MAIN_DOMAIN=st.motivbuy.com
           LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
           EOF
-          "
+          ENV_EOF
 
       - name: Deploy with Docker Compose
         run: |
-          ssh ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} "
-            cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
+          set -euo pipefail
 
-            # Login to registry
-            echo '${{ secrets.GITHUB_TOKEN }}' | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          # Create deployment script
+          cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
+          set -euo pipefail
 
-            # Pull latest images
-            docker compose pull
+          cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
 
-            # NOTE: Database migrations must be run manually using the
-            # 'Database Migration - Manual' workflow before deployment
-            # This ensures migrations are reviewed and controlled
+          # Login to registry (token from stdin for security)
+          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
 
-            # Deploy with zero-downtime
-            docker compose up -d --remove-orphans
+          # Pull latest images
+          docker compose pull
 
-            # Clean up old images
-            docker image prune -af --filter 'until=24h'
-          "
+          # NOTE: Database migrations must be run manually using the
+          # 'Run Database Migrations' workflow before deployment
+          # This ensures migrations are reviewed and controlled
+
+          # Deploy with zero-downtime
+          echo '🚀 Deploying application...'
+          docker compose up -d --remove-orphans
+
+          # Clean up old images
+          docker image prune -af --filter 'until=24h'
+
+          echo '✅ Deployment completed'
+          SCRIPT_EOF
+
+          chmod +x /tmp/deploy-script.sh
+
+          # Execute deployment, passing GitHub token via stdin
+          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} \
+            'bash -s' < /tmp/deploy-script.sh
+
+          # Cleanup
+          rm -f /tmp/deploy-script.sh
 
       - name: Health check
         run: |
-          ssh ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} "
-            # Wait for services to be healthy
-            timeout 60 sh -c 'until docker compose -f ${{ secrets.VPS_STAGING_DEPLOY_PATH }}/docker-compose.yml ps | grep -q \"healthy\"; do sleep 2; done' || true
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} << 'HEALTH_EOF'
+          set -euo pipefail
 
-            # Check API health endpoint
-            curl -f http://localhost:3000/health || exit 1
-          "
+          # Wait for services to be healthy
+          timeout 60 sh -c 'until docker compose -f ${{ secrets.VPS_STAGING_DEPLOY_PATH }}/docker-compose.yml ps | grep -q "healthy"; do sleep 2; done' || true
+
+          # Check API health endpoint
+          if curl -f http://localhost:3000/health; then
+            echo '✅ Health check passed'
+          else
+            echo '❌ Health check failed'
+            exit 1
+          fi
+          HEALTH_EOF
+
+      - name: Cleanup SSH keys
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
 
       - name: Deployment summary
         if: always()
@@ -229,6 +270,7 @@ jobs:
           echo "- **Branch**: ${{ needs.validate.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ ${{ job.status }} == 'success' ]; then
