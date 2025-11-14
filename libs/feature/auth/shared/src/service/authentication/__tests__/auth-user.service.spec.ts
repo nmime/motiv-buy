@@ -278,13 +278,15 @@ describe('AuthUserService', () => {
       mockEntityManager.nativeUpdate.mockResolvedValue(1);
 
       const result = await service.findOrCreateByBot(mockTelegramAuthParams, {
-        trackUserVisit: true, // This should be overridden to false
-        updateUserFields: false, // This should be overridden to true
+        trackUserVisit: true, // Now respects caller's choice
+        trackAnalytics: true,
+        trackUserLastAuth: true,
+        updateUserFields: true,
       });
 
       expect(result).toEqual(existingUser);
-      expect(mockUserVisitService.registerVisit).not.toHaveBeenCalled(); // Should not track visits for bots
-      expect(mockEntityManager.nativeUpdate).not.toHaveBeenCalled(); // User fields should be updated but user already up to date
+      expect(mockUserVisitService.registerVisit).toHaveBeenCalled(); // Should track visits when requested
+      expect(mockUserLastAuthRepository.upsertUserLastAuth).toHaveBeenCalled(); // Should track last auth when requested
     });
 
     it('should update user fields when updateUserFields is true', async () => {

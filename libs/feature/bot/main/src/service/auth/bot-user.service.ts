@@ -30,6 +30,9 @@ export class BotUserService {
         throw new Error(this.i18n.t('common.errors.no_user_info'));
       }
 
+      // Detect if this is a /start command
+      const isStartCommand = this.isStartCommand(ctx);
+
       // Create TelegramAuthParams from bot context
       const telegramAuthParams = new TelegramAuthParams({
         telegramId: telegramUser.id.toString(),
@@ -49,10 +52,12 @@ export class BotUserService {
       });
 
       // Use the existing auth service for bot users
+      // Visit tracking: ONLY on /start command
+      // Analytics and last auth: ALWAYS enabled
       const user = await this.authUserService.findOrCreateByBot(telegramAuthParams, {
-        trackUserVisit: false,
-        trackAnalytics: false,
-        trackUserLastAuth: false,
+        trackUserVisit: isStartCommand,
+        trackAnalytics: true,
+        trackUserLastAuth: true,
         updateUserFields: true,
       });
 
@@ -224,5 +229,18 @@ export class BotUserService {
     const timeDiff = now.getTime() - createdAt.getTime();
 
     return timeDiff < 60000; // Less than 1 minute ago
+  }
+
+  /**
+   * Check if the current context is a /start command
+   */
+  private isStartCommand(ctx: BotContext): boolean {
+    if (ctx.message && 'text' in ctx.message) {
+      const { text } = ctx.message;
+
+      return text?.startsWith('/start') ?? false;
+    }
+
+    return false;
   }
 }
