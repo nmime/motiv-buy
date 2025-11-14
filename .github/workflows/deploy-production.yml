@@ -194,8 +194,8 @@ jobs:
           # Telegram
           TELEGRAM_BOT_TOKEN=${{ secrets.PRODUCTION_TELEGRAM_BOT_TOKEN }}
 
-          # Payment
-          CRYPTO_BOT_API_KEY=${{ secrets.PRODUCTION_CRYPTO_BOT_API_KEY }}
+          # Payment Providers (Optional)
+          CRYPTO_BOT_API_TOKEN=${{ secrets.PRODUCTION_CRYPTO_BOT_API_TOKEN }}
 
           # Logging
           LOG_LEVEL=warn

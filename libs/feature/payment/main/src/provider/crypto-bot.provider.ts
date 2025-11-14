@@ -88,14 +88,21 @@ interface CryptoPayBalance {
 @Injectable()
 export class CryptoBotProvider implements IPaymentProvider {
   private readonly logger = new Logger(CryptoBotProvider.name);
-  private readonly apiToken: string;
+  private readonly apiToken?: string;
   private readonly baseUrl: string;
 
   constructor(private readonly paymentConfig: PaymentConfigService) {
     this.apiToken = this.paymentConfig.getCryptoBotApiToken();
     this.baseUrl = this.paymentConfig.isTestnet() ? 'https://testnet-pay.crypt.bot/api' : 'https://pay.crypt.bot/api';
 
-    this.logger.log(`CryptoBotProvider initialized (testnet: ${this.paymentConfig.isTestnet()})`);
+    if (!this.apiToken) {
+      this.logger.warn(
+        'CryptoBotProvider initialized without API token - provider will be disabled. ' +
+          'Set CRYPTO_BOT_API_TOKEN in environment variables.',
+      );
+    } else {
+      this.logger.log(`CryptoBotProvider initialized (testnet: ${this.paymentConfig.isTestnet()})`);
+    }
   }
 
   /**
@@ -402,6 +409,12 @@ export class CryptoBotProvider implements IPaymentProvider {
    * signature = HMAC-SHA256(body, secret)
    */
   verifyWebhook(signature: string, body: string): boolean {
+    if (!this.apiToken) {
+      this.logger.warn('Cannot verify webhook signature - API token not configured');
+
+      return false;
+    }
+
     try {
       // Create secret from API token
       const secret = createHash('sha256').update(this.apiToken).digest();
@@ -432,6 +445,10 @@ export class CryptoBotProvider implements IPaymentProvider {
     endpoint: string,
     params?: Record<string, unknown>,
   ): Promise<CryptoPayResponse<T>> {
+    if (!this.apiToken) {
+      throw new Error('CryptoBot API token not configured. Set CRYPTO_BOT_API_TOKEN in environment variables.');
+    }
+
     const url = `${this.baseUrl}/${endpoint}`;
 
     try {
