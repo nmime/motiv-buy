@@ -4,9 +4,19 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
   pull_request:
     branches:
       - '**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
 
 env:
   PNPM_VERSION: 9
@@ -24,29 +34,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js & pnpm
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
+      - name: Setup Node.js with pnpm cache
+        uses: actions/setup-node@v4
         with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -79,14 +76,10 @@ jobs:
   # Job 2: Docker Build & Validation
   # ==============================================
   docker:
-    name: Docker Build
+    name: Docker Build (All Apps)
     runs-on: ubuntu-latest
-    needs: quality
+    # Run in parallel with quality for faster execution
     if: always()
-
-    strategy:
-      matrix:
-        app: [api, bot]
 
     steps:
       - name: Checkout code
@@ -95,17 +88,82 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          build-args: |
-            APP_NAME=${{ matrix.app }}
-          tags: motiv-buy-${{ matrix.app }}:ci-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build all Docker images in parallel
+        run: |
+          set -euo pipefail
+
+          echo "🐳 Building all images in parallel..."
+
+          # Build API in background
+          docker buildx build \
+            --build-arg APP_NAME=api \
+            --tag motiv-buy-api:ci-${{ github.sha }} \
+            --cache-from type=gha,scope=api \
+            --cache-to type=gha,mode=max,scope=api \
+            --load \
+            -f Dockerfile . &
+          API_PID=$!
+
+          # Build Bot in background
+          docker buildx build \
+            --build-arg APP_NAME=bot \
+            --tag motiv-buy-bot:ci-${{ github.sha }} \
+            --cache-from type=gha,scope=bot \
+            --cache-to type=gha,mode=max,scope=bot \
+            --load \
+            -f Dockerfile . &
+          BOT_PID=$!
+
+          # Build Migration in background
+          docker buildx build \
+            --build-arg APP_NAME=migration \
+            --tag motiv-buy-migration:ci-${{ github.sha }} \
+            --cache-from type=gha,scope=migration \
+            --cache-to type=gha,mode=max,scope=migration \
+            --load \
+            -f Dockerfile . &
+          MIGRATION_PID=$!
+
+          # Wait for all builds and capture exit codes
+          EXIT_CODE=0
+
+          echo "⏳ Waiting for API build (PID: $API_PID)..."
+          if ! wait $API_PID; then
+            echo "❌ API build failed"
+            EXIT_CODE=1
+          else
+            echo "✅ API build succeeded"
+          fi
+
+          echo "⏳ Waiting for Bot build (PID: $BOT_PID)..."
+          if ! wait $BOT_PID; then
+            echo "❌ Bot build failed"
+            EXIT_CODE=1
+          else
+            echo "✅ Bot build succeeded"
+          fi
+
+          echo "⏳ Waiting for Migration build (PID: $MIGRATION_PID)..."
+          if ! wait $MIGRATION_PID; then
+            echo "❌ Migration build failed"
+            EXIT_CODE=1
+          else
+            echo "✅ Migration build succeeded"
+          fi
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "❌ One or more builds failed"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All builds completed successfully!"
+
+          # Show built images
+          echo ""
+          echo "📦 Built images:"
+          docker images | grep "motiv-buy.*ci-${{ github.sha }}"
 
   # ==============================================
   # Job 3: Security Scanning
@@ -113,7 +171,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: quality
+    # Run in parallel with quality for faster execution
     if: always()
     continue-on-error: true
 
@@ -121,15 +179,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js with pnpm cache
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: ${{ env.PNPM_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

@@ -1,0 +1,427 @@
+name: Run Database Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      action:
+        description: 'Migration action'
+        required: true
+        type: choice
+        options:
+          - status
+          - up
+          - down
+        default: up
+
+concurrency:
+  group: migration-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  PNPM_VERSION: 9
+  DOCKER_REGISTRY: ghcr.io
+
+jobs:
+  # ==============================================
+  # Build Migration Container
+  # ==============================================
+  build:
+    name: Build Migration Image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push migration image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            APP_NAME=migration
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:${{ inputs.environment }}
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:${{ inputs.environment }}-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==============================================
+  # Run Migration on Staging
+  # ==============================================
+  migrate-staging:
+    name: Migrate Staging DB
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://st.motivbuy.com
+
+    steps:
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.VPS_STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run migration ${{ inputs.action }}
+        id: migration
+        run: |
+          set -euo pipefail
+
+          # Create temporary script for secure execution
+          cat > /tmp/migration-script.sh << 'SCRIPT_EOF'
+          set -euo pipefail
+
+          cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
+
+          # Detect Docker network from running containers
+          NETWORK_NAME=$(docker compose ps -q postgres 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' 2>/dev/null | head -1)
+
+          # Fallback to compose default naming
+          if [ -z "$NETWORK_NAME" ]; then
+            NETWORK_NAME="${{ secrets.VPS_STAGING_DEPLOY_PATH }}_default"
+          fi
+
+          # Verify network exists
+          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+            echo "Error: Docker network not found. Is the stack running?"
+            echo "Tried: $NETWORK_NAME"
+            exit 1
+          fi
+
+          echo "Using network: $NETWORK_NAME"
+
+          # Login to registry (token from stdin for security)
+          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+          # Pull latest migration image
+          docker pull ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:staging
+
+          # Run migration with error handling
+          echo '🔄 Running migration: ${{ inputs.action }}'
+
+          if docker run --rm \
+            --network "$NETWORK_NAME" \
+            -e NODE_ENV=staging \
+            -e DB_HOST=${{ secrets.STAGING_DB_HOST || 'postgres-prod' }} \
+            -e DB_PORT=5432 \
+            -e DB_NAME=${{ secrets.STAGING_DB_NAME }} \
+            -e DB_USER=${{ secrets.STAGING_DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:staging \
+            node dist/apps/migration/main.js ${{ inputs.action }}; then
+            echo '✅ Migration completed successfully'
+            exit 0
+          else
+            echo '❌ Migration failed with exit code $?'
+            exit 1
+          fi
+          SCRIPT_EOF
+
+          chmod +x /tmp/migration-script.sh
+
+          # Execute script on remote server, passing GitHub token via stdin
+          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} \
+            'bash -s' < /tmp/migration-script.sh
+
+          # Cleanup
+          rm -f /tmp/migration-script.sh
+
+      - name: Display migration status
+        if: always()
+        run: |
+          set -euo pipefail
+
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} << 'STATUS_EOF'
+          set -euo pipefail
+
+          cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
+
+          # Determine network name
+          NETWORK_NAME="${{ secrets.VPS_STAGING_DEPLOY_PATH }}_default"
+          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+            NETWORK_NAME="$(basename ${{ secrets.VPS_STAGING_DEPLOY_PATH }})-network-prod"
+          fi
+
+          echo '📋 Migration Status Details:'
+          docker run --rm \
+            --network "$NETWORK_NAME" \
+            -e NODE_ENV=staging \
+            -e DB_HOST=${{ secrets.STAGING_DB_HOST || 'postgres-prod' }} \
+            -e DB_PORT=5432 \
+            -e DB_NAME=${{ secrets.STAGING_DB_NAME }} \
+            -e DB_USER=${{ secrets.STAGING_DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:staging \
+            node dist/apps/migration/main.js status
+          STATUS_EOF
+
+      - name: Cleanup SSH keys
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### 📊 Migration - Staging" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action**: ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.action }}" == "status" ]]; then
+            echo "**Migration Status**" >> $GITHUB_STEP_SUMMARY
+            echo "Check the logs above for detailed migration status" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.action }}" == "up" ]]; then
+            if [[ "${{ job.status }}" == "success" ]]; then
+              echo "✅ Migrations applied successfully" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ Migration failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+            fi
+          elif [[ "${{ inputs.action }}" == "down" ]]; then
+            if [[ "${{ job.status }}" == "success" ]]; then
+              echo "⚠️ Last migration rolled back" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ Rollback failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+  # ==============================================
+  # Run Migration on Production
+  # ==============================================
+  migrate-production:
+    name: Migrate Production DB
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://motivbuy.com
+
+    steps:
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.VPS_PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create database backup
+        if: inputs.action == 'up' || inputs.action == 'down'
+        run: |
+          set -euo pipefail
+
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << "BACKUP_EOF"
+          set -euo pipefail
+
+          mkdir -p ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups
+
+          BACKUP_FILE="${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/pre-migration-$(date +%Y%m%d-%H%M%S).sql"
+
+          echo "📦 Creating database backup: $BACKUP_FILE"
+
+          # Create backup with error checking
+          if docker compose -f ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/docker-compose.yml exec -T postgres \
+            pg_dump -U ${{ secrets.PRODUCTION_DB_USER }} ${{ secrets.PRODUCTION_DB_NAME }} > "$BACKUP_FILE"; then
+
+            # Verify backup file is not empty
+            if [ -s "$BACKUP_FILE" ]; then
+              BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+
+              # Validate SQL content (check for PostgreSQL dump header)
+              if head -5 "$BACKUP_FILE" | grep -q "PostgreSQL database dump"; then
+                echo "✅ Backup created successfully: $BACKUP_FILE ($BACKUP_SIZE)"
+                echo "✅ SQL content validated"
+              else
+                echo "❌ Backup file exists but doesn't appear to be a valid PostgreSQL dump!"
+                rm -f "$BACKUP_FILE"
+                exit 1
+              fi
+            else
+              echo "❌ Backup file is empty!"
+              rm -f "$BACKUP_FILE"
+              exit 1
+            fi
+          else
+            echo "❌ Backup failed!"
+            exit 1
+          fi
+
+          # Keep only last 10 backups (with logging)
+          echo "🗑️ Cleaning old backups..."
+          REMOVED=$(ls -t ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | tee /dev/stderr | wc -l)
+          ls -t ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | xargs rm -f || true
+          echo "Removed $REMOVED old backup(s)"
+          BACKUP_EOF
+
+      - name: Run migration ${{ inputs.action }}
+        id: migration
+        run: |
+          set -euo pipefail
+
+          # Create temporary script for secure execution
+          cat > /tmp/migration-script.sh << 'SCRIPT_EOF'
+          set -euo pipefail
+
+          cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
+
+          # Detect Docker network from running containers
+          NETWORK_NAME=$(docker compose ps -q postgres 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' 2>/dev/null | head -1)
+
+          # Fallback to compose default naming
+          if [ -z "$NETWORK_NAME" ]; then
+            NETWORK_NAME="${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}_default"
+          fi
+
+          # Verify network exists
+          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+            echo "Error: Docker network not found. Is the stack running?"
+            echo "Tried: $NETWORK_NAME"
+            exit 1
+          fi
+
+          echo "Using network: $NETWORK_NAME"
+
+          # Login to registry (token from stdin for security)
+          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+          # Pull latest migration image
+          docker pull ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:production
+
+          # Run migration with error handling and timeout
+          echo '🔄 Running migration: ${{ inputs.action }}'
+
+          if timeout 600 docker run --rm \
+            --network "$NETWORK_NAME" \
+            -e NODE_ENV=production \
+            -e DB_HOST=${{ secrets.PRODUCTION_DB_HOST || 'postgres-prod' }} \
+            -e DB_PORT=5432 \
+            -e DB_NAME=${{ secrets.PRODUCTION_DB_NAME }} \
+            -e DB_USER=${{ secrets.PRODUCTION_DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.PRODUCTION_DB_PASSWORD }} \
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:production \
+            node dist/apps/migration/main.js ${{ inputs.action }}; then
+            echo '✅ Migration completed successfully'
+            exit 0
+          else
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 124 ]; then
+              echo '❌ Migration timed out after 10 minutes'
+            else
+              echo "❌ Migration failed with exit code $EXIT_CODE"
+            fi
+            exit $EXIT_CODE
+          fi
+          SCRIPT_EOF
+
+          chmod +x /tmp/migration-script.sh
+
+          # Execute script on remote server, passing GitHub token via stdin
+          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} \
+            'bash -s' < /tmp/migration-script.sh
+
+          # Cleanup
+          rm -f /tmp/migration-script.sh
+
+      - name: Display migration status
+        if: always()
+        run: |
+          set -euo pipefail
+
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << 'STATUS_EOF'
+          set -euo pipefail
+
+          cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
+
+          # Determine network name
+          NETWORK_NAME="${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}_default"
+          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+            NETWORK_NAME="$(basename ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }})-network-prod"
+          fi
+
+          echo '📋 Migration Status Details:'
+          docker run --rm \
+            --network "$NETWORK_NAME" \
+            -e NODE_ENV=production \
+            -e DB_HOST=${{ secrets.PRODUCTION_DB_HOST || 'postgres-prod' }} \
+            -e DB_PORT=5432 \
+            -e DB_NAME=${{ secrets.PRODUCTION_DB_NAME }} \
+            -e DB_USER=${{ secrets.PRODUCTION_DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.PRODUCTION_DB_PASSWORD }} \
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:production \
+            node dist/apps/migration/main.js status
+          STATUS_EOF
+
+      - name: Cleanup SSH keys
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### 📊 Migration - Production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action**: ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.action }}" == "status" ]]; then
+            echo "**Migration Status**" >> $GITHUB_STEP_SUMMARY
+            echo "Check the logs above for detailed migration status" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.action }}" == "up" ]]; then
+            if [[ "${{ job.status }}" == "success" ]]; then
+              echo "✅ Migrations applied successfully" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ Migration failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ **Database backup available in backups/ directory**" >> $GITHUB_STEP_SUMMARY
+            fi
+          elif [[ "${{ inputs.action }}" == "down" ]]; then
+            if [[ "${{ job.status }}" == "success" ]]; then
+              echo "⚠️ Last migration rolled back" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ Rollback failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ **Database backup available in backups/ directory**" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi

@@ -32,6 +32,7 @@ jobs:
 
       - name: Check if master branch
         run: |
+          set -euo pipefail
           if [[ "${{ github.ref }}" != "refs/heads/master" ]]; then
             echo "❌ Production deployments can only be triggered from master branch"
             echo "Current branch: ${{ github.ref }}"
@@ -42,6 +43,7 @@ jobs:
       - name: Extract version
         id: version
         run: |
+          set -euo pipefail
           if [[ -n "${{ inputs.version }}" ]] && [[ "${{ inputs.version }}" != "latest" ]]; then
             VERSION="${{ inputs.version }}"
           elif [[ $GITHUB_REF == refs/tags/* ]]; then
@@ -108,27 +110,67 @@ jobs:
     steps:
       - name: Setup SSH
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           echo "${{ secrets.VPS_PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.VPS_PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
       - name: Create database backup
         run: |
-          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
-            # Create backup directory
-            mkdir -p ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups
+          set -euo pipefail
 
-            # Backup database
-            BACKUP_FILE=${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/db-backup-\$(date +%Y%m%d-%H%M%S).sql
-            docker compose -f ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/docker-compose.yml exec -T postgres \
-              pg_dump -U \$DB_USER \$DB_NAME > \$BACKUP_FILE || true
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << "BACKUP_EOF"
+          set -euo pipefail
 
-            # Keep only last 7 backups
-            ls -t ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/db-backup-*.sql 2>/dev/null | tail -n +8 | xargs rm -f || true
+          # Create backup directory
+          mkdir -p ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups
 
-            echo '✅ Database backup created: '\$BACKUP_FILE
-          "
+          # Backup database
+          BACKUP_FILE="${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/db-backup-$(date +%Y%m%d-%H%M%S).sql"
+
+          echo "📦 Creating database backup: $BACKUP_FILE"
+
+          # Create backup with error checking
+          if docker compose -f ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/docker-compose.yml exec -T postgres \
+            pg_dump -U ${{ secrets.PRODUCTION_DB_USER }} ${{ secrets.PRODUCTION_DB_NAME }} > "$BACKUP_FILE"; then
+
+            # Verify backup file is not empty
+            if [ -s "$BACKUP_FILE" ]; then
+              BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+
+              # Validate SQL content (check for PostgreSQL dump header)
+              if head -5 "$BACKUP_FILE" | grep -q "PostgreSQL database dump"; then
+                echo "✅ Backup created successfully: $BACKUP_FILE ($BACKUP_SIZE)"
+                echo "✅ SQL content validated"
+              else
+                echo "❌ Backup file exists but doesn't appear to be a valid PostgreSQL dump!"
+                rm -f "$BACKUP_FILE"
+                exit 1
+              fi
+            else
+              echo "❌ Backup file is empty!"
+              rm -f "$BACKUP_FILE"
+              exit 1
+            fi
+          else
+            echo "❌ Backup failed!"
+            exit 1
+          fi
+
+          # Keep only last 7 backups (with logging)
+          echo "🗑️ Cleaning old backups..."
+          REMOVED=$(ls -t ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/db-backup-*.sql 2>/dev/null | tail -n +8 | tee /dev/stderr | wc -l)
+          ls -t ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/db-backup-*.sql 2>/dev/null | tail -n +8 | xargs rm -f || true
+          echo "Removed $REMOVED old backup(s)"
+          BACKUP_EOF
+
+      - name: Cleanup SSH keys
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
 
   # ==============================================
   # Job 4: Deploy to Production VPS
@@ -147,31 +189,38 @@ jobs:
 
       - name: Setup SSH
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           echo "${{ secrets.VPS_PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.VPS_PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
       - name: Create deployment directory
         run: |
-          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
-            mkdir -p ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
-          "
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} \
+            "mkdir -p ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}"
 
       - name: Copy deployment files
         run: |
-          scp docker-compose.production.yml \
+          set -euo pipefail
+          scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }}:${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/docker-compose.yml
 
           if [ -d "docker" ]; then
-            scp -r docker \
+            scp -o StrictHostKeyChecking=yes -r docker \
               ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }}:${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/
           fi
 
       - name: Create environment file
         run: |
-          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
-            cat > ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/.env << 'EOF'
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << "ENV_EOF"
+          set -euo pipefail
+          cat > ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/.env << 'EOF'
           NODE_ENV=production
 
           # Docker
@@ -206,58 +255,94 @@ jobs:
           MAIN_DOMAIN=motivbuy.com
           LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
           EOF
-          "
+          ENV_EOF
 
       - name: Deploy with Docker Compose
         run: |
-          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
-            cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
+          set -euo pipefail
 
-            # Login to registry
-            echo '${{ secrets.GITHUB_TOKEN }}' | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          # Create deployment script
+          cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
+          set -euo pipefail
 
-            # Pull latest images
-            docker compose pull
+          cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
 
-            # Run database migrations
-            echo '🔄 Running database migrations...'
-            docker compose run --rm api node dist/apps/api/main.js migrate || true
+          # Login to registry (token from stdin for security)
+          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
 
-            # Deploy with zero-downtime rolling update
-            echo '🚀 Deploying application...'
-            docker compose up -d --remove-orphans --no-deps api bot
+          # Pull latest images
+          docker compose pull
 
-            # Wait for services to be healthy
-            echo '⏳ Waiting for services to be healthy...'
-            sleep 10
+          # NOTE: Database migrations must be run manually using the
+          # 'Run Database Migrations' workflow before deployment
+          # This ensures migrations are reviewed and controlled in production
 
-            # Clean up old images
-            docker image prune -af --filter 'until=48h'
-          "
+          # Deploy with zero-downtime rolling update
+          echo '🚀 Deploying application...'
+          docker compose up -d --remove-orphans --no-deps api bot
+
+          # Wait for services to be healthy
+          echo '⏳ Waiting for services to be healthy...'
+          sleep 10
+
+          # Clean up old images
+          docker image prune -af --filter 'until=48h'
+
+          echo '✅ Deployment completed'
+          SCRIPT_EOF
+
+          chmod +x /tmp/deploy-script.sh
+
+          # Execute deployment, passing GitHub token via stdin
+          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} \
+            'bash -s' < /tmp/deploy-script.sh
+
+          # Cleanup
+          rm -f /tmp/deploy-script.sh
 
       - name: Health check
         run: |
-          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
-            cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << 'HEALTH_EOF'
+          set -euo pipefail
 
-            # Wait for services to be healthy
-            timeout 120 sh -c 'until docker compose ps | grep -q \"healthy\"; do sleep 3; done' || true
+          cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
 
-            # Check API health endpoint
-            curl -f http://localhost:3000/health || exit 1
+          # Wait for services to be healthy
+          timeout 120 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 3; done' || true
 
+          # Check API health endpoint
+          if curl -f http://localhost:3000/health; then
             echo '✅ Health check passed'
-          "
+          else
+            echo '❌ Health check failed'
+            exit 1
+          fi
+          HEALTH_EOF
 
       - name: Smoke tests
         run: |
-          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
-            # Basic smoke tests
-            curl -f http://localhost:3000/health || exit 1
-            curl -f http://localhost:3000/api || exit 1
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << 'SMOKE_EOF'
+          set -euo pipefail
 
+          # Basic smoke tests
+          if curl -f http://localhost:3000/health && \
+             curl -f http://localhost:3000/api; then
             echo '✅ Smoke tests passed'
-          "
+          else
+            echo '❌ Smoke tests failed'
+            exit 1
+          fi
+          SMOKE_EOF
+
+      - name: Cleanup SSH keys
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
 
       - name: Deployment summary
         if: always()
@@ -267,6 +352,7 @@ jobs:
           echo "- **Version**: ${{ needs.validate.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ ${{ job.status }} == 'success' ]; then
@@ -294,21 +380,32 @@ jobs:
     steps:
       - name: Setup SSH
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           echo "${{ secrets.VPS_PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.VPS_PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
       - name: Rollback to previous version
         run: |
-          ssh ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} "
-            cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << 'ROLLBACK_EOF'
+          set -euo pipefail
 
-            echo '⚠️ Rolling back deployment...'
+          cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
 
-            # Restart services with previous version
-            docker compose down
-            docker compose up -d
+          echo '⚠️ Rolling back deployment...'
 
-            echo '✅ Rollback completed'
-          "
+          # Restart services with previous version
+          docker compose down
+          docker compose up -d
+
+          echo '✅ Rollback completed'
+          ROLLBACK_EOF
+
+      - name: Cleanup SSH keys
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
