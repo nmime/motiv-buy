@@ -26,12 +26,12 @@ export class Migration20250105000003TrafficSystem extends Migration {
         name varchar(255) NOT NULL,
         description text,
         type varchar(20) NOT NULL,
+        status varchar(20) NOT NULL DEFAULT 'pending',
         bot_token text,
         api_key_hash text,
         api_key_prefix varchar(8),
         bot_username varchar(32),
         telegram_id bigint,
-        is_active boolean NOT NULL DEFAULT true,
         config jsonb,
         managed_by_id uuid,
         created_at timestamptz NOT NULL DEFAULT now(),
@@ -43,7 +43,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
 
     this.addSql('CREATE INDEX ix__traffic_sources__telegram_id ON traffic_sources (telegram_id);');
     this.addSql('CREATE INDEX ix__traffic_sources__type ON traffic_sources (type);');
-    this.addSql('CREATE INDEX ix__traffic_sources__is_active ON traffic_sources (is_active);');
+    this.addSql('CREATE INDEX ix__traffic_sources__status ON traffic_sources (status);');
     this.addSql('CREATE INDEX ix__traffic_sources__bot_username ON traffic_sources (bot_username);');
     this.addSql('CREATE INDEX ix__traffic_sources__api_key_prefix ON traffic_sources (api_key_prefix);');
     this.addSql(`COMMENT ON COLUMN traffic_sources.api_key_hash IS 'Bcrypt-hashed API key for secure authentication';`);
@@ -78,10 +78,10 @@ export class Migration20250105000003TrafficSystem extends Migration {
         name varchar(255) NOT NULL,
         description text,
         type varchar(20) NOT NULL,
+        status varchar(30) NOT NULL DEFAULT 'active',
         telegram_id bigint,
         username varchar(32),
         invite_link text,
-        is_active boolean NOT NULL DEFAULT true,
         requires_approval boolean NOT NULL DEFAULT false,
         price_per_member decimal(10,2),
         min_members integer,
@@ -97,7 +97,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
 
     this.addSql('CREATE INDEX ix__traffic_targets__telegram_id ON traffic_targets (telegram_id);');
     this.addSql('CREATE INDEX ix__traffic_targets__type ON traffic_targets (type);');
-    this.addSql('CREATE INDEX ix__traffic_targets__is_active ON traffic_targets (is_active);');
+    this.addSql('CREATE INDEX ix__traffic_targets__status ON traffic_targets (status);');
 
     // 4. Create traffic_users table
     this.addSql(`

@@ -21,7 +21,6 @@ export enum TrafficTargetStatus {
 @Index({ name: 'ix__traffic_targets__telegram_id', properties: ['telegramId'] })
 @Index({ name: 'ix__traffic_targets__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_targets__status', properties: ['status'] })
-@Index({ name: 'ix__traffic_targets__is_active', properties: ['isActive'] })
 export class TrafficTargetEntity {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
   id!: string;
@@ -48,9 +47,6 @@ export class TrafficTargetEntity {
 
   @Property({ type: 'text', nullable: true, fieldName: 'invite_link' })
   inviteLink?: string;
-
-  @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
-  isActive!: boolean;
 
   @Property({ type: 'boolean', default: false, fieldName: 'requires_approval' })
   requiresApproval!: boolean;
@@ -80,12 +76,7 @@ export class TrafficTargetEntity {
   orders? = new Collection<TrafficOrderEntity>(this);
 
   constructor(
-    data: EntityConstructorData<
-      TrafficTargetEntity,
-      'id' | 'createdAt' | 'updatedAt',
-      'isActive' | 'requiresApproval',
-      'managedBy'
-    >,
+    data: EntityConstructorData<TrafficTargetEntity, 'id' | 'createdAt' | 'updatedAt', 'requiresApproval', 'managedBy'>,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
       managedById: {

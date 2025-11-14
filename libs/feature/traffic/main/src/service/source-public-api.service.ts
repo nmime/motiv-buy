@@ -35,6 +35,7 @@ import {
   TrafficOrderType,
   TrafficSourceEntity,
   TrafficSourceRepository,
+  TrafficSourceStatus,
   TrafficUserEntity,
   TransactionStatus,
   TransactionType,
@@ -129,7 +130,7 @@ export class SourcePublicApiService {
         sourceType: source.type,
         botId: source.telegramId ? parseInt(source.telegramId, 10) : undefined,
         botUsername: source.botUsername,
-        isActive: source.isActive,
+        isActive: source.status === TrafficSourceStatus.Active,
       };
     } catch (err: unknown) {
       this.logger.error(`Get source info failed: ${getErrorMessage(err)}`);
@@ -482,7 +483,7 @@ export class SourcePublicApiService {
       throw new UnauthorizedException('Invalid API key');
     }
 
-    if (!source.isActive) {
+    if (source.status !== TrafficSourceStatus.Active) {
       throw new UnauthorizedException('API key belongs to inactive source');
     }
 

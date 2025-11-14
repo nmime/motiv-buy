@@ -30,11 +30,11 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
   }
 
   async findActiveByType(type: TrafficSourceType): Promise<TrafficSourceEntity[]> {
-    return this.find({ type, isActive: true });
+    return this.find({ type, status: TrafficSourceStatus.Active });
   }
 
   async findActiveSources(): Promise<TrafficSourceEntity[]> {
-    return this.find({ isActive: true });
+    return this.find({ status: TrafficSourceStatus.Active });
   }
 
   async createTrafficSource(data: {
@@ -50,7 +50,6 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     const trafficSource = new TrafficSourceEntity({
       ...data,
       status: data.status,
-      isActive: true,
     });
 
     await this.em.persistAndFlush(trafficSource);
@@ -69,7 +68,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
   async deactivateSource(id: string): Promise<void> {
     const source = await this.findOne({ id });
     if (source) {
-      source.isActive = false;
+      source.status = TrafficSourceStatus.Inactive;
       await this.em.flush();
     }
   }
@@ -89,7 +88,6 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     const source = await this.findOne({ id });
     if (source) {
       source.status = TrafficSourceStatus.Active;
-      source.isActive = true;
       await this.em.flush();
     }
   }
@@ -101,7 +99,6 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     const source = await this.findOne({ id });
     if (source) {
       source.status = TrafficSourceStatus.Declined;
-      source.isActive = false;
       await this.em.flush();
     }
   }
@@ -110,12 +107,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
    * Set source status to Inactive (user disabled)
    */
   async setInactive(id: string): Promise<void> {
-    const source = await this.findOne({ id });
-    if (source) {
-      source.status = TrafficSourceStatus.Inactive;
-      source.isActive = false;
-      await this.em.flush();
-    }
+    return this.deactivateSource(id);
   }
 
   async getSourceStats(): Promise<{
@@ -126,7 +118,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
   }> {
     const [total, active, bots, botsWithToken] = await Promise.all([
       this.count(),
-      this.count({ isActive: true }),
+      this.count({ status: TrafficSourceStatus.Active }),
       this.count({ type: TrafficSourceType.Bot }),
       this.count({ type: TrafficSourceType.BotWithToken }),
     ]);

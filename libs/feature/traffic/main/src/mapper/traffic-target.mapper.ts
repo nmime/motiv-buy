@@ -89,14 +89,14 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
 
   async findByManager(managerId: string): Promise<TrafficTargetEntity[]> {
     return this.trafficTargetRepository.find(
-      { managedBy: managerId, isActive: true },
+      { managedBy: managerId, status: TrafficTargetStatus.Active },
       { populate: ['managedBy'], orderBy: { createdAt: 'DESC' } },
     );
   }
 
   async findActive(): Promise<TrafficTargetEntity[]> {
     return this.trafficTargetRepository.find(
-      { isActive: true },
+      { status: TrafficTargetStatus.Active },
       { populate: ['managedBy'], orderBy: { createdAt: 'DESC' } },
     );
   }
@@ -117,7 +117,6 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
     this.logger.log(`Deactivating traffic target: ${id}`);
 
     const target = await this.trafficTargetRepository.findOneOrFail({ id });
-    target.isActive = false;
     target.status = TrafficTargetStatus.Inactive;
     await this.em.flush();
 
@@ -127,7 +126,7 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
   async validateTargetAccess(targetId: string, userId: string): Promise<boolean> {
     const target = await this.trafficTargetRepository.findOne({
       id: targetId,
-      $or: [{ managedBy: userId }, { requiresApproval: false, isActive: true }],
+      $or: [{ managedBy: userId }, { requiresApproval: false, status: TrafficTargetStatus.Active }],
     });
 
     return target !== null;

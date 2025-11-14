@@ -78,14 +78,14 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
 
   async findByManager(managerId: string): Promise<TrafficSourceEntity[]> {
     return this.trafficSourceRepository.find(
-      { managedBy: managerId, isActive: true },
+      { managedBy: managerId, status: TrafficSourceStatus.Active },
       { populate: ['managedBy'], orderBy: { createdAt: 'DESC' } },
     );
   }
 
   async findActive(): Promise<TrafficSourceEntity[]> {
     return this.trafficSourceRepository.find(
-      { isActive: true },
+      { status: TrafficSourceStatus.Active },
       { populate: ['managedBy'], orderBy: { createdAt: 'DESC' } },
     );
   }
@@ -106,7 +106,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
     this.logger.log(`Deactivating traffic source: ${id}`);
 
     const source = await this.trafficSourceRepository.findOneOrFail({ id });
-    source.isActive = false;
+    source.status = TrafficSourceStatus.Inactive;
     await this.em.flush();
 
     this.logger.log(`Traffic source deactivated: ${id}`);
@@ -134,7 +134,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
   async validateSourceAccess(sourceId: string, userId: string): Promise<boolean> {
     const source = await this.trafficSourceRepository.findOne({
       id: sourceId,
-      $or: [{ managedBy: userId }, { isActive: true }],
+      $or: [{ managedBy: userId }, { status: TrafficSourceStatus.Active }],
     });
 
     return source !== null;

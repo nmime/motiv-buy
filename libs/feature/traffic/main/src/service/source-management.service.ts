@@ -119,7 +119,6 @@ export class SourceManagementService {
         botToken: dto.botToken,
         botUsername: botInfo.username || dto.botUsername,
         telegramId: botId,
-        isActive: false, // Inactive until approved
         managedById: userId,
       });
 
@@ -197,7 +196,6 @@ export class SourceManagementService {
         botToken: undefined, // No token provided
         botUsername: cleanUsername,
         telegramId: undefined, // Will be set after manual verification
-        isActive: false, // Inactive until approved
         managedById: userId,
       });
 
@@ -265,9 +263,8 @@ export class SourceManagementService {
           source.description = dto.description;
         }
 
+        // Handle isActive for backwards compatibility - convert to status
         if (dto.isActive !== undefined) {
-          source.isActive = dto.isActive;
-          // Update status based on isActive
           source.status = dto.isActive ? TrafficSourceStatus.Active : TrafficSourceStatus.Inactive;
         }
 
@@ -470,7 +467,7 @@ export class SourceManagementService {
       type: source.type,
       botUsername: source.botUsername,
       telegramId: source.telegramId,
-      isActive: source.isActive,
+      isActive: source.status === TrafficSourceStatus.Active, // Map status to isActive for backwards compatibility
       apiKey: '***HIDDEN***', // Never expose API key after creation
       createdAt: source.createdAt.toISOString(),
       updatedAt: source.updatedAt.toISOString(),

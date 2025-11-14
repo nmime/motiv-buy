@@ -22,7 +22,6 @@ export enum TrafficSourceStatus {
 @Index({ name: 'ix__traffic_sources__telegram_id', properties: ['telegramId'] })
 @Index({ name: 'ix__traffic_sources__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_sources__status', properties: ['status'] })
-@Index({ name: 'ix__traffic_sources__is_active', properties: ['isActive'] })
 @Index({ name: 'ix__traffic_sources__bot_username', properties: ['botUsername'] })
 @Index({ name: 'ix__traffic_sources__api_key_prefix', properties: ['apiKeyPrefix'] })
 export class TrafficSourceEntity {
@@ -68,9 +67,6 @@ export class TrafficSourceEntity {
   @Property({ type: 'bigint', nullable: true, fieldName: 'telegram_id' })
   telegramId?: string;
 
-  @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
-  isActive!: boolean;
-
   @Property({ type: 'json', nullable: true, fieldName: 'config' })
   config?: TrafficSourceConfig;
 
@@ -95,9 +91,7 @@ export class TrafficSourceEntity {
   @OneToMany('TrafficSourceCategoriesEntity', 'trafficSource')
   categories? = new Collection<TrafficSourceCategoriesEntity>(this);
 
-  constructor(
-    data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt', 'isActive', 'managedBy'>,
-  ) {
+  constructor(data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt', never, 'managedBy'>) {
     assignEntityData(this as Record<string, unknown>, data, {
       managedById: {
         field: 'managedBy',

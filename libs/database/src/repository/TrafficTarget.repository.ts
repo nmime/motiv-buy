@@ -15,16 +15,16 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   }
 
   async findActiveByType(type: TrafficTargetType): Promise<TrafficTargetEntity[]> {
-    return this.find({ type, isActive: true });
+    return this.find({ type, status: TrafficTargetStatus.Active });
   }
 
   async findActiveTargets(): Promise<TrafficTargetEntity[]> {
-    return this.find({ isActive: true });
+    return this.find({ status: TrafficTargetStatus.Active });
   }
 
   async findByPriceRange(minPrice: number, maxPrice: number): Promise<TrafficTargetEntity[]> {
     const results = await this.em.find(TrafficTargetEntity, {
-      isActive: true,
+      status: TrafficTargetStatus.Active,
     });
 
     return results.filter((target) => {
@@ -39,7 +39,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   }
 
   async findByMemberCapacity(minMembers?: number, maxMembers?: number): Promise<TrafficTargetEntity[]> {
-    const conditions: FilterQuery<TrafficTargetEntity> = { isActive: true };
+    const conditions: FilterQuery<TrafficTargetEntity> = { status: TrafficTargetStatus.Active };
 
     if (minMembers !== undefined) {
       conditions.minMembers = { $lte: minMembers };
@@ -71,7 +71,6 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
       config: data.config ? (JSON.parse(data.config) as Record<string, unknown>) : undefined,
       pricePerMember: data.pricePerMember?.toString(),
       status: data.status,
-      isActive: true,
       requiresApproval: false,
     });
 
@@ -106,7 +105,6 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   async deactivateTarget(id: string): Promise<void> {
     const target = await this.findOne({ id });
     if (target) {
-      target.isActive = false;
       target.status = TrafficTargetStatus.Inactive;
       await this.em.flush();
     }
@@ -115,7 +113,6 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   async activateTarget(id: string): Promise<void> {
     const target = await this.findOne({ id });
     if (target) {
-      target.isActive = true;
       target.status = TrafficTargetStatus.Active;
       await this.em.flush();
     }
@@ -128,7 +125,6 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
     const target = await this.findOne({ id });
     if (target) {
       target.status = TrafficTargetStatus.Suspended;
-      target.isActive = false;
       await this.em.flush();
     }
   }
@@ -140,7 +136,6 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
     const target = await this.findOne({ id });
     if (target) {
       target.status = TrafficTargetStatus.PendingVerification;
-      target.isActive = false;
       await this.em.flush();
     }
   }
@@ -149,12 +144,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
    * Set target to inactive (owner disabled)
    */
   async setInactive(id: string): Promise<void> {
-    const target = await this.findOne({ id });
-    if (target) {
-      target.status = TrafficTargetStatus.Inactive;
-      target.isActive = false;
-      await this.em.flush();
-    }
+    return this.deactivateTarget(id);
   }
 
   async getTargetStats(): Promise<{
@@ -168,7 +158,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   }> {
     const [total, active, channels, groups, bots, withChecking, requiresApproval] = await Promise.all([
       this.count(),
-      this.count({ isActive: true }),
+      this.count({ status: TrafficTargetStatus.Active }),
       this.count({ type: TrafficTargetType.Channel }),
       this.count({ type: TrafficTargetType.Group }),
       this.count({ type: TrafficTargetType.Bot }),
