@@ -36,10 +36,10 @@ export class AuthUserService {
 
   async findOrCreateByBot(telegramAuthParams: TelegramAuthParams, options?: FindOrCreateOptions): Promise<UserEntity> {
     const result = await this.findOrCreateWithVisit(telegramAuthParams, {
-      ...options,
-      trackUserVisit: false,
-      trackAnalytics: false,
-      updateUserFields: true,
+      trackUserVisit: options?.trackUserVisit ?? false,
+      trackAnalytics: options?.trackAnalytics ?? false,
+      trackUserLastAuth: options?.trackUserLastAuth ?? false,
+      updateUserFields: options?.updateUserFields ?? true,
     });
 
     return result.user;
