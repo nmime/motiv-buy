@@ -176,7 +176,7 @@ jobs:
           TELEGRAM_BOT_TOKEN=${{ secrets.STAGING_TELEGRAM_BOT_TOKEN }}
 
           # Payment Providers (Optional)
-          CRYPTO_BOT_API_TOKEN=${{ secrets.STAGING_CRYPTO_BOT_API_KEY }}
+          CRYPTO_BOT_API_TOKEN=${{ secrets.STAGING_CRYPTO_BOT_API_TOKEN }}
 
           # Logging
           LOG_LEVEL=debug

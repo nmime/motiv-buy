@@ -195,7 +195,7 @@ jobs:
           TELEGRAM_BOT_TOKEN=${{ secrets.PRODUCTION_TELEGRAM_BOT_TOKEN }}
 
           # Payment Providers (Optional)
-          CRYPTO_BOT_API_TOKEN=${{ secrets.PRODUCTION_CRYPTO_BOT_API_KEY }}
+          CRYPTO_BOT_API_TOKEN=${{ secrets.PRODUCTION_CRYPTO_BOT_API_TOKEN }}
 
           # Logging
           LOG_LEVEL=warn
