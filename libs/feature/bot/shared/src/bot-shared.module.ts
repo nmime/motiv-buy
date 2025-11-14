@@ -9,7 +9,7 @@ import { BotFactoryService, BotSubscriptionService } from './service';
  * modules to consume.
  *
  * Provides:
- * - BotFactoryService: Create and validate bot instances
+ * - BotFactoryService: Create and validate bot instances (implements IBotTokenValidator)
  * - BotSubscriptionService: Check user subscriptions to chats
  */
 @Module({

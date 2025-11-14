@@ -1,5 +1,5 @@
 import { EntityManager, EntityRepository, FilterQuery } from '@mikro-orm/core';
-import { TrafficTargetEntity, TrafficTargetType } from '../entity';
+import { TrafficTargetEntity, TrafficTargetType, TrafficTargetStatus } from '../entity';
 
 export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntity> {
   constructor(em: EntityManager) {
@@ -15,16 +15,16 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   }
 
   async findActiveByType(type: TrafficTargetType): Promise<TrafficTargetEntity[]> {
-    return this.find({ type, isActive: true });
+    return this.find({ type, status: TrafficTargetStatus.Active });
   }
 
   async findActiveTargets(): Promise<TrafficTargetEntity[]> {
-    return this.find({ isActive: true });
+    return this.find({ status: TrafficTargetStatus.Active });
   }
 
   async findByPriceRange(minPrice: number, maxPrice: number): Promise<TrafficTargetEntity[]> {
     const results = await this.em.find(TrafficTargetEntity, {
-      isActive: true,
+      status: TrafficTargetStatus.Active,
     });
 
     return results.filter((target) => {
@@ -39,7 +39,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   }
 
   async findByMemberCapacity(minMembers?: number, maxMembers?: number): Promise<TrafficTargetEntity[]> {
-    const conditions: FilterQuery<TrafficTargetEntity> = { isActive: true };
+    const conditions: FilterQuery<TrafficTargetEntity> = { status: TrafficTargetStatus.Active };
 
     if (minMembers !== undefined) {
       conditions.minMembers = { $lte: minMembers };
@@ -56,6 +56,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
     name: string;
     description?: string;
     type: TrafficTargetType;
+    status: TrafficTargetStatus;
     telegramId?: string;
     username?: string;
     inviteLink?: string;
@@ -69,7 +70,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
       ...data,
       config: data.config ? (JSON.parse(data.config) as Record<string, unknown>) : undefined,
       pricePerMember: data.pricePerMember?.toString(),
-      isActive: true,
+      status: data.status,
       requiresApproval: false,
     });
 
@@ -104,7 +105,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   async deactivateTarget(id: string): Promise<void> {
     const target = await this.findOne({ id });
     if (target) {
-      target.isActive = false;
+      target.status = TrafficTargetStatus.Inactive;
       await this.em.flush();
     }
   }
@@ -112,9 +113,38 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   async activateTarget(id: string): Promise<void> {
     const target = await this.findOne({ id });
     if (target) {
-      target.isActive = true;
+      target.status = TrafficTargetStatus.Active;
       await this.em.flush();
     }
+  }
+
+  /**
+   * Suspend target - set status to Suspended
+   */
+  async suspendTarget(id: string): Promise<void> {
+    const target = await this.findOne({ id });
+    if (target) {
+      target.status = TrafficTargetStatus.Suspended;
+      await this.em.flush();
+    }
+  }
+
+  /**
+   * Set target to pending verification
+   */
+  async setPendingVerification(id: string): Promise<void> {
+    const target = await this.findOne({ id });
+    if (target) {
+      target.status = TrafficTargetStatus.PendingVerification;
+      await this.em.flush();
+    }
+  }
+
+  /**
+   * Set target to inactive (owner disabled)
+   */
+  async setInactive(id: string): Promise<void> {
+    return this.deactivateTarget(id);
   }
 
   async getTargetStats(): Promise<{
@@ -128,7 +158,7 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
   }> {
     const [total, active, channels, groups, bots, withChecking, requiresApproval] = await Promise.all([
       this.count(),
-      this.count({ isActive: true }),
+      this.count({ status: TrafficTargetStatus.Active }),
       this.count({ type: TrafficTargetType.Channel }),
       this.count({ type: TrafficTargetType.Group }),
       this.count({ type: TrafficTargetType.Bot }),

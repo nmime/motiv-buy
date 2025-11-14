@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { getErrorMessage } from '@app/common-shared';
-import { TrafficSourceEntity, TrafficSourceType, UserEntity } from '@app/database';
+import { TrafficSourceEntity, TrafficSourceType, TrafficSourceStatus, UserEntity } from '@app/database';
 import { ITrafficSourceRepository } from '../repository';
 
 /**
@@ -24,6 +24,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
     name: string;
     description?: string;
     type: TrafficSourceType;
+    status: TrafficSourceStatus;
     botToken?: string;
     botUsername?: string;
     telegramId?: string;
@@ -35,6 +36,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
       name: string;
       description?: string;
       type: TrafficSourceType;
+      status: TrafficSourceStatus;
       botToken?: string;
       botUsername?: string;
       telegramId?: string;
@@ -43,6 +45,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
       name: data.name,
       description: data.description,
       type: data.type,
+      status: data.status,
       botToken: data.botToken,
       botUsername: data.botUsername,
       telegramId: data.telegramId,
@@ -75,14 +78,14 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
 
   async findByManager(managerId: string): Promise<TrafficSourceEntity[]> {
     return this.trafficSourceRepository.find(
-      { managedBy: managerId, isActive: true },
+      { managedBy: managerId, status: TrafficSourceStatus.Active },
       { populate: ['managedBy'], orderBy: { createdAt: 'DESC' } },
     );
   }
 
   async findActive(): Promise<TrafficSourceEntity[]> {
     return this.trafficSourceRepository.find(
-      { isActive: true },
+      { status: TrafficSourceStatus.Active },
       { populate: ['managedBy'], orderBy: { createdAt: 'DESC' } },
     );
   }
@@ -103,7 +106,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
     this.logger.log(`Deactivating traffic source: ${id}`);
 
     const source = await this.trafficSourceRepository.findOneOrFail({ id });
-    source.isActive = false;
+    source.status = TrafficSourceStatus.Inactive;
     await this.em.flush();
 
     this.logger.log(`Traffic source deactivated: ${id}`);
@@ -131,7 +134,7 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
   async validateSourceAccess(sourceId: string, userId: string): Promise<boolean> {
     const source = await this.trafficSourceRepository.findOne({
       id: sourceId,
-      $or: [{ managedBy: userId }, { isActive: true }],
+      $or: [{ managedBy: userId }, { status: TrafficSourceStatus.Active }],
     });
 
     return source !== null;

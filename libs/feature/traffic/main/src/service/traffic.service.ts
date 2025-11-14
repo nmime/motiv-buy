@@ -37,9 +37,11 @@ import {
   TrafficSourceEntity,
   TrafficSourceRepository,
   TrafficSourceType,
+  TrafficSourceStatus,
   TrafficTargetEntity,
   TrafficTargetRepository,
   TrafficTargetType,
+  TrafficTargetStatus,
   UserEntity,
 } from '@app/database';
 import { ITelegramModerationNotifier } from '@app/feature-bot-shared';
@@ -128,6 +130,7 @@ export class TrafficService {
         name: `Traffic Bot ${dto.botUsername}`,
         description: `Traffic source bot created by user ${userId}`,
         type: TrafficSourceType.BotWithToken,
+        status: TrafficSourceStatus.Pending,
         botUsername: dto.botUsername,
       });
 
@@ -160,7 +163,7 @@ export class TrafficService {
     return {
       botId: source.id,
       botUsername: source.botUsername || '',
-      isActive: source.isActive,
+      isActive: source.status === TrafficSourceStatus.Active,
       priceSettings: {
         basePrice: 0.05,
         currency: 'USD',
@@ -256,7 +259,7 @@ export class TrafficService {
     const sources = await this.findSourcesByManager(userId);
 
     return sources.map((source): BotResponseDto => {
-      const isActive = source.isActive === true;
+      const isActive = source.status === TrafficSourceStatus.Active;
       let status: BotStatus = BotStatus.Suspended; // Default to Suspended (inactive)
       if (isActive) {
         status = BotStatus.Active;
@@ -296,7 +299,7 @@ export class TrafficService {
       throw new ForbiddenException('Access denied');
     }
 
-    const isActive = source.isActive === true;
+    const isActive = source.status === TrafficSourceStatus.Active;
     let status: BotStatus = BotStatus.Suspended; // Default to Suspended (inactive)
     if (isActive) {
       status = BotStatus.Active;
@@ -682,7 +685,7 @@ export class TrafficService {
     }
 
     if (data.isActive !== undefined) {
-      source.isActive = data.isActive;
+      source.status = data.isActive ? TrafficSourceStatus.Active : TrafficSourceStatus.Inactive;
     }
 
     if (data.config !== undefined) {
@@ -810,6 +813,7 @@ export class TrafficService {
       name: data.name,
       description: data.description,
       type: data.type,
+      status: TrafficTargetStatus.Active,
       username: data.username,
       pricePerMember: data.pricePerMember ? toNumber(decimal(data.pricePerMember)) : undefined,
     });

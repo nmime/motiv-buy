@@ -15,6 +15,7 @@ import {
   UserBalanceEntity,
   UserRole,
   TrafficSourceEntity,
+  TrafficSourceStatus,
   TrafficOrderEntity,
   TrafficOrderStatus,
   ModerationEntityType,
@@ -667,7 +668,7 @@ export class CallbackRouterHandler {
       if (sources.length > 0) {
         text += '<b>Your Sources:</b>\n';
         sources.slice(0, 5).forEach((source) => {
-          const statusEmoji = source.isActive ? '✅' : '❌';
+          const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
           text += `${statusEmoji} ${source.name} (${source.type})\n`;
         });
 

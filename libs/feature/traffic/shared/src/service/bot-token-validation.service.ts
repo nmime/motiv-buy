@@ -3,6 +3,7 @@ import { InjectRedis, RedisClient } from '@app/common-redis';
 import { Err, Ok, Result } from 'ts-results';
 import { AsyncResult, getErrorMessage } from '@app/common-shared';
 import { BadTokenException, InternalException, RateLimitExceedException } from '@app/common-exception';
+import { BotFactoryService } from '@app/feature-bot-shared';
 import { BotTokenValidationDto, BotTokenValidationResponseDto } from '../dto';
 import {
   BotTokenExpiredException,
@@ -29,6 +30,7 @@ export class BotTokenValidationService {
   constructor(
     @InjectRedis()
     private readonly redisClient: RedisClient,
+    private readonly botTokenValidator: BotFactoryService,
   ) {}
 
   /**
@@ -419,32 +421,34 @@ export class BotTokenValidationService {
 
   /**
    * Perform actual token validation
-   * This would integrate with bot-shared feature for real validation
+   * Integrates with bot-shared feature for real Telegram API validation
    */
   private async performTokenValidation(dto: BotTokenValidationDto): Promise<BotTokenValidationResponseDto> {
     const botId = this.extractBotId(dto.token);
 
-    // This is where you would integrate with bot-shared feature
-    // For now, implement basic validation logic
-
     try {
-      // Simulate bot-shared integration
-      const isValid = await this.validateWithBotShared(dto.token);
+      // Validate token via Telegram API using bot-shared service
+      const validationResult = await this.botTokenValidator.validateBotToken(dto.token);
 
-      if (!isValid) {
+      if (!validationResult.isValid) {
         return {
           isValid: false,
-          error: 'Invalid or expired token',
+          error: validationResult.error || 'Invalid or expired token',
         };
       }
 
       // Get bot permissions for traffic operations
       const permissions = await this.getBotPermissions(botId);
 
+      // Use real bot info from Telegram API
+      const botUsername = validationResult.botInfo?.username
+        ? `@${validationResult.botInfo.username}`
+        : `@bot_${botId}`;
+
       return {
         isValid: true,
         botId,
-        botUsername: `@bot_${botId}`, // This would come from bot-shared
+        botUsername,
         permissions,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
         metadata: {
@@ -454,6 +458,13 @@ export class BotTokenValidationService {
           },
           validatedAt: new Date(),
           operationContext: dto.operationContext,
+          telegramBotInfo: {
+            id: validationResult.botInfo?.id,
+            firstName: validationResult.botInfo?.firstName,
+            canJoinGroups: validationResult.botInfo?.canJoinGroups,
+            canReadAllGroupMessages: validationResult.botInfo?.canReadAllGroupMessages,
+            supportsInlineQueries: validationResult.botInfo?.supportsInlineQueries,
+          },
         },
       };
     } catch (err: unknown) {
@@ -470,25 +481,38 @@ export class BotTokenValidationService {
   }
 
   /**
-   * Validate with bot-shared feature (placeholder for integration)
-   * Note: Integration with bot-shared feature pending
+   * Validate with bot-shared feature using real Telegram API
+   * Makes actual getMe API call to validate bot token
    */
   private async validateWithBotShared(token: string): Promise<boolean> {
-    // Integration with actual bot-shared feature pending
-    // This is a placeholder that simulates validation
+    try {
+      // Use bot-shared BotFactoryService to validate token via Telegram API
+      const validationResult = await this.botTokenValidator.validateBotToken(token);
 
-    // Basic checks that would be done by bot-shared
-    const botId = this.extractBotId(token);
-    if (!botId) {
+      if (!validationResult.isValid) {
+        this.logger.debug('Bot token validation via Telegram API failed', {
+          error: validationResult.error,
+          errorCode: validationResult.errorCode,
+        });
+
+        return false;
+      }
+
+      // Token is valid and bot exists
+      this.logger.debug('Bot token validated successfully via Telegram API', {
+        botId: validationResult.botInfo?.id,
+        botUsername: validationResult.botInfo?.username,
+      });
+
+      return true;
+    } catch (err: unknown) {
+      this.logger.error('Telegram API validation failed', {
+        error: getErrorMessage(err),
+      });
+
+      // On error, assume invalid to be safe
       return false;
     }
-
-    // Simulate async validation
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
-    // For demo purposes, consider tokens valid if they follow correct format
-    // and botId is numeric
-    return /^\d+$/.test(botId);
   }
 
   /**

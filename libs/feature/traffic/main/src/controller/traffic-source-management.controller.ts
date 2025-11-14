@@ -3,7 +3,6 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@
 import { ApiProblemExceptions, InternalException } from '@app/common-exception';
 import { ClientDataProblemValidationException } from '@app/common-validation';
 import { AsyncResult } from '@app/common-shared';
-import { Ok } from 'ts-results';
 import { CurrentUserId, JwtAuthGuard } from '@app/feature-auth-shared';
 import {
   CreateSourceDto,
@@ -45,10 +44,8 @@ export class TrafficSourceManagementController {
   async createSource(
     @Body() dto: CreateSourceDto,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<SourceResponseDto, Error>> {
-    const result = await this.sourceManagementService.createSource(dto, userId);
-
-    return Ok(result);
+  ): AsyncResult<SourceResponseDto, Error> {
+    return await this.sourceManagementService.createSource(dto, userId);
   }
 
   /**
@@ -63,10 +60,8 @@ export class TrafficSourceManagementController {
     description: 'Traffic sources retrieved successfully',
     type: [SourceResponseDto],
   })
-  async listSources(@CurrentUserId() userId: string): Promise<AsyncResult<SourceResponseDto[], Error>> {
-    const result = await this.sourceManagementService.listUserSources(userId);
-
-    return Ok(result);
+  async listSources(@CurrentUserId() userId: string): AsyncResult<SourceResponseDto[], Error> {
+    return await this.sourceManagementService.listUserSources(userId);
   }
 
   /**
@@ -90,10 +85,8 @@ export class TrafficSourceManagementController {
   async getSourceDetails(
     @Param('sourceId') sourceId: string,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<SourceDetailsDto, Error>> {
-    const result = await this.sourceManagementService.getSourceDetails(sourceId, userId);
-
-    return Ok(result);
+  ): AsyncResult<SourceDetailsDto, Error> {
+    return await this.sourceManagementService.getSourceDetails(sourceId, userId);
   }
 
   /**
@@ -118,10 +111,8 @@ export class TrafficSourceManagementController {
     @Param('sourceId') sourceId: string,
     @Body() dto: UpdateSourceDto,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<SourceResponseDto, Error>> {
-    const result = await this.sourceManagementService.updateSource(sourceId, dto, userId);
-
-    return Ok(result);
+  ): AsyncResult<SourceResponseDto, Error> {
+    return await this.sourceManagementService.updateSource(sourceId, dto, userId);
   }
 
   /**
@@ -144,10 +135,8 @@ export class TrafficSourceManagementController {
   async deleteSource(
     @Param('sourceId') sourceId: string,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<{ message: string }, Error>> {
-    const result = await this.sourceManagementService.deleteSource(sourceId, userId);
-
-    return Ok(result);
+  ): AsyncResult<{ message: string }, Error> {
+    return await this.sourceManagementService.deleteSource(sourceId, userId);
   }
 
   /**
@@ -172,9 +161,7 @@ export class TrafficSourceManagementController {
   async regenerateApiKey(
     @Param('sourceId') sourceId: string,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<RegenerateApiKeyResponseDto, Error>> {
-    const result = await this.sourceManagementService.regenerateApiKey(sourceId, userId);
-
-    return Ok(result);
+  ): AsyncResult<RegenerateApiKeyResponseDto, Error> {
+    return await this.sourceManagementService.regenerateApiKey(sourceId, userId);
   }
 }
