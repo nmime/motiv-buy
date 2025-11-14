@@ -7,7 +7,6 @@ import {
   BotValidationResult,
   IBotFactory,
 } from './bot-factory.interface';
-import { IBotTokenValidator } from './bot-token-validator.interface';
 
 /**
  * Bot Factory Service
@@ -17,10 +16,9 @@ import { IBotTokenValidator } from './bot-token-validator.interface';
  *
  * @class BotFactoryService
  * @implements {IBotFactory}
- * @implements {IBotTokenValidator}
  */
 @Injectable()
-export class BotFactoryService implements IBotFactory, IBotTokenValidator {
+export class BotFactoryService implements IBotFactory {
   private readonly logger = new Logger(BotFactoryService.name);
 
   /**

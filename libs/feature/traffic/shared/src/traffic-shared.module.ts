@@ -8,7 +8,7 @@ import { BotTokenValidationService } from './service';
  * Provides shared traffic-related services, DTOs, guards, and utilities
  * for cross-domain reusability across the application.
  *
- * Imports BotSharedModule to access IBotTokenValidator for real Telegram API validation
+ * Imports BotSharedModule for BotFactoryService (bot token validation)
  */
 @Module({
   imports: [BotSharedModule],
