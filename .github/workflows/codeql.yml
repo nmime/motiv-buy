@@ -1,4 +1,4 @@
-name: CI - Security (CodeQL)
+name: Security - CodeQL
 
 on:
   push:
