@@ -208,7 +208,7 @@ jobs:
           chmod 700 ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to staging
         id: deploy
@@ -217,29 +217,30 @@ jobs:
 
           # Create deployment directory
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "mkdir -p ${{ secrets.VPS_DEPLOY_PATH }}"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            "mkdir -p ${{ vars.VPS_DEPLOY_PATH }}"
 
           # Copy deployment files
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
           if [ -d "docker" ]; then
             scp -o StrictHostKeyChecking=yes -r docker \
-              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+              ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
           fi
 
           # Create environment file
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << "ENV_EOF"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
           set -euo pipefail
-          cat > ${{ secrets.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
+          cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
           NODE_ENV=staging
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=${{ needs.setup.outputs.image-tag }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_USER=${{ secrets.DB_USER }}
+          DB_NAME=${{ vars.DB_NAME }}
+          DB_USER=${{ vars.DB_USER }}
+          DB_PORT=${{ vars.DB_PORT }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -250,14 +251,14 @@ jobs:
           API_DOMAIN=api.st.motivbuy.com
           BOT_DOMAIN=bot.st.motivbuy.com
           MAIN_DOMAIN=st.motivbuy.com
-          LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
+          LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
           ENVFILE
           ENV_EOF
 
           # Deploy
           cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
           docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
           docker compose pull
           echo '🚀 Deploying to staging...'
@@ -268,7 +269,7 @@ jobs:
 
           chmod +x /tmp/deploy-script.sh
           echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
             'bash -s' < /tmp/deploy-script.sh
           rm -f /tmp/deploy-script.sh
 
@@ -276,9 +277,9 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'HEALTH_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
-          timeout 60 sh -c 'until docker compose -f ${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml ps | grep -q "healthy"; do sleep 2; done' || true
+          timeout 60 sh -c 'until docker compose -f ${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml ps | grep -q "healthy"; do sleep 2; done' || true
           if curl -f http://localhost:3000/health; then
             echo '✅ Staging health check passed'
           else
@@ -400,7 +401,7 @@ jobs:
           chmod 700 ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to production
         id: deploy
@@ -409,29 +410,30 @@ jobs:
 
           # Create deployment directory
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "mkdir -p ${{ secrets.VPS_DEPLOY_PATH }}"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            "mkdir -p ${{ vars.VPS_DEPLOY_PATH }}"
 
           # Copy deployment files
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
           if [ -d "docker" ]; then
             scp -o StrictHostKeyChecking=yes -r docker \
-              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+              ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
           fi
 
           # Create environment file
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << "ENV_EOF"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
           set -euo pipefail
-          cat > ${{ secrets.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
+          cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
           NODE_ENV=production
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=latest
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_USER=${{ secrets.DB_USER }}
+          DB_NAME=${{ vars.DB_NAME }}
+          DB_USER=${{ vars.DB_USER }}
+          DB_PORT=${{ vars.DB_PORT }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -442,14 +444,14 @@ jobs:
           API_DOMAIN=api.motivbuy.com
           BOT_DOMAIN=bot.motivbuy.com
           MAIN_DOMAIN=motivbuy.com
-          LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
+          LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
           ENVFILE
           ENV_EOF
 
           # Deploy
           cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
           docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
           docker compose pull
           echo '🚀 Deploying to production...'
@@ -462,7 +464,7 @@ jobs:
 
           chmod +x /tmp/deploy-script.sh
           echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
             'bash -s' < /tmp/deploy-script.sh
           rm -f /tmp/deploy-script.sh
 
@@ -470,9 +472,9 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'HEALTH_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
           timeout 120 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 3; done' || true
           if curl -f http://localhost:3000/health; then
             echo '✅ Production health check passed'
@@ -486,7 +488,7 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'SMOKE_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'SMOKE_EOF'
           set -euo pipefail
           if curl -f http://localhost:3000/health && curl -f http://localhost:3000/api; then
             echo '✅ Production smoke tests passed'
