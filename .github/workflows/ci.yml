@@ -19,7 +19,7 @@ on:
       - '.gitignore'
 
 env:
-  PNPM_VERSION: 9
+  PNPM_VERSION: 10
 
 jobs:
   # ==============================================

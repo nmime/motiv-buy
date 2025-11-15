@@ -79,8 +79,8 @@ ssh -i ~/.ssh/motiv-staging deployer@157.180.64.229
 ssh -i ~/.ssh/motiv-production deployer@65.108.218.78
 
 # 5. Save private keys for GitHub Secrets
-cat ~/.ssh/motiv-staging      # For VPS_STAGING_SSH_KEY
-cat ~/.ssh/motiv-production   # For VPS_PRODUCTION_SSH_KEY
+cat ~/.ssh/motiv-staging      # For staging environment VPS_SSH_KEY
+cat ~/.ssh/motiv-production   # For production environment VPS_SSH_KEY
 # Copy ENTIRE output including -----BEGIN----- and -----END----- lines
 ```
 
@@ -285,8 +285,8 @@ Staging `.env`:
 ```env
 NODE_ENV=staging
 DB_NAME=motiv_buy_staging
-DB_PASSWORD=<from STAGING_DB_PASSWORD secret>
-TELEGRAM_BOT_TOKEN=<from STAGING_TELEGRAM_BOT_TOKEN secret>
+DB_PASSWORD=<from staging environment DB_PASSWORD secret>
+TELEGRAM_BOT_TOKEN=<from staging environment TELEGRAM_BOT_TOKEN secret>
 # ... all other vars from GitHub Secrets
 ```
 
@@ -294,8 +294,8 @@ Production `.env`:
 ```env
 NODE_ENV=production
 DB_NAME=motiv_buy_prod
-DB_PASSWORD=<from PRODUCTION_DB_PASSWORD secret>
-TELEGRAM_BOT_TOKEN=<from PRODUCTION_TELEGRAM_BOT_TOKEN secret>
+DB_PASSWORD=<from production environment DB_PASSWORD secret>
+TELEGRAM_BOT_TOKEN=<from production environment TELEGRAM_BOT_TOKEN secret>
 # ... all other vars from GitHub Secrets
 ```
 

@@ -25,7 +25,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PNPM_VERSION: 9
+  PNPM_VERSION: 10
   DOCKER_REGISTRY: ghcr.io
 
 jobs:
@@ -86,9 +86,9 @@ jobs:
           set -euo pipefail
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "${{ secrets.VPS_STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_STAGING_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Run migration ${{ inputs.action }}
         id: migration
@@ -99,14 +99,14 @@ jobs:
           cat > /tmp/migration-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
 
-          cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
+          cd ${{ secrets.VPS_DEPLOY_PATH }}
 
           # Detect Docker network from running containers
           NETWORK_NAME=$(docker compose ps -q postgres 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' 2>/dev/null | head -1)
 
           # Fallback to compose default naming
           if [ -z "$NETWORK_NAME" ]; then
-            NETWORK_NAME="${{ secrets.VPS_STAGING_DEPLOY_PATH }}_default"
+            NETWORK_NAME="${{ secrets.VPS_DEPLOY_PATH }}_default"
           fi
 
           # Verify network exists
@@ -130,11 +130,11 @@ jobs:
           if docker run --rm \
             --network "$NETWORK_NAME" \
             -e NODE_ENV=staging \
-            -e DB_HOST=${{ secrets.STAGING_DB_HOST || 'postgres-prod' }} \
+            -e DB_HOST=${{ secrets.DB_HOST || 'postgres-prod' }} \
             -e DB_PORT=5432 \
-            -e DB_NAME=${{ secrets.STAGING_DB_NAME }} \
-            -e DB_USER=${{ secrets.STAGING_DB_USER }} \
-            -e DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:staging \
             node dist/apps/migration/main.js ${{ inputs.action }}; then
             echo '✅ Migration completed successfully'
@@ -149,7 +149,7 @@ jobs:
 
           # Execute script on remote server, passing GitHub token via stdin
           echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             'bash -s' < /tmp/migration-script.sh
 
           # Cleanup
@@ -161,26 +161,26 @@ jobs:
           set -euo pipefail
 
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_STAGING_USER }}@${{ secrets.VPS_STAGING_HOST }} << 'STATUS_EOF'
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'STATUS_EOF'
           set -euo pipefail
 
-          cd ${{ secrets.VPS_STAGING_DEPLOY_PATH }}
+          cd ${{ secrets.VPS_DEPLOY_PATH }}
 
           # Determine network name
-          NETWORK_NAME="${{ secrets.VPS_STAGING_DEPLOY_PATH }}_default"
+          NETWORK_NAME="${{ secrets.VPS_DEPLOY_PATH }}_default"
           if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-            NETWORK_NAME="$(basename ${{ secrets.VPS_STAGING_DEPLOY_PATH }})-network-prod"
+            NETWORK_NAME="$(basename ${{ secrets.VPS_DEPLOY_PATH }})-network-prod"
           fi
 
           echo '📋 Migration Status Details:'
           docker run --rm \
             --network "$NETWORK_NAME" \
             -e NODE_ENV=staging \
-            -e DB_HOST=${{ secrets.STAGING_DB_HOST || 'postgres-prod' }} \
+            -e DB_HOST=${{ secrets.DB_HOST || 'postgres-prod' }} \
             -e DB_PORT=5432 \
-            -e DB_NAME=${{ secrets.STAGING_DB_NAME }} \
-            -e DB_USER=${{ secrets.STAGING_DB_USER }} \
-            -e DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:staging \
             node dist/apps/migration/main.js status
           STATUS_EOF
@@ -236,9 +236,9 @@ jobs:
           set -euo pipefail
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "${{ secrets.VPS_PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Create database backup
         if: inputs.action == 'up' || inputs.action == 'down'
@@ -246,18 +246,18 @@ jobs:
           set -euo pipefail
 
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << "BACKUP_EOF"
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << "BACKUP_EOF"
           set -euo pipefail
 
-          mkdir -p ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups
+          mkdir -p ${{ secrets.VPS_DEPLOY_PATH }}/backups
 
-          BACKUP_FILE="${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/pre-migration-$(date +%Y%m%d-%H%M%S).sql"
+          BACKUP_FILE="${{ secrets.VPS_DEPLOY_PATH }}/backups/pre-migration-$(date +%Y%m%d-%H%M%S).sql"
 
           echo "📦 Creating database backup: $BACKUP_FILE"
 
           # Create backup with error checking
-          if docker compose -f ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/docker-compose.yml exec -T postgres \
-            pg_dump -U ${{ secrets.PRODUCTION_DB_USER }} ${{ secrets.PRODUCTION_DB_NAME }} > "$BACKUP_FILE"; then
+          if docker compose -f ${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml exec -T postgres \
+            pg_dump -U ${{ secrets.DB_USER }} ${{ secrets.DB_NAME }} > "$BACKUP_FILE"; then
 
             # Verify backup file is not empty
             if [ -s "$BACKUP_FILE" ]; then
@@ -284,8 +284,8 @@ jobs:
 
           # Keep only last 10 backups (with logging)
           echo "🗑️ Cleaning old backups..."
-          REMOVED=$(ls -t ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | tee /dev/stderr | wc -l)
-          ls -t ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | xargs rm -f || true
+          REMOVED=$(ls -t ${{ secrets.VPS_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | tee /dev/stderr | wc -l)
+          ls -t ${{ secrets.VPS_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | xargs rm -f || true
           echo "Removed $REMOVED old backup(s)"
           BACKUP_EOF
 
@@ -298,14 +298,14 @@ jobs:
           cat > /tmp/migration-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
 
-          cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
+          cd ${{ secrets.VPS_DEPLOY_PATH }}
 
           # Detect Docker network from running containers
           NETWORK_NAME=$(docker compose ps -q postgres 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' 2>/dev/null | head -1)
 
           # Fallback to compose default naming
           if [ -z "$NETWORK_NAME" ]; then
-            NETWORK_NAME="${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}_default"
+            NETWORK_NAME="${{ secrets.VPS_DEPLOY_PATH }}_default"
           fi
 
           # Verify network exists
@@ -329,11 +329,11 @@ jobs:
           if timeout 600 docker run --rm \
             --network "$NETWORK_NAME" \
             -e NODE_ENV=production \
-            -e DB_HOST=${{ secrets.PRODUCTION_DB_HOST || 'postgres-prod' }} \
+            -e DB_HOST=${{ secrets.DB_HOST || 'postgres-prod' }} \
             -e DB_PORT=5432 \
-            -e DB_NAME=${{ secrets.PRODUCTION_DB_NAME }} \
-            -e DB_USER=${{ secrets.PRODUCTION_DB_USER }} \
-            -e DB_PASSWORD=${{ secrets.PRODUCTION_DB_PASSWORD }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:production \
             node dist/apps/migration/main.js ${{ inputs.action }}; then
             echo '✅ Migration completed successfully'
@@ -353,7 +353,7 @@ jobs:
 
           # Execute script on remote server, passing GitHub token via stdin
           echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             'bash -s' < /tmp/migration-script.sh
 
           # Cleanup
@@ -365,26 +365,26 @@ jobs:
           set -euo pipefail
 
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_PRODUCTION_USER }}@${{ secrets.VPS_PRODUCTION_HOST }} << 'STATUS_EOF'
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'STATUS_EOF'
           set -euo pipefail
 
-          cd ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}
+          cd ${{ secrets.VPS_DEPLOY_PATH }}
 
           # Determine network name
-          NETWORK_NAME="${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }}_default"
+          NETWORK_NAME="${{ secrets.VPS_DEPLOY_PATH }}_default"
           if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-            NETWORK_NAME="$(basename ${{ secrets.VPS_PRODUCTION_DEPLOY_PATH }})-network-prod"
+            NETWORK_NAME="$(basename ${{ secrets.VPS_DEPLOY_PATH }})-network-prod"
           fi
 
           echo '📋 Migration Status Details:'
           docker run --rm \
             --network "$NETWORK_NAME" \
             -e NODE_ENV=production \
-            -e DB_HOST=${{ secrets.PRODUCTION_DB_HOST || 'postgres-prod' }} \
+            -e DB_HOST=${{ secrets.DB_HOST || 'postgres-prod' }} \
             -e DB_PORT=5432 \
-            -e DB_NAME=${{ secrets.PRODUCTION_DB_NAME }} \
-            -e DB_USER=${{ secrets.PRODUCTION_DB_USER }} \
-            -e DB_PASSWORD=${{ secrets.PRODUCTION_DB_PASSWORD }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:production \
             node dist/apps/migration/main.js status
           STATUS_EOF
