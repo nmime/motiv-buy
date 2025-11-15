@@ -46,24 +46,26 @@ ssh root@65.108.218.78 "bash /root/setup-server.sh production"
 
 ### Setup SSH Keys
 
-**Note:** The setup script automatically copies your root SSH keys to the `deployer` user, so you can SSH as deployer using the same key you used for root.
-
-**Optional - Create dedicated deployment key:**
+**Note:** The setup script automatically copies your root SSH keys to the `deployer` user. You can test access immediately, then add a dedicated deployment key for GitHub Actions.
 
 ```bash
-# Generate dedicated key (optional)
-ssh-keygen -t ed25519 -C "deploy" -f ~/.ssh/motiv-deploy
-
-# Test deployer access (should work with your existing root key)
+# 1. Test deployer access (should work with your existing root key)
 ssh deployer@157.180.64.229
 ssh deployer@65.108.218.78
 
-# Or add dedicated key manually if needed
+# 2. Generate dedicated deployment key for GitHub Actions
+ssh-keygen -t ed25519 -C "deploy" -f ~/.ssh/motiv-deploy
+
+# 3. Add deployment key to servers
 cat ~/.ssh/motiv-deploy.pub | ssh deployer@157.180.64.229 'tee -a ~/.ssh/authorized_keys'
 cat ~/.ssh/motiv-deploy.pub | ssh deployer@65.108.218.78 'tee -a ~/.ssh/authorized_keys'
 
-# Save private key for GitHub Secrets
-cat ~/.ssh/motiv-deploy  # Or use your existing root key
+# 4. Test with new key
+ssh -i ~/.ssh/motiv-deploy deployer@157.180.64.229
+ssh -i ~/.ssh/motiv-deploy deployer@65.108.218.78
+
+# 5. Save private key for GitHub Secrets
+cat ~/.ssh/motiv-deploy
 # Copy ENTIRE output including -----BEGIN----- and -----END----- lines
 ```
 
