@@ -59,26 +59,28 @@ bash setup-server.sh staging mydomain.com me@mydomain.com # Full custom
 
 ### Setup SSH Keys
 
-**Note:** The setup script automatically copies your root SSH keys to the `deployer` user. You can test access immediately, then add a dedicated deployment key for GitHub Actions.
+**Note:** The setup script automatically copies your root SSH keys to the `deployer` user. You can test access immediately, then add dedicated deployment keys for GitHub Actions.
 
 ```bash
 # 1. Test deployer access (should work with your existing root key)
 ssh deployer@157.180.64.229
 ssh deployer@65.108.218.78
 
-# 2. Generate dedicated deployment key for GitHub Actions
-ssh-keygen -t ed25519 -C "deploy" -f ~/.ssh/motiv-deploy
+# 2. Generate dedicated deployment keys for GitHub Actions (one per environment)
+ssh-keygen -t ed25519 -C "deploy-staging" -f ~/.ssh/motiv-staging
+ssh-keygen -t ed25519 -C "deploy-production" -f ~/.ssh/motiv-production
 
-# 3. Add deployment key to servers
-cat ~/.ssh/motiv-deploy.pub | ssh deployer@157.180.64.229 'tee -a ~/.ssh/authorized_keys'
-cat ~/.ssh/motiv-deploy.pub | ssh deployer@65.108.218.78 'tee -a ~/.ssh/authorized_keys'
+# 3. Add deployment keys to respective servers
+cat ~/.ssh/motiv-staging.pub | ssh deployer@157.180.64.229 'tee -a ~/.ssh/authorized_keys'
+cat ~/.ssh/motiv-production.pub | ssh deployer@65.108.218.78 'tee -a ~/.ssh/authorized_keys'
 
-# 4. Test with new key
-ssh -i ~/.ssh/motiv-deploy deployer@157.180.64.229
-ssh -i ~/.ssh/motiv-deploy deployer@65.108.218.78
+# 4. Test with new keys
+ssh -i ~/.ssh/motiv-staging deployer@157.180.64.229
+ssh -i ~/.ssh/motiv-production deployer@65.108.218.78
 
-# 5. Save private key for GitHub Secrets
-cat ~/.ssh/motiv-deploy
+# 5. Save private keys for GitHub Secrets
+cat ~/.ssh/motiv-staging      # For VPS_STAGING_SSH_KEY
+cat ~/.ssh/motiv-production   # For VPS_PRODUCTION_SSH_KEY
 # Copy ENTIRE output including -----BEGIN----- and -----END----- lines
 ```
 
