@@ -1,4 +1,3 @@
-import { unknownToError } from '@app/common-shared';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RedisClient } from '@app/common-redis';
 import { BotFactoryService } from '@app/feature-bot-shared';
@@ -13,6 +12,21 @@ describe('BotTokenValidationService', () => {
 
   const validToken = '123456:AAFdqTcLreQksK5d_oM4c9ZhLNbxFV9qHlK';
   const invalidToken = 'invalid-token';
+
+  // Extract mock bot validation result to avoid duplication
+  const mockBotValidationResult = {
+    isValid: true,
+    botInfo: {
+      id: 123456,
+      isBot: true,
+      username: 'testbot',
+      firstName: 'Test Bot',
+      canJoinGroups: true,
+      canReadAllGroupMessages: false,
+      supportsInlineQueries: true,
+    },
+    timestamp: new Date(),
+  };
 
   beforeEach(async () => {
     const mockRedis = {
@@ -66,19 +80,7 @@ describe('BotTokenValidationService', () => {
       mockRedisClient.incr.mockResolvedValue(1);
 
       // Mock bot factory validation
-      mockBotFactoryService.validateBotToken.mockResolvedValue({
-        isValid: true,
-        botInfo: {
-          id: 123456,
-          isBot: true,
-          username: 'testbot',
-          firstName: 'Test Bot',
-          canJoinGroups: true,
-          canReadAllGroupMessages: false,
-          supportsInlineQueries: true,
-        },
-        timestamp: new Date(),
-      });
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
 
       const result = await service.validateToken(dto);
 
@@ -155,19 +157,7 @@ describe('BotTokenValidationService', () => {
       mockRedisClient.set.mockResolvedValue('OK');
 
       // Mock bot factory validation
-      mockBotFactoryService.validateBotToken.mockResolvedValue({
-        isValid: true,
-        botInfo: {
-          id: 123456,
-          isBot: true,
-          username: 'testbot',
-          firstName: 'Test Bot',
-          canJoinGroups: true,
-          canReadAllGroupMessages: false,
-          supportsInlineQueries: true,
-        },
-        timestamp: new Date(),
-      });
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
 
       const result = await service.validateToken(dto, clientIp);
 
@@ -180,23 +170,32 @@ describe('BotTokenValidationService', () => {
       mockRedisClient.incr.mockResolvedValue(1);
 
       // Mock bot factory validation
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
+
+      const result = await service.validateToken(dto);
+
+      expect(result.ok).toBe(true); // Should still validate without cache
+    });
+
+    it('should handle BotFactoryService validation failure', async () => {
+      mockRedisClient.get.mockResolvedValue(null);
+      mockRedisClient.incr.mockResolvedValue(1);
+      mockRedisClient.set.mockResolvedValue('OK');
+
+      // Mock bot factory returning invalid token (no error message to use default)
       mockBotFactoryService.validateBotToken.mockResolvedValue({
-        isValid: true,
-        botInfo: {
-          id: 123456,
-          isBot: true,
-          username: 'testbot',
-          firstName: 'Test Bot',
-          canJoinGroups: true,
-          canReadAllGroupMessages: false,
-          supportsInlineQueries: true,
-        },
+        isValid: false,
+        errorCode: 'UNAUTHORIZED',
         timestamp: new Date(),
       });
 
       const result = await service.validateToken(dto);
 
-      expect(result.ok).toBe(true); // Should still validate without cache
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.val.isValid).toBe(false);
+        expect(result.val.error).toBe('Invalid or expired token');
+      }
     });
   });
 
@@ -208,19 +207,7 @@ describe('BotTokenValidationService', () => {
       };
 
       // Mock bot factory validation
-      mockBotFactoryService.validateBotToken.mockResolvedValue({
-        isValid: true,
-        botInfo: {
-          id: 123456,
-          isBot: true,
-          username: 'testbot',
-          firstName: 'Test Bot',
-          canJoinGroups: true,
-          canReadAllGroupMessages: false,
-          supportsInlineQueries: true,
-        },
-        timestamp: new Date(),
-      });
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
 
       mockRedisClient.get.mockResolvedValue(null);
       mockRedisClient.set.mockResolvedValue('OK');
@@ -374,19 +361,7 @@ describe('BotTokenValidationService', () => {
       mockRedisClient.set.mockResolvedValue('OK'); // Cache set
 
       // Mock bot factory validation
-      mockBotFactoryService.validateBotToken.mockResolvedValue({
-        isValid: true,
-        botInfo: {
-          id: 123456,
-          isBot: true,
-          username: 'testbot',
-          firstName: 'Test Bot',
-          canJoinGroups: true,
-          canReadAllGroupMessages: false,
-          supportsInlineQueries: true,
-        },
-        timestamp: new Date(),
-      });
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
 
       const firstResult = await service.validateToken(dto, clientIp);
       expect(firstResult.ok).toBe(true);
