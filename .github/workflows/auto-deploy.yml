@@ -39,7 +39,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PNPM_VERSION: 10
   DOCKER_REGISTRY: ghcr.io
 
 jobs:
