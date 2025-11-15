@@ -146,7 +146,15 @@ pnpm run migration:fresh   # Fresh database (⚠️ DROPS ALL TABLES!)
 
 ## Deployment
 
-**Complete Setup Guide:** See [docs/SETUP-INSTRUCTIONS.md](docs/SETUP-INSTRUCTIONS.md)
+### Quick Start - Deploy from Scratch
+
+**→ [docs/DEPLOY.md](docs/DEPLOY.md)** - Single guide with everything you need
+
+This guide covers:
+- Server setup
+- GitHub secrets (what to fill and where)
+- Deploying to staging
+- Deploying to production
 
 ### Environments
 
@@ -155,17 +163,41 @@ pnpm run migration:fresh   # Fresh database (⚠️ DROPS ALL TABLES!)
 
 ### GitHub Actions Workflows
 
-- **CI:** Automated testing, linting, and Docker builds
-- **Deploy Staging:** Deploy to staging server from develop branch
-- **Deploy Production:** Deploy to production server from master branch
+- **CI:** Automated testing, linting, and Docker builds (runs on push/PR)
+- **Deploy:** Manual deployment to staging (any branch except master) or production (master only)
 - **Update SSL:** Automatically update SSL certificates
 - **CodeQL:** Security analysis
+- **Run Migrations:** Manual database migration execution
+
+### How to Deploy
+
+**Staging:**
+```bash
+# 1. Push your branch
+git push origin feature/my-feature
+
+# 2. Go to GitHub → Actions → Deploy
+# 3. Select your branch and staging environment
+# 4. Click "Run workflow"
+```
+
+**Production:**
+```bash
+# 1. Merge to master
+git checkout master
+git merge feature/my-feature
+git push origin master
+
+# 2. Go to GitHub → Actions → Deploy
+# 3. Select master branch and production environment
+# 4. Click "Run workflow"
+```
 
 ## Documentation
 
-- **Development Guidelines:** [CLAUDE.md](CLAUDE.md)
-- **Setup Instructions:** [docs/SETUP-INSTRUCTIONS.md](docs/SETUP-INSTRUCTIONS.md)
-- **Detailed Docs:** See `docs/` directory
+- **[CLAUDE.md](CLAUDE.md)** - Code standards and development guidelines
+- **[docs/DEPLOY.md](docs/DEPLOY.md)** - Deploy from scratch
+- **[docs/](docs/)** - All documentation
 
 ## License
 
