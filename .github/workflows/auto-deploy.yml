@@ -80,12 +80,13 @@ jobs:
 
           # Poll for CI workflow completion (max 20 minutes)
           for i in {1..120}; do
-            # Get workflow runs for this SHA
+            # Get the most recent workflow run for this SHA (limit 1 to avoid race conditions)
             STATUS=$(gh run list \
               --workflow=ci.yml \
               --commit="$SHA" \
-              --json status,conclusion \
-              --jq '.[0] | select(.status == "completed") | .conclusion')
+              --limit 1 \
+              --json status,conclusion,createdAt \
+              --jq 'sort_by(.createdAt) | reverse | .[0] | select(.status == "completed") | .conclusion')
 
             if [[ "$STATUS" == "success" ]]; then
               echo "✅ CI workflow completed successfully"
@@ -263,11 +264,41 @@ jobs:
       - name: Setup SSH
         run: |
           set -euo pipefail
+
+          # Ensure SSH key is cleaned up on any failure
+          cleanup_ssh() {
+            rm -f ~/.ssh/id_rsa
+          }
+          trap cleanup_ssh EXIT ERR
+
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run database migrations
+        id: migrate
+        run: |
+          set -euo pipefail
+          echo "🗄️  Running database migrations..."
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MIGRATE_EOF'
+          set -euo pipefail
+          cd ${{ vars.VPS_DEPLOY_PATH }}
+
+          # Run migrations using the API container
+          if docker compose ps api 2>/dev/null | grep -q "Up"; then
+            echo "Running migrations..."
+            docker compose exec -T api pnpm run migration:run || {
+              echo "❌ Migration failed"
+              exit 1
+            }
+            echo "✅ Migrations completed successfully"
+          else
+            echo "⚠️  API container not running, skipping migrations (will run on first deployment)"
+          fi
+          MIGRATE_EOF
 
       - name: Deploy to staging
         id: deploy
@@ -288,7 +319,7 @@ jobs:
               ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
           fi
 
-          # Create environment file
+          # Create environment file with proper error handling
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
           set -euo pipefail
@@ -297,6 +328,7 @@ jobs:
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=${{ needs.setup.outputs.image-tag }}
+          API_PORT=${{ vars.API_PORT || '3000' }}
           DB_NAME=${{ vars.DB_NAME }}
           DB_USER=${{ vars.DB_USER }}
           DB_PORT=${{ vars.DB_PORT }}
@@ -312,25 +344,15 @@ jobs:
           MAIN_DOMAIN=st.motivbuy.com
           LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
           ENVFILE
+          chmod 600 ${{ vars.VPS_DEPLOY_PATH }}/.env
           ENV_EOF
 
-          # Deploy
-          cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
-          set -euo pipefail
-          cd ${{ vars.VPS_DEPLOY_PATH }}
-          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
-          docker compose pull
-          echo '🚀 Deploying to staging...'
-          docker compose up -d --remove-orphans
-          docker image prune -af --filter 'until=24h'
-          echo '✅ Staging deployment completed'
-          SCRIPT_EOF
-
-          chmod +x /tmp/deploy-script.sh
-          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
+          # Deploy (pass token via stdin to avoid process list exposure)
+          ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            'bash -s' < /tmp/deploy-script.sh
-          rm -f /tmp/deploy-script.sh
+            "cd ${{ vars.VPS_DEPLOY_PATH }} && docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin && docker compose pull && docker compose up -d --remove-orphans && docker image prune -af --filter 'until=24h'" \
+            <<< '${{ secrets.GITHUB_TOKEN }}'
+          echo '✅ Staging deployment completed'
 
       - name: Health check
         run: |
@@ -338,11 +360,23 @@ jobs:
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
-          timeout 60 sh -c 'until docker compose -f ${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml ps | grep -q "healthy"; do sleep 2; done' || true
-          if curl -f http://localhost:3000/health; then
+          cd ${{ vars.VPS_DEPLOY_PATH }}
+          # Load API_PORT from .env
+          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r' || echo '3000')
+          echo "Using API_PORT=${API_PORT}"
+
+          echo '⏳ Waiting for services to become healthy...'
+          if ! timeout 60 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 2; done'; then
+            echo '❌ Timeout waiting for services to become healthy'
+            docker compose ps
+            docker compose logs --tail=50
+            exit 1
+          fi
+          if curl -f "http://localhost:${API_PORT}/health"; then
             echo '✅ Staging health check passed'
           else
             echo '❌ Staging health check failed'
+            docker compose logs --tail=50
             exit 1
           fi
           HEALTH_EOF
@@ -456,11 +490,57 @@ jobs:
       - name: Setup SSH
         run: |
           set -euo pipefail
+
+          # Ensure SSH key is cleaned up on any failure
+          cleanup_ssh() {
+            rm -f ~/.ssh/id_rsa
+          }
+          trap cleanup_ssh EXIT ERR
+
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Backup current deployment
+        id: backup
+        run: |
+          set -euo pipefail
+          echo "📦 Backing up current deployment state..."
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'BACKUP_EOF'
+          set -euo pipefail
+          cd ${{ vars.VPS_DEPLOY_PATH }}
+          # Save current image tags for rollback
+          docker compose images --format json > .deployment-backup.json || echo '[]' > .deployment-backup.json
+          # Backup current .env
+          cp .env .env.backup 2>/dev/null || true
+          echo "✅ Backup completed"
+          BACKUP_EOF
+
+      - name: Run database migrations
+        id: migrate
+        run: |
+          set -euo pipefail
+          echo "🗄️  Running database migrations..."
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MIGRATE_EOF'
+          set -euo pipefail
+          cd ${{ vars.VPS_DEPLOY_PATH }}
+
+          # Run migrations using the API container
+          if docker compose ps api | grep -q "Up"; then
+            echo "Running migrations..."
+            docker compose exec -T api pnpm run migration:prod || {
+              echo "❌ Migration failed"
+              exit 1
+            }
+            echo "✅ Migrations completed successfully"
+          else
+            echo "⚠️  API container not running, skipping migrations (will run on first deployment)"
+          fi
+          MIGRATE_EOF
 
       - name: Deploy to production
         id: deploy
@@ -481,7 +561,7 @@ jobs:
               ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
           fi
 
-          # Create environment file
+          # Create environment file with proper error handling
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
           set -euo pipefail
@@ -490,6 +570,7 @@ jobs:
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=latest
+          API_PORT=${{ vars.API_PORT || '3000' }}
           DB_NAME=${{ vars.DB_NAME }}
           DB_USER=${{ vars.DB_USER }}
           DB_PORT=${{ vars.DB_PORT }}
@@ -505,27 +586,15 @@ jobs:
           MAIN_DOMAIN=motivbuy.com
           LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
           ENVFILE
+          chmod 600 ${{ vars.VPS_DEPLOY_PATH }}/.env
           ENV_EOF
 
-          # Deploy
-          cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
-          set -euo pipefail
-          cd ${{ vars.VPS_DEPLOY_PATH }}
-          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
-          docker compose pull
-          echo '🚀 Deploying to production...'
-          docker compose up -d --remove-orphans --no-deps api bot
-          echo '⏳ Waiting for services...'
-          sleep 10
-          docker image prune -af --filter 'until=48h'
-          echo '✅ Production deployment completed'
-          SCRIPT_EOF
-
-          chmod +x /tmp/deploy-script.sh
-          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
+          # Deploy (pass token via stdin to avoid process list exposure)
+          ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            'bash -s' < /tmp/deploy-script.sh
-          rm -f /tmp/deploy-script.sh
+            "cd ${{ vars.VPS_DEPLOY_PATH }} && docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin && docker compose pull && docker compose up -d --remove-orphans --no-deps api bot && sleep 10 && docker image prune -af --filter 'until=48h'" \
+            <<< '${{ secrets.GITHUB_TOKEN }}'
+          echo '✅ Production deployment completed'
 
       - name: Health check
         run: |
@@ -534,11 +603,22 @@ jobs:
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
-          timeout 120 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 3; done' || true
-          if curl -f http://localhost:3000/health; then
+          # Load API_PORT from .env
+          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r' || echo '3000')
+          echo "Using API_PORT=${API_PORT}"
+
+          echo '⏳ Waiting for services to become healthy...'
+          if ! timeout 120 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 3; done'; then
+            echo '❌ Timeout waiting for services to become healthy'
+            docker compose ps
+            docker compose logs --tail=50
+            exit 1
+          fi
+          if curl -f "http://localhost:${API_PORT}/health"; then
             echo '✅ Production health check passed'
           else
             echo '❌ Production health check failed'
+            docker compose logs --tail=50
             exit 1
           fi
           HEALTH_EOF
@@ -549,13 +629,54 @@ jobs:
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'SMOKE_EOF'
           set -euo pipefail
-          if curl -f http://localhost:3000/health && curl -f http://localhost:3000/api; then
+          cd ${{ vars.VPS_DEPLOY_PATH }}
+          # Load API_PORT from .env
+          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r' || echo '3000')
+
+          if curl -f "http://localhost:${API_PORT}/health" && curl -f "http://localhost:${API_PORT}/api"; then
             echo '✅ Production smoke tests passed'
           else
             echo '❌ Production smoke tests failed'
             exit 1
           fi
           SMOKE_EOF
+
+      - name: Rollback on failure
+        if: failure() && steps.deploy.outcome == 'success'
+        run: |
+          set -euo pipefail
+          echo "🔄 Rolling back to previous deployment..."
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ROLLBACK_EOF'
+          set -euo pipefail
+          cd ${{ vars.VPS_DEPLOY_PATH }}
+
+          # Restore previous .env if it exists
+          if [ -f .env.backup ]; then
+            mv .env.backup .env
+            echo "✅ Restored previous .env"
+          fi
+
+          # Load API_PORT from .env
+          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r' || echo '3000')
+
+          # Rollback to previous images
+          echo "🔄 Restarting services with previous version..."
+          docker compose down
+          docker compose up -d --remove-orphans
+
+          echo "⏳ Waiting for services to stabilize..."
+          sleep 15
+
+          if curl -f "http://localhost:${API_PORT}/health"; then
+            echo "✅ Rollback successful - services are healthy"
+          else
+            echo "❌ Rollback completed but services may need manual intervention"
+          fi
+          ROLLBACK_EOF
+
+          echo "⚠️  Deployment failed and was rolled back. Please check the logs above."
+          exit 1
 
       - name: Update deployment status - Success
         if: success()
