@@ -145,6 +145,36 @@ openssl rand -base64 64
 BOT_ADMIN_IDS=123456789,987654321
 ```
 
+### Bot Moderation Channel
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `TELEGRAM_MODERATION_CHANNEL_ID` | Telegram channel ID for moderation notifications | - | ❌ No |
+
+**Purpose:**
+Sends moderation requests to a Telegram channel where admins can approve or decline traffic sources and orders.
+
+**Features:**
+- Automatic notifications for new traffic sources and orders
+- Inline approve/decline buttons in the channel
+- Updates messages with reviewer name and decision
+- Optional configuration (if not set, moderation notifications are disabled)
+
+**Example:**
+```bash
+# Numeric channel ID (recommended)
+TELEGRAM_MODERATION_CHANNEL_ID=-1001234567890
+
+# Or channel username
+TELEGRAM_MODERATION_CHANNEL_ID=@your_moderation_channel
+```
+
+**How to get Channel ID:**
+1. Create a Telegram channel
+2. Add your bot as an administrator
+3. Get the channel ID using @userinfobot or from bot API
+4. Use the numeric ID format (e.g., `-1001234567890`)
+
 ### Bot Webhook Configuration
 
 | Variable | Description | Default | Required |
