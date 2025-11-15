@@ -1,14 +1,30 @@
 name: Auto Deploy
 
+# ⚠️  MANUAL APPROVAL REQUIRED
+#
+# This workflow requires manual approval before deployments execute.
+# Configure Environment Protection Rules in GitHub Settings:
+#
+# 1. Go to: Settings > Environments
+# 2. Configure 'staging' environment:
+#    - Required reviewers: Add team members who can approve staging deployments
+#    - Wait timer: Optional delay before deployment (e.g., 5 minutes)
+# 3. Configure 'production' environment:
+#    - Required reviewers: Add team members who can approve production deployments
+#    - Wait timer: Recommended 15-30 minutes for monitoring staging
+#    - Deployment branches: Limit to 'master' branch only
+#
+# Without these rules configured, workflows will auto-deploy without approval!
+
 on:
-  # Deploy to production after CI completes on master
+  # Deploy to production after CI completes on master (REQUIRES APPROVAL)
   workflow_run:
     workflows: ["CI"]
     types: [completed]
     branches:
       - master
 
-  # Deploy to staging for PRs (runs from base branch context)
+  # Deploy to staging for PRs (REQUIRES APPROVAL)
   pull_request_target:
     types: [opened, synchronize, reopened]
     branches:
@@ -19,7 +35,7 @@ on:
       - 'LICENSE'
       - '.gitignore'
 
-  # Manual trigger for ad-hoc deployments
+  # Manual trigger for ad-hoc deployments (REQUIRES APPROVAL)
   workflow_dispatch:
     inputs:
       environment:
