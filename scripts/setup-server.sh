@@ -17,36 +17,41 @@ SCRIPT_VERSION="2.0"
 LOG_FILE="/var/log/motiv-buy-setup-$(date +%Y%m%d-%H%M%S).log"
 BACKUP_DIR="/root/motiv-buy-setup-backup-$(date +%Y%m%d-%H%M%S)"
 
+# Color codes
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly CYAN='\033[0;36m'
+readonly NC='\033[0m' # No Color
+readonly BOLD='\033[1m'
+
 ###############################################################################
 # Logging Functions
 ###############################################################################
 
 log() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+    echo -e "[$(date +'%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
 }
 
 log_success() {
-    echo "[OK] $*" | tee -a "$LOG_FILE"
+    echo -e "${GREEN}✓${NC} $*" | tee -a "$LOG_FILE"
 }
 
 log_error() {
-    echo "[ERROR] $*" | tee -a "$LOG_FILE" >&2
+    echo -e "${RED}✗${NC} $*" | tee -a "$LOG_FILE" >&2
 }
 
 log_warning() {
-    echo "[WARN] $*" | tee -a "$LOG_FILE"
+    echo -e "${YELLOW}⚠${NC} $*" | tee -a "$LOG_FILE"
 }
 
 log_info() {
-    echo "[INFO] $*" | tee -a "$LOG_FILE"
+    echo -e "${BLUE}ℹ${NC} $*" | tee -a "$LOG_FILE"
 }
 
 log_step() {
-    echo "" | tee -a "$LOG_FILE"
-    echo "========================================" | tee -a "$LOG_FILE"
-    echo " $*" | tee -a "$LOG_FILE"
-    echo "========================================" | tee -a "$LOG_FILE"
-    echo "" | tee -a "$LOG_FILE"
+    echo -e "\n${CYAN}${BOLD}═══ $* ═══${NC}\n" | tee -a "$LOG_FILE"
 }
 
 ###############################################################################
@@ -162,6 +167,7 @@ fi
 ###############################################################################
 
 clear 2>/dev/null || true
+echo -e "${CYAN}"
 cat << "EOF"
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
@@ -170,11 +176,11 @@ cat << "EOF"
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 EOF
-echo ""
+echo -e "${NC}"
 
-log_info "Environment: ${ENV_TYPE^^}"
-log_info "Domain: ${DOMAIN}"
-log_info "Email: ${EMAIL}"
+log_info "Environment: ${BOLD}${ENV_TYPE^^}${NC}"
+log_info "Domain: ${BOLD}${DOMAIN}${NC}"
+log_info "Email: ${BOLD}${EMAIL}${NC}"
 log_info "Script version: $SCRIPT_VERSION"
 log_info "Log file: $LOG_FILE"
 log_info "Backup directory: $BACKUP_DIR"
@@ -740,6 +746,7 @@ log_success "SSL auto-renewal configured"
 
 log_step "Setup Complete!"
 
+echo -e "${GREEN}"
 cat << "EOF"
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
@@ -747,64 +754,65 @@ cat << "EOF"
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 EOF
-echo ""
+echo -e "${NC}"
 
-log_info "Server Configuration Summary:"
 echo ""
-echo "  Environment: $ENV_TYPE"
-echo "  Deployment Path: $DEPLOY_PATH"
-echo "  Deployment User: $DEPLOY_USER"
+log_info "${BOLD}Server Configuration Summary:${NC}"
+echo ""
+echo -e "  ${CYAN}Environment:${NC} $ENV_TYPE"
+echo -e "  ${CYAN}Deployment Path:${NC} $DEPLOY_PATH"
+echo -e "  ${CYAN}Deployment User:${NC} $DEPLOY_USER"
 echo ""
 
 # Show protocol based on whether SSL certificates exist
 if [ -d "$SSL_CERT_PATH" ] && [ -f "$SSL_CERT_PATH/fullchain.pem" ]; then
     PROTOCOL="https"
-    SSL_STATUS="[OK] Enabled"
+    SSL_STATUS="${GREEN}✓ Enabled${NC}"
 else
     PROTOCOL="http"
-    SSL_STATUS="[WARN] Not configured (HTTP only)"
+    SSL_STATUS="${YELLOW}⚠ Not configured (HTTP only)${NC}"
 fi
 
-echo "  Domains:"
-echo "    Main: $PROTOCOL://$MAIN_DOMAIN"
-echo "    API:  $PROTOCOL://$API_DOMAIN"
-echo "    Bot:  $PROTOCOL://$BOT_DOMAIN"
+echo -e "  ${CYAN}Domains:${NC}"
+echo -e "    Main: $PROTOCOL://$MAIN_DOMAIN"
+echo -e "    API:  $PROTOCOL://$API_DOMAIN"
+echo -e "    Bot:  $PROTOCOL://$BOT_DOMAIN"
 echo ""
-echo "  SSL: $SSL_STATUS"
+echo -e "  ${CYAN}SSL:${NC} $SSL_STATUS"
 echo ""
-echo "  Security:"
-echo "    Firewall: $(ufw status | grep -i "Status:" | awk '{print $2}')"
-echo "    Fail2Ban: Max retries $FAIL2BAN_MAXRETRY, Ban time ${FAIL2BAN_BANTIME}s"
-echo "    Auto-updates: Enabled"
+echo -e "  ${CYAN}Security:${NC}"
+echo -e "    Firewall: $(ufw status | grep -i "Status:" | awk '{print $2}')"
+echo -e "    Fail2Ban: Max retries $FAIL2BAN_MAXRETRY, Ban time ${FAIL2BAN_BANTIME}s"
+echo -e "    Auto-updates: Enabled"
 echo ""
-echo "  Services:"
-docker --version 2>/dev/null && echo "    Docker: [OK] Installed" || echo "    Docker: [ERROR] Not running"
-nginx -v 2>&1 | grep -q "nginx" && echo "    Nginx: [OK] Installed" || echo "    Nginx: [ERROR] Not installed"
-certbot --version 2>/dev/null && echo "    Certbot: [OK] Installed" || echo "    Certbot: [ERROR] Not installed"
+echo -e "  ${CYAN}Services:${NC}"
+docker --version 2>/dev/null && echo -e "    Docker: ${GREEN}✓ Installed${NC}" || echo -e "    Docker: ${RED}✗ Not running${NC}"
+nginx -v 2>&1 | grep -q "nginx" && echo -e "    Nginx: ${GREEN}✓ Installed${NC}" || echo -e "    Nginx: ${RED}✗ Not installed${NC}"
+certbot --version 2>/dev/null && echo -e "    Certbot: ${GREEN}✓ Installed${NC}" || echo -e "    Certbot: ${RED}✗ Not installed${NC}"
 echo ""
 
-log_info "Next Steps:"
+log_info "${BOLD}Next Steps:${NC}"
 echo ""
 
 # Show DNS/SSL step if not configured
 if [ "$PROTOCOL" = "http" ]; then
     echo "  1. Configure DNS records to point to this server:"
-    echo "     A    ${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX}${SUBDOMAIN_PREFIX:+.}${DOMAIN#*.}    → $(hostname -I | awk '{print $1}')"
-    echo "     A    api.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $(hostname -I | awk '{print $1}')"
-    echo "     A    bot.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $(hostname -I | awk '{print $1}')"
+    echo -e "     ${CYAN}A    ${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX}${SUBDOMAIN_PREFIX:+.}${DOMAIN#*.}    → $(hostname -I | awk '{print $1}')${NC}"
+    echo -e "     ${CYAN}A    api.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $(hostname -I | awk '{print $1}')${NC}"
+    echo -e "     ${CYAN}A    bot.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $(hostname -I | awk '{print $1}')${NC}"
     echo ""
     echo "  2. Obtain SSL certificates (after DNS propagation):"
-    echo "     sudo certbot --nginx -d ${MAIN_DOMAIN} -d ${API_DOMAIN} -d ${BOT_DOMAIN}"
+    echo -e "     ${CYAN}sudo certbot --nginx -d ${MAIN_DOMAIN} -d ${API_DOMAIN} -d ${BOT_DOMAIN}${NC}"
     echo ""
     echo "  3. Add your SSH public key:"
-    echo "     ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@YOUR_SERVER_IP"
+    echo -e "     ${CYAN}ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@YOUR_SERVER_IP${NC}"
     echo ""
     echo "  4. Configure GitHub Secrets (see docs/DEPLOY.md)"
     echo ""
     echo "  5. Deploy from GitHub Actions"
 else
     echo "  1. Add your SSH public key:"
-    echo "     ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@YOUR_SERVER_IP"
+    echo -e "     ${CYAN}ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@YOUR_SERVER_IP${NC}"
     echo ""
     echo "  2. Configure GitHub Secrets (see docs/DEPLOY.md)"
     echo ""
@@ -812,7 +820,7 @@ else
 fi
 echo ""
 
-log_info "Files Created:"
+log_info "${BOLD}Files Created:${NC}"
 echo ""
 echo "  Log file: $LOG_FILE"
 echo "  Backup directory: $BACKUP_DIR"
