@@ -332,15 +332,9 @@ log_step "Step 3/10: Docker Installation"
 # Check if Docker is already installed
 if command -v docker >/dev/null 2>&1; then
     DOCKER_VERSION=$(docker --version)
-    log_info "Docker already installed: $DOCKER_VERSION"
-    read -p "Reinstall Docker? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        log_info "Skipping Docker installation"
-    else
-        log_info "Proceeding with Docker installation..."
-        INSTALL_DOCKER=true
-    fi
+    log_success "Docker already installed: $DOCKER_VERSION"
+    log_info "Keeping existing Docker installation"
+    INSTALL_DOCKER=false
 else
     INSTALL_DOCKER=true
 fi
