@@ -24,15 +24,15 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml nx.json tsconfig.json ./
 COPY libs ./libs
 COPY packages ./packages
 
-# Build all shared libraries
-RUN pnpm run build:libs && \
+# Build all shared libraries (disable Nx daemon in Docker)
+RUN NX_DAEMON=false pnpm run build:libs && \
     test -d dist/libs || (echo "ERROR: libs build failed" && exit 1)
 
 # Ensure packages directory exists for COPY (even if empty)
 RUN mkdir -p dist/packages && \
     if [ -d packages ] && [ "$(ls -A packages 2>/dev/null)" ]; then \
       echo "Building packages..." && \
-      pnpm nx run-many -t build --projects='packages/*'; \
+      NX_DAEMON=false pnpm nx run-many -t build --projects='packages/*'; \
     fi
 
 # -----------------------------------------------------------------------------
@@ -55,8 +55,8 @@ COPY --from=libs-builder /app/dist/libs ./dist/libs
 COPY --from=libs-builder /app/dist/packages ./dist/packages
 RUN test -d dist/libs || (echo "ERROR: Pre-built libs missing" && exit 1)
 
-# Build app (libs already built, only app code compiles)
-RUN pnpm run build:${APP_NAME}
+# Build app (libs already built, only app code compiles, disable Nx daemon in Docker)
+RUN NX_DAEMON=false pnpm run build:${APP_NAME}
 
 # Verify build output
 RUN test -f dist/apps/${APP_NAME}/src/main.js || \
