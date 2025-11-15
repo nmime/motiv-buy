@@ -1,14 +1,25 @@
 name: Auto Deploy
 
 on:
-  # Deploy after CI workflow completes successfully (master only)
+  # Deploy to production after CI completes on master
   workflow_run:
     workflows: ["CI"]
     types: [completed]
     branches:
       - master
 
-  # Manual trigger (also used by CI workflow after builds complete)
+  # Deploy to staging for PRs (runs from base branch context)
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+
+  # Manual trigger for ad-hoc deployments
   workflow_dispatch:
     inputs:
       environment:
@@ -44,6 +55,7 @@ jobs:
     runs-on: [self-hosted, linux]
     if: |
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request_target' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     outputs:
       environment: ${{ steps.env.outputs.environment }}
@@ -58,13 +70,60 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Wait for CI to complete (PRs only)
+        if: github.event_name == 'pull_request_target'
+        run: |
+          set -euo pipefail
+
+          echo "⏳ Waiting for CI workflow to complete..."
+          SHA="${{ github.event.pull_request.head.sha }}"
+
+          # Poll for CI workflow completion (max 20 minutes)
+          for i in {1..120}; do
+            # Get workflow runs for this SHA
+            STATUS=$(gh run list \
+              --workflow=ci.yml \
+              --commit="$SHA" \
+              --json status,conclusion \
+              --jq '.[0] | select(.status == "completed") | .conclusion')
+
+            if [[ "$STATUS" == "success" ]]; then
+              echo "✅ CI workflow completed successfully"
+              break
+            elif [[ "$STATUS" == "failure" ]] || [[ "$STATUS" == "cancelled" ]]; then
+              echo "❌ CI workflow failed or was cancelled"
+              exit 1
+            fi
+
+            echo "  Still running... (${i}/120)"
+            sleep 10
+          done
+
+          if [[ "$STATUS" != "success" ]]; then
+            echo "❌ CI workflow did not complete in 20 minutes"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Determine environment
         id: env
         run: |
           set -euo pipefail
 
           # Handle different event types
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
+            # PR - deploy to staging (runs from base branch context)
+            echo "deploy-staging=true" >> $GITHUB_OUTPUT
+            echo "deploy-production=false" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "ref=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+            echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+            echo "image-tag=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "pr-number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "📋 Deploying PR #${{ github.event.pull_request.number }} to staging"
+
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             # Manual trigger
             ENV="${{ inputs.environment }}"
             if [[ "$ENV" == "staging" ]]; then
