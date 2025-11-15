@@ -35,13 +35,26 @@ Verify: `dig st.motivbuy.com +short` (wait 5-10 min for propagation)
 ### Run Setup Script
 
 ```bash
-# Staging
+# Staging (using default domain: motivbuy.com)
 scp scripts/setup-server.sh root@157.180.64.229:/root/
 ssh root@157.180.64.229 "bash /root/setup-server.sh staging"
 
-# Production
+# Production (using default domain: motivbuy.com)
 scp scripts/setup-server.sh root@65.108.218.78:/root/
 ssh root@65.108.218.78 "bash /root/setup-server.sh production"
+
+# Or with custom domain
+ssh root@157.180.64.229 "bash /root/setup-server.sh staging example.com admin@example.com"
+```
+
+**Script Usage:**
+```bash
+sudo bash setup-server.sh [staging|production] [domain] [email]
+
+# Examples:
+bash setup-server.sh staging                              # Uses motivbuy.com
+bash setup-server.sh production example.com               # Custom domain, auto email
+bash setup-server.sh staging mydomain.com me@mydomain.com # Full custom
 ```
 
 ### Setup SSH Keys

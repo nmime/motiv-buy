@@ -139,13 +139,24 @@ check_memory() {
 # Argument Parsing
 ###############################################################################
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: sudo bash $0 [staging|production]"
-    echo "Example: sudo bash $0 staging"
+if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
+    echo "Usage: sudo bash $0 [staging|production] [domain] [email]"
+    echo ""
+    echo "Arguments:"
+    echo "  environment  - staging or production (required)"
+    echo "  domain       - Domain name (default: motivbuy.com)"
+    echo "  email        - Admin email for SSL (default: admin@DOMAIN)"
+    echo ""
+    echo "Examples:"
+    echo "  sudo bash $0 staging"
+    echo "  sudo bash $0 production example.com"
+    echo "  sudo bash $0 staging mydomain.com admin@mydomain.com"
     exit 1
 fi
 
 ENV_TYPE=$1
+DOMAIN="${2:-motivbuy.com}"
+EMAIL="${3:-admin@$DOMAIN}"
 
 if [ "$ENV_TYPE" != "staging" ] && [ "$ENV_TYPE" != "production" ]; then
     error_exit "Environment must be 'staging' or 'production'"
@@ -168,6 +179,8 @@ EOF
 echo -e "${NC}"
 
 log_info "Environment: ${BOLD}${ENV_TYPE^^}${NC}"
+log_info "Domain: ${BOLD}${DOMAIN}${NC}"
+log_info "Email: ${BOLD}${EMAIL}${NC}"
 log_info "Script version: $SCRIPT_VERSION"
 log_info "Log file: $LOG_FILE"
 log_info "Backup directory: $BACKUP_DIR"
@@ -193,8 +206,10 @@ log_success "Backup directory created: $BACKUP_DIR"
 # Configuration
 ###############################################################################
 
-DOMAIN="motivbuy.com"
-EMAIL="admin@motivbuy.com"
+# Domain and email are set from command line arguments above
+# DOMAIN="${2:-motivbuy.com}"
+# EMAIL="${3:-admin@$DOMAIN}"
+
 DEPLOY_USER="deployer"
 DEPLOY_PATH="/opt/motiv-buy"
 

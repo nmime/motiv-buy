@@ -22,10 +22,15 @@ ssh root@YOUR_IP "bash /root/setup-server.sh production"
 
 ## 📝 Usage
 
-The unified `setup-server.sh` script works for both staging and production:
+The unified `setup-server.sh` script works for both staging and production with optional custom domains:
 
 ```bash
-sudo bash setup-server.sh [staging|production]
+sudo bash setup-server.sh [staging|production] [domain] [email]
+
+# Examples:
+bash setup-server.sh staging                              # Uses motivbuy.com
+bash setup-server.sh production example.com               # Custom domain
+bash setup-server.sh staging mydomain.com me@mydomain.com # Full custom
 ```
 
 **What it does:**
@@ -62,11 +67,17 @@ sudo bash setup-server.sh [staging|production]
 # Copy to server
 scp scripts/setup-server.sh root@YOUR_IP:/root/
 
-# Run for staging
+# Run for staging (default domain)
 ssh root@YOUR_IP "bash /root/setup-server.sh staging"
 
-# Run for production
+# Run for production (default domain)
 ssh root@YOUR_IP "bash /root/setup-server.sh production"
+
+# With custom domain
+ssh root@YOUR_IP "bash /root/setup-server.sh staging example.com"
+
+# With custom domain and email
+ssh root@YOUR_IP "bash /root/setup-server.sh production example.com admin@example.com"
 ```
 
 ### deploy-local.sh
