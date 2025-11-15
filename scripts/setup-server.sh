@@ -795,24 +795,26 @@ log_info "${BOLD}Next Steps:${NC}"
 echo ""
 
 # Show DNS/SSL step if not configured
+SERVER_IP=$(hostname -I | awk '{print $1}')
+
 if [ "$PROTOCOL" = "http" ]; then
     echo "  1. Configure DNS records to point to this server:"
-    echo -e "     ${CYAN}A    ${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX}${SUBDOMAIN_PREFIX:+.}${DOMAIN#*.}    → $(hostname -I | awk '{print $1}')${NC}"
-    echo -e "     ${CYAN}A    api.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $(hostname -I | awk '{print $1}')${NC}"
-    echo -e "     ${CYAN}A    bot.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $(hostname -I | awk '{print $1}')${NC}"
+    echo -e "     ${CYAN}A    ${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX}${SUBDOMAIN_PREFIX:+.}${DOMAIN#*.}    → $SERVER_IP${NC}"
+    echo -e "     ${CYAN}A    api.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $SERVER_IP${NC}"
+    echo -e "     ${CYAN}A    bot.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $SERVER_IP${NC}"
     echo ""
     echo "  2. Obtain SSL certificates (after DNS propagation):"
     echo -e "     ${CYAN}sudo certbot --nginx -d ${MAIN_DOMAIN} -d ${API_DOMAIN} -d ${BOT_DOMAIN}${NC}"
     echo ""
     echo "  3. Add your SSH public key:"
-    echo -e "     ${CYAN}ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@YOUR_SERVER_IP${NC}"
+    echo -e "     ${CYAN}ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@$SERVER_IP${NC}"
     echo ""
     echo "  4. Configure GitHub Secrets (see docs/DEPLOY.md)"
     echo ""
     echo "  5. Deploy from GitHub Actions"
 else
     echo "  1. Add your SSH public key:"
-    echo -e "     ${CYAN}ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@YOUR_SERVER_IP${NC}"
+    echo -e "     ${CYAN}ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@$SERVER_IP${NC}"
     echo ""
     echo "  2. Configure GitHub Secrets (see docs/DEPLOY.md)"
     echo ""
