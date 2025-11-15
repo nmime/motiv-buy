@@ -102,10 +102,10 @@ jobs:
           fi
 
   # ==============================================
-  # Job 2: Build and Push Docker Images
+  # Job 2: Retag CI Images for Deployment
   # ==============================================
-  build:
-    name: Build & Push (${{ matrix.app }})
+  retag:
+    name: Retag Images (${{ matrix.app }})
     runs-on: [self-hosted, linux]
     needs: setup
 
@@ -118,14 +118,6 @@ jobs:
         app: [api, bot]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.setup.outputs.sha }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -133,23 +125,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          build-args: |
-            APP_NAME=${{ matrix.app }}
-          tags: |
-            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:${{ needs.setup.outputs.image-tag }}
-            ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:${{ needs.setup.outputs.environment }}-${{ needs.setup.outputs.sha }}
-          cache-from: |
-            type=gha,scope=shared
-            type=gha,scope=${{ matrix.app }}
-          cache-to: |
-            type=gha,mode=max,scope=shared
-            type=gha,mode=max,scope=${{ matrix.app }}
+      - name: Pull CI image and retag for deployment
+        run: |
+          set -euo pipefail
+
+          # Source image from CI workflow
+          SOURCE_IMAGE="${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:ci-${{ needs.setup.outputs.sha }}"
+
+          # Target tags for deployment
+          TARGET_TAG="${{ needs.setup.outputs.image-tag }}"
+          ENV_TAG="${{ needs.setup.outputs.environment }}-${{ needs.setup.outputs.sha }}"
+
+          echo "📦 Pulling CI image: $SOURCE_IMAGE"
+          docker pull "$SOURCE_IMAGE"
+
+          echo "🏷️  Retagging for deployment..."
+          docker tag "$SOURCE_IMAGE" "${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:$TARGET_TAG"
+          docker tag "$SOURCE_IMAGE" "${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:$ENV_TAG"
+
+          echo "⬆️  Pushing deployment tags..."
+          docker push "${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:$TARGET_TAG"
+          docker push "${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:$ENV_TAG"
+
+          echo "✅ Successfully retagged ${{ matrix.app }}"
 
   # ==============================================
   # Job 3: Deploy to Staging (PR)
@@ -157,7 +155,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: [self-hosted, linux]
-    needs: [setup, build]
+    needs: [setup, retag]
     if: needs.setup.outputs.deploy-staging == 'true'
 
     # This creates the deployment in GitHub UI and enforces environment protection rules
@@ -351,7 +349,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: [self-hosted, linux]
-    needs: [setup, build]
+    needs: [setup, retag]
     if: needs.setup.outputs.deploy-production == 'true'
 
     # This creates the deployment in GitHub UI and enforces environment protection rules
