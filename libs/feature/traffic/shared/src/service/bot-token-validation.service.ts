@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { InjectRedis, RedisClient } from '@app/common-redis';
 import { Err, Ok, Result } from 'ts-results';
 import { AsyncResult, getErrorMessage } from '@app/common-shared';
@@ -121,12 +122,21 @@ export class BotTokenValidationService {
 
   /**
    * Get bot permissions for traffic operations
+   * Validates botId format before processing
    *
    * @param botId - Bot ID
    * @returns List of permissions
    */
   async getBotPermissions(botId: string): Promise<string[]> {
     try {
+      // Validate botId format (must be numeric)
+      if (!botId || !/^\d+$/.test(botId)) {
+        this.logger.warn('Invalid botId format in getBotPermissions', {
+          botId,
+        });
+        return [];
+      }
+
       // This would integrate with bot-shared feature to get actual permissions
       // For now, return default permissions based on bot status
       const cacheKey = `${this.cachePrefix}:permissions:${botId}`;
@@ -155,22 +165,27 @@ export class BotTokenValidationService {
 
   /**
    * Invalidate cached token validation
+   * Parallelizes Redis operations for better performance
    *
    * @param token - Token to invalidate
    */
   async invalidateToken(token: string): Promise<void> {
     try {
       const cacheKey = `${this.cachePrefix}:${this.hashToken(token)}`;
-      await this.redisClient.del(cacheKey);
-
       const botId = this.extractBotId(token);
+
+      // Parallelize Redis delete operations
+      const deleteOperations = [this.redisClient.del(cacheKey)];
+
       if (botId) {
         const permissionsCacheKey = `${this.cachePrefix}:permissions:${botId}`;
-        await this.redisClient.del(permissionsCacheKey);
+        deleteOperations.push(this.redisClient.del(permissionsCacheKey));
       }
 
+      await Promise.all(deleteOperations);
+
       this.logger.debug('Token validation cache invalidated', {
-        botId: this.extractBotId(token),
+        botId,
       });
     } catch (err: unknown) {
       this.logger.warn('Failed to invalidate token cache', {
@@ -308,6 +323,7 @@ export class BotTokenValidationService {
 
   /**
    * Handle validation errors
+   * Checks error type and properties to determine appropriate response
    */
   private handleValidationError(
     err: unknown,
@@ -335,7 +351,14 @@ export class BotTokenValidationService {
       timestamp: new Date().toISOString(),
     });
 
-    if (errorMessage.includes('bot-shared')) {
+    // Check if error is from BotFactoryService or network-related
+    if (
+      err instanceof Error &&
+      (err.name === 'ServiceUnavailableError' ||
+        err.message.toLowerCase().includes('network') ||
+        err.message.toLowerCase().includes('timeout') ||
+        err.message.toLowerCase().includes('econnrefused'))
+    ) {
       return Err(new BotTokenServiceUnavailableException('Bot validation service is temporarily unavailable'));
     }
 
@@ -481,41 +504,6 @@ export class BotTokenValidationService {
   }
 
   /**
-   * Validate with bot-shared feature using real Telegram API
-   * Makes actual getMe API call to validate bot token
-   */
-  private async validateWithBotShared(token: string): Promise<boolean> {
-    try {
-      // Use bot-shared BotFactoryService to validate token via Telegram API
-      const validationResult = await this.botTokenValidator.validateBotToken(token);
-
-      if (!validationResult.isValid) {
-        this.logger.debug('Bot token validation via Telegram API failed', {
-          error: validationResult.error,
-          errorCode: validationResult.errorCode,
-        });
-
-        return false;
-      }
-
-      // Token is valid and bot exists
-      this.logger.debug('Bot token validated successfully via Telegram API', {
-        botId: validationResult.botInfo?.id,
-        botUsername: validationResult.botInfo?.username,
-      });
-
-      return true;
-    } catch (err: unknown) {
-      this.logger.error('Telegram API validation failed', {
-        error: getErrorMessage(err),
-      });
-
-      // On error, assume invalid to be safe
-      return false;
-    }
-  }
-
-  /**
    * Validate token format
    */
   private validateTokenFormat(token: string): boolean {
@@ -534,18 +522,11 @@ export class BotTokenValidationService {
   }
 
   /**
-   * Create a hash of the token for caching (secure)
+   * Create a secure hash of the token for caching
+   * Uses SHA-256 to safely store token references in cache keys
    */
   private hashToken(token: string): string {
-    // Simple hash for demo - in production, use proper crypto
-    let hash = 0;
-    for (let i = 0; i < token.length; i++) {
-      const char = token.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-
-    return Math.abs(hash).toString();
+    return createHash('sha256').update(token).digest('hex');
   }
 
   /**
