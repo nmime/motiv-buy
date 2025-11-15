@@ -398,20 +398,53 @@ log_info "Adding $DEPLOY_USER to groups..."
 usermod -aG sudo "$DEPLOY_USER"
 usermod -aG docker "$DEPLOY_USER" 2>/dev/null || log_warning "Could not add user to docker group"
 
+# Configure passwordless sudo for deployer
+log_info "Configuring passwordless sudo for $DEPLOY_USER..."
+echo "$DEPLOY_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$DEPLOY_USER
+chmod 440 /etc/sudoers.d/$DEPLOY_USER
+log_success "Passwordless sudo configured"
+
 # Create deployment directory
 log_info "Creating deployment directory: $DEPLOY_PATH..."
 mkdir -p "$DEPLOY_PATH"
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_PATH"
 log_success "Deployment directory created"
 
-# Setup SSH directory
-log_info "Configuring SSH for $DEPLOY_USER..."
+# Setup SSH directory and authorized_keys
+log_info "Configuring SSH access for $DEPLOY_USER..."
 mkdir -p "/home/$DEPLOY_USER/.ssh"
 chmod 700 "/home/$DEPLOY_USER/.ssh"
-touch "/home/$DEPLOY_USER/.ssh/authorized_keys"
+
+# Copy SSH keys from root user if available
+if [ -f /root/.ssh/authorized_keys ]; then
+    log_info "Copying SSH keys from root to $DEPLOY_USER..."
+    cp /root/.ssh/authorized_keys "/home/$DEPLOY_USER/.ssh/authorized_keys"
+    log_success "SSH keys copied from root"
+elif [ ! -f "/home/$DEPLOY_USER/.ssh/authorized_keys" ]; then
+    # Create empty authorized_keys if none exist
+    touch "/home/$DEPLOY_USER/.ssh/authorized_keys"
+    log_warning "No SSH keys found. You'll need to add SSH keys manually:"
+    log_info "  cat ~/.ssh/your-key.pub | ssh root@SERVER_IP 'tee -a /home/$DEPLOY_USER/.ssh/authorized_keys'"
+fi
+
+# Also check if user has AUTHORIZED_KEYS environment variable or SSH_AUTH_SOCK
+if [ -n "${SSH_CONNECTION:-}" ] && [ ! -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]; then
+    log_warning "Connected via SSH but no keys copied. To add your current key:"
+    log_info "  Run this from your local machine:"
+    log_info "  ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@\$(hostname -I | awk '{print \$1}')"
+fi
+
+# Set proper permissions
 chmod 600 "/home/$DEPLOY_USER/.ssh/authorized_keys"
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh"
-log_success "SSH configured for $DEPLOY_USER"
+
+# Verify setup
+if [ -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]; then
+    KEY_COUNT=$(grep -c "^ssh-" "/home/$DEPLOY_USER/.ssh/authorized_keys" 2>/dev/null || echo "0")
+    log_success "SSH configured for $DEPLOY_USER ($KEY_COUNT key(s) installed)"
+else
+    log_warning "SSH directory created but no keys installed yet"
+fi
 
 ###############################################################################
 # Step 5: Firewall Configuration
