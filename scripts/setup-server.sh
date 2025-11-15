@@ -520,44 +520,22 @@ if [ -f /etc/nginx/sites-available/default ]; then
     cp /etc/nginx/sites-available/default "$BACKUP_DIR/"
 fi
 
+# Create HTTP-only configuration (certbot will upgrade to HTTPS later)
 cat > /etc/nginx/sites-available/motiv-buy << EOF
 # Motiv-Buy $ENV_TYPE Configuration
 # Generated: $(date)
+# Note: HTTP-only until SSL certificates are obtained
 
-# HTTP - Redirect to HTTPS
+# API Server
 server {
     listen 80;
     listen [::]:80;
-    server_name ${MAIN_DOMAIN} *.${MAIN_DOMAIN};
+    server_name ${API_DOMAIN};
 
+    # Allow certbot validation
     location /.well-known/acme-challenge/ {
         root /var/www/html;
     }
-
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-
-# HTTPS - API
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name ${API_DOMAIN};
-
-    ssl_certificate ${SSL_CERT_PATH}/fullchain.pem;
-    ssl_certificate_key ${SSL_CERT_PATH}/privkey.pem;
-
-    ssl_protocols ${SSL_PROTOCOLS};
-    ssl_ciphers ${SSL_CIPHERS};
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-
-    add_header Strict-Transport-Security "${HSTS_HEADER}" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
 
     location / {
         proxy_pass http://localhost:3000;
@@ -578,20 +556,16 @@ server {
     }
 }
 
-# HTTPS - Main Domain
+# Main Domain
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 80;
+    listen [::]:80;
     server_name ${MAIN_DOMAIN};
 
-    ssl_certificate ${SSL_CERT_PATH}/fullchain.pem;
-    ssl_certificate_key ${SSL_CERT_PATH}/privkey.pem;
-
-    ssl_protocols ${SSL_PROTOCOLS};
-    ssl_ciphers ${SSL_CIPHERS};
-    ssl_prefer_server_ciphers on;
-
-    add_header Strict-Transport-Security "${HSTS_HEADER}" always;
+    # Allow certbot validation
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
 
     location / {
         return 200 'Motiv-Buy ${ENV_TYPE^} Server - $(date)';
@@ -599,20 +573,16 @@ server {
     }
 }
 
-# HTTPS - Bot Domain
+# Bot Domain
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 80;
+    listen [::]:80;
     server_name ${BOT_DOMAIN};
 
-    ssl_certificate ${SSL_CERT_PATH}/fullchain.pem;
-    ssl_certificate_key ${SSL_CERT_PATH}/privkey.pem;
-
-    ssl_protocols ${SSL_PROTOCOLS};
-    ssl_ciphers ${SSL_CIPHERS};
-    ssl_prefer_server_ciphers on;
-
-    add_header Strict-Transport-Security "${HSTS_HEADER}" always;
+    # Allow certbot validation
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
 
     location / {
         proxy_pass http://localhost:3001;
@@ -679,13 +649,15 @@ done
 
 if [ "$DNS_CONFIGURED" = false ]; then
     log_warning "DNS not fully configured"
-    log_info "Please configure DNS records and run certbot manually:"
+    log_info "Nginx is running with HTTP-only configuration"
+    log_info "After configuring DNS records, obtain SSL certificates with:"
     echo ""
     echo "  sudo certbot --nginx -d ${MAIN_DOMAIN} -d ${API_DOMAIN} -d ${BOT_DOMAIN}"
     echo ""
+    log_info "Certbot will automatically upgrade Nginx to HTTPS"
 else
     log_success "DNS fully configured"
-    log_info "Attempting SSL certificate issuance..."
+    log_info "Attempting SSL certificate issuance and HTTPS upgrade..."
 
     if certbot --nginx \
         -d "${MAIN_DOMAIN}" \
@@ -695,9 +667,10 @@ else
         --email "${EMAIL}" \
         --non-interactive \
         --redirect 2>&1 | tee -a "$LOG_FILE"; then
-        log_success "SSL certificate obtained successfully"
+        log_success "SSL certificate obtained and Nginx upgraded to HTTPS"
     else
         log_warning "SSL certificate issuance failed"
+        log_info "Nginx is running with HTTP-only configuration"
         log_info "Retry manually with:"
         echo "  sudo certbot --nginx -d ${MAIN_DOMAIN} -d ${API_DOMAIN} -d ${BOT_DOMAIN}"
     fi
@@ -743,10 +716,22 @@ echo -e "  ${CYAN}Environment:${NC} $ENV_TYPE"
 echo -e "  ${CYAN}Deployment Path:${NC} $DEPLOY_PATH"
 echo -e "  ${CYAN}Deployment User:${NC} $DEPLOY_USER"
 echo ""
+
+# Show protocol based on whether SSL certificates exist
+if [ -d "$SSL_CERT_PATH" ] && [ -f "$SSL_CERT_PATH/fullchain.pem" ]; then
+    PROTOCOL="https"
+    SSL_STATUS="✓ Enabled"
+else
+    PROTOCOL="http"
+    SSL_STATUS="⚠ Not configured (HTTP only)"
+fi
+
 echo -e "  ${CYAN}Domains:${NC}"
-echo -e "    Main: https://$MAIN_DOMAIN"
-echo -e "    API:  https://$API_DOMAIN"
-echo -e "    Bot:  https://$BOT_DOMAIN"
+echo -e "    Main: $PROTOCOL://$MAIN_DOMAIN"
+echo -e "    API:  $PROTOCOL://$API_DOMAIN"
+echo -e "    Bot:  $PROTOCOL://$BOT_DOMAIN"
+echo ""
+echo -e "  ${CYAN}SSL:${NC} $SSL_STATUS"
 echo ""
 echo -e "  ${CYAN}Security:${NC}"
 echo -e "    Firewall: $(ufw status | grep -i "Status:" | awk '{print $2}')"
@@ -761,12 +746,31 @@ echo ""
 
 log_info "${BOLD}Next Steps:${NC}"
 echo ""
-echo "  1. Add your SSH public key:"
-echo "     ${CYAN}ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@YOUR_SERVER_IP${NC}"
-echo ""
-echo "  2. Configure GitHub Secrets (see docs/DEPLOY.md)"
-echo ""
-echo "  3. Deploy from GitHub Actions"
+
+# Show DNS/SSL step if not configured
+if [ "$PROTOCOL" = "http" ]; then
+    echo "  1. Configure DNS records to point to this server:"
+    echo "     ${CYAN}A    ${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX}${SUBDOMAIN_PREFIX:+.}${DOMAIN#*.}    → $(hostname -I | awk '{print $1}')${NC}"
+    echo "     ${CYAN}A    api.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $(hostname -I | awk '{print $1}')${NC}"
+    echo "     ${CYAN}A    bot.${SUBDOMAIN_PREFIX:+$SUBDOMAIN_PREFIX.}${DOMAIN}    → $(hostname -I | awk '{print $1}')${NC}"
+    echo ""
+    echo "  2. Obtain SSL certificates (after DNS propagation):"
+    echo "     ${CYAN}sudo certbot --nginx -d ${MAIN_DOMAIN} -d ${API_DOMAIN} -d ${BOT_DOMAIN}${NC}"
+    echo ""
+    echo "  3. Add your SSH public key:"
+    echo "     ${CYAN}ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@YOUR_SERVER_IP${NC}"
+    echo ""
+    echo "  4. Configure GitHub Secrets (see docs/DEPLOY.md)"
+    echo ""
+    echo "  5. Deploy from GitHub Actions"
+else
+    echo "  1. Add your SSH public key:"
+    echo "     ${CYAN}ssh-copy-id -i ~/.ssh/your-key.pub $DEPLOY_USER@YOUR_SERVER_IP${NC}"
+    echo ""
+    echo "  2. Configure GitHub Secrets (see docs/DEPLOY.md)"
+    echo ""
+    echo "  3. Deploy from GitHub Actions"
+fi
 echo ""
 
 log_info "${BOLD}Files Created:${NC}"
