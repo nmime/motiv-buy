@@ -90,13 +90,9 @@ cat ~/.ssh/motiv-production   # For VPS_PRODUCTION_SSH_KEY
 
 ```bash
 # Run these and save the outputs
-openssl rand -base64 32  # STAGING_DB_PASSWORD
-openssl rand -base64 32  # STAGING_REDIS_PASSWORD
-openssl rand -base64 64  # STAGING_JWT_SECRET
-
-openssl rand -base64 32  # PRODUCTION_DB_PASSWORD
-openssl rand -base64 32  # PRODUCTION_REDIS_PASSWORD
-openssl rand -base64 64  # PRODUCTION_JWT_SECRET
+openssl rand -base64 32  # DB_PASSWORD
+openssl rand -base64 32  # REDIS_PASSWORD
+openssl rand -base64 64  # JWT_SECRET
 ```
 
 **Get Bot Tokens:**
@@ -109,55 +105,68 @@ openssl rand -base64 64  # PRODUCTION_JWT_SECRET
 
 ---
 
-## 3. Add GitHub Secrets
+## 3. Configure GitHub Environments
 
-Go to: **Repository → Settings → Secrets and variables → Actions**
+Go to: **Repository → Settings → Environments**
 
-Click **"New repository secret"** for each:
+### Create Staging Environment
 
-### Staging Secrets (11 secrets)
-
-```
-VPS_STAGING_HOST              = 157.180.64.229
-VPS_STAGING_USER              = deployer
-VPS_STAGING_SSH_KEY           = <paste ENTIRE private key from step 1>
-VPS_STAGING_DEPLOY_PATH       = /opt/motiv-buy
-
-STAGING_DB_NAME               = motiv_buy_staging
-STAGING_DB_USER               = postgres
-STAGING_DB_PASSWORD           = <from step 2>
-STAGING_REDIS_PASSWORD        = <from step 2>
-STAGING_JWT_SECRET            = <from step 2>
-
-STAGING_TELEGRAM_BOT_TOKEN    = <from @BotFather>
-STAGING_CRYPTO_BOT_API_TOKEN  = <from CryptoBot>
-```
-
-### Production Secrets (11 secrets)
+1. Click **"New environment"**
+2. Name: `staging`
+3. Click **"Configure environment"**
+4. Add environment secrets (11 secrets):
 
 ```
-VPS_PRODUCTION_HOST              = 65.108.218.78
-VPS_PRODUCTION_USER              = deployer
-VPS_PRODUCTION_SSH_KEY           = <paste ENTIRE private key from step 1>
-VPS_PRODUCTION_DEPLOY_PATH       = /opt/motiv-buy
+VPS_HOST              = 157.180.64.229
+VPS_USER              = deployer
+VPS_SSH_KEY           = <paste private key ~/.ssh/motiv-staging>
+VPS_DEPLOY_PATH       = /opt/motiv-buy
 
-PRODUCTION_DB_NAME               = motiv_buy_prod
-PRODUCTION_DB_USER               = motiv_buy_user
-PRODUCTION_DB_PASSWORD           = <from step 2>
-PRODUCTION_REDIS_PASSWORD        = <from step 2>
-PRODUCTION_JWT_SECRET            = <from step 2>
+DB_NAME               = motiv_buy_staging
+DB_USER               = postgres
+DB_PASSWORD           = <from step 2>
+REDIS_PASSWORD        = <from step 2>
+JWT_SECRET            = <from step 2>
 
-PRODUCTION_TELEGRAM_BOT_TOKEN    = <from @BotFather>
-PRODUCTION_CRYPTO_BOT_API_TOKEN  = <from CryptoBot>
+TELEGRAM_BOT_TOKEN    = <staging bot token from @BotFather>
+CRYPTO_BOT_API_TOKEN  = <staging token from CryptoBot>
 ```
 
-### Shared Secret (1 secret)
+### Create Production Environment
+
+1. Click **"New environment"**
+2. Name: `production`
+3. Click **"Configure environment"**
+4. **(Optional)** Add protection rules:
+   - ☑ Required reviewers
+   - ☑ Wait timer (e.g., 5 minutes)
+5. Add environment secrets (11 secrets):
 
 ```
-LETSENCRYPT_EMAIL             = admin@motivbuy.com
+VPS_HOST              = 65.108.218.78
+VPS_USER              = deployer
+VPS_SSH_KEY           = <paste private key ~/.ssh/motiv-production>
+VPS_DEPLOY_PATH       = /opt/motiv-buy
+
+DB_NAME               = motiv_buy_prod
+DB_USER               = motiv_buy_user
+DB_PASSWORD           = <from step 2>
+REDIS_PASSWORD        = <from step 2>
+JWT_SECRET            = <from step 2>
+
+TELEGRAM_BOT_TOKEN    = <production bot token from @BotFather>
+CRYPTO_BOT_API_TOKEN  = <production token from CryptoBot>
 ```
 
-**Total: 23 secrets**
+### Add Shared Repository Secret
+
+Go to: **Repository → Settings → Secrets and variables → Actions → Secrets**
+
+```
+LETSENCRYPT_EMAIL = admin@motivbuy.com
+```
+
+**Total: 11 secrets per environment + 1 shared = 23 secrets**
 
 ---
 
