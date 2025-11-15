@@ -14,6 +14,67 @@ import {
 } from '../exception';
 
 /**
+ * Type guard to validate if parsed data is a string array
+ */
+function isStringArray(data: unknown): data is string[] {
+  return (
+    Array.isArray(data) && data.every((item) => typeof item === 'string')
+  );
+}
+
+/**
+ * Type guard to validate if parsed data is BotTokenValidationResponseDto
+ */
+function isBotTokenValidationResponse(
+  data: unknown,
+): data is BotTokenValidationResponseDto {
+  if (typeof data !== 'object' || data === null) {
+    return false;
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  // Check required field
+  if (typeof obj['isValid'] !== 'boolean') {
+    return false;
+  }
+
+  // Check optional fields if present
+  if (obj['botId'] !== undefined && typeof obj['botId'] !== 'string') {
+    return false;
+  }
+
+  if (obj['botUsername'] !== undefined && typeof obj['botUsername'] !== 'string') {
+    return false;
+  }
+
+  if (obj['permissions'] !== undefined && !isStringArray(obj['permissions'])) {
+    return false;
+  }
+
+  if (
+    obj['expiresAt'] !== undefined &&
+    !(obj['expiresAt'] instanceof Date) &&
+    typeof obj['expiresAt'] !== 'string'
+  ) {
+    return false;
+  }
+
+  if (obj['error'] !== undefined && typeof obj['error'] !== 'string') {
+    return false;
+  }
+
+  if (
+    obj['metadata'] !== undefined &&
+    (typeof obj['metadata'] !== 'object' || obj['metadata'] === null)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Bot Token Validation Service
  *
  * Implements token validation following existing auth patterns
@@ -143,7 +204,15 @@ export class BotTokenValidationService {
       const cached = await this.redisClient.get(cacheKey);
 
       if (cached) {
-        return JSON.parse(cached) as string[];
+        const parsed = JSON.parse(cached);
+        if (!isStringArray(parsed)) {
+          this.logger.warn('Invalid cached permissions format, using defaults', {
+            botId,
+          });
+          // Fall through to return default permissions
+        } else {
+          return parsed;
+        }
       }
 
       // Default permissions for traffic operations
@@ -217,15 +286,8 @@ export class BotTokenValidationService {
 
     const rateLimitCheck = await this.checkRateLimit(clientIp);
     if (rateLimitCheck.err) {
-      return rateLimitCheck as Result<
-        BotTokenValidationResponseDto,
-        | BotTokenExpiredException
-        | BotTokenInvalidException
-        | BotTokenServiceUnavailableException
-        | BadTokenException
-        | RateLimitExceedException
-        | InternalException
-      >;
+      // Return error from rate limit check
+      return Err(rateLimitCheck.val);
     }
 
     return undefined;
@@ -413,7 +475,16 @@ export class BotTokenValidationService {
       const cached = await this.redisClient.get(cacheKey);
 
       if (cached) {
-        return JSON.parse(cached) as BotTokenValidationResponseDto;
+        const parsed = JSON.parse(cached);
+        if (!isBotTokenValidationResponse(parsed)) {
+          this.logger.warn('Invalid cached validation format, invalidating cache', {
+            cacheKey,
+          });
+          // Invalidate corrupt cache entry
+          await this.redisClient.del(cacheKey);
+          return null;
+        }
+        return parsed;
       }
 
       return null;
