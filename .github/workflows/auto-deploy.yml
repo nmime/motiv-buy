@@ -82,31 +82,59 @@ jobs:
             console.log('⏳ Waiting for CI workflow to complete...');
             console.log(`Commit SHA: ${sha}`);
 
+            // Track the specific workflow run we're waiting for
+            let targetRunId = null;
+
             for (let i = 0; i < maxAttempts; i++) {
-              // Get workflow runs for this SHA
+              // Get workflow runs for this SHA, sorted by creation time
               const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 workflow_id: 'ci.yml',
                 head_sha: sha,
-                per_page: 1
+                per_page: 5  // Get a few runs to handle race conditions
               });
 
-              if (workflowRuns.workflow_runs.length > 0) {
-                const run = workflowRuns.workflow_runs[0];
+              if (workflowRuns.workflow_runs.length === 0) {
+                console.log(`  No CI workflow found yet (${i + 1}/${maxAttempts})`);
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
+                continue;
+              }
 
-                if (run.status === 'completed') {
-                  if (run.conclusion === 'success') {
-                    console.log('✅ CI workflow completed successfully');
-                    return;
-                  } else {
-                    core.setFailed(`❌ CI workflow ${run.conclusion}`);
-                    return;
-                  }
+              // Find the most recent run (by created_at)
+              const runs = workflowRuns.workflow_runs.sort((a, b) =>
+                new Date(b.created_at) - new Date(a.created_at)
+              );
+              const run = runs[0];
+
+              // Lock onto the first run we see
+              if (targetRunId === null) {
+                targetRunId = run.id;
+                console.log(`🎯 Tracking workflow run ID: ${targetRunId}`);
+              } else if (run.id !== targetRunId) {
+                console.log(`⚠️  Found different run (${run.id}), but tracking original (${targetRunId})`);
+                // Find our target run in the list
+                const targetRun = runs.find(r => r.id === targetRunId);
+                if (!targetRun) {
+                  core.setFailed(`❌ Lost track of target workflow run ${targetRunId}`);
+                  return;
+                }
+                // Use the target run instead
+                run.status = targetRun.status;
+                run.conclusion = targetRun.conclusion;
+              }
+
+              if (run.status === 'completed') {
+                if (run.conclusion === 'success') {
+                  console.log(`✅ CI workflow completed successfully (run ${run.id})`);
+                  return;
+                } else {
+                  core.setFailed(`❌ CI workflow ${run.conclusion} (run ${run.id})`);
+                  return;
                 }
               }
 
-              console.log(`  Still running... (${i + 1}/${maxAttempts})`);
+              console.log(`  Still running... (${i + 1}/${maxAttempts}) - status: ${run.status}`);
               await new Promise(resolve => setTimeout(resolve, pollInterval));
             }
 
@@ -292,16 +320,20 @@ jobs:
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
-          # Run migrations using the API container
+          # Check if API container is running
           if docker compose ps api 2>/dev/null | grep -q "Up"; then
-            echo "Running migrations..."
-            docker compose exec -T api pnpm run migration:run || {
+            echo "API container is running, executing migrations..."
+            if docker compose exec -T api pnpm run migration:run; then
+              echo "✅ Migrations completed successfully"
+            else
               echo "❌ Migration failed"
+              docker compose logs api --tail=50
               exit 1
-            }
-            echo "✅ Migrations completed successfully"
+            fi
           else
-            echo "⚠️  API container not running, skipping migrations (will run on first deployment)"
+            echo "⚠️  API container not running - first deployment detected"
+            echo "Migrations will run automatically when container starts"
+            echo "NOTE: Ensure your container entrypoint runs migrations on startup"
           fi
           MIGRATE_EOF
 
@@ -366,8 +398,21 @@ jobs:
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
-          # Load API_PORT from .env
-          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r' || echo '3000')
+
+          # Load and validate API_PORT from .env
+          if [ ! -f .env ]; then
+            echo "❌ .env file not found"
+            exit 1
+          fi
+
+          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r')
+          if [ -z "$API_PORT" ]; then
+            echo "⚠️  API_PORT not found in .env, using default 3000"
+            API_PORT=3000
+          elif ! [[ "$API_PORT" =~ ^[0-9]+$ ]] || [ "$API_PORT" -lt 1 ] || [ "$API_PORT" -gt 65535 ]; then
+            echo "❌ Invalid API_PORT in .env: $API_PORT (must be 1-65535)"
+            exit 1
+          fi
           echo "Using API_PORT=${API_PORT}"
 
           echo '⏳ Waiting for services to become healthy...'
@@ -534,16 +579,20 @@ jobs:
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
-          # Run migrations using the API container
-          if docker compose ps api | grep -q "Up"; then
-            echo "Running migrations..."
-            docker compose exec -T api pnpm run migration:prod || {
+          # Check if API container is running
+          if docker compose ps api 2>/dev/null | grep -q "Up"; then
+            echo "API container is running, executing migrations..."
+            if docker compose exec -T api pnpm run migration:prod; then
+              echo "✅ Migrations completed successfully"
+            else
               echo "❌ Migration failed"
+              docker compose logs api --tail=50
               exit 1
-            }
-            echo "✅ Migrations completed successfully"
+            fi
           else
-            echo "⚠️  API container not running, skipping migrations (will run on first deployment)"
+            echo "⚠️  API container not running - first deployment detected"
+            echo "Migrations will run automatically when container starts"
+            echo "NOTE: Ensure your container entrypoint runs migrations on startup"
           fi
           MIGRATE_EOF
 
@@ -608,8 +657,21 @@ jobs:
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
-          # Load API_PORT from .env
-          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r' || echo '3000')
+
+          # Load and validate API_PORT from .env
+          if [ ! -f .env ]; then
+            echo "❌ .env file not found"
+            exit 1
+          fi
+
+          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r')
+          if [ -z "$API_PORT" ]; then
+            echo "⚠️  API_PORT not found in .env, using default 3000"
+            API_PORT=3000
+          elif ! [[ "$API_PORT" =~ ^[0-9]+$ ]] || [ "$API_PORT" -lt 1 ] || [ "$API_PORT" -gt 65535 ]; then
+            echo "❌ Invalid API_PORT in .env: $API_PORT (must be 1-65535)"
+            exit 1
+          fi
           echo "Using API_PORT=${API_PORT}"
 
           echo '⏳ Waiting for services to become healthy...'
@@ -635,8 +697,21 @@ jobs:
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'SMOKE_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
-          # Load API_PORT from .env
-          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r' || echo '3000')
+
+          # Load and validate API_PORT from .env
+          if [ ! -f .env ]; then
+            echo "❌ .env file not found"
+            exit 1
+          fi
+
+          API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r')
+          if [ -z "$API_PORT" ]; then
+            echo "⚠️  API_PORT not found in .env, using default 3000"
+            API_PORT=3000
+          elif ! [[ "$API_PORT" =~ ^[0-9]+$ ]] || [ "$API_PORT" -lt 1 ] || [ "$API_PORT" -gt 65535 ]; then
+            echo "❌ Invalid API_PORT in .env: $API_PORT (must be 1-65535)"
+            exit 1
+          fi
 
           if curl -f "http://localhost:${API_PORT}/health" && curl -f "http://localhost:${API_PORT}/api"; then
             echo '✅ Production smoke tests passed'
@@ -660,14 +735,23 @@ jobs:
           if [ -f .env.backup ]; then
             mv .env.backup .env
             echo "✅ Restored previous .env"
+          else
+            echo "⚠️  No .env backup found, keeping current .env"
           fi
 
-          # Load API_PORT from .env
+          # Load API_PORT from .env with validation
           API_PORT=$(grep '^API_PORT=' .env | cut -d '=' -f2 | tr -d '\r' || echo '3000')
+          if ! [[ "$API_PORT" =~ ^[0-9]+$ ]] || [ "$API_PORT" -lt 1 ] || [ "$API_PORT" -gt 65535 ]; then
+            echo "❌ Invalid API_PORT: $API_PORT, using default 3000"
+            API_PORT=3000
+          fi
 
-          # Rollback to previous images
+          # Rollback to previous images by restarting with restored .env
           echo "🔄 Restarting services with previous version..."
           docker compose down
+
+          # The .env.backup contains the old IMAGE_TAG, so docker compose will pull old images
+          docker compose pull
           docker compose up -d --remove-orphans
 
           echo "⏳ Waiting for services to stabilize..."
@@ -677,6 +761,8 @@ jobs:
             echo "✅ Rollback successful - services are healthy"
           else
             echo "❌ Rollback completed but services may need manual intervention"
+            docker compose ps
+            docker compose logs --tail=30
           fi
           ROLLBACK_EOF
 
