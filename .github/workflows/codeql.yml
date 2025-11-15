@@ -1,4 +1,4 @@
-name: Security - CodeQL
+name: CodeQL
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   codeql:
-    name: CodeQL Analysis
+    name: Analysis
     runs-on: ubuntu-latest
     continue-on-error: true
 
@@ -20,11 +20,6 @@ jobs:
       actions: read
       contents: read
 
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['typescript']
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,7 +27,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.language }}
+          languages: typescript
           queries: security-and-quality
 
       - name: Autobuild
@@ -43,7 +38,7 @@ jobs:
         uses: github/codeql-action/analyze@v4
         continue-on-error: true
         with:
-          category: "/language:${{ matrix.language }}"
+          category: "/language:typescript"
           upload: false
           output: sarif-results
 
@@ -52,5 +47,5 @@ jobs:
         if: always()
         with:
           name: codeql-security-analysis
-          path: sarif-results/${{ matrix.language }}.sarif
+          path: sarif-results/typescript.sarif
           retention-days: 30

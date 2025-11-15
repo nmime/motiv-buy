@@ -1,6 +1,6 @@
-import { unknownToError } from '@app/common-shared';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RedisClient } from '@app/common-redis';
+import { BotFactoryService } from '@app/feature-bot-shared';
 import { BotTokenValidationService } from '../bot-token-validation.service';
 import { BotTokenValidationDto } from '../../dto';
 import { BotTokenInvalidException, BotTokenRateLimitException } from '../../exception/bot-token-validation.exception';
@@ -8,9 +8,25 @@ import { BotTokenInvalidException, BotTokenRateLimitException } from '../../exce
 describe('BotTokenValidationService', () => {
   let service: BotTokenValidationService;
   let mockRedisClient: jest.Mocked<RedisClient>;
+  let mockBotFactoryService: jest.Mocked<BotFactoryService>;
 
   const validToken = '123456:AAFdqTcLreQksK5d_oM4c9ZhLNbxFV9qHlK';
   const invalidToken = 'invalid-token';
+
+  // Extract mock bot validation result to avoid duplication
+  const mockBotValidationResult = {
+    isValid: true,
+    botInfo: {
+      id: 123456,
+      isBot: true,
+      username: 'testbot',
+      firstName: 'Test Bot',
+      canJoinGroups: true,
+      canReadAllGroupMessages: false,
+      supportsInlineQueries: true,
+    },
+    timestamp: new Date(),
+  };
 
   beforeEach(async () => {
     const mockRedis = {
@@ -22,6 +38,10 @@ describe('BotTokenValidationService', () => {
       ttl: jest.fn(),
     };
 
+    const mockBotFactory = {
+      validateBotToken: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BotTokenValidationService,
@@ -29,11 +49,16 @@ describe('BotTokenValidationService', () => {
           provide: 'RedisInjectToken',
           useValue: mockRedis,
         },
+        {
+          provide: BotFactoryService,
+          useValue: mockBotFactory,
+        },
       ],
     }).compile();
 
     service = module.get<BotTokenValidationService>(BotTokenValidationService);
     mockRedisClient = module.get('RedisInjectToken');
+    mockBotFactoryService = module.get(BotFactoryService);
   });
 
   afterEach(() => {
@@ -53,6 +78,9 @@ describe('BotTokenValidationService', () => {
 
       // Mock rate limiting
       mockRedisClient.incr.mockResolvedValue(1);
+
+      // Mock bot factory validation
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
 
       const result = await service.validateToken(dto);
 
@@ -99,7 +127,7 @@ describe('BotTokenValidationService', () => {
       if (result.err) {
         const error = result.val;
         expect(error).toBeInstanceOf(BotTokenInvalidException);
-        expect(unknownToError(error)).toContain('Invalid token format');
+        expect(error.message).toContain('Invalid token format');
       }
     });
 
@@ -116,7 +144,7 @@ describe('BotTokenValidationService', () => {
       if (result.err) {
         const error = result.val;
         expect(error).toBeInstanceOf(BotTokenRateLimitException);
-        expect(unknownToError(error)).toContain('Rate limit exceeded');
+        expect(error.message).toContain('Rate limit exceeded');
       }
     });
 
@@ -128,6 +156,9 @@ describe('BotTokenValidationService', () => {
       mockRedisClient.get.mockResolvedValue(null);
       mockRedisClient.set.mockResolvedValue('OK');
 
+      // Mock bot factory validation
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
+
       const result = await service.validateToken(dto, clientIp);
 
       expect(mockRedisClient.expire).toHaveBeenCalledWith('bot_token_rate_limit:127.0.0.1', 60);
@@ -138,9 +169,33 @@ describe('BotTokenValidationService', () => {
       mockRedisClient.get.mockRejectedValue(new Error('Redis connection failed'));
       mockRedisClient.incr.mockResolvedValue(1);
 
+      // Mock bot factory validation
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
+
       const result = await service.validateToken(dto);
 
       expect(result.ok).toBe(true); // Should still validate without cache
+    });
+
+    it('should handle BotFactoryService validation failure', async () => {
+      mockRedisClient.get.mockResolvedValue(null);
+      mockRedisClient.incr.mockResolvedValue(1);
+      mockRedisClient.set.mockResolvedValue('OK');
+
+      // Mock bot factory returning invalid token (no error message to use default)
+      mockBotFactoryService.validateBotToken.mockResolvedValue({
+        isValid: false,
+        errorCode: 'UNAUTHORIZED',
+        timestamp: new Date(),
+      });
+
+      const result = await service.validateToken(dto);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.val.isValid).toBe(false);
+        expect(result.val.error).toBe('Invalid or expired token');
+      }
     });
   });
 
@@ -150,6 +205,12 @@ describe('BotTokenValidationService', () => {
         token: validToken,
         operationContext: 'traffic_sell',
       };
+
+      // Mock bot factory validation
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
+
+      mockRedisClient.get.mockResolvedValue(null);
+      mockRedisClient.set.mockResolvedValue('OK');
 
       const result = await service.validateTokenDirect(dto);
 
@@ -249,6 +310,24 @@ describe('BotTokenValidationService', () => {
         operationContext: 'traffic_sell',
       };
 
+      // Mock bot factory validation for different botId
+      mockBotFactoryService.validateBotToken.mockResolvedValue({
+        isValid: true,
+        botInfo: {
+          id: 987654,
+          isBot: true,
+          username: 'testbot2',
+          firstName: 'Test Bot 2',
+          canJoinGroups: true,
+          canReadAllGroupMessages: false,
+          supportsInlineQueries: true,
+        },
+        timestamp: new Date(),
+      });
+
+      mockRedisClient.get.mockResolvedValue(null);
+      mockRedisClient.set.mockResolvedValue('OK');
+
       // This tests the private extractBotId method indirectly
       await expect(service.validateTokenDirect(dto)).resolves.toMatchObject({
         botId: '987654',
@@ -280,6 +359,9 @@ describe('BotTokenValidationService', () => {
       mockRedisClient.get.mockResolvedValueOnce(null); // Cache miss
       mockRedisClient.incr.mockResolvedValue(1); // Rate limit OK
       mockRedisClient.set.mockResolvedValue('OK'); // Cache set
+
+      // Mock bot factory validation
+      mockBotFactoryService.validateBotToken.mockResolvedValue(mockBotValidationResult);
 
       const firstResult = await service.validateToken(dto, clientIp);
       expect(firstResult.ok).toBe(true);
