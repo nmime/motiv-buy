@@ -7,7 +7,17 @@ on:
     types: [completed]
     branches:
       - master
-      - '**'  # All branches (for PRs)
+
+  # For PRs, trigger on completion but check CI status first
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
 
   # Allow manual trigger
   workflow_dispatch:
@@ -30,13 +40,32 @@ env:
 
 jobs:
   # ==============================================
+  # Job 0: Wait for CI (PRs only)
+  # ==============================================
+  wait-for-ci:
+    name: Wait for CI
+    runs-on: [self-hosted, linux]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Wait for CI workflow to complete
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-name: 'CI Summary'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+  # ==============================================
   # Job 1: Determine Environment
   # ==============================================
   setup:
     name: Setup Deployment
     runs-on: [self-hosted, linux]
-    # Only run if CI workflow succeeded
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    needs: [wait-for-ci]
+    if: |
+      always() &&
+      (needs.wait-for-ci.result == 'success' || needs.wait-for-ci.result == 'skipped') &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' || github.event_name == 'pull_request')
     outputs:
       environment: ${{ steps.env.outputs.environment }}
       deploy-staging: ${{ steps.env.outputs.deploy-staging }}
@@ -56,7 +85,18 @@ jobs:
           set -euo pipefail
 
           # Handle different event types
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # PR - deploy to staging
+            echo "deploy-staging=true" >> $GITHUB_OUTPUT
+            echo "deploy-production=false" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "ref=${{ github.head_ref }}" >> $GITHUB_OUTPUT
+            echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+            echo "image-tag=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "pr-number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "📋 Deploying PR #${{ github.event.pull_request.number }} to staging"
+
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             # Manual trigger
             ENV="${{ inputs.environment }}"
             if [[ "$ENV" == "staging" ]]; then
@@ -75,34 +115,16 @@ jobs:
             echo "pr-number=" >> $GITHUB_OUTPUT
 
           elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            # Triggered after CI workflow
-            if [[ "${{ github.event.workflow_run.event }}" == "pull_request" ]]; then
-              # PR - deploy to staging
-              echo "deploy-staging=true" >> $GITHUB_OUTPUT
-              echo "deploy-production=false" >> $GITHUB_OUTPUT
-              echo "environment=staging" >> $GITHUB_OUTPUT
-
-              # Get PR number from workflow run
-              PR_NUMBER=$(gh pr list --head "${{ github.event.workflow_run.head_branch }}" --json number --jq '.[0].number')
-              echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
-              echo "image-tag=pr-$PR_NUMBER" >> $GITHUB_OUTPUT
-              echo "ref=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
-              echo "sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
-              echo "📋 Deploying PR #$PR_NUMBER to staging"
-            else
-              # Push to master - deploy to production
-              echo "deploy-staging=false" >> $GITHUB_OUTPUT
-              echo "deploy-production=true" >> $GITHUB_OUTPUT
-              echo "environment=production" >> $GITHUB_OUTPUT
-              echo "ref=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
-              echo "sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
-              echo "image-tag=latest" >> $GITHUB_OUTPUT
-              echo "pr-number=" >> $GITHUB_OUTPUT
-              echo "📋 Deploying ${{ github.event.workflow_run.head_branch }} to production"
-            fi
+            # Push to master - deploy to production (workflow_run only for master branch)
+            echo "deploy-staging=false" >> $GITHUB_OUTPUT
+            echo "deploy-production=true" >> $GITHUB_OUTPUT
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "ref=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+            echo "image-tag=latest" >> $GITHUB_OUTPUT
+            echo "pr-number=" >> $GITHUB_OUTPUT
+            echo "📋 Deploying ${{ github.event.workflow_run.head_branch }} to production"
           fi
-        env:
-          GH_TOKEN: ${{ github.token }}
 
   # ==============================================
   # Job 2: Retag CI Images for Deployment
