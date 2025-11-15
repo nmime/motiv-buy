@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { InjectRedis, RedisClient } from '@app/common-redis';
 import { Err, Ok, Result } from 'ts-results';
 import { AsyncResult, getErrorMessage } from '@app/common-shared';
@@ -545,6 +545,6 @@ export class BotTokenValidationService {
    * Generate correlation ID for request tracking using crypto
    */
   private generateCorrelationId(): string {
-    return `bot-token-${crypto.randomUUID()}`;
+    return `bot-token-${randomUUID()}`;
   }
 }
