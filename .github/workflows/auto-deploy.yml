@@ -72,40 +72,45 @@ jobs:
 
       - name: Wait for CI to complete (PRs only)
         if: github.event_name == 'pull_request_target'
-        run: |
-          set -euo pipefail
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = '${{ github.event.pull_request.head.sha }}';
+            const maxAttempts = 120; // 20 minutes max
+            const pollInterval = 10000; // 10 seconds
 
-          echo "⏳ Waiting for CI workflow to complete..."
-          SHA="${{ github.event.pull_request.head.sha }}"
+            console.log('⏳ Waiting for CI workflow to complete...');
+            console.log(`Commit SHA: ${sha}`);
 
-          # Poll for CI workflow completion (max 20 minutes)
-          for i in {1..120}; do
-            # Get the most recent workflow run for this SHA (limit 1 to avoid race conditions)
-            STATUS=$(gh run list \
-              --workflow=ci.yml \
-              --commit="$SHA" \
-              --limit 1 \
-              --json status,conclusion,createdAt \
-              --jq 'sort_by(.createdAt) | reverse | .[0] | select(.status == "completed") | .conclusion')
+            for (let i = 0; i < maxAttempts; i++) {
+              // Get workflow runs for this SHA
+              const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'ci.yml',
+                head_sha: sha,
+                per_page: 1
+              });
 
-            if [[ "$STATUS" == "success" ]]; then
-              echo "✅ CI workflow completed successfully"
-              break
-            elif [[ "$STATUS" == "failure" ]] || [[ "$STATUS" == "cancelled" ]]; then
-              echo "❌ CI workflow failed or was cancelled"
-              exit 1
-            fi
+              if (workflowRuns.workflow_runs.length > 0) {
+                const run = workflowRuns.workflow_runs[0];
 
-            echo "  Still running... (${i}/120)"
-            sleep 10
-          done
+                if (run.status === 'completed') {
+                  if (run.conclusion === 'success') {
+                    console.log('✅ CI workflow completed successfully');
+                    return;
+                  } else {
+                    core.setFailed(`❌ CI workflow ${run.conclusion}`);
+                    return;
+                  }
+                }
+              }
 
-          if [[ "$STATUS" != "success" ]]; then
-            echo "❌ CI workflow did not complete in 20 minutes"
-            exit 1
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
+              console.log(`  Still running... (${i + 1}/${maxAttempts})`);
+              await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+
+            core.setFailed('❌ CI workflow did not complete in 20 minutes');
 
       - name: Determine environment
         id: env
