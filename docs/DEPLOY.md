@@ -114,7 +114,7 @@ Go to: **Repository → Settings → Environments**
 1. Click **"New environment"**
 2. Name: `staging`
 3. Click **"Configure environment"**
-4. Add environment secrets (11 secrets):
+4. Add environment secrets (12 secrets):
 
 ```
 VPS_HOST              = 157.180.64.229
@@ -130,6 +130,8 @@ JWT_SECRET            = <from step 2>
 
 TELEGRAM_BOT_TOKEN    = <staging bot token from @BotFather>
 CRYPTO_BOT_API_TOKEN  = <staging token from CryptoBot>
+
+LETSENCRYPT_EMAIL     = admin@motivbuy.com
 ```
 
 ### Create Production Environment
@@ -140,7 +142,7 @@ CRYPTO_BOT_API_TOKEN  = <staging token from CryptoBot>
 4. **(Optional)** Add protection rules:
    - ☑ Required reviewers
    - ☑ Wait timer (e.g., 5 minutes)
-5. Add environment secrets (11 secrets):
+5. Add environment secrets (12 secrets):
 
 ```
 VPS_HOST              = 65.108.218.78
@@ -156,17 +158,11 @@ JWT_SECRET            = <from step 2>
 
 TELEGRAM_BOT_TOKEN    = <production bot token from @BotFather>
 CRYPTO_BOT_API_TOKEN  = <production token from CryptoBot>
+
+LETSENCRYPT_EMAIL     = admin@motivbuy.com
 ```
 
-### Add Shared Repository Secret
-
-Go to: **Repository → Settings → Secrets and variables → Actions → Secrets**
-
-```
-LETSENCRYPT_EMAIL = admin@motivbuy.com
-```
-
-**Total: 11 secrets per environment + 1 shared = 23 secrets**
+**Total: 12 secrets per environment = 24 secrets**
 
 ---
 
