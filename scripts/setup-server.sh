@@ -684,8 +684,13 @@ for domain in "$MAIN_DOMAIN" "$API_DOMAIN" "$BOT_DOMAIN"; do
         log_warning "DNS not configured for: $domain"
         DNS_CONFIGURED=false
     else
-        RESOLVED_IP=$(host "$domain" | grep "has address" | head -1 | awk '{print $4}')
-        log_success "DNS OK: $domain → $RESOLVED_IP"
+        RESOLVED_IP=$(host "$domain" | grep "has address" | head -1 | awk '{print $4}' || echo "unknown")
+        if [ "$RESOLVED_IP" != "unknown" ] && [ -n "$RESOLVED_IP" ]; then
+            log_success "DNS OK: $domain → $RESOLVED_IP"
+        else
+            log_warning "DNS record exists but IP not detected for: $domain"
+            DNS_CONFIGURED=false
+        fi
     fi
 done
 
