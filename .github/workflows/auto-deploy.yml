@@ -30,6 +30,14 @@ on:
           - staging
           - production
         default: 'staging'
+      pr_number:
+        description: 'PR number (for staging deployments)'
+        required: false
+        type: string
+      commit_sha:
+        description: 'Commit SHA to deploy'
+        required: false
+        type: string
 
 concurrency:
   group: auto-deploy-${{ github.event.workflow_run.head_branch || github.ref }}
@@ -103,16 +111,26 @@ jobs:
               echo "deploy-staging=true" >> $GITHUB_OUTPUT
               echo "deploy-production=false" >> $GITHUB_OUTPUT
               echo "environment=staging" >> $GITHUB_OUTPUT
-              echo "image-tag=staging" >> $GITHUB_OUTPUT
+
+              # Use provided PR number or default tag
+              if [[ -n "${{ inputs.pr_number }}" ]]; then
+                echo "image-tag=pr-${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+                echo "pr-number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+              else
+                echo "image-tag=staging" >> $GITHUB_OUTPUT
+                echo "pr-number=" >> $GITHUB_OUTPUT
+              fi
             else
               echo "deploy-staging=false" >> $GITHUB_OUTPUT
               echo "deploy-production=true" >> $GITHUB_OUTPUT
               echo "environment=production" >> $GITHUB_OUTPUT
               echo "image-tag=latest" >> $GITHUB_OUTPUT
+              echo "pr-number=" >> $GITHUB_OUTPUT
             fi
             echo "ref=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "pr-number=" >> $GITHUB_OUTPUT
+            # Use provided SHA or current SHA
+            SHA="${{ inputs.commit_sha }}"
+            echo "sha=${SHA:-${{ github.sha }}}" >> $GITHUB_OUTPUT
 
           elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
             # Push to master - deploy to production (workflow_run only for master branch)
