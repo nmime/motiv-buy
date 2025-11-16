@@ -88,7 +88,7 @@ jobs:
           chmod 700 ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Run migration ${{ inputs.action }}
         id: migration
@@ -99,14 +99,14 @@ jobs:
           cat > /tmp/migration-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
 
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Detect Docker network from running containers
           NETWORK_NAME=$(docker compose ps -q postgres 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' 2>/dev/null | head -1)
 
           # Fallback to compose default naming
           if [ -z "$NETWORK_NAME" ]; then
-            NETWORK_NAME="${{ secrets.VPS_DEPLOY_PATH }}_default"
+            NETWORK_NAME="${{ vars.VPS_DEPLOY_PATH }}_default"
           fi
 
           # Verify network exists
@@ -149,7 +149,7 @@ jobs:
 
           # Execute script on remote server, passing GitHub token via stdin
           echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
             'bash -s' < /tmp/migration-script.sh
 
           # Cleanup
@@ -161,15 +161,15 @@ jobs:
           set -euo pipefail
 
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'STATUS_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'STATUS_EOF'
           set -euo pipefail
 
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Determine network name
-          NETWORK_NAME="${{ secrets.VPS_DEPLOY_PATH }}_default"
+          NETWORK_NAME="${{ vars.VPS_DEPLOY_PATH }}_default"
           if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-            NETWORK_NAME="$(basename ${{ secrets.VPS_DEPLOY_PATH }})-network-prod"
+            NETWORK_NAME="$(basename ${{ vars.VPS_DEPLOY_PATH }})-network-prod"
           fi
 
           echo '📋 Migration Status Details:'
@@ -238,7 +238,7 @@ jobs:
           chmod 700 ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Create database backup
         if: inputs.action == 'up' || inputs.action == 'down'
@@ -246,17 +246,17 @@ jobs:
           set -euo pipefail
 
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << "BACKUP_EOF"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "BACKUP_EOF"
           set -euo pipefail
 
-          mkdir -p ${{ secrets.VPS_DEPLOY_PATH }}/backups
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/backups
 
-          BACKUP_FILE="${{ secrets.VPS_DEPLOY_PATH }}/backups/pre-migration-$(date +%Y%m%d-%H%M%S).sql"
+          BACKUP_FILE="${{ vars.VPS_DEPLOY_PATH }}/backups/pre-migration-$(date +%Y%m%d-%H%M%S).sql"
 
           echo "📦 Creating database backup: $BACKUP_FILE"
 
           # Create backup with error checking
-          if docker compose -f ${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml exec -T postgres \
+          if docker compose -f ${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml exec -T postgres \
             pg_dump -U ${{ secrets.DB_USER }} ${{ secrets.DB_NAME }} > "$BACKUP_FILE"; then
 
             # Verify backup file is not empty
@@ -284,8 +284,8 @@ jobs:
 
           # Keep only last 10 backups (with logging)
           echo "🗑️ Cleaning old backups..."
-          REMOVED=$(ls -t ${{ secrets.VPS_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | tee /dev/stderr | wc -l)
-          ls -t ${{ secrets.VPS_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | xargs rm -f || true
+          REMOVED=$(ls -t ${{ vars.VPS_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | tee /dev/stderr | wc -l)
+          ls -t ${{ vars.VPS_DEPLOY_PATH }}/backups/pre-migration-*.sql 2>/dev/null | tail -n +11 | xargs rm -f || true
           echo "Removed $REMOVED old backup(s)"
           BACKUP_EOF
 
@@ -298,14 +298,14 @@ jobs:
           cat > /tmp/migration-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
 
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Detect Docker network from running containers
           NETWORK_NAME=$(docker compose ps -q postgres 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' 2>/dev/null | head -1)
 
           # Fallback to compose default naming
           if [ -z "$NETWORK_NAME" ]; then
-            NETWORK_NAME="${{ secrets.VPS_DEPLOY_PATH }}_default"
+            NETWORK_NAME="${{ vars.VPS_DEPLOY_PATH }}_default"
           fi
 
           # Verify network exists
@@ -353,7 +353,7 @@ jobs:
 
           # Execute script on remote server, passing GitHub token via stdin
           echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
             'bash -s' < /tmp/migration-script.sh
 
           # Cleanup
@@ -365,15 +365,15 @@ jobs:
           set -euo pipefail
 
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'STATUS_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'STATUS_EOF'
           set -euo pipefail
 
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Determine network name
-          NETWORK_NAME="${{ secrets.VPS_DEPLOY_PATH }}_default"
+          NETWORK_NAME="${{ vars.VPS_DEPLOY_PATH }}_default"
           if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-            NETWORK_NAME="$(basename ${{ secrets.VPS_DEPLOY_PATH }})-network-prod"
+            NETWORK_NAME="$(basename ${{ vars.VPS_DEPLOY_PATH }})-network-prod"
           fi
 
           echo '📋 Migration Status Details:'
