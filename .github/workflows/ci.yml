@@ -84,6 +84,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Determine commit SHA
+        id: sha
+        run: |
+          set -euo pipefail
+          # For pull requests, use the head SHA (actual PR commit)
+          # For pushes, use github.sha (the commit that was pushed)
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            SHA="${{ github.event.pull_request.head.sha }}"
+            echo "Using PR head SHA: $SHA"
+          else
+            SHA="${{ github.sha }}"
+            echo "Using push SHA: $SHA"
+          fi
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -98,6 +113,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "🐳 Building all apps with shared cache optimization..."
+          echo "📌 Using commit SHA: ${{ steps.sha.outputs.sha }}"
 
           APPS=("api" "bot" "migration")
           declare -A PIDS
@@ -108,7 +124,7 @@ jobs:
             (
               docker buildx build \
                 --build-arg APP_NAME=$APP \
-                --tag ghcr.io/${{ github.repository_owner }}/motiv-buy-$APP:ci-${{ github.sha }} \
+                --tag ghcr.io/${{ github.repository_owner }}/motiv-buy-$APP:ci-${{ steps.sha.outputs.sha }} \
                 --cache-from type=gha,scope=shared \
                 --cache-from type=gha,scope=$APP \
                 --cache-to type=gha,mode=max,scope=$([ "$APP" = "api" ] && echo "shared" || echo "$APP") \
@@ -138,9 +154,9 @@ jobs:
 
           echo "✅ All builds completed successfully!"
           echo "📋 Built images:"
-          echo "  - ghcr.io/${{ github.repository_owner }}/motiv-buy-api:ci-${{ github.sha }}"
-          echo "  - ghcr.io/${{ github.repository_owner }}/motiv-buy-bot:ci-${{ github.sha }}"
-          echo "  - ghcr.io/${{ github.repository_owner }}/motiv-buy-migration:ci-${{ github.sha }}"
+          echo "  - ghcr.io/${{ github.repository_owner }}/motiv-buy-api:ci-${{ steps.sha.outputs.sha }}"
+          echo "  - ghcr.io/${{ github.repository_owner }}/motiv-buy-bot:ci-${{ steps.sha.outputs.sha }}"
+          echo "  - ghcr.io/${{ github.repository_owner }}/motiv-buy-migration:ci-${{ steps.sha.outputs.sha }}"
 
   # ==============================================
   # Job 3: Security Scanning
