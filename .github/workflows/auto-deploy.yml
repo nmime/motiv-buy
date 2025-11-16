@@ -280,7 +280,12 @@ jobs:
 
               echo "⚠️  Pull failed, will retry..."
               ATTEMPT=$((ATTEMPT + 1))
-              DELAY=$((DELAY == 0 ? 5 : DELAY * 2))
+              # Calculate exponential backoff delay
+              if [ $DELAY -eq 0 ]; then
+                DELAY=5
+              else
+                DELAY=$((DELAY * 2))
+              fi
             fi
           done
 
