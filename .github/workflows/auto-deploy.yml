@@ -311,6 +311,7 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      pull-requests: write  # Required to comment on PRs
 
     steps:
       - name: Checkout code
@@ -576,6 +577,7 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      pull-requests: write  # Required to comment on PRs
 
     steps:
       - name: Checkout code
