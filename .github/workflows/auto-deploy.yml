@@ -218,12 +218,69 @@ jobs:
           fi
 
   # ==============================================
-  # Job 2: Retag CI Images for Deployment
+  # Job 2: Wait for Docker Images
+  # ==============================================
+  wait-for-images:
+    name: Wait for Docker Images
+    runs-on: [self-hosted, linux]
+    needs: setup
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Wait for CI Docker images to be available
+        run: |
+          set -euo pipefail
+
+          APPS=("api" "bot" "migration")
+          SHA="${{ needs.setup.outputs.sha }}"
+
+          echo "🔍 Waiting for Docker images to be available in registry..."
+          echo "📌 Commit SHA: $SHA"
+
+          # Wait up to 20 minutes for images (CI builds can take 10-15 min)
+          MAX_WAIT_TIME=1200  # 20 minutes in seconds
+          CHECK_INTERVAL=10    # Check every 10 seconds
+          ELAPSED=0
+
+          while [ $ELAPSED -lt $MAX_WAIT_TIME ]; do
+            ALL_AVAILABLE=true
+
+            for APP in "${APPS[@]}"; do
+              IMAGE="ghcr.io/${{ github.repository_owner }}/motiv-buy-${APP}:ci-${SHA}"
+
+              # Use docker manifest inspect to check if image exists (doesn't pull the image)
+              if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
+                echo "✅ $APP image is available"
+              else
+                echo "⏳ $APP image not yet available (${ELAPSED}s elapsed)"
+                ALL_AVAILABLE=false
+                break
+              fi
+            done
+
+            if [ "$ALL_AVAILABLE" = true ]; then
+              echo "✅ All Docker images are available!"
+              exit 0
+            fi
+
+            sleep $CHECK_INTERVAL
+            ELAPSED=$((ELAPSED + CHECK_INTERVAL))
+          done
+
+          echo "❌ Timeout: Docker images not available after ${MAX_WAIT_TIME}s"
+          echo "Check the CI workflow logs for commit $SHA"
+          exit 1
+
+  # ==============================================
+  # Job 3: Retag CI Images for Deployment
   # ==============================================
   retag:
     name: Retag Images (${{ matrix.app }})
     runs-on: [self-hosted, linux]
-    needs: setup
+    needs: [setup, wait-for-images]
 
     permissions:
       contents: read
@@ -254,17 +311,18 @@ jobs:
 
           echo "📦 Pulling CI image: $SOURCE_IMAGE"
 
-          # Retry logic with exponential backoff (max 4 attempts: 0s, 5s, 10s, 20s)
-          MAX_ATTEMPTS=4
+          # Images should be available now, but keep retry logic as safety net
+          MAX_ATTEMPTS=3
           ATTEMPT=1
-          DELAY=0
+          DELAY=5
 
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             echo "Attempt $ATTEMPT of $MAX_ATTEMPTS..."
 
-            if [ $DELAY -gt 0 ]; then
+            if [ $ATTEMPT -gt 1 ]; then
               echo "Waiting ${DELAY}s before retry..."
               sleep $DELAY
+              DELAY=$((DELAY * 2))
             fi
 
             if docker pull "$SOURCE_IMAGE"; then
@@ -273,19 +331,13 @@ jobs:
             else
               if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
                 echo "❌ Failed to pull image after $MAX_ATTEMPTS attempts"
-                echo "This usually means the CI workflow didn't push the image successfully"
+                echo "Image should be available but pull failed"
                 echo "Check the CI workflow logs for commit ${{ needs.setup.outputs.sha }}"
                 exit 1
               fi
 
               echo "⚠️  Pull failed, will retry..."
               ATTEMPT=$((ATTEMPT + 1))
-              # Calculate exponential backoff delay
-              if [ $DELAY -eq 0 ]; then
-                DELAY=5
-              else
-                DELAY=$((DELAY * 2))
-              fi
             fi
           done
 
@@ -300,7 +352,7 @@ jobs:
           echo "✅ Successfully retagged ${{ matrix.app }}"
 
   # ==============================================
-  # Job 3: Deploy to Staging (PR)
+  # Job 4: Deploy to Staging (PR)
   # ==============================================
   deploy-staging:
     name: Deploy to Staging
@@ -566,7 +618,7 @@ jobs:
             });
 
   # ==============================================
-  # Job 4: Deploy to Production (Push to master)
+  # Job 5: Deploy to Production (Push to master)
   # ==============================================
   deploy-production:
     name: Deploy to Production
@@ -897,7 +949,7 @@ jobs:
         run: rm -f ~/.ssh/id_rsa
 
   # ==============================================
-  # Job 5: Deployment Summary
+  # Job 6: Deployment Summary
   # ==============================================
   summary:
     name: Summary
