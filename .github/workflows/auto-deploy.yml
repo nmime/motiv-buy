@@ -275,6 +275,10 @@ jobs:
       name: staging
       url: https://api.st.motivbuy.com
 
+    permissions:
+      contents: read
+      deployments: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -286,12 +290,17 @@ jobs:
         id: deployment
         with:
           script: |
+            const prNumber = '${{ needs.setup.outputs.pr-number }}';
+            const description = prNumber
+              ? `Deploy PR #${prNumber} to staging`
+              : 'Deploy to staging';
+
             const deployment = await github.rest.repos.createDeployment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: '${{ needs.setup.outputs.sha }}',
               environment: 'staging',
-              description: 'Deploy PR #${{ github.event.pull_request.number }} to staging',
+              description: description,
               auto_merge: false,
               required_contexts: [],
               transient_environment: true,
@@ -518,6 +527,10 @@ jobs:
     environment:
       name: production
       url: https://api.motivbuy.com
+
+    permissions:
+      contents: read
+      deployments: write
 
     steps:
       - name: Checkout code
