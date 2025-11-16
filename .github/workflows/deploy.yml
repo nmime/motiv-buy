@@ -76,11 +76,6 @@ jobs:
 
           # Check staging deployment requirements
           if [[ "$ENV" == "staging" ]] || [[ "$ENV" == "both" ]]; then
-            if [[ "$REF" == "master" ]] || [[ "$REF" == "refs/heads/master" ]]; then
-              echo "❌ Staging deployments cannot be from master branch"
-              echo "Use a feature branch or develop branch"
-              exit 1
-            fi
             echo "staging=true" >> $GITHUB_OUTPUT
           else
             echo "staging=false" >> $GITHUB_OUTPUT
