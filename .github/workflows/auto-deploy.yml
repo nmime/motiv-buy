@@ -253,7 +253,36 @@ jobs:
           ENV_TAG="${{ needs.setup.outputs.environment }}-${{ needs.setup.outputs.sha }}"
 
           echo "📦 Pulling CI image: $SOURCE_IMAGE"
-          docker pull "$SOURCE_IMAGE"
+
+          # Retry logic with exponential backoff (max 4 attempts: 0s, 5s, 10s, 20s)
+          MAX_ATTEMPTS=4
+          ATTEMPT=1
+          DELAY=0
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS..."
+
+            if [ $DELAY -gt 0 ]; then
+              echo "Waiting ${DELAY}s before retry..."
+              sleep $DELAY
+            fi
+
+            if docker pull "$SOURCE_IMAGE"; then
+              echo "✅ Successfully pulled image"
+              break
+            else
+              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                echo "❌ Failed to pull image after $MAX_ATTEMPTS attempts"
+                echo "This usually means the CI workflow didn't push the image successfully"
+                echo "Check the CI workflow logs for commit ${{ needs.setup.outputs.sha }}"
+                exit 1
+              fi
+
+              echo "⚠️  Pull failed, will retry..."
+              ATTEMPT=$((ATTEMPT + 1))
+              DELAY=$((DELAY == 0 ? 5 : DELAY * 2))
+            fi
+          done
 
           echo "🏷️  Retagging for deployment..."
           docker tag "$SOURCE_IMAGE" "${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:$TARGET_TAG"
