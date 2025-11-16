@@ -7,7 +7,7 @@
 # Stage 1: Dependencies (cached, shared by all apps)
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS deps
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@10.22.0
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile
 # Stage 2: Build Shared Libraries (cached, built once, reused by all apps)
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS libs-builder
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@10.22.0
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -41,7 +41,7 @@ RUN mkdir -p dist/packages && \
 FROM node:20-alpine AS app-builder
 ARG APP_NAME
 RUN test -n "$APP_NAME" || (echo "ERROR: APP_NAME build arg required" && exit 1)
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@10.22.0
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -66,7 +66,7 @@ RUN test -f dist/apps/${APP_NAME}/src/main.js || \
 # Stage 4: Production Dependencies (cached, shared by all apps)
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS prod-deps
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@10.22.0
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
@@ -77,7 +77,7 @@ RUN pnpm install --prod --frozen-lockfile
 FROM node:20-alpine AS production
 ARG APP_NAME
 RUN test -n "$APP_NAME" || (echo "ERROR: APP_NAME build arg required" && exit 1)
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@10.22.0
 
 # Security: non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
