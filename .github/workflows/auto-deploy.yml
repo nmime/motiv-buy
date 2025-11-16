@@ -438,33 +438,6 @@ jobs:
           echo "📡 Adding VPS host to known_hosts..."
           ssh-keyscan -H "${{ vars.VPS_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Run database migrations
-        id: migrate
-        run: |
-          set -euo pipefail
-          echo "🗄️  Running database migrations..."
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MIGRATE_EOF'
-          set -euo pipefail
-          cd ${{ vars.VPS_DEPLOY_PATH }}
-
-          # Check if API container is running
-          if docker compose ps api 2>/dev/null | grep -q "Up"; then
-            echo "API container is running, executing migrations..."
-            if docker compose exec -T api pnpm run migration:run; then
-              echo "✅ Migrations completed successfully"
-            else
-              echo "❌ Migration failed"
-              docker compose logs api --tail=50
-              exit 1
-            fi
-          else
-            echo "⚠️  API container not running - first deployment detected"
-            echo "Migrations will run automatically when container starts"
-            echo "NOTE: Ensure your container entrypoint runs migrations on startup"
-          fi
-          MIGRATE_EOF
-
       - name: Deploy to staging
         id: deploy
         run: |
@@ -713,33 +686,6 @@ jobs:
           cp .env .env.backup 2>/dev/null || true
           echo "✅ Backup completed"
           BACKUP_EOF
-
-      - name: Run database migrations
-        id: migrate
-        run: |
-          set -euo pipefail
-          echo "🗄️  Running database migrations..."
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MIGRATE_EOF'
-          set -euo pipefail
-          cd ${{ vars.VPS_DEPLOY_PATH }}
-
-          # Check if API container is running
-          if docker compose ps api 2>/dev/null | grep -q "Up"; then
-            echo "API container is running, executing migrations..."
-            if docker compose exec -T api pnpm run migration:prod; then
-              echo "✅ Migrations completed successfully"
-            else
-              echo "❌ Migration failed"
-              docker compose logs api --tail=50
-              exit 1
-            fi
-          else
-            echo "⚠️  API container not running - first deployment detected"
-            echo "Migrations will run automatically when container starts"
-            echo "NOTE: Ensure your container entrypoint runs migrations on startup"
-          fi
-          MIGRATE_EOF
 
       - name: Deploy to production
         id: deploy
