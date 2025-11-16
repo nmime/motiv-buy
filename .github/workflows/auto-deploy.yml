@@ -328,8 +328,8 @@ jobs:
           set -euo pipefail
 
           # Validate required secrets
-          if [ -z "${{ secrets.VPS_HOST }}" ]; then
-            echo "❌ Error: VPS_HOST secret is not defined"
+          if [ -z "${{ vars.VPS_HOST }}" ]; then
+            echo "❌ Error: VPS_HOST environment variable is not defined"
             exit 1
           fi
           if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
@@ -349,7 +349,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
 
           echo "📡 Adding VPS host to known_hosts..."
-          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.VPS_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Run database migrations
         id: migrate
@@ -357,9 +357,9 @@ jobs:
           set -euo pipefail
           echo "🗄️  Running database migrations..."
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'MIGRATE_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MIGRATE_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Check if API container is running
           if docker compose ps api 2>/dev/null | grep -q "Up"; then
@@ -385,23 +385,23 @@ jobs:
 
           # Create deployment directory
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "mkdir -p ${{ secrets.VPS_DEPLOY_PATH }}"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            "mkdir -p ${{ vars.VPS_DEPLOY_PATH }}"
 
           # Copy deployment files
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
           if [ -d "docker" ]; then
             scp -o StrictHostKeyChecking=yes -r docker \
-              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+              ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
           fi
 
           # Create environment file with proper error handling
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << "ENV_EOF"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
           set -euo pipefail
-          cat > ${{ secrets.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
+          cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
           NODE_ENV=staging
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
@@ -422,13 +422,13 @@ jobs:
           MAIN_DOMAIN=st.motivbuy.com
           LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
           ENVFILE
-          chmod 600 ${{ secrets.VPS_DEPLOY_PATH }}/.env
+          chmod 600 ${{ vars.VPS_DEPLOY_PATH }}/.env
           ENV_EOF
 
           # Deploy (pass token via stdin to avoid process list exposure)
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "cd ${{ secrets.VPS_DEPLOY_PATH }} && docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin && docker compose pull && docker compose up -d --remove-orphans && docker image prune -af --filter 'until=24h'" \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            "cd ${{ vars.VPS_DEPLOY_PATH }} && docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin && docker compose pull && docker compose up -d --remove-orphans && docker image prune -af --filter 'until=24h'" \
             <<< '${{ secrets.GITHUB_TOKEN }}'
           echo '✅ Staging deployment completed'
 
@@ -436,9 +436,9 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'HEALTH_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Load and validate API_PORT from .env
           if [ ! -f .env ]; then
@@ -587,8 +587,8 @@ jobs:
           set -euo pipefail
 
           # Validate required secrets
-          if [ -z "${{ secrets.VPS_HOST }}" ]; then
-            echo "❌ Error: VPS_HOST secret is not defined"
+          if [ -z "${{ vars.VPS_HOST }}" ]; then
+            echo "❌ Error: VPS_HOST environment variable is not defined"
             exit 1
           fi
           if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
@@ -608,7 +608,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
 
           echo "📡 Adding VPS host to known_hosts..."
-          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.VPS_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Backup current deployment
         id: backup
@@ -616,9 +616,9 @@ jobs:
           set -euo pipefail
           echo "📦 Backing up current deployment state..."
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'BACKUP_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'BACKUP_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
           # Save current image tags for rollback
           docker compose images --format json > .deployment-backup.json || echo '[]' > .deployment-backup.json
           # Backup current .env
@@ -632,9 +632,9 @@ jobs:
           set -euo pipefail
           echo "🗄️  Running database migrations..."
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'MIGRATE_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MIGRATE_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Check if API container is running
           if docker compose ps api 2>/dev/null | grep -q "Up"; then
@@ -660,23 +660,23 @@ jobs:
 
           # Create deployment directory
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "mkdir -p ${{ secrets.VPS_DEPLOY_PATH }}"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            "mkdir -p ${{ vars.VPS_DEPLOY_PATH }}"
 
           # Copy deployment files
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
           if [ -d "docker" ]; then
             scp -o StrictHostKeyChecking=yes -r docker \
-              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+              ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
           fi
 
           # Create environment file with proper error handling
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << "ENV_EOF"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
           set -euo pipefail
-          cat > ${{ secrets.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
+          cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
           NODE_ENV=production
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
@@ -697,13 +697,13 @@ jobs:
           MAIN_DOMAIN=motivbuy.com
           LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
           ENVFILE
-          chmod 600 ${{ secrets.VPS_DEPLOY_PATH }}/.env
+          chmod 600 ${{ vars.VPS_DEPLOY_PATH }}/.env
           ENV_EOF
 
           # Deploy (pass token via stdin to avoid process list exposure)
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "cd ${{ secrets.VPS_DEPLOY_PATH }} && docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin && docker compose pull && docker compose up -d --remove-orphans --no-deps api bot && sleep 10 && docker image prune -af --filter 'until=48h'" \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            "cd ${{ vars.VPS_DEPLOY_PATH }} && docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin && docker compose pull && docker compose up -d --remove-orphans --no-deps api bot && sleep 10 && docker image prune -af --filter 'until=48h'" \
             <<< '${{ secrets.GITHUB_TOKEN }}'
           echo '✅ Production deployment completed'
 
@@ -711,9 +711,9 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'HEALTH_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Load and validate API_PORT from .env
           if [ ! -f .env ]; then
@@ -751,9 +751,9 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'SMOKE_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'SMOKE_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Load and validate API_PORT from .env
           if [ ! -f .env ]; then
@@ -784,9 +784,9 @@ jobs:
           set -euo pipefail
           echo "🔄 Rolling back to previous deployment..."
           ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ROLLBACK_EOF'
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ROLLBACK_EOF'
           set -euo pipefail
-          cd ${{ secrets.VPS_DEPLOY_PATH }}
+          cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Restore previous .env if it exists
           if [ -f .env.backup ]; then
