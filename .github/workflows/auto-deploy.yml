@@ -82,6 +82,10 @@ jobs:
       image-tag: ${{ steps.env.outputs.image-tag }}
       pr-number: ${{ steps.env.outputs.pr-number }}
 
+    permissions:
+      contents: read
+      actions: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
