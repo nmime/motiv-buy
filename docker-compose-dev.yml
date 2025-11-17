@@ -29,19 +29,19 @@ x-common-env: &common-env
   ENV: ${ENV}
 
 x-db-env: &db-env
-  DB_HOST: postgres-dev
+  DB_HOST: postgres
   DB_PORT: 5432
   DB_NAME: ${PROJECT_NAME}_${NODE_ENV}
   DB_USER: ${DB_USER}
   DB_PASSWORD: ${DB_PASSWORD}
 
 x-redis-env: &redis-env
-  REDIS_HOST: redis-dev
+  REDIS_HOST: redis
   REDIS_PORT: 6379
   REDIS_PASSWORD: ${REDIS_PASSWORD}
 
 x-nats-env: &nats-env
-  NATS_URL: nats://nats-dev:4222
+  NATS_URL: nats://nats:4222
   NATS_CLIENT_NAME: ${PROJECT_NAME}-app
   NATS_USER: ${NATS_USER}
   NATS_PASSWORD: ${NATS_PASSWORD}
@@ -52,9 +52,9 @@ x-nats-env: &nats-env
 
 services:
   # PostgreSQL Database
-  postgres-dev:
+  postgres:
     image: postgres:16-alpine
-    container_name: ${PROJECT_NAME}-postgres-dev
+    container_name: ${PROJECT_NAME}-postgres-${ENV}
     <<: *common-defaults
     environment:
       POSTGRES_DB: ${PROJECT_NAME}_${NODE_ENV}
@@ -70,9 +70,9 @@ services:
       <<: *healthcheck-fast
 
   # Redis Cache
-  redis-dev:
+  redis:
     image: redis:7-alpine
-    container_name: ${PROJECT_NAME}-redis-dev
+    container_name: ${PROJECT_NAME}-redis-${ENV}
     <<: *common-defaults
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -86,9 +86,9 @@ services:
       <<: *healthcheck-fast
 
   # NATS JetStream
-  nats-dev:
+  nats:
     image: nats:latest
-    container_name: ${PROJECT_NAME}-nats-dev
+    container_name: ${PROJECT_NAME}-nats-${ENV}
     <<: *common-defaults
     command: >
       --jetstream

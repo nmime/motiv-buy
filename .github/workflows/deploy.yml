@@ -213,8 +213,8 @@ jobs:
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=staging
           PORT=3000
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_USER=${{ secrets.DB_USER }}
+          DB_NAME=${{ vars.DB_NAME }}
+          DB_USER=${{ vars.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -227,7 +227,7 @@ jobs:
           API_DOMAIN=api.st.motivbuy.com
           BOT_DOMAIN=bot.st.motivbuy.com
           MAIN_DOMAIN=st.motivbuy.com
-          LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
+          LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
           API_PORT_EXTERNAL=3001
           DB_PORT_EXTERNAL=5433
           REDIS_PORT_EXTERNAL=6381
@@ -340,8 +340,8 @@ jobs:
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=latest
           PORT=3000
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_USER=${{ secrets.DB_USER }}
+          DB_NAME=${{ vars.DB_NAME }}
+          DB_USER=${{ vars.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -354,7 +354,7 @@ jobs:
           API_DOMAIN=api.motivbuy.com
           BOT_DOMAIN=bot.motivbuy.com
           MAIN_DOMAIN=motivbuy.com
-          LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
+          LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
           API_PORT_EXTERNAL=3001
           DB_PORT_EXTERNAL=5433
           REDIS_PORT_EXTERNAL=6381
