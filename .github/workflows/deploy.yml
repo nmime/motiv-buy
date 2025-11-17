@@ -196,10 +196,13 @@ jobs:
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
-          if [ -d "docker" ]; then
-            scp -o StrictHostKeyChecking=yes -r docker \
-              ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
-          fi
+          # Copy required directories
+          for dir in docker config scripts; do
+            if [ -d "$dir" ]; then
+              scp -o StrictHostKeyChecking=yes -r "$dir" \
+                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
+            fi
+          done
 
           # Create environment file
           ssh -o StrictHostKeyChecking=yes \
@@ -330,10 +333,13 @@ jobs:
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
-          if [ -d "docker" ]; then
-            scp -o StrictHostKeyChecking=yes -r docker \
-              ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
-          fi
+          # Copy required directories
+          for dir in docker config scripts; do
+            if [ -d "$dir" ]; then
+              scp -o StrictHostKeyChecking=yes -r "$dir" \
+                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
+            fi
+          done
 
           # Create environment file
           ssh -o StrictHostKeyChecking=yes \
