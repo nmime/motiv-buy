@@ -241,26 +241,29 @@ jobs:
           ENV_EOF
 
           # Deploy
-          cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            "GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}'" bash << 'DEPLOY_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Create data directories if they don't exist
           mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
 
-          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          # Login to Docker registry
+          echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+          # Pull latest images
           docker compose pull
+
+          # Deploy with zero-downtime
           echo '🚀 Deploying staging (zero-downtime rolling update)...'
           docker compose up -d --remove-orphans --wait --wait-timeout 120
           echo '✅ Staging deployment completed'
-          docker image prune -af --filter 'until=24h'
-          SCRIPT_EOF
 
-          chmod +x /tmp/deploy-script.sh
-          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            'bash -s' < /tmp/deploy-script.sh
-          rm -f /tmp/deploy-script.sh
+          # Cleanup old images
+          docker image prune -af --filter 'until=24h'
+          DEPLOY_EOF
 
       - name: Health Check
         run: |
@@ -368,26 +371,29 @@ jobs:
           ENV_EOF
 
           # Deploy
-          cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            "GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}'" bash << 'DEPLOY_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Create data directories if they don't exist
           mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
 
-          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          # Login to Docker registry
+          echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+          # Pull latest images
           docker compose pull
+
+          # Deploy with zero-downtime
           echo '🚀 Deploying production (zero-downtime rolling update)...'
           docker compose up -d --remove-orphans --no-deps api-${ENV} bot-${ENV} --wait --wait-timeout 180
           echo '✅ Production deployment completed'
-          docker image prune -af --filter 'until=48h'
-          SCRIPT_EOF
 
-          chmod +x /tmp/deploy-script.sh
-          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            'bash -s' < /tmp/deploy-script.sh
-          rm -f /tmp/deploy-script.sh
+          # Cleanup old images
+          docker image prune -af --filter 'until=48h'
+          DEPLOY_EOF
 
       - name: Health Check
         run: |
