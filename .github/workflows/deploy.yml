@@ -243,7 +243,7 @@ jobs:
           # Deploy
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            "GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}'" bash << 'DEPLOY_EOF'
+            "GHCR_TOKEN='${{ secrets.GHCR_TOKEN }}'" bash << 'DEPLOY_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
@@ -251,7 +251,7 @@ jobs:
           mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
 
           # Login to Docker registry
-          echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          echo "$GHCR_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
 
           # Pull latest images
           docker compose pull
@@ -373,7 +373,7 @@ jobs:
           # Deploy
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            "GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}'" bash << 'DEPLOY_EOF'
+            "GHCR_TOKEN='${{ secrets.GHCR_TOKEN }}'" bash << 'DEPLOY_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
@@ -381,7 +381,7 @@ jobs:
           mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
 
           # Login to Docker registry
-          echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          echo "$GHCR_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
 
           # Pull latest images
           docker compose pull
