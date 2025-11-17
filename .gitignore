@@ -97,6 +97,10 @@ config/nginx/ssl/*.crt
 dump.rdb
 appendonly.aof
 
+# Docker data directories
+data-dev/
+data/
+
 # Temporary files
 tmp/
 temp/
