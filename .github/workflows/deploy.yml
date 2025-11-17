@@ -204,30 +204,58 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Test SSH Connection
+        run: |
+          set -euo pipefail
+          echo "🔍 Testing SSH connection to staging server..."
+          if ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=10 \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} "echo 'SSH connection successful'"; then
+            echo "✅ SSH connection test passed"
+          else
+            echo "❌ SSH connection test failed"
+            exit 1
+          fi
+
       - name: Deploy
         run: |
           set -euo pipefail
 
-          # Create deployment directory structure
+          # Create deployment directory structure with proper permissions
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MKDIR_EOF'
           set -euo pipefail
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}
+
+          # Create main deployment directory
+          sudo mkdir -p ${{ vars.VPS_DEPLOY_PATH }}
+          sudo chown -R ${{ vars.VPS_USER }}:${{ vars.VPS_USER }} ${{ vars.VPS_DEPLOY_PATH }}
+          sudo chmod -R 755 ${{ vars.VPS_DEPLOY_PATH }}
+
+          # Create subdirectories
           mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/docker
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/sites-available
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/sites-enabled
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/ssl
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/prometheus
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/redis
           mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/scripts
+
+          echo "✅ Directories created successfully"
           MKDIR_EOF
 
           # Copy deployment files
+          echo "📄 Copying docker-compose file..."
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
           # Copy required directories (preserve structure)
           for dir in docker config scripts; do
             if [ -d "$dir" ]; then
-              echo "📁 Copying $dir..."
-              scp -o StrictHostKeyChecking=yes -r "$dir"/* \
-                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/$dir/ || true
+              echo "📁 Copying $dir directory..."
+              # Use tar to preserve structure and handle permissions better
+              tar czf - -C "$dir" . | ssh -o StrictHostKeyChecking=yes \
+                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+                "cd ${{ vars.VPS_DEPLOY_PATH }}/$dir && tar xzf -"
+              echo "✅ $dir copied successfully"
             fi
           done
 
@@ -351,30 +379,62 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Test SSH Connection
+        run: |
+          set -euo pipefail
+          echo "🔍 Testing SSH connection to production server..."
+          if ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=10 \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} "echo 'SSH connection successful'"; then
+            echo "✅ SSH connection test passed"
+          else
+            echo "❌ SSH connection test failed - Please check:"
+            echo "  1. Server is online and accessible"
+            echo "  2. SSH service is running on port 22"
+            echo "  3. Firewall allows SSH connections"
+            echo "  4. VPS_HOST variable is set correctly in production environment"
+            exit 1
+          fi
+
       - name: Deploy
         run: |
           set -euo pipefail
 
-          # Create deployment directory structure
+          # Create deployment directory structure with proper permissions
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MKDIR_EOF'
           set -euo pipefail
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}
+
+          # Create main deployment directory
+          sudo mkdir -p ${{ vars.VPS_DEPLOY_PATH }}
+          sudo chown -R ${{ vars.VPS_USER }}:${{ vars.VPS_USER }} ${{ vars.VPS_DEPLOY_PATH }}
+          sudo chmod -R 755 ${{ vars.VPS_DEPLOY_PATH }}
+
+          # Create subdirectories
           mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/docker
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/sites-available
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/sites-enabled
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/ssl
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/prometheus
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/redis
           mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/scripts
+
+          echo "✅ Directories created successfully"
           MKDIR_EOF
 
           # Copy deployment files
+          echo "📄 Copying docker-compose file..."
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
           # Copy required directories (preserve structure)
           for dir in docker config scripts; do
             if [ -d "$dir" ]; then
-              echo "📁 Copying $dir..."
-              scp -o StrictHostKeyChecking=yes -r "$dir"/* \
-                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/$dir/ || true
+              echo "📁 Copying $dir directory..."
+              # Use tar to preserve structure and handle permissions better
+              tar czf - -C "$dir" . | ssh -o StrictHostKeyChecking=yes \
+                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+                "cd ${{ vars.VPS_DEPLOY_PATH }}/$dir && tar xzf -"
+              echo "✅ $dir copied successfully"
             fi
           done
 
