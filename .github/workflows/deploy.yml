@@ -87,17 +87,13 @@ jobs:
   # Job 2: Build and Push Docker Images
   # ==============================================
   build:
-    name: Build & Push
+    name: Build & Push (All Apps)
     runs-on: [self-hosted, linux]
     needs: validate
 
     permissions:
       contents: read
       packages: write
-
-    strategy:
-      matrix:
-        app: [api, bot]
 
     steps:
       - name: Checkout code
@@ -115,44 +111,69 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine image tags
-        id: tags
+      - name: Build and push Docker images in parallel
         run: |
           set -euo pipefail
-          TAGS=""
+          echo "🐳 Building all apps with shared cache optimization..."
+          echo "📌 Using commit SHA: ${{ github.sha }}"
 
-          # Add staging tags if deploying to staging
-          if [[ "${{ needs.validate.outputs.deploy-staging }}" == "true" ]]; then
-            TAGS="$TAGS ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:staging"
-            TAGS="$TAGS ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:${{ needs.validate.outputs.ref-name }}"
-            TAGS="$TAGS ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:staging-${{ github.sha }}"
+          APPS=("api" "bot" "migration")
+          declare -A PIDS
+
+          # Determine which tags to use based on deployment target
+          STAGING="${{ needs.validate.outputs.deploy-staging }}"
+          PRODUCTION="${{ needs.validate.outputs.deploy-production }}"
+
+          # Launch all builds in parallel
+          for APP in "${APPS[@]}"; do
+            echo "📦 Building $APP..."
+            (
+              TAGS=""
+
+              # Add staging tags if deploying to staging
+              if [[ "$STAGING" == "true" ]]; then
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:staging"
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:${{ needs.validate.outputs.ref-name }}"
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:staging-${{ github.sha }}"
+              fi
+
+              # Add production tags if deploying to production
+              if [[ "$PRODUCTION" == "true" ]]; then
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:latest"
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:prod-${{ github.sha }}"
+              fi
+
+              docker buildx build \
+                --build-arg APP_NAME=$APP \
+                $TAGS \
+                --cache-from type=gha,scope=shared \
+                --cache-from type=gha,scope=$APP \
+                --push \
+                -f Dockerfile . || exit 1
+            ) &
+            PIDS[$APP]=$!
+          done
+
+          # Wait and check results
+          FAILED=()
+          for APP in "${APPS[@]}"; do
+            echo "⏳ Waiting for $APP (PID: ${PIDS[$APP]})..."
+            if wait ${PIDS[$APP]}; then
+              echo "✅ $APP succeeded"
+            else
+              echo "❌ $APP failed"
+              FAILED+=($APP)
+            fi
+          done
+
+          # Report results
+          if [ ${#FAILED[@]} -ne 0 ]; then
+            echo "❌ Failed builds: ${FAILED[*]}"
+            exit 1
           fi
 
-          # Add production tags if deploying to production
-          if [[ "${{ needs.validate.outputs.deploy-production }}" == "true" ]]; then
-            TAGS="$TAGS ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:latest"
-            TAGS="$TAGS ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-${{ matrix.app }}:prod-${{ github.sha }}"
-          fi
-
-          # Convert to newline-separated for docker/build-push-action
-          TAGS=$(echo $TAGS | tr ' ' '\n')
-          echo "list<<EOF" >> $GITHUB_OUTPUT
-          echo "$TAGS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          build-args: |
-            APP_NAME=${{ matrix.app }}
-          tags: ${{ steps.tags.outputs.list }}
-          # Use shared cache for common stages (deps, libs-builder, prod-deps) + app-specific cache
-          cache-from: |
-            type=gha,scope=shared
-            type=gha,scope=${{ matrix.app }}
+          echo "✅ All builds completed successfully!"
+          echo "📋 Built images with tags for: staging=$STAGING, production=$PRODUCTION"
 
   # ==============================================
   # Job 3: Deploy to Staging
@@ -187,20 +208,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Create deployment directory
+          # Create deployment directory structure
           ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            "mkdir -p ${{ vars.VPS_DEPLOY_PATH }}"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MKDIR_EOF'
+          set -euo pipefail
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/docker
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/scripts
+          MKDIR_EOF
 
           # Copy deployment files
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
-          # Copy required directories
+          # Copy required directories (preserve structure)
           for dir in docker config scripts; do
             if [ -d "$dir" ]; then
-              scp -o StrictHostKeyChecking=yes -r "$dir" \
-                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
+              echo "📁 Copying $dir..."
+              scp -o StrictHostKeyChecking=yes -r "$dir"/* \
+                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/$dir/ || true
             fi
           done
 
@@ -328,20 +355,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Create deployment directory
+          # Create deployment directory structure
           ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            "mkdir -p ${{ vars.VPS_DEPLOY_PATH }}"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MKDIR_EOF'
+          set -euo pipefail
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/docker
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config
+          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/scripts
+          MKDIR_EOF
 
           # Copy deployment files
           scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
 
-          # Copy required directories
+          # Copy required directories (preserve structure)
           for dir in docker config scripts; do
             if [ -d "$dir" ]; then
-              scp -o StrictHostKeyChecking=yes -r "$dir" \
-                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/
+              echo "📁 Copying $dir..."
+              scp -o StrictHostKeyChecking=yes -r "$dir"/* \
+                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/$dir/ || true
             fi
           done
 
