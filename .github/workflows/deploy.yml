@@ -259,47 +259,84 @@ jobs:
             fi
           done
 
-          # Create environment file
+          # Create environment file with proper escaping
           ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            NODE_ENV=staging \
+            PROJECT_NAME=motiv-buy \
+            ENV=staging \
+            VPS_DEPLOY_PATH='${{ vars.VPS_DEPLOY_PATH }}' \
+            DOCKER_REGISTRY='${{ env.DOCKER_REGISTRY }}' \
+            DOCKER_IMAGE_PREFIX='${{ github.repository_owner }}/motiv-buy' \
+            IMAGE_TAG=staging \
+            PORT=3000 \
+            DB_NAME='${{ vars.DB_NAME }}' \
+            DB_USER='${{ vars.DB_USER }}' \
+            DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+            REDIS_PASSWORD='${{ secrets.REDIS_PASSWORD }}' \
+            JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+            JWT_EXPIRES_IN=7d \
+            TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' \
+            CRYPTO_BOT_API_TOKEN='${{ secrets.CRYPTO_BOT_API_TOKEN }}' \
+            LOG_LEVEL=debug \
+            RATE_LIMIT_MAX=100 \
+            RATE_LIMIT_WINDOW=900000 \
+            API_DOMAIN=api.st.motivbuy.com \
+            BOT_DOMAIN=bot.st.motivbuy.com \
+            MAIN_DOMAIN=st.motivbuy.com \
+            LETSENCRYPT_EMAIL='${{ vars.LETSENCRYPT_EMAIL }}' \
+            API_PORT_EXTERNAL=3001 \
+            DB_PORT_EXTERNAL=5433 \
+            REDIS_PORT_EXTERNAL=6381 \
+            NATS_PORT_EXTERNAL=4223 \
+            NATS_MONITOR_PORT=8223 \
+            HTTP_PORT=80 \
+            HTTPS_PORT=443 \
+            PROMETHEUS_PORT=9090 \
+            GRAFANA_PORT=3002 \
+            GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
+            NATS_USER='${{ vars.NATS_USER }}' \
+            NATS_PASSWORD='${{ secrets.NATS_PASSWORD }}' \
+            bash << 'ENV_EOF'
           set -euo pipefail
-          cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
-          NODE_ENV=staging
-          PROJECT_NAME=motiv-buy
-          ENV=staging
-          VPS_DEPLOY_PATH=${{ vars.VPS_DEPLOY_PATH }}
-          DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
-          DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
-          IMAGE_TAG=staging
-          PORT=3000
-          DB_NAME=${{ vars.DB_NAME }}
-          DB_USER=${{ vars.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          JWT_EXPIRES_IN=7d
-          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CRYPTO_BOT_API_TOKEN=${{ secrets.CRYPTO_BOT_API_TOKEN }}
-          LOG_LEVEL=debug
-          RATE_LIMIT_MAX=100
-          RATE_LIMIT_WINDOW=900000
-          API_DOMAIN=api.st.motivbuy.com
-          BOT_DOMAIN=bot.st.motivbuy.com
-          MAIN_DOMAIN=st.motivbuy.com
-          LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
-          API_PORT_EXTERNAL=3001
-          DB_PORT_EXTERNAL=5433
-          REDIS_PORT_EXTERNAL=6381
-          NATS_PORT_EXTERNAL=4223
-          NATS_MONITOR_PORT=8223
-          HTTP_PORT=80
-          HTTPS_PORT=443
-          PROMETHEUS_PORT=9090
-          GRAFANA_PORT=3002
-          GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}
-          NATS_USER=${{ vars.NATS_USER }}
-          NATS_PASSWORD=${{ secrets.NATS_PASSWORD }}
-          ENVFILE
+          # Generate .env file with proper escaping
+          cat > $VPS_DEPLOY_PATH/.env << ENVFILE
+NODE_ENV=${NODE_ENV}
+PROJECT_NAME=${PROJECT_NAME}
+ENV=${ENV}
+VPS_DEPLOY_PATH=${VPS_DEPLOY_PATH}
+DOCKER_REGISTRY=${DOCKER_REGISTRY}
+DOCKER_IMAGE_PREFIX=${DOCKER_IMAGE_PREFIX}
+IMAGE_TAG=${IMAGE_TAG}
+PORT=${PORT}
+DB_NAME=${DB_NAME}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+REDIS_PASSWORD=${REDIS_PASSWORD}
+JWT_SECRET=${JWT_SECRET}
+JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+CRYPTO_BOT_API_TOKEN=${CRYPTO_BOT_API_TOKEN}
+LOG_LEVEL=${LOG_LEVEL}
+RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW}
+API_DOMAIN=${API_DOMAIN}
+BOT_DOMAIN=${BOT_DOMAIN}
+MAIN_DOMAIN=${MAIN_DOMAIN}
+LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+API_PORT_EXTERNAL=${API_PORT_EXTERNAL}
+DB_PORT_EXTERNAL=${DB_PORT_EXTERNAL}
+REDIS_PORT_EXTERNAL=${REDIS_PORT_EXTERNAL}
+NATS_PORT_EXTERNAL=${NATS_PORT_EXTERNAL}
+NATS_MONITOR_PORT=${NATS_MONITOR_PORT}
+HTTP_PORT=${HTTP_PORT}
+HTTPS_PORT=${HTTPS_PORT}
+PROMETHEUS_PORT=${PROMETHEUS_PORT}
+GRAFANA_PORT=${GRAFANA_PORT}
+GRAFANA_PASSWORD=${GRAFANA_PASSWORD}
+NATS_USER=${NATS_USER}
+NATS_PASSWORD=${NATS_PASSWORD}
+ENVFILE
           ENV_EOF
 
           # Deploy
@@ -438,47 +475,84 @@ jobs:
             fi
           done
 
-          # Create environment file
+          # Create environment file with proper escaping
           ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            NODE_ENV=production \
+            PROJECT_NAME=motiv-buy \
+            ENV=production \
+            VPS_DEPLOY_PATH='${{ vars.VPS_DEPLOY_PATH }}' \
+            DOCKER_REGISTRY='${{ env.DOCKER_REGISTRY }}' \
+            DOCKER_IMAGE_PREFIX='${{ github.repository_owner }}/motiv-buy' \
+            IMAGE_TAG=latest \
+            PORT=3000 \
+            DB_NAME='${{ vars.DB_NAME }}' \
+            DB_USER='${{ vars.DB_USER }}' \
+            DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+            REDIS_PASSWORD='${{ secrets.REDIS_PASSWORD }}' \
+            JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+            JWT_EXPIRES_IN=7d \
+            TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' \
+            CRYPTO_BOT_API_TOKEN='${{ secrets.CRYPTO_BOT_API_TOKEN }}' \
+            LOG_LEVEL=warn \
+            RATE_LIMIT_MAX=100 \
+            RATE_LIMIT_WINDOW=900000 \
+            API_DOMAIN=api.motivbuy.com \
+            BOT_DOMAIN=bot.motivbuy.com \
+            MAIN_DOMAIN=motivbuy.com \
+            LETSENCRYPT_EMAIL='${{ vars.LETSENCRYPT_EMAIL }}' \
+            API_PORT_EXTERNAL=3001 \
+            DB_PORT_EXTERNAL=5433 \
+            REDIS_PORT_EXTERNAL=6381 \
+            NATS_PORT_EXTERNAL=4223 \
+            NATS_MONITOR_PORT=8223 \
+            HTTP_PORT=80 \
+            HTTPS_PORT=443 \
+            PROMETHEUS_PORT=9090 \
+            GRAFANA_PORT=3002 \
+            GRAFANA_PASSWORD='${{ secrets.GRAFANA_PASSWORD }}' \
+            NATS_USER='${{ vars.NATS_USER }}' \
+            NATS_PASSWORD='${{ secrets.NATS_PASSWORD }}' \
+            bash << 'ENV_EOF'
           set -euo pipefail
-          cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
-          NODE_ENV=production
-          PROJECT_NAME=motiv-buy
-          ENV=production
-          VPS_DEPLOY_PATH=${{ vars.VPS_DEPLOY_PATH }}
-          DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
-          DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
-          IMAGE_TAG=latest
-          PORT=3000
-          DB_NAME=${{ vars.DB_NAME }}
-          DB_USER=${{ vars.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          JWT_EXPIRES_IN=7d
-          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CRYPTO_BOT_API_TOKEN=${{ secrets.CRYPTO_BOT_API_TOKEN }}
-          LOG_LEVEL=warn
-          RATE_LIMIT_MAX=100
-          RATE_LIMIT_WINDOW=900000
-          API_DOMAIN=api.motivbuy.com
-          BOT_DOMAIN=bot.motivbuy.com
-          MAIN_DOMAIN=motivbuy.com
-          LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
-          API_PORT_EXTERNAL=3001
-          DB_PORT_EXTERNAL=5433
-          REDIS_PORT_EXTERNAL=6381
-          NATS_PORT_EXTERNAL=4223
-          NATS_MONITOR_PORT=8223
-          HTTP_PORT=80
-          HTTPS_PORT=443
-          PROMETHEUS_PORT=9090
-          GRAFANA_PORT=3002
-          GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}
-          NATS_USER=${{ vars.NATS_USER }}
-          NATS_PASSWORD=${{ secrets.NATS_PASSWORD }}
-          ENVFILE
+          # Generate .env file with proper escaping
+          cat > $VPS_DEPLOY_PATH/.env << ENVFILE
+NODE_ENV=${NODE_ENV}
+PROJECT_NAME=${PROJECT_NAME}
+ENV=${ENV}
+VPS_DEPLOY_PATH=${VPS_DEPLOY_PATH}
+DOCKER_REGISTRY=${DOCKER_REGISTRY}
+DOCKER_IMAGE_PREFIX=${DOCKER_IMAGE_PREFIX}
+IMAGE_TAG=${IMAGE_TAG}
+PORT=${PORT}
+DB_NAME=${DB_NAME}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+REDIS_PASSWORD=${REDIS_PASSWORD}
+JWT_SECRET=${JWT_SECRET}
+JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+CRYPTO_BOT_API_TOKEN=${CRYPTO_BOT_API_TOKEN}
+LOG_LEVEL=${LOG_LEVEL}
+RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW}
+API_DOMAIN=${API_DOMAIN}
+BOT_DOMAIN=${BOT_DOMAIN}
+MAIN_DOMAIN=${MAIN_DOMAIN}
+LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+API_PORT_EXTERNAL=${API_PORT_EXTERNAL}
+DB_PORT_EXTERNAL=${DB_PORT_EXTERNAL}
+REDIS_PORT_EXTERNAL=${REDIS_PORT_EXTERNAL}
+NATS_PORT_EXTERNAL=${NATS_PORT_EXTERNAL}
+NATS_MONITOR_PORT=${NATS_MONITOR_PORT}
+HTTP_PORT=${HTTP_PORT}
+HTTPS_PORT=${HTTPS_PORT}
+PROMETHEUS_PORT=${PROMETHEUS_PORT}
+GRAFANA_PORT=${GRAFANA_PORT}
+GRAFANA_PASSWORD=${GRAFANA_PASSWORD}
+NATS_USER=${NATS_USER}
+NATS_PASSWORD=${NATS_PASSWORD}
+ENVFILE
           ENV_EOF
 
           # Deploy
