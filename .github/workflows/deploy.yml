@@ -164,6 +164,10 @@ jobs:
     if: needs.validate.outputs.deploy-staging == 'true'
     environment: staging
 
+    permissions:
+      contents: read
+      packages: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -293,6 +297,10 @@ jobs:
     needs: [validate, build]
     if: needs.validate.outputs.deploy-production == 'true'
     environment: production
+
+    permissions:
+      contents: read
+      packages: read
 
     steps:
       - name: Checkout code
