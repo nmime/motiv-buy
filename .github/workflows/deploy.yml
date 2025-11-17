@@ -111,11 +111,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker images in parallel
+      - name: Build shared stages (deps, libs, prod-deps) once
         run: |
           set -euo pipefail
-          echo "🐳 Building all apps with shared cache optimization..."
+          echo "🏗️  Building shared stages (will be cached and reused by all apps)..."
           echo "📌 Using commit SHA: ${{ github.sha }}"
+
+          # Build up to libs-builder stage to create shared cache
+          # This builds: deps -> libs-builder -> prod-deps
+          docker buildx build \
+            --target libs-builder \
+            --cache-from type=gha,scope=shared \
+            --cache-to type=gha,scope=shared,mode=max \
+            -f Dockerfile . || exit 1
+
+          echo "✅ Shared stages cached successfully (deps, libs-builder, prod-deps)"
+
+      - name: Build and push app images in parallel
+        run: |
+          set -euo pipefail
+          echo "🐳 Building all apps (reusing shared cache)..."
 
           APPS=("api" "bot" "migration")
           declare -A PIDS
@@ -124,9 +139,9 @@ jobs:
           STAGING="${{ needs.validate.outputs.deploy-staging }}"
           PRODUCTION="${{ needs.validate.outputs.deploy-production }}"
 
-          # Launch all builds in parallel
+          # Launch all builds in parallel (each will reuse cached shared stages)
           for APP in "${APPS[@]}"; do
-            echo "📦 Building $APP..."
+            echo "📦 Building $APP (reusing cached deps+libs)..."
             (
               TAGS=""
 
@@ -148,6 +163,7 @@ jobs:
                 $TAGS \
                 --cache-from type=gha,scope=shared \
                 --cache-from type=gha,scope=$APP \
+                --cache-to type=gha,scope=$APP,mode=max \
                 --push \
                 -f Dockerfile . || exit 1
             ) &
@@ -174,6 +190,7 @@ jobs:
 
           echo "✅ All builds completed successfully!"
           echo "📋 Built images with tags for: staging=$STAGING, production=$PRODUCTION"
+          echo "🚀 Performance: Shared stages built once, apps built in parallel reusing cache"
 
   # ==============================================
   # Job 3: Deploy to Staging

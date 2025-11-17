@@ -54,7 +54,10 @@ echo "🚀 Starting $ENVIRONMENT deployment..."
 # Step 1: Create directories
 echo "📁 Creating directory structure..."
 ssh -o StrictHostKeyChecking=yes \
-  "${VPS_USER}@${VPS_HOST}" << 'MKDIR_EOF'
+  "${VPS_USER}@${VPS_HOST}" \
+  "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
+  "VPS_USER='${VPS_USER}'" \
+  bash << 'MKDIR_EOF'
 set -euo pipefail
 
 # Create main deployment directory
@@ -183,6 +186,7 @@ ssh -o StrictHostKeyChecking=yes \
   "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
   "DOCKER_REGISTRY='${DOCKER_REGISTRY}'" \
   "GITHUB_ACTOR='${GITHUB_ACTOR}'" \
+  "ENV='${ENVIRONMENT}'" \
   bash << 'DEPLOY_EOF'
 set -euo pipefail
 cd $VPS_DEPLOY_PATH
