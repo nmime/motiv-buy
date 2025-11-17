@@ -206,9 +206,13 @@ jobs:
           set -euo pipefail
           cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
           NODE_ENV=staging
+          PROJECT_NAME=motiv-buy
+          ENV=staging
+          VPS_DEPLOY_PATH=${{ vars.VPS_DEPLOY_PATH }}
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=staging
+          PORT=3000
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -218,10 +222,24 @@ jobs:
           TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
           CRYPTO_BOT_API_TOKEN=${{ secrets.CRYPTO_BOT_API_TOKEN }}
           LOG_LEVEL=debug
+          RATE_LIMIT_MAX=100
+          RATE_LIMIT_WINDOW=900000
           API_DOMAIN=api.st.motivbuy.com
           BOT_DOMAIN=bot.st.motivbuy.com
           MAIN_DOMAIN=st.motivbuy.com
           LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
+          API_PORT_EXTERNAL=3001
+          DB_PORT_EXTERNAL=5433
+          REDIS_PORT_EXTERNAL=6381
+          NATS_PORT_EXTERNAL=4223
+          NATS_MONITOR_PORT=8223
+          HTTP_PORT=80
+          HTTPS_PORT=443
+          PROMETHEUS_PORT=9090
+          GRAFANA_PORT=3002
+          GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}
+          NATS_USER=
+          NATS_PASSWORD=
           ENVFILE
           ENV_EOF
 
@@ -229,12 +247,16 @@ jobs:
           cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
+
+          # Create data directories if they don't exist
+          mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
+
           docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
           docker compose pull
-          echo '🚀 Deploying staging...'
-          docker compose up -d --remove-orphans
-          docker image prune -af --filter 'until=24h'
+          echo '🚀 Deploying staging (zero-downtime rolling update)...'
+          docker compose up -d --remove-orphans --wait --wait-timeout 120
           echo '✅ Staging deployment completed'
+          docker image prune -af --filter 'until=24h'
           SCRIPT_EOF
 
           chmod +x /tmp/deploy-script.sh
@@ -311,9 +333,13 @@ jobs:
           set -euo pipefail
           cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
           NODE_ENV=production
+          PROJECT_NAME=motiv-buy
+          ENV=production
+          VPS_DEPLOY_PATH=${{ vars.VPS_DEPLOY_PATH }}
           DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
           DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
           IMAGE_TAG=latest
+          PORT=3000
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -323,10 +349,24 @@ jobs:
           TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
           CRYPTO_BOT_API_TOKEN=${{ secrets.CRYPTO_BOT_API_TOKEN }}
           LOG_LEVEL=warn
+          RATE_LIMIT_MAX=100
+          RATE_LIMIT_WINDOW=900000
           API_DOMAIN=api.motivbuy.com
           BOT_DOMAIN=bot.motivbuy.com
           MAIN_DOMAIN=motivbuy.com
           LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
+          API_PORT_EXTERNAL=3001
+          DB_PORT_EXTERNAL=5433
+          REDIS_PORT_EXTERNAL=6381
+          NATS_PORT_EXTERNAL=4223
+          NATS_MONITOR_PORT=8223
+          HTTP_PORT=80
+          HTTPS_PORT=443
+          PROMETHEUS_PORT=9090
+          GRAFANA_PORT=3002
+          GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}
+          NATS_USER=
+          NATS_PASSWORD=
           ENVFILE
           ENV_EOF
 
@@ -334,14 +374,16 @@ jobs:
           cat > /tmp/deploy-script.sh << 'SCRIPT_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
+
+          # Create data directories if they don't exist
+          mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
+
           docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
           docker compose pull
-          echo '🚀 Deploying production...'
-          docker compose up -d --remove-orphans --no-deps api bot
-          echo '⏳ Waiting for services...'
-          sleep 10
-          docker image prune -af --filter 'until=48h'
+          echo '🚀 Deploying production (zero-downtime rolling update)...'
+          docker compose up -d --remove-orphans --no-deps api bot --wait --wait-timeout 180
           echo '✅ Production deployment completed'
+          docker image prune -af --filter 'until=48h'
           SCRIPT_EOF
 
           chmod +x /tmp/deploy-script.sh

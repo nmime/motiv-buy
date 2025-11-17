@@ -1,20 +1,24 @@
-# Deploy from Scratch
+# Deployment Guide
 
-Single guide to deploy Motiv-Buy to staging and production.
-
----
-
-## Prerequisites
-
-- VPS servers with Ubuntu 22.04+
-- Domain configured (motivbuy.com)
-- GitHub repository access
+Deploy Motiv-Buy to staging and production environments.
 
 ---
 
-## 1. Setup Servers (One-Time)
+## Quick Start Checklist
 
-### DNS Records
+- [ ] VPS servers ready (Ubuntu 22.04+)
+- [ ] Domain configured (DNS propagated)
+- [ ] GitHub repository access
+- [ ] SSH keys generated
+- [ ] GitHub secrets configured
+- [ ] First deployment: Deploy → Migrate
+- [ ] Updates: Migrate → Deploy
+
+---
+
+## 1. Server Setup (One-Time)
+
+### DNS Configuration
 
 **Staging (157.180.64.229):**
 ```
@@ -30,58 +34,34 @@ A    api           → 65.108.218.78
 A    bot           → 65.108.218.78
 ```
 
-Verify: `dig st.motivbuy.com +short` (wait 5-10 min for propagation)
+Verify: `dig st.motivbuy.com +short`
 
 ### Run Setup Script
 
 ```bash
-# Staging (using default domain: motivbuy.com)
-scp scripts/setup-server.sh root@157.180.64.229:/root/
-ssh root@157.180.64.229 "bash /root/setup-server.sh staging"
-
-# Production (using default domain: motivbuy.com)
-scp scripts/setup-server.sh root@65.108.218.78:/root/
-ssh root@65.108.218.78 "bash /root/setup-server.sh production"
-
-# Or with custom domain
-ssh root@157.180.64.229 "bash /root/setup-server.sh staging example.com admin@example.com"
-```
-
-**Script Usage:**
-```bash
-sudo bash setup-server.sh [staging|production] [domain] [email]
+# Copy and execute setup script
+scp scripts/setup-server.sh root@<SERVER_IP>:/root/
+ssh root@<SERVER_IP> "bash /root/setup-server.sh <environment>"
 
 # Examples:
-bash setup-server.sh staging                              # Uses motivbuy.com
-bash setup-server.sh production example.com               # Custom domain, auto email
-bash setup-server.sh staging mydomain.com me@mydomain.com # Full custom
+ssh root@157.180.64.229 "bash /root/setup-server.sh staging"
+ssh root@65.108.218.78 "bash /root/setup-server.sh production"
 ```
 
-### Setup SSH Keys
-
-**Note:** The setup script automatically copies your root SSH keys to the `deployer` user. You can test access immediately, then add dedicated deployment keys for GitHub Actions.
+### Configure SSH Keys
 
 ```bash
-# 1. Test deployer access (should work with your existing root key)
-ssh deployer@157.180.64.229
-ssh deployer@65.108.218.78
-
-# 2. Generate dedicated deployment keys for GitHub Actions (one per environment)
+# Generate deployment keys
 ssh-keygen -t ed25519 -C "deploy-staging" -f ~/.ssh/motiv-staging
 ssh-keygen -t ed25519 -C "deploy-production" -f ~/.ssh/motiv-production
 
-# 3. Add deployment keys to respective servers
+# Add to servers
 cat ~/.ssh/motiv-staging.pub | ssh deployer@157.180.64.229 'tee -a ~/.ssh/authorized_keys'
 cat ~/.ssh/motiv-production.pub | ssh deployer@65.108.218.78 'tee -a ~/.ssh/authorized_keys'
 
-# 4. Test with new keys
+# Test access
 ssh -i ~/.ssh/motiv-staging deployer@157.180.64.229
 ssh -i ~/.ssh/motiv-production deployer@65.108.218.78
-
-# 5. Save private keys for GitHub Secrets
-cat ~/.ssh/motiv-staging      # For staging environment VPS_SSH_KEY
-cat ~/.ssh/motiv-production   # For production environment VPS_SSH_KEY
-# Copy ENTIRE output including -----BEGIN----- and -----END----- lines
 ```
 
 ---
@@ -89,583 +69,310 @@ cat ~/.ssh/motiv-production   # For production environment VPS_SSH_KEY
 ## 2. Generate Secrets
 
 ```bash
-# Run these and save the outputs
+# Generate secure secrets
 openssl rand -base64 32  # DB_PASSWORD
 openssl rand -base64 32  # REDIS_PASSWORD
 openssl rand -base64 64  # JWT_SECRET
 ```
 
-**Get Bot Tokens:**
-1. Open Telegram → @BotFather → /newbot → get token
-2. Create separate bots for staging and production
-
-**Get CryptoBot Tokens:**
-1. Go to https://pay.crypt.bot
-2. Create API tokens for staging and production
+**Telegram Bot Tokens:**
+- Open @BotFather in Telegram
+- Create separate bots for staging and production
+- Save tokens for GitHub secrets
 
 ---
 
-## 3. Configure GitHub Environments
+## 3. GitHub Configuration
 
-Go to: **Repository → Settings → Environments**
+### Repository Secrets (Settings → Secrets → Actions)
 
-### Create Staging Environment
-
-1. Click **"New environment"**
-2. Name: `staging`
-3. Click **"Configure environment"**
-4. Add environment secrets (12 secrets):
+Add these secrets:
 
 ```
-VPS_HOST              = 157.180.64.229
-VPS_USER              = deployer
-VPS_SSH_KEY           = <paste private key ~/.ssh/motiv-staging>
-VPS_DEPLOY_PATH       = /opt/motiv-buy
-
-DB_NAME               = motiv_buy_staging
-DB_USER               = postgres
-DB_PASSWORD           = <from step 2>
-REDIS_PASSWORD        = <from step 2>
-JWT_SECRET            = <from step 2>
-
-TELEGRAM_BOT_TOKEN    = <staging bot token from @BotFather>
-CRYPTO_BOT_API_TOKEN  = <staging token from CryptoBot>
-
-LETSENCRYPT_EMAIL     = admin@motivbuy.com
+VPS_SSH_KEY              # Private key content (cat ~/.ssh/motiv-staging)
+DB_PASSWORD              # From step 2
+REDIS_PASSWORD           # From step 2
+JWT_SECRET               # From step 2
+TELEGRAM_BOT_TOKEN       # From @BotFather
+CRYPTO_BOT_API_TOKEN     # From @CryptoBot
+LETSENCRYPT_EMAIL        # Your email for SSL
+DB_NAME                  # Database name (e.g., motivbuy)
+DB_USER                  # Database user (e.g., motiv_user)
+DB_HOST                  # postgres-prod (default)
 ```
 
-### Create Production Environment
+### Environment Variables (Settings → Environments)
 
-1. Click **"New environment"**
-2. Name: `production`
-3. Click **"Configure environment"**
-4. **(Optional)** Add protection rules:
-   - ☑ Required reviewers
-   - ☑ Wait timer (e.g., 5 minutes)
-5. Add environment secrets (12 secrets):
-
+**Create `staging` environment:**
 ```
-VPS_HOST              = 65.108.218.78
-VPS_USER              = deployer
-VPS_SSH_KEY           = <paste private key ~/.ssh/motiv-production>
-VPS_DEPLOY_PATH       = /opt/motiv-buy
-
-DB_NAME               = motiv_buy_prod
-DB_USER               = motiv_buy_user
-DB_PASSWORD           = <from step 2>
-REDIS_PASSWORD        = <from step 2>
-JWT_SECRET            = <from step 2>
-
-TELEGRAM_BOT_TOKEN    = <production bot token from @BotFather>
-CRYPTO_BOT_API_TOKEN  = <production token from CryptoBot>
-
-LETSENCRYPT_EMAIL     = admin@motivbuy.com
+VPS_HOST                 # 157.180.64.229
+VPS_USER                 # deployer
+VPS_DEPLOY_PATH          # /opt/motiv-buy/staging
 ```
 
-**Total: 12 secrets per environment = 24 secrets**
-
----
-
-## 4. Deploy to Staging
-
-**⚠️ IMPORTANT: Run migrations BEFORE deploying!**
-
-### Step 1: Run Migrations
-
-```bash
-# 1. Go to GitHub → Actions → "Run Database Migrations" workflow
-# 2. Click "Run workflow"
-# 3. Select:
-#    - Environment: staging
-#    - Action: up
-# 4. Click "Run workflow"
-# 5. Wait ~2-3 minutes
-# 6. Verify migration succeeded (green checkmark)
+**Create `production` environment:**
 ```
-
-**Why migrations first?**
-- New application code expects the updated database schema
-- Running migrations after deploy can cause errors
-- Safer to update DB structure before app code
-
-### Step 2: Deploy Application
-
-```bash
-# 1. Create and push branch
-git checkout -b test/first-deploy
-git push origin test/first-deploy
-
-# 2. Go to GitHub → Actions → "Deploy" workflow
-# 3. Click "Run workflow"
-# 4. Select:
-#    - Branch: test/first-deploy
-#    - Environment: staging
-# 5. Click "Run workflow"
-
-# 6. Wait ~5-10 minutes
-
-# 7. Verify
-curl https://api.st.motivbuy.com/health
-# Expected: {"status":"ok",...}
+VPS_HOST                 # 65.108.218.78
+VPS_USER                 # deployer
+VPS_DEPLOY_PATH          # /opt/motiv-buy/production
 ```
 
 ---
 
-## 5. Deploy to Production
+## 4. Deployment
 
-**⚠️ CRITICAL: Always run migrations BEFORE deploying to production!**
+### First-Time Deployment (Fresh Server)
 
-### Step 1: Run Migrations (with automatic backup)
+**Order: Deploy FIRST → Migrate SECOND**
 
 ```bash
-# 1. Go to GitHub → Actions → "Run Database Migrations" workflow
-# 2. Click "Run workflow"
-# 3. Select:
-#    - Environment: production
-#    - Action: up
-# 4. Click "Run workflow"
-# 5. Wait ~3-5 minutes (includes automatic DB backup)
-# 6. Verify migration succeeded (green checkmark)
+# Step 1: Deploy (creates infrastructure: PostgreSQL, Redis, NATS)
+GitHub → Actions → Deploy → Run workflow
+  Environment: staging (or production)
+  Branch: master
+
+# Step 2: Migrate (creates database tables)
+GitHub → Actions → Run Database Migrations → Run workflow
+  Environment: staging (or production)
+  Action: up
 ```
 
-**Production migrations automatically:**
-- ✅ Create database backup before migration
-- ✅ Run migrations with 10-minute timeout
-- ✅ Verify migration status
-- 📦 Backup saved in: `/opt/motiv-buy/backups/`
+### Subsequent Deployments (Updates)
 
-### Step 2: Deploy Application
+**Order: Migrate FIRST → Deploy SECOND**
 
 ```bash
-# 1. Merge to master
-git checkout master
-git merge test/first-deploy
-git push origin master
+# Step 1: Migrate (update database schema)
+GitHub → Actions → Run Database Migrations → Run workflow
+  Environment: staging (or production)
+  Action: up
 
-# 2. Go to GitHub → Actions → "Deploy" workflow
-# 3. Click "Run workflow"
-# 4. Select:
-#    - Branch: master
-#    - Environment: production
-# 5. Click "Run workflow"
+# Step 2: Deploy (update application code)
+GitHub → Actions → Deploy → Run workflow
+  Environment: staging (or production)
+  Branch: master
+```
 
-# 6. Wait ~5-10 minutes
+---
 
-# 7. Verify
-curl https://api.motivbuy.com/health
-# Expected: {"status":"ok",...}
+## 5. Verification
+
+### Check Deployment Status
+
+```bash
+# View containers
+ssh deployer@<SERVER_IP> "cd /opt/motiv-buy/<environment> && docker compose ps"
+
+# View logs
+ssh deployer@<SERVER_IP> "cd /opt/motiv-buy/<environment> && docker compose logs -f api"
+ssh deployer@<SERVER_IP> "cd /opt/motiv-buy/<environment> && docker compose logs -f bot"
+
+# Check health
+curl https://api.st.motivbuy.com/health        # Staging
+curl https://api.motivbuy.com/health            # Production
+```
+
+### Migration Status
+
+```bash
+# Check migration status
+GitHub → Actions → Run Database Migrations → Run workflow
+  Environment: staging (or production)
+  Action: status
 ```
 
 ---
 
 ## Quick Reference
 
-### Secrets Checklist
-
-- [ ] All 23 GitHub secrets added
-- [ ] SSH key includes BEGIN/END lines
-- [ ] Separate bot tokens for staging/production
-- [ ] Separate CryptoBot tokens for staging/production
-
 ### Deployment URLs
 
-**Staging:**
-- Main: https://st.motivbuy.com
-- API: https://api.st.motivbuy.com
-- Health: https://api.st.motivbuy.com/health
-
-**Production:**
-- Main: https://motivbuy.com
-- API: https://api.motivbuy.com
-- Health: https://api.motivbuy.com/health
+| Environment | API                         | Bot                         | Status   |
+|-------------|-----------------------------|-----------------------------|----------|
+| Staging     | https://api.st.motivbuy.com | https://bot.st.motivbuy.com | `/health`|
+| Production  | https://api.motivbuy.com    | https://bot.motivbuy.com    | `/health`|
 
 ### SSH Access
 
 ```bash
 # Staging
 ssh deployer@157.180.64.229
-cd /opt/motiv-buy
+cd /opt/motiv-buy/staging
 docker compose ps
 
 # Production
 ssh deployer@65.108.218.78
-cd /opt/motiv-buy
+cd /opt/motiv-buy/production
 docker compose ps
 ```
 
----
-
-## CI/CD Pipeline Explained
-
-### Overview
-
-The CI/CD pipeline consists of **2 main workflows** that run automatically:
-
-1. **CI Workflow** (`.github/workflows/ci.yml`) - Quality checks & builds
-2. **Deploy Workflow** (`.github/workflows/deploy.yml`) - Actual deployment
-
----
-
-### 1. CI Workflow (Automatic on Push/PR)
-
-**Triggers:**
-- Push to `master` branch
-- Pull request to any branch
-
-**Execution Order (Parallel):**
-
-```
-┌─────────────────────────────────────────────────┐
-│  Trigger: Push to master or PR opened           │
-└─────────────────────────────────────────────────┘
-                    │
-        ┌───────────┴───────────┐
-        ▼                       ▼
-┏━━━━━━━━━━━━━━━┓       ┏━━━━━━━━━━━━━━━┓
-┃ Job 1: Quality┃       ┃ Job 2: Docker ┃
-┃    & Tests    ┃       ┃     Build     ┃
-┗━━━━━━━━━━━━━━━┛       ┗━━━━━━━━━━━━━━━┛
-        │                       │
-        │  ⚠️ Non-blocking      │  ✅ Blocking
-        │  (can fail)           │  (must pass)
-        │                       │
-        └───────────┬───────────┘
-                    ▼
-        ┏━━━━━━━━━━━━━━━━━━━┓
-        ┃ Job 3: Security   ┃
-        ┃      Scan         ┃
-        ┗━━━━━━━━━━━━━━━━━━━┛
-                    │
-           ⚠️ Non-blocking
-           (informational)
-                    │
-                    ▼
-        ┏━━━━━━━━━━━━━━━━━━━┓
-        ┃ Job 4: Summary    ┃
-        ┃  Report Status    ┃
-        ┗━━━━━━━━━━━━━━━━━━━┛
-```
-
-#### Job 1: Quality & Tests (4-5 minutes)
-**Non-blocking** - Failures show as warnings ⚠️
-
-```yaml
-Steps (sequential):
-1. Checkout code
-2. Install pnpm
-3. Install dependencies
-4. Run ESLint (continue-on-error: true)
-5. Check formatting (continue-on-error: true)
-6. Run tests (continue-on-error: true)  ← Main test execution
-7. Generate coverage
-8. Upload coverage to Codecov
-```
-
-**What happens if tests fail:**
-- ✅ CI still passes (shows GREEN)
-- ⚠️ Warning annotation appears in UI
-- 📊 Summary shows: "Build Successful (with warnings)"
-- 🚫 Does NOT block deployment
-
-#### Job 2: Docker Build (3-4 minutes)
-**Blocking** - Must succeed for CI to pass ✅
-
-```yaml
-Steps (parallel):
-1. Build api Docker image
-2. Build bot Docker image
-3. Build migration Docker image
-
-All builds run in parallel for speed
-Push to: ghcr.io/nmime/motiv-buy-{app}:ci-{sha}
-```
-
-**What happens if build fails:**
-- ❌ CI fails (shows RED)
-- 🚫 Blocks deployment
-- 📊 Summary shows: "Critical Failure - Docker build failed"
-
-#### Job 3: Security Scan (2-3 minutes)
-**Non-blocking** - Informational only ⚠️
-
-```yaml
-Steps:
-1. Run pnpm audit
-2. Run Trivy scanner
-3. Upload results as artifact
-```
-
-#### Job 4: Summary
-**Always runs** - Reports final status
-
-```yaml
-Shows table:
-┌─────────────────┬──────────┬──────────┐
-│ Job             │ Status   │ Blocking │
-├─────────────────┼──────────┼──────────┤
-│ Quality & Tests │ success  │ ❌ No    │
-│ Docker Build    │ success  │ ✅ Yes   │
-│ Security Scan   │ success  │ ❌ No    │
-└─────────────────┴──────────┴──────────┘
-
-Result:
-- If Docker build succeeds → ✅ CI PASS
-- If Docker build fails → ❌ CI FAIL
-- Test/security failures → ⚠️ Warnings only
-```
-
----
-
-### 2. Deploy Workflow (Manual Trigger)
-
-**Triggers:**
-- Manual via GitHub Actions UI
-- Workflow dispatch with environment selection
-
-**Execution Order (Sequential):**
-
-```
-┌─────────────────────────────────────────────────┐
-│  Trigger: Manual "Run workflow" button          │
-│  Select: staging/production/both                │
-└─────────────────────────────────────────────────┘
-                    │
-                    ▼
-        ┏━━━━━━━━━━━━━━━━━━━┓
-        ┃ Job 1: Validate   ┃
-        ┃ - Check branch    ┃
-        ┃ - Set targets     ┃
-        ┗━━━━━━━━━━━━━━━━━━━┛
-                    │
-                    ▼
-        ┏━━━━━━━━━━━━━━━━━━━┓
-        ┃ Job 2: Build      ┃
-        ┃ - Build api       ┃  (parallel)
-        ┃ - Build bot       ┃  (parallel)
-        ┗━━━━━━━━━━━━━━━━━━━┛
-                    │
-        ┌───────────┴───────────┐
-        ▼                       ▼
-┏━━━━━━━━━━━━━━┓      ┏━━━━━━━━━━━━━━━┓
-┃ Job 3:       ┃      ┃ Job 4:        ┃
-┃ Deploy       ┃      ┃ Deploy        ┃
-┃ Staging      ┃      ┃ Production    ┃
-┃              ┃      ┃               ┃
-┃ 1. Setup SSH ┃      ┃ 1. Setup SSH  ┃
-┃ 2. Deploy    ┃      ┃ 2. Backup DB  ┃
-┃ 3. Health ✓  ┃      ┃ 3. Deploy     ┃
-┗━━━━━━━━━━━━━━┛      ┃ 4. Health ✓   ┃
-                      ┃ 5. Smoke ✓    ┃
-                      ┗━━━━━━━━━━━━━━━┛
-        │                       │
-        └───────────┬───────────┘
-                    ▼
-        ┏━━━━━━━━━━━━━━━━━━━┓
-        ┃ Job 5: Summary    ┃
-        ┃ - Report results  ┃
-        ┃ - Show URLs       ┃
-        ┗━━━━━━━━━━━━━━━━━━━┛
-```
-
-**Deploy Steps (per environment):**
+### Common Commands
 
 ```bash
-1. Setup SSH (~5s)
-   - Create SSH directory
-   - Add private key
-   - Scan host keys
+# View logs
+docker compose logs -f <service>
 
-2. Deploy (~60s)
-   - Copy docker-compose.yml to VPS
-   - Generate .env file from GitHub Secrets
-   - Login to ghcr.io
-   - Pull latest images
-   - Run docker compose up -d
-   - Prune old images
+# Restart service
+docker compose restart <service>
 
-3. Health Check (~10s)
-   - Wait for containers to be healthy
-   - Test /health endpoint
-   - Fail if not responsive
+# Check status
+docker compose ps
 
-4. Smoke Tests (production only, ~5s)
-   - Test /health endpoint
-   - Test /api endpoint
-   - Verify responses
-
-5. Cleanup (always)
-   - Remove SSH private key
+# Execute command in container
+docker compose exec <service> <command>
 ```
-
----
-
-### Warning System Explained
-
-**GitHub Actions doesn't have a "yellow" warning state.** We implement warnings using:
-
-#### 1. Continue-on-error Pattern
-```yaml
-- name: Run tests
-  run: pnpm run test
-  continue-on-error: true  # Allows step to fail without failing job
-```
-
-#### 2. Warning Annotations
-```yaml
-echo "::warning::Tests failed. Please review the Quality & Tests job."
-```
-
-Creates a ⚠️ warning icon in the GitHub UI.
-
-#### 3. Job Status Table
-```yaml
-echo "| Quality & Tests | ${{ needs.quality.result }} | ❌ No |"
-```
-
-Shows which jobs are **blocking** vs **non-blocking**.
-
-**Visual Result:**
-```
-✅ CI Workflow - Green checkmark (passed)
-  ├─ ✅ Quality & Tests (with warnings)
-  ├─ ✅ Docker Build
-  └─ ✅ Summary
-     └─ ⚠️ Warning: Tests failed. Please review.
-```
-
-**The workflow shows GREEN but warnings are visible in:**
-- Job summary
-- Annotations panel
-- Log output
-
----
-
-### Quick Decision Tree
-
-**When does CI block deployment?**
-
-```
-Docker build failed?
-├─ YES → ❌ CI FAILS (RED) → Cannot deploy
-└─ NO  → ✅ CI PASSES (GREEN)
-          │
-          Tests failed?
-          ├─ YES → ⚠️ Warning shown → Can deploy (not recommended)
-          └─ NO  → ✅ All clear → Safe to deploy
-```
-
-**When can I deploy?**
-
-```
-✅ Can deploy:
-- Docker build passed
-- Tests may have warnings (fix them later)
-
-❌ Cannot deploy:
-- Docker build failed
-- Must fix and re-run CI
-```
-
----
-
-### Best Practices
-
-1. **Always check warnings** before deploying
-   - Review test failures in "Quality & Tests" job
-   - Fix issues even if CI passes
-
-2. **Staging first** - Always deploy to staging before production
-   ```bash
-   staging → test → production
-   ```
-
-3. **Monitor health checks** - Deployment isn't complete until health checks pass
-   ```bash
-   curl https://api.st.motivbuy.com/health
-   ```
-
-4. **Production deploys** - Only from `master` branch
-   ```bash
-   git checkout master
-   git merge feature-branch
-   git push
-   ```
-
----
-
-### Execution Times
-
-| Workflow | Total Time | Notes |
-|----------|-----------|-------|
-| CI (full) | 4-6 min | Parallel execution |
-| Deploy (staging) | 2-3 min | Single environment |
-| Deploy (production) | 3-5 min | Includes backup + smoke tests |
-| Deploy (both) | 3-5 min | Runs in parallel |
 
 ---
 
 ## Troubleshooting
 
-### Deployment fails: "Permission denied"
-- Check SSH key in GitHub Secrets includes `-----BEGIN-----` and `-----END-----` lines
-- Verify: `ssh -i ~/.ssh/motiv-deploy deployer@VPS_IP`
+### Deployment Failed
 
-### Containers not healthy
 ```bash
-ssh deployer@VPS_IP
-cd /opt/motiv-buy
+# Check workflow logs in GitHub Actions
+# SSH to server and check container status
+ssh deployer@<SERVER_IP>
+cd /opt/motiv-buy/<environment>
+docker compose ps
+docker compose logs <service>
+```
+
+### Migration Failed
+
+```bash
+# Check migration status
+GitHub Actions → Run Database Migrations → Action: status
+
+# Rollback last migration
+GitHub Actions → Run Database Migrations → Action: down
+
+# Production: Restore from backup
+ssh deployer@65.108.218.78
+cd /opt/motiv-buy/production/backups
+ls -lah  # Find latest backup
+# Contact admin for restore procedure
+```
+
+### Health Check Failed
+
+```bash
+# Check service logs
+ssh deployer@<SERVER_IP>
+cd /opt/motiv-buy/<environment>
 docker compose logs api
 docker compose logs bot
+
+# Restart services
+docker compose restart api bot
+
+# Check database connection
+docker compose exec api node -e "require('./dist/apps/api/main').bootstrap()"
 ```
 
-### Need to rollback
+### SSL Certificate Issues
+
 ```bash
-# Go to GitHub Actions
-# Find last successful deployment
-# Click "Re-run all jobs"
+# Certificate auto-renews via Let's Encrypt
+# If renewal fails, check nginx logs
+docker compose logs nginx
+
+# Manual renewal
+docker compose exec nginx certbot renew --dry-run
 ```
 
 ---
 
-## Environment Variables (Auto-Created)
+## Appendix: How It Works
 
-The deploy workflow **automatically creates** `.env` files on VPS using your GitHub Secrets.
+### Infrastructure Services
 
-You **don't need to manually create** `.env` files!
+The deployment automatically manages these services via Docker Compose:
 
-**What gets created:**
+- **PostgreSQL 18**: Database (data mounted to `${VPS_DEPLOY_PATH}/data/postgres`)
+- **Redis 7**: Cache and sessions (data mounted to `${VPS_DEPLOY_PATH}/data/redis`)
+- **NATS JetStream**: Message queue (data mounted to `${VPS_DEPLOY_PATH}/data/nats`)
+- **Nginx**: Reverse proxy with SSL/TLS
 
-Staging `.env`:
-```env
-NODE_ENV=staging
-DB_NAME=motiv_buy_staging
-DB_PASSWORD=<from staging environment DB_PASSWORD secret>
-TELEGRAM_BOT_TOKEN=<from staging environment TELEGRAM_BOT_TOKEN secret>
-# ... all other vars from GitHub Secrets
+All data is persisted to server directories under `/opt/motiv-buy/<environment>/data/`.
+
+### Zero-Downtime Deployments
+
+Deployments use rolling updates:
+- Health checks ensure services are ready before switching traffic
+- Infrastructure services (PostgreSQL, Redis, NATS) remain running
+- Only application services (API, Bot) are updated
+- `--wait` flags ensure new containers are healthy before completing
+
+### Deployment Order Explained
+
+**First-Time (Fresh Server):**
+```
+1. Deploy → Creates infrastructure (PostgreSQL, Redis, NATS)
+2. Migrate → Creates tables in newly created database
 ```
 
-Production `.env`:
-```env
-NODE_ENV=production
-DB_NAME=motiv_buy_prod
-DB_PASSWORD=<from production environment DB_PASSWORD secret>
-TELEGRAM_BOT_TOKEN=<from production environment TELEGRAM_BOT_TOKEN secret>
-# ... all other vars from GitHub Secrets
+**Subsequent (Updates):**
+```
+1. Migrate → Updates database schema for new code
+2. Deploy → Updates application code (uses updated schema)
 ```
 
-**Manual override** (if needed):
-```bash
-ssh deployer@VPS_IP
-cd /opt/motiv-buy
-nano .env  # Edit if needed
-docker compose restart  # Apply changes
-```
+### CI/CD Pipeline
+
+**On Push/PR:**
+1. Quality checks (lint, format, tests) - non-blocking
+2. Docker build (all apps) - blocking
+3. Security scan - non-blocking
+
+**On Manual Deploy:**
+1. Validate environment and branch
+2. Build and push Docker images
+3. Deploy to target environment
+4. Run health checks
+
+**Manual Migrations:**
+1. Build migration image
+2. Run migration in environment
+3. Display status
+
+For detailed CI/CD workflow execution, see GitHub Actions workflow files in `.github/workflows/`.
 
 ---
 
-**That's it!** 🎉
+## Environment Variables
 
-For detailed documentation, see:
-- Full CI/CD guide: `docs/reference/CI-CD-GUIDE.md`
-- Server setup details: `docs/reference/SETUP-INSTRUCTIONS.md`
-- All secrets explained: `docs/reference/GITHUB-SECRETS.md`
+All environment variables are automatically created during deployment:
+
+**Common:**
+- `NODE_ENV`: staging or production
+- `VPS_DEPLOY_PATH`: Deployment directory on server
+- `DOCKER_REGISTRY`: ghcr.io
+- `DOCKER_IMAGE_PREFIX`: GitHub org/repo prefix
+- `IMAGE_TAG`: staging or latest
+
+**Database:**
+- `DB_HOST`: postgres-prod (container name)
+- `DB_PORT`: 5432
+- `DB_NAME`: Database name
+- `DB_USER`: Database user
+- `DB_PASSWORD`: Database password
+
+**Redis:**
+- `REDIS_HOST`: redis-prod (container name)
+- `REDIS_PORT`: 6379
+- `REDIS_PASSWORD`: Redis password
+
+**Application:**
+- `JWT_SECRET`: JWT signing secret
+- `JWT_EXPIRES_IN`: Token expiration (7d)
+- `TELEGRAM_BOT_TOKEN`: Bot token from @BotFather
+- `CRYPTO_BOT_API_TOKEN`: Payment provider token
+- `LOG_LEVEL`: debug (staging), warn (production)
+
+**Domains (auto-configured):**
+- Staging: `api.st.motivbuy.com`, `bot.st.motivbuy.com`
+- Production: `api.motivbuy.com`, `bot.motivbuy.com`
+
+---
+
+**Need Help?** Check workflow logs in GitHub Actions or SSH to server for container logs.

@@ -10,6 +10,8 @@ on:
         options:
           - staging
           - production
+          - both
+        default: 'staging'
       action:
         description: 'Migration action'
         required: true
@@ -21,7 +23,7 @@ on:
         default: up
 
 concurrency:
-  group: migration-${{ inputs.environment }}
+  group: migration-${{ inputs.environment }}-${{ inputs.action }}
   cancel-in-progress: false
 
 env:
@@ -66,7 +68,6 @@ jobs:
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:${{ inputs.environment }}
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-migration:${{ inputs.environment }}-${{ github.sha }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   # ==============================================
   # Run Migration on Staging
@@ -75,7 +76,7 @@ jobs:
     name: Migrate Staging DB
     runs-on: [self-hosted, linux]
     needs: build
-    if: inputs.environment == 'staging'
+    if: inputs.environment == 'staging' || inputs.environment == 'both'
     environment:
       name: staging
       url: https://st.motivbuy.com
@@ -225,7 +226,7 @@ jobs:
     name: Migrate Production DB
     runs-on: [self-hosted, linux]
     needs: build
-    if: inputs.environment == 'production'
+    if: inputs.environment == 'production' || inputs.environment == 'both'
     environment:
       name: production
       url: https://motivbuy.com
