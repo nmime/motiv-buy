@@ -388,7 +388,7 @@ jobs:
 
           # Deploy with zero-downtime
           echo '🚀 Deploying production (zero-downtime rolling update)...'
-          docker compose up -d --remove-orphans --no-deps api-${ENV} bot-${ENV} --wait --wait-timeout 180
+          docker compose up -d --remove-orphans --wait --wait-timeout 180
           echo '✅ Production deployment completed'
 
           # Cleanup old images
