@@ -29,19 +29,19 @@ x-common-env: &common-env
   ENV: ${ENV}
 
 x-db-env: &db-env
-  DB_HOST: postgres
+  DB_HOST: postgres-${ENV}
   DB_PORT: 5432
   DB_NAME: ${DB_NAME}
   DB_USER: ${DB_USER}
   DB_PASSWORD: ${DB_PASSWORD}
 
 x-redis-env: &redis-env
-  REDIS_HOST: redis
+  REDIS_HOST: redis-${ENV}
   REDIS_PORT: 6379
   REDIS_PASSWORD: ${REDIS_PASSWORD}
 
 x-nats-env: &nats-env
-  NATS_URL: nats://nats:4222
+  NATS_URL: nats://nats-${ENV}:4222
   NATS_CLIENT_NAME: ${PROJECT_NAME}-app
   NATS_USER: ${NATS_USER}
   NATS_PASSWORD: ${NATS_PASSWORD}
@@ -71,9 +71,9 @@ x-bot-resources: &bot-resources
 
 services:
   # PostgreSQL Database
-  postgres:
+  postgres-prod:
     image: postgres:18rc1-alpine
-    container_name: ${PROJECT_NAME}-postgres-${ENV}
+    container_name: ${PROJECT_NAME}-postgres-prod
     <<: *common-defaults
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -90,9 +90,9 @@ services:
       <<: *healthcheck-fast
 
   # Redis Cache
-  redis:
+  redis-prod:
     image: redis:7-alpine
-    container_name: ${PROJECT_NAME}-redis-${ENV}
+    container_name: ${PROJECT_NAME}-redis-prod
     <<: *common-defaults
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -107,9 +107,9 @@ services:
       <<: *healthcheck-fast
 
   # NATS JetStream
-  nats:
+  nats-prod:
     image: nats:latest
-    container_name: ${PROJECT_NAME}-nats-${ENV}
+    container_name: ${PROJECT_NAME}-nats-prod
     <<: *common-defaults
     command: >
       --jetstream
@@ -129,9 +129,9 @@ services:
       <<: *healthcheck-fast
 
   # API Application
-  api:
+  api-prod:
     image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_PREFIX}-api:${IMAGE_TAG}
-    container_name: ${PROJECT_NAME}-api-${ENV}
+    container_name: ${PROJECT_NAME}-api-prod
     <<: *common-defaults
     environment:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
@@ -143,11 +143,11 @@ services:
     ports:
       - '${API_PORT_EXTERNAL}:${PORT}'
     depends_on:
-      postgres:
+      postgres-prod:
         condition: service_healthy
-      redis:
+      redis-prod:
         condition: service_healthy
-      nats:
+      nats-prod:
         condition: service_healthy
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:${PORT}/health']
@@ -156,31 +156,31 @@ services:
       <<: *api-resources
 
   # Bot Application
-  bot:
+  bot-prod:
     image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_PREFIX}-bot:${IMAGE_TAG}
-    container_name: ${PROJECT_NAME}-bot-${ENV}
+    container_name: ${PROJECT_NAME}-bot-prod
     <<: *common-defaults
     environment:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
       BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      API_BASE_URL: http://api:${PORT}
+      API_BASE_URL: http://api-${ENV}:${PORT}
       LOG_LEVEL: ${LOG_LEVEL}
     depends_on:
-      api:
+      api-prod:
         condition: service_healthy
-      postgres:
+      postgres-prod:
         condition: service_healthy
-      redis:
+      redis-prod:
         condition: service_healthy
-      nats:
+      nats-prod:
         condition: service_healthy
     deploy:
       <<: *bot-resources
 
   # Nginx Reverse Proxy
-  nginx:
+  nginx-prod:
     image: nginx:alpine
-    container_name: ${PROJECT_NAME}-nginx-${ENV}
+    container_name: ${PROJECT_NAME}-nginx-prod
     <<: *common-defaults
     volumes:
       - ./config/nginx/nginx-prod.conf:/etc/nginx/nginx.conf:ro
@@ -190,15 +190,15 @@ services:
       - '${HTTP_PORT:-80}:80'
       - '${HTTPS_PORT:-443}:443'
     depends_on:
-      - api
+      - api-prod
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost/health']
       <<: *healthcheck-standard
 
   # Monitoring - Prometheus
-  prometheus:
+  prometheus-prod:
     image: prom/prometheus:latest
-    container_name: ${PROJECT_NAME}-prometheus-${ENV}
+    container_name: ${PROJECT_NAME}-prometheus-prod
     <<: *common-defaults
     volumes:
       - ./config/prometheus/prometheus-prod.yml:/etc/prometheus/prometheus.yml:ro
@@ -209,9 +209,9 @@ services:
       - monitoring
 
   # Monitoring - Grafana
-  grafana:
+  grafana-prod:
     image: grafana/grafana:latest
-    container_name: ${PROJECT_NAME}-grafana-${ENV}
+    container_name: ${PROJECT_NAME}-grafana-prod
     <<: *common-defaults
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
@@ -222,7 +222,7 @@ services:
     ports:
       - '${GRAFANA_PORT:-3002}:3000'
     depends_on:
-      - prometheus
+      - prometheus-prod
     profiles:
       - monitoring
 

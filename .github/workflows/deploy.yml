@@ -153,9 +153,6 @@ jobs:
           cache-from: |
             type=gha,scope=shared
             type=gha,scope=${{ matrix.app }}
-          cache-to: |
-            type=gha,mode=max,scope=shared
-            type=gha,mode=max,scope=${{ matrix.app }}
 
   # ==============================================
   # Job 3: Deploy to Staging
@@ -381,7 +378,7 @@ jobs:
           docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
           docker compose pull
           echo '🚀 Deploying production (zero-downtime rolling update)...'
-          docker compose up -d --remove-orphans --no-deps api bot --wait --wait-timeout 180
+          docker compose up -d --remove-orphans --no-deps api-${ENV} bot-${ENV} --wait --wait-timeout 180
           echo '✅ Production deployment completed'
           docker image prune -af --filter 'until=48h'
           SCRIPT_EOF
