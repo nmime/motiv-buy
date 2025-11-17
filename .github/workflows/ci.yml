@@ -220,14 +220,52 @@ jobs:
         run: |
           echo "### CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Quality & Tests: ${{ needs.quality.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Docker Build: ${{ needs.docker.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Security Scan: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status | Blocking |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality & Tests | ${{ needs.quality.result }} | ❌ No |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker.result }} | ✅ Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security.result }} | ❌ No |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${{ needs.docker.result }}" == "success" ]]; then
-            echo "✅ All critical checks passed! Ready to deploy." >> $GITHUB_STEP_SUMMARY
+          # Check for critical failures (Docker build)
+          if [[ "${{ needs.docker.result }}" != "success" ]]; then
+            echo "## ❌ Critical Failure" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Docker build failed.** This blocks deployment." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          # Check for non-blocking failures (Tests/Quality)
+          if [[ "${{ needs.quality.result }}" != "success" ]]; then
+            echo "## ⚠️ Warning: Quality Checks Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Tests or quality checks failed, but build continues.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please review and fix:" >> $GITHUB_STEP_SUMMARY
+            echo "- Check test failures in the 'Quality & Tests' job" >> $GITHUB_STEP_SUMMARY
+            echo "- Review linting or formatting issues" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "::warning::Tests or quality checks failed. Please review the Quality & Tests job for details."
+          fi
+
+          # Check for security warnings
+          if [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "## ⚠️ Security Scan Issues" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Security scan completed with warnings. Review the Security Scan job." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "::warning::Security scan found potential issues. Please review."
+          fi
+
+          # All critical checks passed
+          if [[ "${{ needs.quality.result }}" == "success" ]]; then
+            echo "## ✅ All Checks Passed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Ready to deploy!" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Docker build failed. Fix issues before deploying." >> $GITHUB_STEP_SUMMARY
+            echo "## ✅ Build Successful (with warnings)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Docker build succeeded. Deployment is possible, but please address warnings above." >> $GITHUB_STEP_SUMMARY
           fi
 

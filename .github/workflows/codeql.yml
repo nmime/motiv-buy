@@ -49,3 +49,26 @@ jobs:
           name: codeql-security-analysis
           path: sarif-results/typescript.sarif
           retention-days: 30
+
+      - name: Report Analysis Status
+        if: always()
+        run: |
+          echo "### 🔒 CodeQL Security Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Analysis | ${{ steps.analyze.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ steps.analyze.outcome }}" != "success" ]]; then
+            echo "## ⚠️ Security Analysis Issues Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "CodeQL analysis completed with warnings or errors." >> $GITHUB_STEP_SUMMARY
+            echo "Review the uploaded SARIF artifact for details." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "::warning::CodeQL analysis found potential security issues. Review the results."
+          else
+            echo "## ✅ Security Analysis Passed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No security issues detected by CodeQL analysis." >> $GITHUB_STEP_SUMMARY
+          fi

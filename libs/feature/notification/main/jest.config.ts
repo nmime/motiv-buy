@@ -5,6 +5,6 @@ export default {
   coverageDirectory: '../../../../coverage/libs/feature/notification/main',
   // transformIgnorePatterns inherited from jest.preset.js to handle .pnpm structure
   moduleNameMapper: {
-    '^eta$': '<rootDir>/../../../../node_modules/eta/dist/index.js',
+    '^eta$': '<rootDir>/../../../../node_modules/eta/dist/index.cjs',
   },
 };

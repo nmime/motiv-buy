@@ -168,6 +168,28 @@ LETSENCRYPT_EMAIL     = admin@motivbuy.com
 
 ## 4. Deploy to Staging
 
+**⚠️ IMPORTANT: Run migrations BEFORE deploying!**
+
+### Step 1: Run Migrations
+
+```bash
+# 1. Go to GitHub → Actions → "Run Database Migrations" workflow
+# 2. Click "Run workflow"
+# 3. Select:
+#    - Environment: staging
+#    - Action: up
+# 4. Click "Run workflow"
+# 5. Wait ~2-3 minutes
+# 6. Verify migration succeeded (green checkmark)
+```
+
+**Why migrations first?**
+- New application code expects the updated database schema
+- Running migrations after deploy can cause errors
+- Safer to update DB structure before app code
+
+### Step 2: Deploy Application
+
 ```bash
 # 1. Create and push branch
 git checkout -b test/first-deploy
@@ -190,6 +212,29 @@ curl https://api.st.motivbuy.com/health
 ---
 
 ## 5. Deploy to Production
+
+**⚠️ CRITICAL: Always run migrations BEFORE deploying to production!**
+
+### Step 1: Run Migrations (with automatic backup)
+
+```bash
+# 1. Go to GitHub → Actions → "Run Database Migrations" workflow
+# 2. Click "Run workflow"
+# 3. Select:
+#    - Environment: production
+#    - Action: up
+# 4. Click "Run workflow"
+# 5. Wait ~3-5 minutes (includes automatic DB backup)
+# 6. Verify migration succeeded (green checkmark)
+```
+
+**Production migrations automatically:**
+- ✅ Create database backup before migration
+- ✅ Run migrations with 10-minute timeout
+- ✅ Verify migration status
+- 📦 Backup saved in: `/opt/motiv-buy/backups/`
+
+### Step 2: Deploy Application
 
 ```bash
 # 1. Merge to master
@@ -247,6 +292,315 @@ ssh deployer@65.108.218.78
 cd /opt/motiv-buy
 docker compose ps
 ```
+
+---
+
+## CI/CD Pipeline Explained
+
+### Overview
+
+The CI/CD pipeline consists of **2 main workflows** that run automatically:
+
+1. **CI Workflow** (`.github/workflows/ci.yml`) - Quality checks & builds
+2. **Deploy Workflow** (`.github/workflows/deploy.yml`) - Actual deployment
+
+---
+
+### 1. CI Workflow (Automatic on Push/PR)
+
+**Triggers:**
+- Push to `master` branch
+- Pull request to any branch
+
+**Execution Order (Parallel):**
+
+```
+┌─────────────────────────────────────────────────┐
+│  Trigger: Push to master or PR opened           │
+└─────────────────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+┏━━━━━━━━━━━━━━━┓       ┏━━━━━━━━━━━━━━━┓
+┃ Job 1: Quality┃       ┃ Job 2: Docker ┃
+┃    & Tests    ┃       ┃     Build     ┃
+┗━━━━━━━━━━━━━━━┛       ┗━━━━━━━━━━━━━━━┛
+        │                       │
+        │  ⚠️ Non-blocking      │  ✅ Blocking
+        │  (can fail)           │  (must pass)
+        │                       │
+        └───────────┬───────────┘
+                    ▼
+        ┏━━━━━━━━━━━━━━━━━━━┓
+        ┃ Job 3: Security   ┃
+        ┃      Scan         ┃
+        ┗━━━━━━━━━━━━━━━━━━━┛
+                    │
+           ⚠️ Non-blocking
+           (informational)
+                    │
+                    ▼
+        ┏━━━━━━━━━━━━━━━━━━━┓
+        ┃ Job 4: Summary    ┃
+        ┃  Report Status    ┃
+        ┗━━━━━━━━━━━━━━━━━━━┛
+```
+
+#### Job 1: Quality & Tests (4-5 minutes)
+**Non-blocking** - Failures show as warnings ⚠️
+
+```yaml
+Steps (sequential):
+1. Checkout code
+2. Install pnpm
+3. Install dependencies
+4. Run ESLint (continue-on-error: true)
+5. Check formatting (continue-on-error: true)
+6. Run tests (continue-on-error: true)  ← Main test execution
+7. Generate coverage
+8. Upload coverage to Codecov
+```
+
+**What happens if tests fail:**
+- ✅ CI still passes (shows GREEN)
+- ⚠️ Warning annotation appears in UI
+- 📊 Summary shows: "Build Successful (with warnings)"
+- 🚫 Does NOT block deployment
+
+#### Job 2: Docker Build (3-4 minutes)
+**Blocking** - Must succeed for CI to pass ✅
+
+```yaml
+Steps (parallel):
+1. Build api Docker image
+2. Build bot Docker image
+3. Build migration Docker image
+
+All builds run in parallel for speed
+Push to: ghcr.io/nmime/motiv-buy-{app}:ci-{sha}
+```
+
+**What happens if build fails:**
+- ❌ CI fails (shows RED)
+- 🚫 Blocks deployment
+- 📊 Summary shows: "Critical Failure - Docker build failed"
+
+#### Job 3: Security Scan (2-3 minutes)
+**Non-blocking** - Informational only ⚠️
+
+```yaml
+Steps:
+1. Run pnpm audit
+2. Run Trivy scanner
+3. Upload results as artifact
+```
+
+#### Job 4: Summary
+**Always runs** - Reports final status
+
+```yaml
+Shows table:
+┌─────────────────┬──────────┬──────────┐
+│ Job             │ Status   │ Blocking │
+├─────────────────┼──────────┼──────────┤
+│ Quality & Tests │ success  │ ❌ No    │
+│ Docker Build    │ success  │ ✅ Yes   │
+│ Security Scan   │ success  │ ❌ No    │
+└─────────────────┴──────────┴──────────┘
+
+Result:
+- If Docker build succeeds → ✅ CI PASS
+- If Docker build fails → ❌ CI FAIL
+- Test/security failures → ⚠️ Warnings only
+```
+
+---
+
+### 2. Deploy Workflow (Manual Trigger)
+
+**Triggers:**
+- Manual via GitHub Actions UI
+- Workflow dispatch with environment selection
+
+**Execution Order (Sequential):**
+
+```
+┌─────────────────────────────────────────────────┐
+│  Trigger: Manual "Run workflow" button          │
+│  Select: staging/production/both                │
+└─────────────────────────────────────────────────┘
+                    │
+                    ▼
+        ┏━━━━━━━━━━━━━━━━━━━┓
+        ┃ Job 1: Validate   ┃
+        ┃ - Check branch    ┃
+        ┃ - Set targets     ┃
+        ┗━━━━━━━━━━━━━━━━━━━┛
+                    │
+                    ▼
+        ┏━━━━━━━━━━━━━━━━━━━┓
+        ┃ Job 2: Build      ┃
+        ┃ - Build api       ┃  (parallel)
+        ┃ - Build bot       ┃  (parallel)
+        ┗━━━━━━━━━━━━━━━━━━━┛
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+┏━━━━━━━━━━━━━━┓      ┏━━━━━━━━━━━━━━━┓
+┃ Job 3:       ┃      ┃ Job 4:        ┃
+┃ Deploy       ┃      ┃ Deploy        ┃
+┃ Staging      ┃      ┃ Production    ┃
+┃              ┃      ┃               ┃
+┃ 1. Setup SSH ┃      ┃ 1. Setup SSH  ┃
+┃ 2. Deploy    ┃      ┃ 2. Backup DB  ┃
+┃ 3. Health ✓  ┃      ┃ 3. Deploy     ┃
+┗━━━━━━━━━━━━━━┛      ┃ 4. Health ✓   ┃
+                      ┃ 5. Smoke ✓    ┃
+                      ┗━━━━━━━━━━━━━━━┛
+        │                       │
+        └───────────┬───────────┘
+                    ▼
+        ┏━━━━━━━━━━━━━━━━━━━┓
+        ┃ Job 5: Summary    ┃
+        ┃ - Report results  ┃
+        ┃ - Show URLs       ┃
+        ┗━━━━━━━━━━━━━━━━━━━┛
+```
+
+**Deploy Steps (per environment):**
+
+```bash
+1. Setup SSH (~5s)
+   - Create SSH directory
+   - Add private key
+   - Scan host keys
+
+2. Deploy (~60s)
+   - Copy docker-compose.yml to VPS
+   - Generate .env file from GitHub Secrets
+   - Login to ghcr.io
+   - Pull latest images
+   - Run docker compose up -d
+   - Prune old images
+
+3. Health Check (~10s)
+   - Wait for containers to be healthy
+   - Test /health endpoint
+   - Fail if not responsive
+
+4. Smoke Tests (production only, ~5s)
+   - Test /health endpoint
+   - Test /api endpoint
+   - Verify responses
+
+5. Cleanup (always)
+   - Remove SSH private key
+```
+
+---
+
+### Warning System Explained
+
+**GitHub Actions doesn't have a "yellow" warning state.** We implement warnings using:
+
+#### 1. Continue-on-error Pattern
+```yaml
+- name: Run tests
+  run: pnpm run test
+  continue-on-error: true  # Allows step to fail without failing job
+```
+
+#### 2. Warning Annotations
+```yaml
+echo "::warning::Tests failed. Please review the Quality & Tests job."
+```
+
+Creates a ⚠️ warning icon in the GitHub UI.
+
+#### 3. Job Status Table
+```yaml
+echo "| Quality & Tests | ${{ needs.quality.result }} | ❌ No |"
+```
+
+Shows which jobs are **blocking** vs **non-blocking**.
+
+**Visual Result:**
+```
+✅ CI Workflow - Green checkmark (passed)
+  ├─ ✅ Quality & Tests (with warnings)
+  ├─ ✅ Docker Build
+  └─ ✅ Summary
+     └─ ⚠️ Warning: Tests failed. Please review.
+```
+
+**The workflow shows GREEN but warnings are visible in:**
+- Job summary
+- Annotations panel
+- Log output
+
+---
+
+### Quick Decision Tree
+
+**When does CI block deployment?**
+
+```
+Docker build failed?
+├─ YES → ❌ CI FAILS (RED) → Cannot deploy
+└─ NO  → ✅ CI PASSES (GREEN)
+          │
+          Tests failed?
+          ├─ YES → ⚠️ Warning shown → Can deploy (not recommended)
+          └─ NO  → ✅ All clear → Safe to deploy
+```
+
+**When can I deploy?**
+
+```
+✅ Can deploy:
+- Docker build passed
+- Tests may have warnings (fix them later)
+
+❌ Cannot deploy:
+- Docker build failed
+- Must fix and re-run CI
+```
+
+---
+
+### Best Practices
+
+1. **Always check warnings** before deploying
+   - Review test failures in "Quality & Tests" job
+   - Fix issues even if CI passes
+
+2. **Staging first** - Always deploy to staging before production
+   ```bash
+   staging → test → production
+   ```
+
+3. **Monitor health checks** - Deployment isn't complete until health checks pass
+   ```bash
+   curl https://api.st.motivbuy.com/health
+   ```
+
+4. **Production deploys** - Only from `master` branch
+   ```bash
+   git checkout master
+   git merge feature-branch
+   git push
+   ```
+
+---
+
+### Execution Times
+
+| Workflow | Total Time | Notes |
+|----------|-----------|-------|
+| CI (full) | 4-6 min | Parallel execution |
+| Deploy (staging) | 2-3 min | Single environment |
+| Deploy (production) | 3-5 min | Includes backup + smoke tests |
+| Deploy (both) | 3-5 min | Runs in parallel |
 
 ---
 
