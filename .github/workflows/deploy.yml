@@ -255,7 +255,11 @@ jobs:
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Create data directories if they don't exist
-          mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
+          mkdir -p data/postgres data/redis data/nats \
+                   data/nginx/logs \
+                   data/api/logs data/api/uploads data/api/temp \
+                   data/bot/logs data/bot/temp data/bot/sessions \
+                   data/prometheus data/grafana
 
           # Login to Docker registry
           echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
@@ -392,7 +396,11 @@ jobs:
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
           # Create data directories if they don't exist
-          mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
+          mkdir -p data/postgres data/redis data/nats \
+                   data/nginx/logs \
+                   data/api/logs data/api/uploads data/api/temp \
+                   data/bot/logs data/bot/temp data/bot/sessions \
+                   data/prometheus data/grafana
 
           # Login to Docker registry
           echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin

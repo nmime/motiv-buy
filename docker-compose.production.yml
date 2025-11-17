@@ -140,6 +140,10 @@ services:
       LOG_LEVEL: ${LOG_LEVEL}
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
       RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
+    volumes:
+      - ${VPS_DEPLOY_PATH}/data/api/logs:/app/logs
+      - ${VPS_DEPLOY_PATH}/data/api/uploads:/app/uploads
+      - ${VPS_DEPLOY_PATH}/data/api/temp:/app/temp
     ports:
       - '${API_PORT_EXTERNAL}:${PORT}'
     depends_on:
@@ -165,6 +169,10 @@ services:
       BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       API_BASE_URL: http://api-prod:${PORT}
       LOG_LEVEL: ${LOG_LEVEL}
+    volumes:
+      - ${VPS_DEPLOY_PATH}/data/bot/logs:/app/logs
+      - ${VPS_DEPLOY_PATH}/data/bot/temp:/app/temp
+      - ${VPS_DEPLOY_PATH}/data/bot/sessions:/app/sessions
     depends_on:
       api-prod:
         condition: service_healthy
