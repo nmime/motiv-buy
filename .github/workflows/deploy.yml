@@ -217,134 +217,26 @@ jobs:
           fi
 
       - name: Deploy
-        run: |
-          set -euo pipefail
-
-          # Create deployment directory structure with proper permissions
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MKDIR_EOF'
-          set -euo pipefail
-
-          # Create main deployment directory
-          sudo mkdir -p ${{ vars.VPS_DEPLOY_PATH }}
-          sudo chown -R ${{ vars.VPS_USER }}:${{ vars.VPS_USER }} ${{ vars.VPS_DEPLOY_PATH }}
-          sudo chmod -R 755 ${{ vars.VPS_DEPLOY_PATH }}
-
-          # Create subdirectories
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/docker
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/sites-available
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/sites-enabled
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/ssl
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/prometheus
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/redis
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/scripts
-
-          echo "✅ Directories created successfully"
-          MKDIR_EOF
-
-          # Copy deployment files
-          echo "📄 Copying docker-compose file..."
-          scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
-
-          # Copy required directories (preserve structure)
-          for dir in docker config scripts; do
-            if [ -d "$dir" ]; then
-              echo "📁 Copying $dir directory..."
-              # Use tar to preserve structure and handle permissions better
-              tar czf - -C "$dir" . | ssh -o StrictHostKeyChecking=yes \
-                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-                "cd ${{ vars.VPS_DEPLOY_PATH }}/$dir && tar xzf -"
-              echo "✅ $dir copied successfully"
-            fi
-          done
-
-          # Create environment file
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
-          set -euo pipefail
-          cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
-          NODE_ENV=staging
-          PROJECT_NAME=motiv-buy
-          ENV=staging
-          VPS_DEPLOY_PATH=${{ vars.VPS_DEPLOY_PATH }}
-          DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
-          DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
-          IMAGE_TAG=staging
-          PORT=3000
-          DB_NAME=${{ vars.DB_NAME }}
-          DB_USER=${{ vars.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          JWT_EXPIRES_IN=7d
-          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CRYPTO_BOT_API_TOKEN=${{ secrets.CRYPTO_BOT_API_TOKEN }}
-          LOG_LEVEL=debug
-          RATE_LIMIT_MAX=100
-          RATE_LIMIT_WINDOW=900000
-          API_DOMAIN=api.st.motivbuy.com
-          BOT_DOMAIN=bot.st.motivbuy.com
-          MAIN_DOMAIN=st.motivbuy.com
-          LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
-          API_PORT_EXTERNAL=3001
-          DB_PORT_EXTERNAL=5433
-          REDIS_PORT_EXTERNAL=6381
-          NATS_PORT_EXTERNAL=4223
-          NATS_MONITOR_PORT=8223
-          HTTP_PORT=80
-          HTTPS_PORT=443
-          PROMETHEUS_PORT=9090
-          GRAFANA_PORT=3002
-          GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}
-          NATS_USER=${{ vars.NATS_USER }}
-          NATS_PASSWORD=${{ secrets.NATS_PASSWORD }}
-          ENVFILE
-          ENV_EOF
-
-          # Deploy
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            "GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}'" bash << 'DEPLOY_EOF'
-          set -euo pipefail
-          cd ${{ vars.VPS_DEPLOY_PATH }}
-
-          # Create data directories if they don't exist
-          mkdir -p data/postgres data/redis data/nats \
-                   data/nginx/logs \
-                   data/api/logs data/api/uploads data/api/temp \
-                   data/bot/logs data/bot/temp data/bot/sessions \
-                   data/prometheus data/grafana
-
-          # Login to Docker registry
-          echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-          # Pull latest images
-          docker compose pull
-
-          # Deploy with zero-downtime
-          echo '🚀 Deploying staging (zero-downtime rolling update)...'
-          docker compose up -d --remove-orphans --wait --wait-timeout 120
-          echo '✅ Staging deployment completed'
-
-          # Cleanup old images
-          docker image prune -af --filter 'until=24h'
-          DEPLOY_EOF
-
-      - name: Health Check
-        run: |
-          set -euo pipefail
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
-          set -euo pipefail
-          timeout 60 sh -c 'until docker compose -f ${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml ps | grep -q "healthy"; do sleep 2; done' || true
-          if curl -f http://localhost:3000/health; then
-            echo '✅ Staging health check passed'
-          else
-            echo '❌ Staging health check failed'
-            exit 1
-          fi
-          HEALTH_EOF
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH }}
+          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+          DOCKER_IMAGE_PREFIX: ${{ github.repository_owner }}/motiv-buy
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CRYPTO_BOT_API_TOKEN: ${{ secrets.CRYPTO_BOT_API_TOKEN }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
+          NATS_USER: ${{ vars.NATS_USER }}
+          NATS_PASSWORD: ${{ secrets.NATS_PASSWORD }}
+        run: ./scripts/deploy.sh staging
 
       - name: Cleanup SSH
         if: always()
@@ -396,149 +288,26 @@ jobs:
           fi
 
       - name: Deploy
-        run: |
-          set -euo pipefail
-
-          # Create deployment directory structure with proper permissions
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'MKDIR_EOF'
-          set -euo pipefail
-
-          # Create main deployment directory
-          sudo mkdir -p ${{ vars.VPS_DEPLOY_PATH }}
-          sudo chown -R ${{ vars.VPS_USER }}:${{ vars.VPS_USER }} ${{ vars.VPS_DEPLOY_PATH }}
-          sudo chmod -R 755 ${{ vars.VPS_DEPLOY_PATH }}
-
-          # Create subdirectories
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/docker
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/sites-available
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/sites-enabled
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/nginx/ssl
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/prometheus
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/config/redis
-          mkdir -p ${{ vars.VPS_DEPLOY_PATH }}/scripts
-
-          echo "✅ Directories created successfully"
-          MKDIR_EOF
-
-          # Copy deployment files
-          echo "📄 Copying docker-compose file..."
-          scp -o StrictHostKeyChecking=yes docker-compose.production.yml \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.VPS_DEPLOY_PATH }}/docker-compose.yml
-
-          # Copy required directories (preserve structure)
-          for dir in docker config scripts; do
-            if [ -d "$dir" ]; then
-              echo "📁 Copying $dir directory..."
-              # Use tar to preserve structure and handle permissions better
-              tar czf - -C "$dir" . | ssh -o StrictHostKeyChecking=yes \
-                ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-                "cd ${{ vars.VPS_DEPLOY_PATH }}/$dir && tar xzf -"
-              echo "✅ $dir copied successfully"
-            fi
-          done
-
-          # Create environment file
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << "ENV_EOF"
-          set -euo pipefail
-          cat > ${{ vars.VPS_DEPLOY_PATH }}/.env << 'ENVFILE'
-          NODE_ENV=production
-          PROJECT_NAME=motiv-buy
-          ENV=production
-          VPS_DEPLOY_PATH=${{ vars.VPS_DEPLOY_PATH }}
-          DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
-          DOCKER_IMAGE_PREFIX=${{ github.repository_owner }}/motiv-buy
-          IMAGE_TAG=latest
-          PORT=3000
-          DB_NAME=${{ vars.DB_NAME }}
-          DB_USER=${{ vars.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          JWT_EXPIRES_IN=7d
-          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CRYPTO_BOT_API_TOKEN=${{ secrets.CRYPTO_BOT_API_TOKEN }}
-          LOG_LEVEL=warn
-          RATE_LIMIT_MAX=100
-          RATE_LIMIT_WINDOW=900000
-          API_DOMAIN=api.motivbuy.com
-          BOT_DOMAIN=bot.motivbuy.com
-          MAIN_DOMAIN=motivbuy.com
-          LETSENCRYPT_EMAIL=${{ vars.LETSENCRYPT_EMAIL }}
-          API_PORT_EXTERNAL=3001
-          DB_PORT_EXTERNAL=5433
-          REDIS_PORT_EXTERNAL=6381
-          NATS_PORT_EXTERNAL=4223
-          NATS_MONITOR_PORT=8223
-          HTTP_PORT=80
-          HTTPS_PORT=443
-          PROMETHEUS_PORT=9090
-          GRAFANA_PORT=3002
-          GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}
-          NATS_USER=${{ vars.NATS_USER }}
-          NATS_PASSWORD=${{ secrets.NATS_PASSWORD }}
-          ENVFILE
-          ENV_EOF
-
-          # Deploy
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            "GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}'" bash << 'DEPLOY_EOF'
-          set -euo pipefail
-          cd ${{ vars.VPS_DEPLOY_PATH }}
-
-          # Create data directories if they don't exist
-          mkdir -p data/postgres data/redis data/nats \
-                   data/nginx/logs \
-                   data/api/logs data/api/uploads data/api/temp \
-                   data/bot/logs data/bot/temp data/bot/sessions \
-                   data/prometheus data/grafana
-
-          # Login to Docker registry
-          echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-          # Pull latest images
-          docker compose pull
-
-          # Deploy with zero-downtime
-          echo '🚀 Deploying production (zero-downtime rolling update)...'
-          docker compose up -d --remove-orphans --wait --wait-timeout 180
-          echo '✅ Production deployment completed'
-
-          # Cleanup old images
-          docker image prune -af --filter 'until=48h'
-          DEPLOY_EOF
-
-      - name: Health Check
-        run: |
-          set -euo pipefail
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'HEALTH_EOF'
-          set -euo pipefail
-          cd ${{ vars.VPS_DEPLOY_PATH }}
-          timeout 120 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 3; done' || true
-          if curl -f http://localhost:3000/health; then
-            echo '✅ Production health check passed'
-          else
-            echo '❌ Production health check failed'
-            exit 1
-          fi
-          HEALTH_EOF
-
-      - name: Smoke Tests
-        run: |
-          set -euo pipefail
-          ssh -o StrictHostKeyChecking=yes \
-            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'SMOKE_EOF'
-          set -euo pipefail
-          if curl -f http://localhost:3000/health && curl -f http://localhost:3000/api; then
-            echo '✅ Production smoke tests passed'
-          else
-            echo '❌ Production smoke tests failed'
-            exit 1
-          fi
-          SMOKE_EOF
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH }}
+          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+          DOCKER_IMAGE_PREFIX: ${{ github.repository_owner }}/motiv-buy
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CRYPTO_BOT_API_TOKEN: ${{ secrets.CRYPTO_BOT_API_TOKEN }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
+          NATS_USER: ${{ vars.NATS_USER }}
+          NATS_PASSWORD: ${{ secrets.NATS_PASSWORD }}
+        run: ./scripts/deploy.sh production
 
       - name: Cleanup SSH
         if: always()
