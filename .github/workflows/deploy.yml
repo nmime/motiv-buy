@@ -269,8 +269,8 @@ jobs:
           PROMETHEUS_PORT=9090
           GRAFANA_PORT=3002
           GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}
-          NATS_USER=
-          NATS_PASSWORD=
+          NATS_USER=${{ vars.NATS_USER }}
+          NATS_PASSWORD=${{ secrets.NATS_PASSWORD }}
           ENVFILE
           ENV_EOF
 
@@ -416,8 +416,8 @@ jobs:
           PROMETHEUS_PORT=9090
           GRAFANA_PORT=3002
           GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}
-          NATS_USER=
-          NATS_PASSWORD=
+          NATS_USER=${{ vars.NATS_USER }}
+          NATS_PASSWORD=${{ secrets.NATS_PASSWORD }}
           ENVFILE
           ENV_EOF
 
