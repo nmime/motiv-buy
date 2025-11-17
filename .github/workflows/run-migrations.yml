@@ -81,6 +81,10 @@ jobs:
       name: staging
       url: https://st.motivbuy.com
 
+    permissions:
+      contents: read
+      packages: read
+
     steps:
       - name: Setup SSH
         run: |
@@ -131,7 +135,7 @@ jobs:
           if docker run --rm \
             --network "$NETWORK_NAME" \
             -e NODE_ENV=staging \
-            -e DB_HOST=postgres-${ENV} \
+            -e DB_HOST=postgres-prod \
             -e DB_PORT=5432 \
             -e DB_NAME=${{ secrets.DB_NAME }} \
             -e DB_USER=${{ secrets.DB_USER }} \
@@ -177,7 +181,7 @@ jobs:
           docker run --rm \
             --network "$NETWORK_NAME" \
             -e NODE_ENV=staging \
-            -e DB_HOST=postgres-${ENV} \
+            -e DB_HOST=postgres-prod \
             -e DB_PORT=5432 \
             -e DB_NAME=${{ secrets.DB_NAME }} \
             -e DB_USER=${{ secrets.DB_USER }} \
@@ -230,6 +234,10 @@ jobs:
     environment:
       name: production
       url: https://motivbuy.com
+
+    permissions:
+      contents: read
+      packages: read
 
     steps:
       - name: Setup SSH
@@ -330,7 +338,7 @@ jobs:
           if timeout 600 docker run --rm \
             --network "$NETWORK_NAME" \
             -e NODE_ENV=production \
-            -e DB_HOST=postgres-${ENV} \
+            -e DB_HOST=postgres-prod \
             -e DB_PORT=5432 \
             -e DB_NAME=${{ secrets.DB_NAME }} \
             -e DB_USER=${{ secrets.DB_USER }} \
@@ -381,7 +389,7 @@ jobs:
           docker run --rm \
             --network "$NETWORK_NAME" \
             -e NODE_ENV=production \
-            -e DB_HOST=postgres-${ENV} \
+            -e DB_HOST=postgres-prod \
             -e DB_PORT=5432 \
             -e DB_NAME=${{ secrets.DB_NAME }} \
             -e DB_USER=${{ secrets.DB_USER }} \
