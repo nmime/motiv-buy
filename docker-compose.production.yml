@@ -29,19 +29,19 @@ x-common-env: &common-env
   ENV: ${ENV}
 
 x-db-env: &db-env
-  DB_HOST: postgres-${ENV}
+  DB_HOST: postgres-prod
   DB_PORT: 5432
   DB_NAME: ${DB_NAME}
   DB_USER: ${DB_USER}
   DB_PASSWORD: ${DB_PASSWORD}
 
 x-redis-env: &redis-env
-  REDIS_HOST: redis-${ENV}
+  REDIS_HOST: redis-prod
   REDIS_PORT: 6379
   REDIS_PASSWORD: ${REDIS_PASSWORD}
 
 x-nats-env: &nats-env
-  NATS_URL: nats://nats-${ENV}:4222
+  NATS_URL: nats://nats-prod:4222
   NATS_CLIENT_NAME: ${PROJECT_NAME}-app
   NATS_USER: ${NATS_USER}
   NATS_PASSWORD: ${NATS_PASSWORD}
@@ -73,7 +73,7 @@ services:
   # PostgreSQL Database
   postgres-prod:
     image: postgres:18rc1-alpine
-    container_name: ${PROJECT_NAME}-postgres-prod
+    container_name: ${PROJECT_NAME}-postgres-${ENV}
     <<: *common-defaults
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -92,7 +92,7 @@ services:
   # Redis Cache
   redis-prod:
     image: redis:7-alpine
-    container_name: ${PROJECT_NAME}-redis-prod
+    container_name: ${PROJECT_NAME}-redis-${ENV}
     <<: *common-defaults
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -109,7 +109,7 @@ services:
   # NATS JetStream
   nats-prod:
     image: nats:latest
-    container_name: ${PROJECT_NAME}-nats-prod
+    container_name: ${PROJECT_NAME}-nats-${ENV}
     <<: *common-defaults
     command: >
       --jetstream
@@ -131,7 +131,7 @@ services:
   # API Application
   api-prod:
     image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_PREFIX}-api:${IMAGE_TAG}
-    container_name: ${PROJECT_NAME}-api-prod
+    container_name: ${PROJECT_NAME}-api-${ENV}
     <<: *common-defaults
     environment:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
@@ -158,12 +158,12 @@ services:
   # Bot Application
   bot-prod:
     image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_PREFIX}-bot:${IMAGE_TAG}
-    container_name: ${PROJECT_NAME}-bot-prod
+    container_name: ${PROJECT_NAME}-bot-${ENV}
     <<: *common-defaults
     environment:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
       BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      API_BASE_URL: http://api-${ENV}:${PORT}
+      API_BASE_URL: http://api-prod:${PORT}
       LOG_LEVEL: ${LOG_LEVEL}
     depends_on:
       api-prod:
@@ -180,7 +180,7 @@ services:
   # Nginx Reverse Proxy
   nginx-prod:
     image: nginx:alpine
-    container_name: ${PROJECT_NAME}-nginx-prod
+    container_name: ${PROJECT_NAME}-nginx-${ENV}
     <<: *common-defaults
     volumes:
       - ./config/nginx/nginx-prod.conf:/etc/nginx/nginx.conf:ro
@@ -198,7 +198,7 @@ services:
   # Monitoring - Prometheus
   prometheus-prod:
     image: prom/prometheus:latest
-    container_name: ${PROJECT_NAME}-prometheus-prod
+    container_name: ${PROJECT_NAME}-prometheus-${ENV}
     <<: *common-defaults
     volumes:
       - ./config/prometheus/prometheus-prod.yml:/etc/prometheus/prometheus.yml:ro
@@ -211,7 +211,7 @@ services:
   # Monitoring - Grafana
   grafana-prod:
     image: grafana/grafana:latest
-    container_name: ${PROJECT_NAME}-grafana-prod
+    container_name: ${PROJECT_NAME}-grafana-${ENV}
     <<: *common-defaults
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}

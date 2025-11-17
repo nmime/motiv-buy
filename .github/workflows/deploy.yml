@@ -164,6 +164,10 @@ jobs:
     if: needs.validate.outputs.deploy-staging == 'true'
     environment: staging
 
+    permissions:
+      contents: read
+      packages: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -243,7 +247,7 @@ jobs:
           # Deploy
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            "GHCR_TOKEN='${{ secrets.GHCR_TOKEN }}'" bash << 'DEPLOY_EOF'
+            "GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}'" bash << 'DEPLOY_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
@@ -251,7 +255,7 @@ jobs:
           mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
 
           # Login to Docker registry
-          echo "$GHCR_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
 
           # Pull latest images
           docker compose pull
@@ -293,6 +297,10 @@ jobs:
     needs: [validate, build]
     if: needs.validate.outputs.deploy-production == 'true'
     environment: production
+
+    permissions:
+      contents: read
+      packages: read
 
     steps:
       - name: Checkout code
@@ -373,7 +381,7 @@ jobs:
           # Deploy
           ssh -o StrictHostKeyChecking=yes \
             ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
-            "GHCR_TOKEN='${{ secrets.GHCR_TOKEN }}'" bash << 'DEPLOY_EOF'
+            "GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}'" bash << 'DEPLOY_EOF'
           set -euo pipefail
           cd ${{ vars.VPS_DEPLOY_PATH }}
 
@@ -381,14 +389,14 @@ jobs:
           mkdir -p data/postgres data/redis data/nats data/nginx/logs data/prometheus data/grafana
 
           # Login to Docker registry
-          echo "$GHCR_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          echo "$GITHUB_TOKEN" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
 
           # Pull latest images
           docker compose pull
 
           # Deploy with zero-downtime
           echo '🚀 Deploying production (zero-downtime rolling update)...'
-          docker compose up -d --remove-orphans --no-deps api-${ENV} bot-${ENV} --wait --wait-timeout 180
+          docker compose up -d --remove-orphans --wait --wait-timeout 180
           echo '✅ Production deployment completed'
 
           # Cleanup old images
