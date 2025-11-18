@@ -244,9 +244,10 @@ echo "Generating bcrypt hash from NATS_PASSWORD..."
 # The output format is "username:$2y$hash", we extract just the hash part
 NATS_BCRYPT_PASSWORD=$(echo "$NATS_PASSWORD" | docker run --rm -i httpd:alpine htpasswd -niB "" | cut -d: -f2)
 
-# Create runtime configuration from template using Perl (handles special characters safely)
-# Perl's s/// doesn't have issues with $ or / in replacement strings
-perl -pe 's/\$NATS_USER/'"$NATS_USER"'/g; s/\$NATS_BCRYPT_PASSWORD/'"$NATS_BCRYPT_PASSWORD"'/g' \
+# Create runtime configuration from template using Perl with \Q...\E quoting
+# \Q and \E tell Perl to treat replacement strings as literal (no special char interpretation)
+# This safely handles $ and / in the bcrypt hash
+perl -pe 's/\$NATS_USER/\Q'"$NATS_USER"'\E/g; s/\$NATS_BCRYPT_PASSWORD/\Q'"$NATS_BCRYPT_PASSWORD"'\E/g' \
   config/nats/nats-${ENV}.conf > config/nats/nats-${ENV}-runtime.conf
 
 echo "✅ NATS configuration prepared with bcrypt password"
