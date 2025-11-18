@@ -244,17 +244,21 @@ echo "Generating bcrypt hash from NATS_PASSWORD..."
 # The output format is "username:$2y$hash", we extract just the hash part
 NATS_BCRYPT_PASSWORD=$(echo "$NATS_PASSWORD" | docker run --rm -i httpd:alpine htpasswd -niB "" | cut -d: -f2)
 
-# Create runtime configuration using bash string substitution
-# This is the safest approach - bash native ${variable//pattern/replacement}
-# No quoting issues, no escaping needed for special characters
-{
-  while IFS= read -r line; do
-    # Replace placeholders with actual values
-    line="${line//\$NATS_USER/$NATS_USER}"
-    line="${line//\$NATS_BCRYPT_PASSWORD/$NATS_BCRYPT_PASSWORD}"
-    echo "$line"
-  done < "config/nats/nats-${ENV}.conf"
-} > "config/nats/nats-${ENV}-runtime.conf"
+# Create runtime configuration using sed with proper escaping
+# Escape special characters in the bcrypt hash for sed replacement string
+# We need to escape: \ & and /
+ESCAPED_HASH=$(printf '%s\n' "$NATS_BCRYPT_PASSWORD" | sed -e 's/[\/&]/\\&/g')
+
+# Use sed to replace both placeholders in the template
+sed -e "s/\\\$NATS_USER/$NATS_USER/g" \
+    -e "s/\\\$NATS_BCRYPT_PASSWORD/$ESCAPED_HASH/g" \
+    "config/nats/nats-${ENV}.conf" > "config/nats/nats-${ENV}-runtime.conf"
+
+# Verify the file was created and has content
+if [ ! -s "config/nats/nats-${ENV}-runtime.conf" ]; then
+  echo "ERROR: Failed to create NATS configuration file"
+  exit 1
+fi
 
 echo "✅ NATS configuration prepared with bcrypt password"
 NATS_EOF
