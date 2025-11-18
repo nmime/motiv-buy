@@ -190,7 +190,9 @@ cd $VPS_DEPLOY_PATH
 
 # Generate bcrypt hash from plaintext password
 echo "Generating bcrypt hash from NATS_PASSWORD..."
-NATS_BCRYPT_PASSWORD=$(printf "%s\n%s\n" "$NATS_PASSWORD" "$NATS_PASSWORD" | docker run --rm -i natsio/nats-box:latest nats server passwd)
+# Use htpasswd to generate bcrypt hash non-interactively
+# The output format is "username:$2y$hash", we extract just the hash part
+NATS_BCRYPT_PASSWORD=$(echo "$NATS_PASSWORD" | docker run --rm -i httpd:alpine htpasswd -niB "" | cut -d: -f2)
 
 # Export variables for envsubst
 export NATS_USER NATS_BCRYPT_PASSWORD
