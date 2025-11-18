@@ -90,14 +90,10 @@ services:
     image: nats:latest
     container_name: ${PROJECT_NAME}-nats-dev
     <<: *common-defaults
-    command: >
-      --jetstream
-      --store_dir=/data
-      --http_port=8222
-      ${NATS_USER:+--user=${NATS_USER}}
-      ${NATS_PASSWORD:+--pass=${NATS_PASSWORD}}
+    command: ['-c', '/etc/nats/nats-dev.conf']
     volumes:
       - ./data-dev/nats:/data
+      - ./config/nats/nats-dev.conf:/etc/nats/nats-dev.conf:ro
     ports:
       - '${NATS_PORT_EXTERNAL}:4222'
       - '${NATS_MONITOR_PORT}:8222'

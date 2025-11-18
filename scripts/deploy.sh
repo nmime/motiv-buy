@@ -72,6 +72,7 @@ mkdir -p ${VPS_DEPLOY_PATH}/config/nginx/sites-enabled
 mkdir -p ${VPS_DEPLOY_PATH}/config/nginx/ssl
 mkdir -p ${VPS_DEPLOY_PATH}/config/prometheus
 mkdir -p ${VPS_DEPLOY_PATH}/config/redis
+mkdir -p ${VPS_DEPLOY_PATH}/config/nats
 mkdir -p ${VPS_DEPLOY_PATH}/scripts
 
 echo "✅ Directories created successfully"
@@ -174,6 +175,35 @@ NATS_PASSWORD=${NATS_PASSWORD}
 ENVFILE
 echo "✅ .env file created successfully"
 ENV_EOF
+
+# Step 3.5: Prepare NATS configuration
+echo "🔐 Preparing NATS configuration with bcrypt password..."
+ssh -o StrictHostKeyChecking=yes \
+  "${VPS_USER}@${VPS_HOST}" \
+  "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
+  "NATS_USER='${NATS_USER}'" \
+  "NATS_PASSWORD='${NATS_PASSWORD}'" \
+  "ENV='${ENVIRONMENT}'" \
+  bash << 'NATS_EOF'
+set -euo pipefail
+cd $VPS_DEPLOY_PATH
+
+# Generate bcrypt hash from plaintext password
+echo "Generating bcrypt hash from NATS_PASSWORD..."
+NATS_BCRYPT_PASSWORD=$(docker run --rm nats:latest nats server passwd <<PASSWORD_EOF
+$NATS_PASSWORD
+$NATS_PASSWORD
+PASSWORD_EOF
+)
+
+# Export variables for envsubst
+export NATS_USER NATS_BCRYPT_PASSWORD
+
+# Create runtime configuration from template
+envsubst < config/nats/nats-${ENV}.conf > config/nats/nats-${ENV}-runtime.conf
+
+echo "✅ NATS configuration prepared with bcrypt password"
+NATS_EOF
 
 # Step 4: Deploy services
 echo "🐳 Deploying Docker services..."
