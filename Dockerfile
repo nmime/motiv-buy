@@ -25,8 +25,11 @@ COPY libs ./libs
 COPY packages ./packages
 
 # Build all shared libraries (disable Nx daemon in Docker)
-RUN NX_DAEMON=false pnpm run build:libs && \
-    test -d dist/libs || (echo "ERROR: libs build failed" && exit 1)
+# Set NX_PARALLEL=1 to serialize builds and avoid concurrent compilation
+RUN NX_DAEMON=false NX_PARALLEL=1 pnpm run build:libs && \
+    test -d dist/libs || (echo "ERROR: libs build failed" && exit 1) && \
+    # Create lock marker to prevent rebuilding
+    touch dist/libs/.build.lock
 
 # Ensure packages directory exists for COPY (even if empty)
 RUN mkdir -p dist/packages && \
@@ -50,13 +53,17 @@ COPY apps ./apps
 COPY libs ./libs
 COPY packages ./packages
 
-# Copy pre-built libs (Nx detects and skips rebuilding them)
+# Copy pre-built libs and Nx cache (libraries locked to prevent rebuilding)
 COPY --from=libs-builder /app/dist/libs ./dist/libs
 COPY --from=libs-builder /app/dist/packages ./dist/packages
-RUN test -d dist/libs || (echo "ERROR: Pre-built libs missing" && exit 1)
+COPY --from=libs-builder /app/.nx/cache ./.nx/cache
+RUN test -d dist/libs || (echo "ERROR: Pre-built libs missing" && exit 1) && \
+    # Verify lock marker to ensure clean build
+    test -f dist/libs/.build.lock || (echo "WARNING: Lib build lock missing" && exit 1)
 
-# Build app (libs already built, only app code compiles, disable Nx daemon in Docker)
-RUN NX_DAEMON=false pnpm run build:${APP_NAME}
+# Build app only (libs already built + locked, only app code compiles)
+# NX_PARALLEL=1 ensures no concurrent compilation, NX_DAEMON=false for Docker compatibility
+RUN NX_DAEMON=false NX_PARALLEL=1 pnpm run build:${APP_NAME}
 
 # Verify build output
 RUN test -f dist/apps/${APP_NAME}/src/main.js || \

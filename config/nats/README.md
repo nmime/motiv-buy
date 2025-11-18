@@ -10,7 +10,7 @@ NATS is configured with **bcrypt-hashed passwords** for enhanced security instea
 
 - `nats-dev.conf` - Development configuration (no authentication by default)
 - `nats-staging.conf` - Staging configuration template (requires bcrypt password)
-- `nats-prod.conf` - Production configuration template (requires bcrypt password)
+- `nats-production.conf` - Production configuration template (requires bcrypt password)
 - `nats-*-runtime.conf` - Generated runtime configurations (created during deployment)
 
 ## Generating Bcrypt Passwords
