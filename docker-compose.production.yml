@@ -108,7 +108,7 @@ services:
 
   # NATS JetStream
   nats-prod:
-    image: nats:latest
+    image: nats:2.10-alpine
     container_name: ${PROJECT_NAME}-nats-${ENV}
     <<: *common-defaults
     command: ['-c', '/etc/nats/nats-prod-runtime.conf']
@@ -119,7 +119,7 @@ services:
       - '${NATS_PORT_EXTERNAL:-4223}:4222'
       - '${NATS_MONITOR_PORT:-8223}:8222'
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:8222/healthz']
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8222/healthz']
       <<: *healthcheck-fast
 
   # API Application
