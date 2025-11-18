@@ -111,14 +111,10 @@ services:
     image: nats:latest
     container_name: ${PROJECT_NAME}-nats-${ENV}
     <<: *common-defaults
-    command: >
-      --jetstream
-      --store_dir=/data
-      --http_port=8222
-      ${NATS_USER:+--user=${NATS_USER}}
-      ${NATS_PASSWORD:+--pass=${NATS_PASSWORD}}
+    command: ['-c', '/etc/nats/nats-prod-runtime.conf']
     volumes:
       - ${VPS_DEPLOY_PATH}/data/nats:/data
+      - ./config/nats/nats-prod-runtime.conf:/etc/nats/nats-prod-runtime.conf:ro
     ports:
       - '${NATS_PORT_EXTERNAL:-4223}:4222'
       - '${NATS_MONITOR_PORT:-8223}:8222'

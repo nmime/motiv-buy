@@ -73,7 +73,12 @@ ssh -i ~/.ssh/motiv-production deployer@65.108.218.78
 openssl rand -base64 32  # DB_PASSWORD
 openssl rand -base64 32  # REDIS_PASSWORD
 openssl rand -base64 64  # JWT_SECRET
+
+# Generate NATS password (plaintext - bcrypt hash will be auto-generated during deployment)
+openssl rand -base64 32  # NATS_PASSWORD
 ```
+
+**Note:** The bcrypt hash for NATS will be automatically generated from `NATS_PASSWORD` during deployment. You only need to store the plaintext password in GitHub secrets.
 
 **Telegram Bot Tokens:**
 - Open @BotFather in Telegram
@@ -93,6 +98,8 @@ VPS_SSH_KEY              # Private key content (cat ~/.ssh/motiv-staging)
 DB_PASSWORD              # From step 2
 REDIS_PASSWORD           # From step 2
 JWT_SECRET               # From step 2
+NATS_USER                # NATS username (e.g., nats_user)
+NATS_PASSWORD            # NATS plaintext password (from step 2, bcrypt hash auto-generated)
 TELEGRAM_BOT_TOKEN       # From @BotFather
 CRYPTO_BOT_API_TOKEN     # From @CryptoBot
 LETSENCRYPT_EMAIL        # Your email for SSL
@@ -361,6 +368,11 @@ All environment variables are automatically created during deployment:
 - `REDIS_HOST`: redis-prod (container name)
 - `REDIS_PORT`: 6379
 - `REDIS_PASSWORD`: Redis password
+
+**NATS:**
+- `NATS_URL`: nats://nats-prod:4222 (container URL)
+- `NATS_USER`: NATS username
+- `NATS_PASSWORD`: NATS plaintext password (bcrypt hash auto-generated during deployment)
 
 **Application:**
 - `JWT_SECRET`: JWT signing secret
