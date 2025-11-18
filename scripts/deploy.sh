@@ -240,19 +240,48 @@ cd $VPS_DEPLOY_PATH
 
 # Generate bcrypt hash from plaintext password
 echo "Generating bcrypt hash from NATS_PASSWORD..."
-# Use htpasswd to generate bcrypt hash non-interactively
-# The output format is "username:$2y$hash", we extract just the hash part
 NATS_BCRYPT_PASSWORD=$(echo "$NATS_PASSWORD" | docker run --rm -i httpd:alpine htpasswd -niB "" | cut -d: -f2)
 
-# Create runtime configuration using sed with proper escaping
-# Escape special characters in the bcrypt hash for sed replacement string
-# We need to escape: \ & and /
-ESCAPED_HASH=$(printf '%s\n' "$NATS_BCRYPT_PASSWORD" | sed -e 's/[\/&]/\\&/g')
+# Generate NATS config directly with bash variable substitution (no sed escaping needed)
+# This is more reliable than sed template substitution
+mkdir -p config/nats
+cat > "config/nats/nats-${ENV}-runtime.conf" << CONFIGEOF
+# NATS ${ENV^} Configuration (auto-generated)
+# This configuration uses bcrypt-hashed passwords for security
 
-# Use sed to replace both placeholders in the template
-sed -e "s/\\\$NATS_USER/$NATS_USER/g" \
-    -e "s/\\\$NATS_BCRYPT_PASSWORD/$ESCAPED_HASH/g" \
-    "config/nats/nats-${ENV}.conf" > "config/nats/nats-${ENV}-runtime.conf"
+# Server settings
+server_name: nats-${ENV}
+port: 4222
+
+# JetStream configuration
+jetstream {
+  store_dir: /data
+  max_memory_store: 3GB
+  max_file_store: 15GB
+}
+
+# HTTP Monitoring
+http_port: 8222
+
+# Logging
+debug: false
+trace: false
+logtime: true
+
+# Security: Authentication with bcrypt
+authorization {
+  user: $NATS_USER
+  # Bcrypt hashed password
+  password: $NATS_BCRYPT_PASSWORD
+}
+
+# Additional security settings
+max_connections: 500
+max_control_line: 4096
+max_payload: 1048576
+ping_interval: 120s
+ping_max: 3
+CONFIGEOF
 
 # Verify the file was created and has content
 if [ ! -s "config/nats/nats-${ENV}-runtime.conf" ]; then
@@ -260,7 +289,18 @@ if [ ! -s "config/nats/nats-${ENV}-runtime.conf" ]; then
   exit 1
 fi
 
-echo "✅ NATS configuration prepared with bcrypt password"
+# Verify critical values are present (not empty)
+if ! grep -q "user: $NATS_USER" "config/nats/nats-${ENV}-runtime.conf"; then
+  echo "ERROR: NATS_USER not found in config"
+  exit 1
+fi
+
+if ! grep -q "password: $NATS_BCRYPT_PASSWORD" "config/nats/nats-${ENV}-runtime.conf"; then
+  echo "ERROR: NATS_BCRYPT_PASSWORD not substituted in config"
+  exit 1
+fi
+
+echo "✅ NATS configuration generated and verified successfully"
 NATS_EOF
 
 # Step 4: Deploy services
