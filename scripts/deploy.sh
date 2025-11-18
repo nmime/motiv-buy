@@ -242,6 +242,10 @@ cd $VPS_DEPLOY_PATH
 echo "Generating bcrypt hash from NATS_PASSWORD..."
 NATS_BCRYPT_PASSWORD=$(echo "$NATS_PASSWORD" | docker run --rm -i httpd:alpine htpasswd -niB "" | cut -d: -f2)
 
+# Escape $ characters for NATS config (NATS uses $ for variable substitution, so literal $ must be $$)
+echo "Escaping bcrypt password for NATS config..."
+NATS_BCRYPT_PASSWORD_ESCAPED="${NATS_BCRYPT_PASSWORD//\$/\$\$}"
+
 # Generate NATS config directly with bash variable substitution (no sed escaping needed)
 # This is more reliable than sed template substitution
 mkdir -p config/nats
@@ -271,8 +275,8 @@ logtime: true
 # Security: Authentication with bcrypt
 authorization {
   user: $NATS_USER
-  # Bcrypt hashed password
-  password: $NATS_BCRYPT_PASSWORD
+  # Bcrypt hashed password ($ escaped as $$ for NATS config parser)
+  password: $NATS_BCRYPT_PASSWORD_ESCAPED
 }
 
 # Additional security settings
@@ -295,8 +299,8 @@ if ! grep -q "user: $NATS_USER" "config/nats/nats-${ENV}-runtime.conf"; then
   exit 1
 fi
 
-if ! grep -q "password: $NATS_BCRYPT_PASSWORD" "config/nats/nats-${ENV}-runtime.conf"; then
-  echo "ERROR: NATS_BCRYPT_PASSWORD not substituted in config"
+if ! grep -q "password: $NATS_BCRYPT_PASSWORD_ESCAPED" "config/nats/nats-${ENV}-runtime.conf"; then
+  echo "ERROR: NATS_BCRYPT_PASSWORD_ESCAPED not substituted in config"
   exit 1
 fi
 
