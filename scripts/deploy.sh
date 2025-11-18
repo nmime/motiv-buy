@@ -244,11 +244,17 @@ echo "Generating bcrypt hash from NATS_PASSWORD..."
 # The output format is "username:$2y$hash", we extract just the hash part
 NATS_BCRYPT_PASSWORD=$(echo "$NATS_PASSWORD" | docker run --rm -i httpd:alpine htpasswd -niB "" | cut -d: -f2)
 
+# Escape dollar signs in bcrypt hash for envsubst ($ → \$)
+# This prevents envsubst from interpreting $2y$05$... as variable references
+NATS_BCRYPT_PASSWORD_ESCAPED=$(echo "$NATS_BCRYPT_PASSWORD" | sed 's/\$/\\$/g')
+
 # Export variables for envsubst
-export NATS_USER NATS_BCRYPT_PASSWORD
+export NATS_USER NATS_BCRYPT_PASSWORD_ESCAPED
 
 # Create runtime configuration from template
-envsubst < config/nats/nats-${ENV}.conf > config/nats/nats-${ENV}-runtime.conf
+# Use NATS_BCRYPT_PASSWORD_ESCAPED instead of NATS_BCRYPT_PASSWORD
+sed "s|\$NATS_USER|$NATS_USER|g; s|\$NATS_BCRYPT_PASSWORD|$NATS_BCRYPT_PASSWORD_ESCAPED|g" \
+  config/nats/nats-${ENV}.conf > config/nats/nats-${ENV}-runtime.conf
 
 echo "✅ NATS configuration prepared with bcrypt password"
 NATS_EOF
