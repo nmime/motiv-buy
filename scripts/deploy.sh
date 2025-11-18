@@ -244,12 +244,17 @@ echo "Generating bcrypt hash from NATS_PASSWORD..."
 # The output format is "username:$2y$hash", we extract just the hash part
 NATS_BCRYPT_PASSWORD=$(echo "$NATS_PASSWORD" | docker run --rm -i httpd:alpine htpasswd -niB "" | cut -d: -f2)
 
-# Create runtime configuration from template using awk
-# awk's gsub() safely handles special characters in replacement strings
-# Pass variables via -v which avoids quoting issues completely
-awk -v user="$NATS_USER" -v pass="$NATS_BCRYPT_PASSWORD" \
-  '{gsub(/\$NATS_USER/, user); gsub(/\$NATS_BCRYPT_PASSWORD/, pass); print}' \
-  config/nats/nats-${ENV}.conf > config/nats/nats-${ENV}-runtime.conf
+# Create runtime configuration using bash string substitution
+# This is the safest approach - bash native ${variable//pattern/replacement}
+# No quoting issues, no escaping needed for special characters
+{
+  while IFS= read -r line; do
+    # Replace placeholders with actual values
+    line="${line//\$NATS_USER/$NATS_USER}"
+    line="${line//\$NATS_BCRYPT_PASSWORD/$NATS_BCRYPT_PASSWORD}"
+    echo "$line"
+  done < "config/nats/nats-${ENV}.conf"
+} > "config/nats/nats-${ENV}-runtime.conf"
 
 echo "✅ NATS configuration prepared with bcrypt password"
 NATS_EOF
