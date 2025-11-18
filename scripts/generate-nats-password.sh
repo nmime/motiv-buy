@@ -15,8 +15,8 @@ PASSWORD="$1"
 echo "Generating bcrypt hash for NATS password..."
 echo ""
 
-# Use NATS docker image to generate bcrypt hash
-docker run --rm nats:latest nats server passwd <<EOF
+# Use NATS box docker image to generate bcrypt hash
+docker run --rm -i natsio/nats-box:latest nats server passwd <<EOF
 $PASSWORD
 $PASSWORD
 EOF
