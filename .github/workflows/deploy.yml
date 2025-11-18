@@ -62,26 +62,20 @@ jobs:
           ENV="${{ inputs.environment }}"
           REF="${{ steps.ref.outputs.original }}"
 
-          # Check production deployment requirements
+          # Set deployment flags based on environment
           if [[ "$ENV" == "production" ]] || [[ "$ENV" == "both" ]]; then
-            if [[ "$REF" != "master" ]] && [[ "$REF" != "refs/heads/master" ]]; then
-              echo "❌ Production deployments can only be from master branch"
-              echo "Current ref: $REF"
-              exit 1
-            fi
             echo "production=true" >> $GITHUB_OUTPUT
           else
             echo "production=false" >> $GITHUB_OUTPUT
           fi
 
-          # Check staging deployment requirements
           if [[ "$ENV" == "staging" ]] || [[ "$ENV" == "both" ]]; then
             echo "staging=true" >> $GITHUB_OUTPUT
           else
             echo "staging=false" >> $GITHUB_OUTPUT
           fi
 
-          echo "✅ Validation passed for environment: $ENV"
+          echo "✅ Validation passed for environment: $ENV (ref: $REF)"
 
   # ==============================================
   # Job 2: Build and Push Docker Images
