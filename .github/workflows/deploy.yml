@@ -33,6 +33,7 @@ jobs:
     runs-on: [self-hosted, linux]
     outputs:
       ref-name: ${{ steps.ref.outputs.name }}
+      commit-sha: ${{ steps.ref.outputs.sha }}
       deploy-staging: ${{ steps.check.outputs.staging }}
       deploy-production: ${{ steps.check.outputs.production }}
 
@@ -42,7 +43,7 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.ref }}
 
-      - name: Extract ref name
+      - name: Extract ref name and commit SHA
         id: ref
         run: |
           set -euo pipefail
@@ -55,8 +56,11 @@ jobs:
             echo "💡 Tip: To deploy a different branch, specify it in the 'ref' input field"
           fi
           SANITIZED_REF=$(echo "$REF_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          COMMIT_SHA=$(git rev-parse HEAD)
           echo "name=$SANITIZED_REF" >> $GITHUB_OUTPUT
           echo "original=$REF_NAME" >> $GITHUB_OUTPUT
+          echo "sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "📍 Commit SHA: $COMMIT_SHA"
 
       - name: Validate deployment target
         id: check
@@ -112,7 +116,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "🏗️  Building shared stages (will be cached and reused by all apps)..."
-          echo "📌 Using commit SHA: ${{ github.sha }}"
+          echo "📌 Using commit SHA: ${{ needs.validate.outputs.commit-sha }}"
 
           # Build up to libs-builder stage to create shared cache
           # This builds: deps -> libs-builder -> prod-deps
@@ -146,13 +150,13 @@ jobs:
               if [[ "$STAGING" == "true" ]]; then
                 TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:staging"
                 TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:${{ needs.validate.outputs.ref-name }}"
-                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:staging-${{ github.sha }}"
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:staging-${{ needs.validate.outputs.commit-sha }}"
               fi
 
               # Add production tags if deploying to production
               if [[ "$PRODUCTION" == "true" ]]; then
                 TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:latest"
-                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:prod-${{ github.sha }}"
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:prod-${{ needs.validate.outputs.commit-sha }}"
               fi
 
               docker buildx build \
@@ -343,7 +347,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Ref**: ${{ needs.validate.outputs.ref-name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ needs.validate.outputs.commit-sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
