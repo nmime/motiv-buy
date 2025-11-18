@@ -50,12 +50,13 @@ COPY apps ./apps
 COPY libs ./libs
 COPY packages ./packages
 
-# Copy pre-built libs (Nx detects and skips rebuilding them)
+# Copy pre-built libs and Nx cache (Nx detects and skips rebuilding them)
 COPY --from=libs-builder /app/dist/libs ./dist/libs
 COPY --from=libs-builder /app/dist/packages ./dist/packages
+COPY --from=libs-builder /app/.nx/cache ./.nx/cache
 RUN test -d dist/libs || (echo "ERROR: Pre-built libs missing" && exit 1)
 
-# Build app (libs already built, only app code compiles, disable Nx daemon in Docker)
+# Build app only (libs already built + Nx cache restored, only app code compiles, disable Nx daemon in Docker)
 RUN NX_DAEMON=false pnpm run build:${APP_NAME}
 
 # Verify build output
