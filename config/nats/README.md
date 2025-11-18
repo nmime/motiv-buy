@@ -24,7 +24,7 @@ NATS is configured with **bcrypt-hashed passwords** for enhanced security instea
 ### Manual Generation
 
 ```bash
-docker run --rm nats:latest nats server passwd <<EOF
+docker run --rm -i natsio/nats-box:latest nats server passwd <<EOF
 your-password-here
 your-password-here
 EOF
