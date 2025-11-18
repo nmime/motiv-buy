@@ -51,6 +51,56 @@ get_config() {
 
 echo "🚀 Starting $ENVIRONMENT deployment..."
 
+# Print deployment configuration
+echo ""
+echo "📋 Deployment Configuration:"
+echo "  Environment:    $ENVIRONMENT"
+echo "  VPS Host:       ${VPS_HOST}"
+echo "  VPS User:       ${VPS_USER}"
+echo "  Deploy Path:    ${VPS_DEPLOY_PATH}"
+echo "  Docker Registry: ${DOCKER_REGISTRY}"
+echo "  Image Tag:      $(get_config IMAGE_TAG)"
+echo ""
+
+# Step 0: Verify connectivity
+echo "🔍 Verifying server connectivity..."
+echo "  Testing network connectivity to ${VPS_HOST}..."
+if ping -c 1 -W 5 "${VPS_HOST}" > /dev/null 2>&1; then
+  echo "  ✅ Host is reachable via ping"
+else
+  echo "  ⚠️  Host not responding to ping (may be blocked by firewall)"
+fi
+
+echo "  Testing SSH port (22) on ${VPS_HOST}..."
+if timeout 10 bash -c "cat < /dev/null > /dev/tcp/${VPS_HOST}/22" 2>/dev/null; then
+  echo "  ✅ SSH port 22 is open and accepting connections"
+else
+  echo "  ❌ SSH port 22 is not accessible"
+  echo ""
+  echo "💡 Troubleshooting steps:"
+  echo "  1. Verify the VPS_HOST value is correct in GitHub environment settings"
+  echo "  2. Check if SSH service is running on the server: sudo systemctl status sshd"
+  echo "  3. Check firewall rules: sudo ufw status"
+  echo "  4. Verify server is online and accessible from your network"
+  echo "  5. Check if the IP address ${VPS_HOST} is correct for ${ENVIRONMENT} environment"
+  exit 1
+fi
+
+echo "  Testing SSH authentication..."
+if ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o BatchMode=yes \
+  "${VPS_USER}@${VPS_HOST}" "echo 'SSH authentication successful'" 2>/dev/null; then
+  echo "  ✅ SSH authentication successful"
+else
+  echo "  ❌ SSH authentication failed"
+  echo ""
+  echo "💡 Troubleshooting steps:"
+  echo "  1. Verify VPS_SSH_KEY secret is set correctly in GitHub"
+  echo "  2. Verify VPS_USER has the correct value for this environment"
+  echo "  3. Check SSH key permissions on the server"
+  exit 1
+fi
+echo ""
+
 # Step 1: Create directories
 echo "📁 Creating directory structure..."
 ssh -o StrictHostKeyChecking=yes \
