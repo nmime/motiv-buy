@@ -372,16 +372,20 @@ if [ "$POSTGRES_HEALTHY" != "true" ]; then
   exit 1
 fi
 
+echo "DEBUG: PostgreSQL check passed, moving to Redis..."
+
 echo "⏳ Waiting for redis to be healthy..."
 REDIS_HEALTHY=false
 for i in {1..30}; do
-  # Use docker-compose ps to check health status (respects docker-compose healthcheck)
-  if docker compose ps redis --format json | grep -q '"Health":"healthy"'; then
+  # Use docker inspect to check health status (more compatible than --format json)
+  REDIS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' motiv-buy-redis-${ENV} 2>/dev/null || echo "unknown")
+
+  if [ "$REDIS_STATUS" = "healthy" ]; then
     echo "✅ Redis is healthy"
     REDIS_HEALTHY=true
     break
   fi
-  echo "  Waiting... ($i/30)"
+  echo "  Waiting... ($i/30) [status: $REDIS_STATUS]"
   sleep 2
 done
 
@@ -390,6 +394,8 @@ if [ "$REDIS_HEALTHY" != "true" ]; then
   docker compose logs --tail=50 redis
   exit 1
 fi
+
+echo "DEBUG: Redis check passed, moving to NATS..."
 
 # Step 2: Update NATS with new configuration
 echo ""
@@ -406,13 +412,15 @@ docker compose up -d --force-recreate --no-deps nats
 echo "⏳ Waiting for NATS to be healthy..."
 NATS_HEALTHY=false
 for i in {1..20}; do
-  # Use docker-compose ps to check health status (respects docker-compose healthcheck)
-  if docker compose ps nats --format json | grep -q '"Health":"healthy"'; then
+  # Use docker inspect to check health status (more compatible)
+  NATS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' motiv-buy-nats-${ENV} 2>/dev/null || echo "unknown")
+
+  if [ "$NATS_STATUS" = "healthy" ]; then
     echo "✅ NATS is healthy"
     NATS_HEALTHY=true
     break
   fi
-  echo "  Waiting... ($i/20)"
+  echo "  Waiting... ($i/20) [status: $NATS_STATUS]"
   sleep 2
 done
 
@@ -422,6 +430,8 @@ if [ "$NATS_HEALTHY" != "true" ]; then
   docker compose logs --tail=100 nats
   exit 1
 fi
+
+echo "DEBUG: NATS check passed, moving to applications..."
 
 # Step 3: Deploy application services
 echo ""
