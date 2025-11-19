@@ -324,6 +324,7 @@ set -eo pipefail
 cd $VPS_DEPLOY_PATH
 
 echo "========== SCRIPT START =========="
+echo "🔥 COMMIT TEST-988162c-MUST-APPEAR 🔥"
 echo "Current directory: $(pwd)"
 echo "ENV variable value: '${ENV}'"
 echo "=================================="
