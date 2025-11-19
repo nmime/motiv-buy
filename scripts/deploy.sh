@@ -104,6 +104,9 @@ echo ""
 # Step 1: Create directories
 echo "📁 Creating directory structure..."
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
   "VPS_USER='${VPS_USER}'" \
@@ -138,6 +141,9 @@ for dir in docker config scripts; do
   if [ -d "$dir" ]; then
     echo "📁 Copying $dir directory..."
     tar czf - -C "$dir" . | ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
       "${VPS_USER}@${VPS_HOST}" \
       "cd ${VPS_DEPLOY_PATH}/$dir && tar xzf -"
     echo "✅ $dir copied successfully"
@@ -147,6 +153,9 @@ done
 # Step 3: Create environment file
 echo "📝 Generating .env file..."
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "NODE_ENV='$(get_config NODE_ENV)'" \
   "PROJECT_NAME='motiv-buy'" \
@@ -229,6 +238,9 @@ ENV_EOF
 # Step 3.5: Prepare NATS configuration
 echo "🔐 Preparing NATS configuration with bcrypt password..."
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
   "NATS_USER='${NATS_USER}'" \
@@ -312,6 +324,12 @@ echo "🐳 Deploying Docker services..."
 WAIT_TIMEOUT="$(get_config WAIT_TIMEOUT)"
 
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "GITHUB_TOKEN='${GITHUB_TOKEN}'" \
   "WAIT_TIMEOUT='${WAIT_TIMEOUT}'" \
@@ -622,6 +640,9 @@ DEPLOY_EOF
 # Step 5: External health verification
 echo "🏥 Running external health verification..."
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
   "API_PORT_EXTERNAL='${API_PORT_EXTERNAL:-3000}'" \
@@ -654,6 +675,9 @@ HEALTH_EOF
 if [[ "$ENVIRONMENT" == "production" ]]; then
   echo "🧪 Running smoke tests..."
   ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
     "${VPS_USER}@${VPS_HOST}" \
     "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
     "API_PORT_EXTERNAL='${API_PORT_EXTERNAL:-3000}'" \
@@ -677,6 +701,9 @@ echo "======================================"
 echo "✅ $ENVIRONMENT DEPLOYMENT COMPLETED"
 echo "======================================"
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
   bash << 'SUMMARY_EOF'
