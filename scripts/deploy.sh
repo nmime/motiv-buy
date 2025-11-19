@@ -386,6 +386,9 @@ if [ "$POSTGRES_HEALTHY" != "true" ]; then
   exit 1
 fi
 
+echo "=========================================="
+echo "✅ POSTGRES PASSED - VERSION e6ca734"
+echo "=========================================="
 echo "DEBUG: PostgreSQL check passed, moving to Redis..."
 
 echo "⏳ Waiting for redis to be healthy..."
