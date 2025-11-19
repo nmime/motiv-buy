@@ -275,8 +275,8 @@ logtime: true
 # Security: Authentication with bcrypt
 authorization {
   user: $NATS_USER
-  # Bcrypt hashed password ($ escaped as $$ for NATS config parser)
-  password: $NATS_BCRYPT_PASSWORD_ESCAPED
+  # Bcrypt hashed password (quoted to prevent variable substitution)
+  password: "$NATS_BCRYPT_PASSWORD_ESCAPED"
 }
 
 # Additional security settings
@@ -299,7 +299,7 @@ if ! grep -q "user: $NATS_USER" "config/nats/nats-${ENV}-runtime.conf"; then
   exit 1
 fi
 
-if ! grep -q "password: $NATS_BCRYPT_PASSWORD_ESCAPED" "config/nats/nats-${ENV}-runtime.conf"; then
+if ! grep -q "password: \"$NATS_BCRYPT_PASSWORD_ESCAPED\"" "config/nats/nats-${ENV}-runtime.conf"; then
   echo "ERROR: NATS_BCRYPT_PASSWORD_ESCAPED not substituted in config"
   exit 1
 fi
