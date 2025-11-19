@@ -375,7 +375,8 @@ fi
 echo "⏳ Waiting for redis to be healthy..."
 REDIS_HEALTHY=false
 for i in {1..30}; do
-  if docker compose exec -T redis redis-cli ping > /dev/null 2>&1; then
+  # Use docker-compose ps to check health status (respects docker-compose healthcheck)
+  if docker compose ps redis --format json | grep -q '"Health":"healthy"'; then
     echo "✅ Redis is healthy"
     REDIS_HEALTHY=true
     break
@@ -405,7 +406,8 @@ docker compose up -d --force-recreate --no-deps nats
 echo "⏳ Waiting for NATS to be healthy..."
 NATS_HEALTHY=false
 for i in {1..20}; do
-  if docker compose exec -T nats wget -q -O- http://localhost:8222/healthz > /dev/null 2>&1; then
+  # Use docker-compose ps to check health status (respects docker-compose healthcheck)
+  if docker compose ps nats --format json | grep -q '"Health":"healthy"'; then
     echo "✅ NATS is healthy"
     NATS_HEALTHY=true
     break
