@@ -335,7 +335,7 @@ ssh -o StrictHostKeyChecking=yes \
   "GITHUB_ACTOR='${GITHUB_ACTOR}'" \
   "ENV='${ENVIRONMENT}'" \
   bash << 'DEPLOY_EOF'
-set -eo pipefail
+set -euxo pipefail  # Added -x for debug tracing
 
 echo "=========================================="
 echo "🔧 DEPLOYMENT START - v$(date +%Y%m%d-%H%M%S)"
@@ -343,6 +343,7 @@ echo "DEBUG: Script execution environment:"
 echo "  - Bash version: $BASH_VERSION"
 echo "  - Working directory: $(pwd)"
 echo "  - ENV variable: ${ENV}"
+echo "  - Shell options: $-"
 echo "=========================================="
 
 # Change to deployment directory
