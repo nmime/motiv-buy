@@ -224,6 +224,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.ref }}
+          clean: true  # Clean working directory before checkout
+          fetch-depth: 0  # Fetch all history to ensure latest commits
 
       - name: Setup SSH
         run: |
