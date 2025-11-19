@@ -336,16 +336,13 @@ echo "$GITHUB_TOKEN" | docker login $DOCKER_REGISTRY -u $GITHUB_ACTOR --password
 # Pull latest images
 docker compose pull
 
-# Stop and remove NATS container if it exists (we just regenerated its config)
-# This ensures the new config with escaped bcrypt password is loaded
-if docker ps -a --format '{{.Names}}' | grep -q "nats"; then
-  echo "🔄 Stopping old NATS container to load new config..."
-  docker compose stop nats-prod || true
-  docker compose rm -f nats-prod || true
-fi
+# Force recreate NATS container since we regenerated its config
+# This ensures the new config with properly quoted bcrypt password is loaded
+echo "🔄 Force-recreating NATS container to load new config..."
+docker compose up -d --force-recreate nats-prod
 
-# Deploy with zero-downtime
-echo "🚀 Deploying with zero-downtime rolling update..."
+# Deploy remaining services with zero-downtime
+echo "🚀 Deploying remaining services with zero-downtime rolling update..."
 docker compose up -d --remove-orphans --wait --wait-timeout $WAIT_TIMEOUT
 echo "✅ Deployment completed"
 
