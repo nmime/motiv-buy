@@ -290,19 +290,12 @@ jobs:
           echo "Lines 320-340 (heredoc start with markers):"
           sed -n '320,340p' /tmp/deploy-fresh.sh
 
-          if grep -q "🔥 COMMIT TEST" /tmp/deploy-fresh.sh; then
+          if grep -q "🔧 DEPLOYMENT START" /tmp/deploy-fresh.sh; then
             echo ""
-            echo "✅ Test marker found in script"
+            echo "✅ Deployment start marker found in script"
           else
             echo ""
-            echo "⚠️  Test marker NOT found - script may be corrupted"
-            exit 1
-          fi
-
-          if grep -q "🔧 HEREDOC START" /tmp/deploy-fresh.sh; then
-            echo "✅ Heredoc start marker found"
-          else
-            echo "⚠️  Heredoc start marker NOT found"
+            echo "⚠️  Deployment marker NOT found - script may be corrupted"
             exit 1
           fi
 
