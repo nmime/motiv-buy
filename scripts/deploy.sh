@@ -338,7 +338,11 @@ ssh -o StrictHostKeyChecking=yes \
 set -eo pipefail
 
 echo "=========================================="
-echo "🔧 DEPLOYMENT START - v00e6fc2"
+echo "🔧 DEPLOYMENT START - v$(date +%Y%m%d-%H%M%S)"
+echo "DEBUG: Script execution environment:"
+echo "  - Bash version: $BASH_VERSION"
+echo "  - Working directory: $(pwd)"
+echo "  - ENV variable: ${ENV}"
 echo "=========================================="
 
 # Change to deployment directory
@@ -429,11 +433,14 @@ echo "======================================"
 echo ""
 echo "📦 Step 1/5: Updating base data services..."
 docker compose up -d postgres redis || { echo "❌ Failed to start postgres/redis"; exit 1; }
+echo "DEBUG: Postgres/Redis containers started"
 
 echo "⏳ Waiting for postgres to be healthy..."
+POSTGRES_HEALTHY=false
 for i in {1..30}; do
   if docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1; then
     echo "✅ PostgreSQL is healthy"
+    POSTGRES_HEALTHY=true
     break
   fi
   if [ $i -eq 30 ]; then
@@ -444,13 +451,20 @@ for i in {1..30}; do
   echo "  Waiting... ($i/30)"
   sleep 2
 done
+echo "DEBUG: PostgreSQL loop exited, healthy=$POSTGRES_HEALTHY"
 
-echo "DEBUG: Line 444 reached - PostgreSQL loop exited successfully"
+if [ "$POSTGRES_HEALTHY" != "true" ]; then
+  echo "❌ ERROR: PostgreSQL did not become healthy"
+  exit 1
+fi
+echo "DEBUG: PostgreSQL health verified, continuing..."
 
 echo "⏳ Waiting for redis to be healthy..."
+REDIS_HEALTHY=false
 for i in {1..30}; do
   if docker compose exec -T redis redis-cli -a "$REDIS_PASSWORD" ping >/dev/null 2>&1; then
     echo "✅ Redis is healthy"
+    REDIS_HEALTHY=true
     break
   fi
   if [ $i -eq 30 ]; then
@@ -461,20 +475,32 @@ for i in {1..30}; do
   echo "  Waiting... ($i/30)"
   sleep 2
 done
+echo "DEBUG: Redis loop exited, healthy=$REDIS_HEALTHY"
+
+if [ "$REDIS_HEALTHY" != "true" ]; then
+  echo "❌ ERROR: Redis did not become healthy"
+  exit 1
+fi
+echo "DEBUG: Redis health verified, continuing to Step 2..."
 
 # Step 2: Update NATS with new configuration
 echo ""
 echo "🔄 Step 2/5: Updating NATS messaging service..."
+echo "DEBUG: Starting Step 2..."
 echo "  Stopping API/Bot temporarily..."
 docker compose stop api bot || true
+echo "DEBUG: API/Bot stopped (if they were running)"
 
 docker compose up -d --force-recreate --no-deps nats || { echo "❌ Failed to start NATS"; exit 1; }
+echo "DEBUG: NATS container started, checking health..."
 
 echo "⏳ Waiting for NATS to be healthy..."
+NATS_HEALTHY=false
 for i in {1..20}; do
   STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${ENV}" 2>/dev/null || echo "unknown")
   if [ "$STATUS" = "healthy" ]; then
     echo "✅ NATS is healthy"
+    NATS_HEALTHY=true
     break
   fi
   if [ $i -eq 20 ]; then
@@ -485,16 +511,27 @@ for i in {1..20}; do
   echo "  Waiting... ($i/20) [status: $STATUS]"
   sleep 2
 done
+echo "DEBUG: NATS loop exited, healthy=$NATS_HEALTHY"
+
+if [ "$NATS_HEALTHY" != "true" ]; then
+  echo "❌ ERROR: NATS did not become healthy"
+  exit 1
+fi
+echo "DEBUG: NATS health verified, continuing to Step 3..."
 
 # Step 3: Deploy application services
 echo ""
 echo "🚀 Step 3/5: Deploying application services..."
+echo "DEBUG: Starting Step 3..."
 docker compose up -d --force-recreate --wait api bot || { echo "❌ Failed to start API/Bot"; exit 1; }
+echo "DEBUG: API/Bot containers started, checking health..."
 
 echo "⏳ Verifying API is healthy..."
+API_HEALTHY=false
 for i in {1..30}; do
   if docker compose exec -T api curl -sf http://localhost:3000/health >/dev/null 2>&1; then
     echo "✅ API is healthy"
+    API_HEALTHY=true
     break
   fi
   if [ $i -eq 30 ]; then
@@ -506,11 +543,20 @@ for i in {1..30}; do
   echo "  Waiting... ($i/30)"
   sleep 2
 done
+echo "DEBUG: API loop exited, healthy=$API_HEALTHY"
+
+if [ "$API_HEALTHY" != "true" ]; then
+  echo "❌ ERROR: API did not become healthy"
+  exit 1
+fi
+echo "DEBUG: API health verified"
 
 echo "⏳ Verifying Bot is running..."
+BOT_RUNNING=false
 for i in {1..10}; do
   if docker compose ps bot | grep -q "Up"; then
     echo "✅ Bot is running"
+    BOT_RUNNING=true
     break
   fi
   if [ $i -eq 10 ]; then
@@ -522,14 +568,23 @@ for i in {1..10}; do
   echo "  Waiting... ($i/10)"
   sleep 2
 done
+echo "DEBUG: Bot loop exited, running=$BOT_RUNNING"
+
+if [ "$BOT_RUNNING" != "true" ]; then
+  echo "❌ ERROR: Bot did not start"
+  exit 1
+fi
+echo "DEBUG: Bot verified, continuing to Step 4..."
 
 # Step 4: Update monitoring and gateway
 echo ""
 echo "📊 Step 4/5: Updating monitoring and gateway..."
+echo "DEBUG: Starting Step 4..."
 
 # Update monitoring services
 echo "  Updating prometheus and grafana..."
 docker compose up -d --force-recreate --no-deps prometheus grafana || echo "⚠️  Monitoring services optional"
+echo "DEBUG: Monitoring services updated"
 
 # Update nginx with graceful reload
 echo "  Updating nginx..."
@@ -540,11 +595,14 @@ else
   echo "  Starting nginx..."
   docker compose up -d nginx
 fi
+echo "DEBUG: Nginx updated, continuing to Step 5..."
 
 # Step 5: Final verification
 echo ""
 echo "🏥 Step 5/5: Final health verification..."
+echo "DEBUG: Starting Step 5..."
 docker compose ps
+echo "DEBUG: Container status listed"
 
 # Ensure all critical services are running
 echo "  Verifying critical services..."
@@ -555,6 +613,7 @@ else
   docker compose logs --tail=50 api
   exit 1
 fi
+echo "DEBUG: API verified"
 
 if docker compose ps bot | grep -q "Up"; then
   echo "✅ Bot: Running"
@@ -563,6 +622,7 @@ else
   docker compose logs --tail=50 bot
   exit 1
 fi
+echo "DEBUG: Bot verified"
 
 if docker compose ps postgres | grep -q "Up.*healthy"; then
   echo "✅ PostgreSQL: Healthy"
@@ -570,11 +630,13 @@ else
   echo "❌ PostgreSQL: Not healthy"
   exit 1
 fi
+echo "DEBUG: PostgreSQL verified"
 
 echo ""
 echo "======================================"
 echo "✅ Deployment Completed Successfully"
 echo "======================================"
+echo "DEBUG: All steps completed successfully!"
 
 # Cleanup old images
 if [[ "$ENV" == "production" ]]; then
