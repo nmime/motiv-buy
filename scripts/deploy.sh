@@ -320,9 +320,15 @@ ssh -o StrictHostKeyChecking=yes \
   "GITHUB_ACTOR='${GITHUB_ACTOR}'" \
   "ENV='${ENVIRONMENT}'" \
   bash << 'DEPLOY_EOF'
-set -euo pipefail
+set -eo pipefail  # Removed -u flag to prevent undefined variable exits
 set -x  # TRACE ALL COMMANDS FOR DEBUGGING
 cd $VPS_DEPLOY_PATH
+
+# Validate critical environment variables
+if [ -z "${ENV:-}" ]; then
+  echo "FATAL ERROR: ENV variable is not set!"
+  exit 1
+fi
 
 echo "DEBUG: ENV variable is set to: $ENV"
 echo "DEBUG: Expected container names will be: motiv-buy-*-${ENV}"
