@@ -336,13 +336,32 @@ echo "$GITHUB_TOKEN" | docker login $DOCKER_REGISTRY -u $GITHUB_ACTOR --password
 # Pull latest images
 docker compose pull
 
-# Force recreate NATS container since we regenerated its config
-# This ensures the new config with properly quoted bcrypt password is loaded
-echo "🔄 Force-recreating NATS container to load new config..."
-docker compose up -d --force-recreate nats
+# Strategy for zero-downtime deployment:
+# 1. Update data services (postgres, redis) - no restart unless image changed
+# 2. Update NATS with new config (fast restart, apps will reconnect)
+# 3. Update application services with new images
 
-# Deploy remaining services with zero-downtime
-echo "🚀 Deploying remaining services with zero-downtime rolling update..."
+echo "📦 Updating data services (postgres, redis)..."
+docker compose up -d --no-deps postgres redis
+
+echo "🔄 Recreating NATS with new config (apps will auto-reconnect)..."
+docker compose up -d --force-recreate --no-deps nats
+
+# Wait for NATS to be ready (fast, usually < 2 seconds)
+echo "⏳ Waiting for NATS to start..."
+sleep 2
+
+# Deploy application services with zero-downtime rolling update
+# Apps have restart: unless-stopped and will reconnect to NATS automatically
+echo "🚀 Deploying application services with zero-downtime..."
+docker compose up -d --no-deps api bot
+
+# Deploy nginx last
+echo "🌐 Updating nginx..."
+docker compose up -d --no-deps nginx
+
+# Final health check with timeout
+echo "🏥 Verifying all services are healthy..."
 docker compose up -d --remove-orphans --wait --wait-timeout $WAIT_TIMEOUT
 echo "✅ Deployment completed"
 
