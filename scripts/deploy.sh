@@ -327,9 +327,6 @@ ssh -o StrictHostKeyChecking=yes \
   -o ServerAliveInterval=30 \
   -o ServerAliveCountMax=10 \
   -o TCPKeepAlive=yes \
-  -o ServerAliveInterval=30 \
-  -o ServerAliveCountMax=10 \
-  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "GITHUB_TOKEN='${GITHUB_TOKEN}'" \
   "WAIT_TIMEOUT='${WAIT_TIMEOUT}'" \
@@ -450,6 +447,9 @@ if [ "$POSTGRES_HEALTHY" != "true" ]; then
   docker compose logs --tail=50 postgres
   exit 1
 fi
+
+echo "✅ PostgreSQL check passed - continuing to Redis"
+echo "DEBUG: About to check Redis health (line 454)"
 
 echo "⏳ Waiting for redis to be healthy..."
 REDIS_HEALTHY=false
