@@ -250,11 +250,27 @@ jobs:
 
       - name: Download fresh deploy script from Git
         run: |
-          echo "Downloading deploy script directly from Git ref..."
+          set -x
+          echo "============================================"
+          echo "📥 Downloading deploy script from Git..."
+          echo "============================================"
           git show ${{ github.ref }}:scripts/deploy.sh > /tmp/deploy-fresh.sh
           chmod +x /tmp/deploy-fresh.sh
-          echo "Script downloaded and verified"
-          head -30 /tmp/deploy-fresh.sh | grep -q "🔥" && echo "✅ Fresh script contains test marker" || echo "⚠️  Script may be stale"
+
+          echo "Verifying downloaded script..."
+          ls -lh /tmp/deploy-fresh.sh
+          echo "First 10 lines of script:"
+          head -10 /tmp/deploy-fresh.sh
+          echo "..."
+          echo "Lines 320-330 (should contain heredoc start and markers):"
+          sed -n '320,330p' /tmp/deploy-fresh.sh
+
+          if grep -q "🔥 COMMIT TEST" /tmp/deploy-fresh.sh; then
+            echo "✅ Test marker found in script"
+          else
+            echo "⚠️  Test marker NOT found - script may be corrupted"
+          fi
+          echo "============================================"
 
       - name: Deploy
         env:
@@ -276,7 +292,12 @@ jobs:
           GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
           NATS_USER: ${{ vars.NATS_USER }}
           NATS_PASSWORD: ${{ secrets.NATS_PASSWORD }}
-        run: /tmp/deploy-fresh.sh staging
+        run: |
+          echo "============================================"
+          echo "🚀 Executing deployment script..."
+          echo "Script path: /tmp/deploy-fresh.sh"
+          echo "============================================"
+          /tmp/deploy-fresh.sh staging
 
       - name: Cleanup SSH
         if: always()
