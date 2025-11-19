@@ -319,38 +319,40 @@ ssh -o StrictHostKeyChecking=yes \
   "DOCKER_REGISTRY='${DOCKER_REGISTRY}'" \
   "GITHUB_ACTOR='${GITHUB_ACTOR}'" \
   "ENV='${ENVIRONMENT}'" \
-  "VPS_DEPLOY_PATH_VALUE='${VPS_DEPLOY_PATH}'" \
   bash << 'DEPLOY_EOF'
 set -eo pipefail
 
 echo "=========================================="
-echo "🔧 HEREDOC START - VERSION b73e95f"
+echo "🔧 DEPLOYMENT START - v00e6fc2"
 echo "=========================================="
-echo "Current directory BEFORE cd: $(pwd)"
-echo "VPS_DEPLOY_PATH variable: ${VPS_DEPLOY_PATH_VALUE}"
-echo "Attempting to change directory..."
 
-if ! cd "$VPS_DEPLOY_PATH_VALUE"; then
-  echo "❌ FATAL: Failed to cd to ${VPS_DEPLOY_PATH_VALUE}"
+# Change to deployment directory
+if ! cd "$VPS_DEPLOY_PATH"; then
+  echo "❌ FATAL: Failed to cd to ${VPS_DEPLOY_PATH}"
   echo "Directory does not exist or no permission"
-  ls -la "$(dirname "$VPS_DEPLOY_PATH_VALUE")" || echo "Parent directory also doesn't exist"
   exit 1
 fi
 
-echo "✅ Successfully changed to: $(pwd)"
-echo "========== SCRIPT START =========="
-echo "🔥 COMMIT TEST-988162c-MUST-APPEAR 🔥"
-echo "ENV variable value: '${ENV}'"
-echo "=================================="
+echo "✅ Working directory: $(pwd)"
 
 # Validate ENV is set
 if [ -z "${ENV}" ]; then
-  echo "FATAL: ENV variable is empty or not set!"
-  echo "This should have been set to: staging or production"
+  echo "❌ FATAL: ENV variable is not set"
   exit 1
 fi
 
-echo "ENV validation passed: ${ENV}"
+echo "✅ Environment: ${ENV}"
+
+# Source .env file for variables
+if [ -f .env ]; then
+  echo "📋 Loading environment variables from .env..."
+  set -a
+  source .env
+  set +a
+  echo "✅ Environment variables loaded"
+else
+  echo "⚠️  Warning: .env file not found"
+fi
 
 # Create data directories if they don't exist
 mkdir -p data/postgres data/redis data/nats \
@@ -379,9 +381,7 @@ echo "======================================"
 # Step 1: Update and verify base data services
 echo ""
 echo "📦 Step 1/5: Updating base data services..."
-echo "DEBUG: About to run: docker compose up -d postgres redis"
 docker compose up -d postgres redis
-echo "DEBUG: docker compose up completed with exit code: $?"
 
 echo "⏳ Waiting for postgres to be healthy..."
 POSTGRES_HEALTHY=false
@@ -400,11 +400,6 @@ if [ "$POSTGRES_HEALTHY" != "true" ]; then
   docker compose logs --tail=50 postgres
   exit 1
 fi
-
-echo "=========================================="
-echo "✅ POSTGRES PASSED - VERSION e6ca734"
-echo "=========================================="
-echo "DEBUG: PostgreSQL check passed, moving to Redis..."
 
 echo "⏳ Waiting for redis to be healthy..."
 REDIS_HEALTHY=false
@@ -429,8 +424,6 @@ if [ "$REDIS_HEALTHY" != "true" ]; then
   docker compose logs --tail=50 redis
   exit 1
 fi
-
-echo "DEBUG: Redis check passed, moving to NATS..."
 
 # Step 2: Update NATS with new configuration
 echo ""
@@ -469,8 +462,6 @@ if [ "$NATS_HEALTHY" != "true" ]; then
   exit 1
 fi
 
-echo "DEBUG: NATS check passed, moving to applications..."
-
 # Step 3: Deploy application services
 echo ""
 echo "🚀 Step 3/5: Deploying application services..."
@@ -483,7 +474,8 @@ docker compose up -d --force-recreate --wait api bot
 echo "⏳ Verifying API is healthy..."
 API_HEALTHY=false
 for i in {1..30}; do
-  if docker compose exec -T api curl -sf http://localhost:${PORT:-3000}/health > /dev/null 2>&1; then
+  # Check if API health endpoint responds (PORT=3000 from .env)
+  if docker compose exec -T api curl -sf http://localhost:3000/health > /dev/null 2>&1; then
     echo "✅ API is healthy"
     API_HEALTHY=true
     break
@@ -494,14 +486,45 @@ done
 
 if [ "$API_HEALTHY" != "true" ]; then
   echo "❌ API failed to become healthy after 60 seconds"
-  echo "API logs:"
+  echo ""
+  echo "API logs (last 100 lines):"
   docker compose logs --tail=100 api
+  echo ""
   echo "Container status:"
   docker compose ps api
+  echo ""
+  echo "Checking if API container is even running..."
+  if docker compose ps api | grep -q "Up"; then
+    echo "Container is Up - checking internal health..."
+    docker compose exec -T api wget -O- http://localhost:3000/health 2>&1 || echo "Health endpoint not responding"
+  else
+    echo "Container is not running!"
+  fi
   exit 1
 fi
 
-echo "✅ Bot is running"
+echo "⏳ Verifying Bot is running..."
+BOT_HEALTHY=false
+for i in {1..10}; do
+  if docker compose ps bot | grep -q "Up"; then
+    echo "✅ Bot is running"
+    BOT_HEALTHY=true
+    break
+  fi
+  echo "  Waiting... ($i/10)"
+  sleep 2
+done
+
+if [ "$BOT_HEALTHY" != "true" ]; then
+  echo "❌ Bot failed to start"
+  echo ""
+  echo "Bot logs (last 100 lines):"
+  docker compose logs --tail=100 bot
+  echo ""
+  echo "Container status:"
+  docker compose ps bot
+  exit 1
+fi
 
 # Step 4: Update monitoring and gateway
 echo ""
