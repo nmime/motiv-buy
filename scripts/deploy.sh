@@ -387,25 +387,22 @@ if [ "$POSTGRES_HEALTHY" != "true" ]; then
 fi
 
 echo "DEBUG: PostgreSQL check passed, moving to Redis..."
-echo "DEBUG: Checking if Redis container exists..."
-if ! docker ps -a --format '{{.Names}}' | grep -q "motiv-buy-redis-${ENV}"; then
-  echo "❌ ERROR: Redis container motiv-buy-redis-${ENV} does not exist!"
-  docker ps -a
-  exit 1
-fi
 
 echo "⏳ Waiting for redis to be healthy..."
 REDIS_HEALTHY=false
 for i in {1..30}; do
-  # Use docker inspect to check health status (most reliable method)
-  REDIS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-redis-${ENV}" 2>/dev/null || echo "unknown")
-
-  if [ "$REDIS_STATUS" = "healthy" ]; then
-    echo "✅ Redis is healthy"
-    REDIS_HEALTHY=true
-    break
+  # Use docker inspect to check health status (avoids format string issues in heredoc)
+  if docker inspect "motiv-buy-redis-${ENV}" >/dev/null 2>&1; then
+    REDIS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-redis-${ENV}" 2>/dev/null || echo "unknown")
+    if [ "$REDIS_STATUS" = "healthy" ]; then
+      echo "✅ Redis is healthy"
+      REDIS_HEALTHY=true
+      break
+    fi
+    echo "  Waiting... ($i/30) [status: $REDIS_STATUS]"
+  else
+    echo "  Waiting... ($i/30) [container not found yet]"
   fi
-  echo "  Waiting... ($i/30) [status: $REDIS_STATUS]"
   sleep 2
 done
 
@@ -432,15 +429,18 @@ docker compose up -d --force-recreate --no-deps nats
 echo "⏳ Waiting for NATS to be healthy..."
 NATS_HEALTHY=false
 for i in {1..20}; do
-  # Use docker inspect to check health status (more compatible)
-  NATS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' motiv-buy-nats-${ENV} 2>/dev/null || echo "unknown")
-
-  if [ "$NATS_STATUS" = "healthy" ]; then
-    echo "✅ NATS is healthy"
-    NATS_HEALTHY=true
-    break
+  # Use docker inspect to check health status
+  if docker inspect "motiv-buy-nats-${ENV}" >/dev/null 2>&1; then
+    NATS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${ENV}" 2>/dev/null || echo "unknown")
+    if [ "$NATS_STATUS" = "healthy" ]; then
+      echo "✅ NATS is healthy"
+      NATS_HEALTHY=true
+      break
+    fi
+    echo "  Waiting... ($i/20) [status: $NATS_STATUS]"
+  else
+    echo "  Waiting... ($i/20) [container not found yet]"
   fi
-  echo "  Waiting... ($i/20) [status: $NATS_STATUS]"
   sleep 2
 done
 
