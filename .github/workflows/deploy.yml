@@ -112,26 +112,35 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build shared stages (deps, libs, prod-deps) once
+      - name: Build ALL apps in one stage (Nx deduplicates libs)
         run: |
           set -euo pipefail
-          echo "🏗️  Building shared stages (will be cached and reused by all apps)..."
+          echo "🏗️  Building shared dependencies and ALL apps in optimized stages..."
           echo "📌 Using commit SHA: ${{ needs.validate.outputs.commit-sha }}"
 
-          # Build up to libs-builder stage to create shared cache
-          # This builds: deps -> libs-builder -> prod-deps
+          # Step 1: Build deps stage (npm install)
+          echo "📦 Step 1/2: Installing dependencies..."
           docker buildx build \
-            --target libs-builder \
-            --cache-from type=gha,scope=shared \
-            --cache-to type=gha,scope=shared,mode=max \
+            --target deps \
+            --cache-from type=gha,scope=deps \
+            --cache-to type=gha,scope=deps,mode=max \
             -f Dockerfile . || exit 1
 
-          echo "✅ Shared stages cached successfully (deps, libs-builder, prod-deps)"
+          # Step 2: Build all-apps-builder stage (Nx builds all apps + libs ONCE)
+          echo "🏗️  Step 2/2: Building ALL apps (Nx will deduplicate shared libraries)..."
+          docker buildx build \
+            --target all-apps-builder \
+            --cache-from type=gha,scope=deps \
+            --cache-from type=gha,scope=all-apps \
+            --cache-to type=gha,scope=all-apps,mode=max \
+            -f Dockerfile . || exit 1
 
-      - name: Build and push app images in parallel
+          echo "✅ All apps built successfully with deduplicated libraries!"
+
+      - name: Create and push final production images in parallel
         run: |
           set -euo pipefail
-          echo "🐳 Building all apps (reusing shared cache)..."
+          echo "🐳 Creating final production images (reusing single build output)..."
 
           APPS=("api" "bot" "migration")
           declare -A PIDS
@@ -140,9 +149,10 @@ jobs:
           STAGING="${{ needs.validate.outputs.deploy-staging }}"
           PRODUCTION="${{ needs.validate.outputs.deploy-production }}"
 
-          # Launch all builds in parallel (each will reuse cached shared stages)
+          # Launch all final image builds in parallel
+          # Each copies from the same all-apps-builder stage (built once above)
           for APP in "${APPS[@]}"; do
-            echo "📦 Building $APP (reusing cached deps+libs)..."
+            echo "📦 Creating production image for $APP..."
             (
               TAGS=""
 
@@ -162,9 +172,8 @@ jobs:
               docker buildx build \
                 --build-arg APP_NAME=$APP \
                 $TAGS \
-                --cache-from type=gha,scope=shared \
-                --cache-from type=gha,scope=$APP \
-                --cache-to type=gha,scope=$APP,mode=max \
+                --cache-from type=gha,scope=deps \
+                --cache-from type=gha,scope=all-apps \
                 --push \
                 -f Dockerfile . || exit 1
             ) &
@@ -189,9 +198,12 @@ jobs:
             exit 1
           fi
 
-          echo "✅ All builds completed successfully!"
-          echo "📋 Built images with tags for: staging=$STAGING, production=$PRODUCTION"
-          echo "🚀 Performance: Shared stages built once, apps built in parallel reusing cache"
+          echo ""
+          echo "======================================"
+          echo "✅ All images pushed successfully"
+          echo "======================================"
+          echo "Built from single Nx run - zero duplicate library builds!"
+          echo "📋 Tagged for: staging=$STAGING, production=$PRODUCTION"
 
   # ==============================================
   # Job 3: Deploy to Staging
@@ -212,6 +224,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.ref }}
+          clean: true  # Clean working directory before checkout
+          fetch-depth: 0  # Fetch all history to ensure latest commits
 
       - name: Setup SSH
         run: |
@@ -234,6 +248,60 @@ jobs:
             exit 1
           fi
 
+      - name: Download fresh deploy script from Git
+        run: |
+          echo "============================================"
+          echo "📥 Downloading deploy script from Git..."
+          echo "============================================"
+
+          # Download WITHOUT set -x to avoid interfering with redirection
+          git show ${{ github.ref }}:scripts/deploy.sh > /tmp/deploy-fresh.sh
+          DOWNLOAD_EXIT_CODE=$?
+
+          if [ $DOWNLOAD_EXIT_CODE -ne 0 ]; then
+            echo "❌ git show failed with exit code: $DOWNLOAD_EXIT_CODE"
+            exit 1
+          fi
+
+          chmod +x /tmp/deploy-fresh.sh
+
+          echo ""
+          echo "Verifying downloaded script..."
+          ACTUAL_LINES=$(wc -l < /tmp/deploy-fresh.sh)
+          EXPECTED_LINES=640
+
+          ls -lh /tmp/deploy-fresh.sh
+          echo "Script has $ACTUAL_LINES lines (expected ~$EXPECTED_LINES)"
+
+          if [ "$ACTUAL_LINES" -lt "$EXPECTED_LINES" ]; then
+            echo "⚠️  WARNING: Script appears truncated!"
+            echo "First 10 lines:"
+            head -10 /tmp/deploy-fresh.sh
+            echo "..."
+            echo "Last 10 lines:"
+            tail -10 /tmp/deploy-fresh.sh
+            exit 1
+          fi
+
+          echo ""
+          echo "First 10 lines of script:"
+          head -10 /tmp/deploy-fresh.sh
+          echo "..."
+          echo "Lines 320-340 (heredoc start with markers):"
+          sed -n '320,340p' /tmp/deploy-fresh.sh
+
+          if grep -q "🔧 DEPLOYMENT START" /tmp/deploy-fresh.sh; then
+            echo ""
+            echo "✅ Deployment start marker found in script"
+          else
+            echo ""
+            echo "⚠️  Deployment marker NOT found - script may be corrupted"
+            exit 1
+          fi
+
+          echo "✅ Script downloaded and verified successfully"
+          echo "============================================"
+
       - name: Deploy
         env:
           VPS_HOST: ${{ vars.VPS_HOST }}
@@ -254,7 +322,12 @@ jobs:
           GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
           NATS_USER: ${{ vars.NATS_USER }}
           NATS_PASSWORD: ${{ secrets.NATS_PASSWORD }}
-        run: ./scripts/deploy.sh staging
+        run: |
+          echo "============================================"
+          echo "🚀 Executing deployment script..."
+          echo "Script path: /tmp/deploy-fresh.sh"
+          echo "============================================"
+          /tmp/deploy-fresh.sh staging
 
       - name: Cleanup SSH
         if: always()

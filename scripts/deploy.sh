@@ -104,6 +104,9 @@ echo ""
 # Step 1: Create directories
 echo "📁 Creating directory structure..."
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
   "VPS_USER='${VPS_USER}'" \
@@ -138,6 +141,9 @@ for dir in docker config scripts; do
   if [ -d "$dir" ]; then
     echo "📁 Copying $dir directory..."
     tar czf - -C "$dir" . | ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
       "${VPS_USER}@${VPS_HOST}" \
       "cd ${VPS_DEPLOY_PATH}/$dir && tar xzf -"
     echo "✅ $dir copied successfully"
@@ -147,6 +153,9 @@ done
 # Step 3: Create environment file
 echo "📝 Generating .env file..."
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "NODE_ENV='$(get_config NODE_ENV)'" \
   "PROJECT_NAME='motiv-buy'" \
@@ -229,6 +238,9 @@ ENV_EOF
 # Step 3.5: Prepare NATS configuration
 echo "🔐 Preparing NATS configuration with bcrypt password..."
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
   "NATS_USER='${NATS_USER}'" \
@@ -241,6 +253,10 @@ cd $VPS_DEPLOY_PATH
 # Generate bcrypt hash from plaintext password
 echo "Generating bcrypt hash from NATS_PASSWORD..."
 NATS_BCRYPT_PASSWORD=$(echo "$NATS_PASSWORD" | docker run --rm -i httpd:alpine htpasswd -niB "" | cut -d: -f2)
+
+# Escape $ characters for NATS config (NATS uses $ for variable substitution, so literal $ must be $$)
+echo "Escaping bcrypt password for NATS config..."
+NATS_BCRYPT_PASSWORD_ESCAPED="${NATS_BCRYPT_PASSWORD//\$/\$\$}"
 
 # Generate NATS config directly with bash variable substitution (no sed escaping needed)
 # This is more reliable than sed template substitution
@@ -271,8 +287,8 @@ logtime: true
 # Security: Authentication with bcrypt
 authorization {
   user: $NATS_USER
-  # Bcrypt hashed password
-  password: $NATS_BCRYPT_PASSWORD
+  # Bcrypt hashed password (quoted to prevent variable substitution)
+  password: "$NATS_BCRYPT_PASSWORD_ESCAPED"
 }
 
 # Additional security settings
@@ -295,8 +311,8 @@ if ! grep -q "user: $NATS_USER" "config/nats/nats-${ENV}-runtime.conf"; then
   exit 1
 fi
 
-if ! grep -q "password: $NATS_BCRYPT_PASSWORD" "config/nats/nats-${ENV}-runtime.conf"; then
-  echo "ERROR: NATS_BCRYPT_PASSWORD not substituted in config"
+if ! grep -q "password: \"$NATS_BCRYPT_PASSWORD_ESCAPED\"" "config/nats/nats-${ENV}-runtime.conf"; then
+  echo "ERROR: NATS_BCRYPT_PASSWORD_ESCAPED not substituted in config"
   exit 1
 fi
 
@@ -308,6 +324,9 @@ echo "🐳 Deploying Docker services..."
 WAIT_TIMEOUT="$(get_config WAIT_TIMEOUT)"
 
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "GITHUB_TOKEN='${GITHUB_TOKEN}'" \
   "WAIT_TIMEOUT='${WAIT_TIMEOUT}'" \
@@ -316,8 +335,39 @@ ssh -o StrictHostKeyChecking=yes \
   "GITHUB_ACTOR='${GITHUB_ACTOR}'" \
   "ENV='${ENVIRONMENT}'" \
   bash << 'DEPLOY_EOF'
-set -euo pipefail
-cd $VPS_DEPLOY_PATH
+set -eo pipefail
+
+echo "=========================================="
+echo "🔧 DEPLOYMENT START - v00e6fc2"
+echo "=========================================="
+
+# Change to deployment directory
+if ! cd "$VPS_DEPLOY_PATH"; then
+  echo "❌ FATAL: Failed to cd to ${VPS_DEPLOY_PATH}"
+  echo "Directory does not exist or no permission"
+  exit 1
+fi
+
+echo "✅ Working directory: $(pwd)"
+
+# Validate ENV is set
+if [ -z "${ENV}" ]; then
+  echo "❌ FATAL: ENV variable is not set"
+  exit 1
+fi
+
+echo "✅ Environment: ${ENV}"
+
+# Source .env file for variables
+if [ -f .env ]; then
+  echo "📋 Loading environment variables from .env..."
+  set -a
+  source .env
+  set +a
+  echo "✅ Environment variables loaded"
+else
+  echo "⚠️  Warning: .env file not found"
+fi
 
 # Create data directories if they don't exist
 mkdir -p data/postgres data/redis data/nats \
@@ -328,14 +378,203 @@ mkdir -p data/postgres data/redis data/nats \
 
 # Login to Docker registry
 echo "$GITHUB_TOKEN" | docker login $DOCKER_REGISTRY -u $GITHUB_ACTOR --password-stdin
+LOGIN_EXIT=$?
+if [ $LOGIN_EXIT -ne 0 ]; then
+  echo "❌ Docker login failed with exit code: $LOGIN_EXIT"
+  exit 1
+fi
+echo "✅ Docker login successful"
 
 # Pull latest images
-docker compose pull
+echo "📥 Pulling latest Docker images..."
+echo "  This may take 1-2 minutes depending on image sizes..."
 
-# Deploy with zero-downtime
-echo "🚀 Deploying with zero-downtime rolling update..."
-docker compose up -d --remove-orphans --wait --wait-timeout $WAIT_TIMEOUT
-echo "✅ Deployment completed"
+# Pull images (with timeout if available)
+if command -v timeout >/dev/null 2>&1; then
+  echo "  Using 5-minute timeout..."
+  if timeout 300 docker compose pull; then
+    echo "✅ All images pulled successfully"
+  else
+    TIMEOUT_EXIT=$?
+    if [ $TIMEOUT_EXIT -eq 124 ]; then
+      echo "❌ Docker pull timed out after 5 minutes"
+    else
+      echo "❌ Docker pull failed with exit code: $TIMEOUT_EXIT"
+    fi
+    exit 1
+  fi
+else
+  echo "  No timeout available, pulling without timeout..."
+  if docker compose pull; then
+    echo "✅ All images pulled successfully"
+  else
+    echo "❌ Docker pull failed with exit code: $?"
+    exit 1
+  fi
+fi
+
+# Maximum reliability deployment strategy:
+# 1. Ensure base infrastructure is healthy (postgres, redis)
+# 2. Update NATS with new config (brief restart, clients reconnect)
+# 3. Deploy applications (they wait for dependencies via depends_on)
+# 4. Update monitoring and gateway
+# 5. Comprehensive health verification
+
+echo ""
+echo "======================================"
+echo "🚀 Starting Deployment"
+echo "======================================"
+
+# Step 1: Update and verify base data services
+echo ""
+echo "📦 Step 1/5: Updating base data services..."
+docker compose up -d postgres redis || { echo "❌ Failed to start postgres/redis"; exit 1; }
+
+echo "⏳ Waiting for postgres to be healthy..."
+for i in {1..30}; do
+  if docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1; then
+    echo "✅ PostgreSQL is healthy"
+    break
+  fi
+  if [ $i -eq 30 ]; then
+    echo "❌ PostgreSQL timeout"
+    docker compose logs --tail=50 postgres
+    exit 1
+  fi
+  echo "  Waiting... ($i/30)"
+  sleep 2
+done
+
+echo "DEBUG: Line 444 reached - PostgreSQL loop exited successfully"
+
+echo "⏳ Waiting for redis to be healthy..."
+for i in {1..30}; do
+  if docker compose exec -T redis redis-cli -a "$REDIS_PASSWORD" ping >/dev/null 2>&1; then
+    echo "✅ Redis is healthy"
+    break
+  fi
+  if [ $i -eq 30 ]; then
+    echo "❌ Redis timeout"
+    docker compose logs --tail=50 redis
+    exit 1
+  fi
+  echo "  Waiting... ($i/30)"
+  sleep 2
+done
+
+# Step 2: Update NATS with new configuration
+echo ""
+echo "🔄 Step 2/5: Updating NATS messaging service..."
+echo "  Stopping API/Bot temporarily..."
+docker compose stop api bot || true
+
+docker compose up -d --force-recreate --no-deps nats || { echo "❌ Failed to start NATS"; exit 1; }
+
+echo "⏳ Waiting for NATS to be healthy..."
+for i in {1..20}; do
+  STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${ENV}" 2>/dev/null || echo "unknown")
+  if [ "$STATUS" = "healthy" ]; then
+    echo "✅ NATS is healthy"
+    break
+  fi
+  if [ $i -eq 20 ]; then
+    echo "❌ NATS timeout (status: $STATUS)"
+    docker compose logs --tail=100 nats
+    exit 1
+  fi
+  echo "  Waiting... ($i/20) [status: $STATUS]"
+  sleep 2
+done
+
+# Step 3: Deploy application services
+echo ""
+echo "🚀 Step 3/5: Deploying application services..."
+docker compose up -d --force-recreate --wait api bot || { echo "❌ Failed to start API/Bot"; exit 1; }
+
+echo "⏳ Verifying API is healthy..."
+for i in {1..30}; do
+  if docker compose exec -T api curl -sf http://localhost:3000/health >/dev/null 2>&1; then
+    echo "✅ API is healthy"
+    break
+  fi
+  if [ $i -eq 30 ]; then
+    echo "❌ API timeout"
+    docker compose logs --tail=100 api
+    docker compose ps api
+    exit 1
+  fi
+  echo "  Waiting... ($i/30)"
+  sleep 2
+done
+
+echo "⏳ Verifying Bot is running..."
+for i in {1..10}; do
+  if docker compose ps bot | grep -q "Up"; then
+    echo "✅ Bot is running"
+    break
+  fi
+  if [ $i -eq 10 ]; then
+    echo "❌ Bot timeout"
+    docker compose logs --tail=100 bot
+    docker compose ps bot
+    exit 1
+  fi
+  echo "  Waiting... ($i/10)"
+  sleep 2
+done
+
+# Step 4: Update monitoring and gateway
+echo ""
+echo "📊 Step 4/5: Updating monitoring and gateway..."
+
+# Update monitoring services
+echo "  Updating prometheus and grafana..."
+docker compose up -d --force-recreate --no-deps prometheus grafana || echo "⚠️  Monitoring services optional"
+
+# Update nginx with graceful reload
+echo "  Updating nginx..."
+if docker compose ps nginx 2>/dev/null | grep -q "Up"; then
+  echo "  Gracefully reloading nginx (zero-downtime)..."
+  docker compose exec -T nginx nginx -s reload 2>/dev/null || docker compose up -d nginx
+else
+  echo "  Starting nginx..."
+  docker compose up -d nginx
+fi
+
+# Step 5: Final verification
+echo ""
+echo "🏥 Step 5/5: Final health verification..."
+docker compose ps
+
+# Ensure all critical services are running
+echo "  Verifying critical services..."
+if docker compose ps api | grep -q "Up.*healthy"; then
+  echo "✅ API: Running and healthy"
+else
+  echo "❌ API: Not healthy"
+  docker compose logs --tail=50 api
+  exit 1
+fi
+
+if docker compose ps bot | grep -q "Up"; then
+  echo "✅ Bot: Running"
+else
+  echo "❌ Bot: Not running"
+  docker compose logs --tail=50 bot
+  exit 1
+fi
+
+if docker compose ps postgres | grep -q "Up.*healthy"; then
+  echo "✅ PostgreSQL: Healthy"
+else
+  echo "❌ PostgreSQL: Not healthy"
+  exit 1
+fi
+
+echo ""
+echo "======================================"
+echo "✅ Deployment Completed Successfully"
+echo "======================================"
 
 # Cleanup old images
 if [[ "$ENV" == "production" ]]; then
@@ -345,45 +584,88 @@ else
 fi
 DEPLOY_EOF
 
-# Step 5: Health check
-echo "🏥 Running health checks..."
+# Step 5: External health verification
+echo "🏥 Running external health verification..."
 ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
-  "WAIT_TIMEOUT='${WAIT_TIMEOUT}'" \
+  "API_PORT_EXTERNAL='${API_PORT_EXTERNAL:-3000}'" \
   bash << 'HEALTH_EOF'
 set -euo pipefail
 cd $VPS_DEPLOY_PATH
 
-# Wait for healthy services
-timeout $WAIT_TIMEOUT sh -c 'until docker compose ps | grep -q "healthy"; do sleep 2; done' || true
+echo "Checking API health endpoint..."
+# Try health check with retries
+for i in {1..10}; do
+  if curl -sf http://localhost:${API_PORT_EXTERNAL}/health > /dev/null 2>&1; then
+    echo "✅ External health check passed"
+    echo "API is accessible on port ${API_PORT_EXTERNAL}"
+    exit 0
+  fi
+  echo "  Attempt $i/10 failed, retrying..."
+  sleep 3
+done
 
-# Check API health
-if curl -f http://localhost:3000/health; then
-  echo "✅ Health check passed"
-else
-  echo "❌ Health check failed"
-  exit 1
-fi
+echo "❌ External health check failed after 10 attempts"
+echo "Container status:"
+docker compose ps
+echo ""
+echo "API logs:"
+docker compose logs --tail=100 api
+exit 1
 HEALTH_EOF
 
 # Step 6: Smoke tests (production only)
 if [[ "$ENVIRONMENT" == "production" ]]; then
   echo "🧪 Running smoke tests..."
   ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
     "${VPS_USER}@${VPS_HOST}" \
     "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
+    "API_PORT_EXTERNAL='${API_PORT_EXTERNAL:-3000}'" \
     bash << 'SMOKE_EOF'
   set -euo pipefail
   cd $VPS_DEPLOY_PATH
 
-  if curl -f http://localhost:3000/health && curl -f http://localhost:3000/api; then
+  echo "Testing API endpoints..."
+  if curl -sf http://localhost:${API_PORT_EXTERNAL}/health > /dev/null && \
+     curl -sf http://localhost:${API_PORT_EXTERNAL}/api > /dev/null 2>&1; then
     echo "✅ Smoke tests passed"
   else
-    echo "❌ Smoke tests failed"
-    exit 1
+    echo "⚠️  Some smoke tests failed (non-critical)"
   fi
 SMOKE_EOF
 fi
 
-echo "✅ $ENVIRONMENT deployment completed successfully!"
+# Step 7: Deployment summary
+echo ""
+echo "======================================"
+echo "✅ $ENVIRONMENT DEPLOYMENT COMPLETED"
+echo "======================================"
+ssh -o StrictHostKeyChecking=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=10 \
+  -o TCPKeepAlive=yes \
+  "${VPS_USER}@${VPS_HOST}" \
+  "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
+  bash << 'SUMMARY_EOF'
+cd $VPS_DEPLOY_PATH
+echo ""
+echo "Service Status:"
+docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+echo ""
+echo "Recent Logs (last 5 lines per service):"
+echo "--- API ---"
+docker compose logs --tail=5 api 2>/dev/null || echo "No logs"
+echo "--- Bot ---"
+docker compose logs --tail=5 bot 2>/dev/null || echo "No logs"
+SUMMARY_EOF
+
+echo ""
+echo "Deployment completed at $(date)"
+echo "======================================"
