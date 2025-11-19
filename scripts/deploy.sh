@@ -428,153 +428,76 @@ echo "======================================"
 # Step 1: Update and verify base data services
 echo ""
 echo "📦 Step 1/5: Updating base data services..."
-docker compose up -d postgres redis
+docker compose up -d postgres redis || { echo "❌ Failed to start postgres/redis"; exit 1; }
 
 echo "⏳ Waiting for postgres to be healthy..."
-POSTGRES_HEALTHY=false
 for i in {1..30}; do
-  if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+  if docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1; then
     echo "✅ PostgreSQL is healthy"
-    POSTGRES_HEALTHY=true
     break
   fi
+  [ $i -eq 30 ] && { echo "❌ PostgreSQL timeout"; docker compose logs --tail=50 postgres; exit 1; }
   echo "  Waiting... ($i/30)"
   sleep 2
 done
 
-if [ "$POSTGRES_HEALTHY" != "true" ]; then
-  echo "❌ PostgreSQL failed to become healthy after 60 seconds"
-  docker compose logs --tail=50 postgres
-  exit 1
-fi
-
-echo "✅ PostgreSQL check passed - continuing to Redis"
-echo "DEBUG: About to check Redis health (line 454)"
-
 echo "⏳ Waiting for redis to be healthy..."
-REDIS_HEALTHY=false
 for i in {1..30}; do
-  # Use docker inspect to check health status (avoids format string issues in heredoc)
-  if docker inspect "motiv-buy-redis-${ENV}" >/dev/null 2>&1; then
-    REDIS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-redis-${ENV}" 2>/dev/null || echo "unknown")
-    if [ "$REDIS_STATUS" = "healthy" ]; then
-      echo "✅ Redis is healthy"
-      REDIS_HEALTHY=true
-      break
-    fi
-    echo "  Waiting... ($i/30) [status: $REDIS_STATUS]"
-  else
-    echo "  Waiting... ($i/30) [container not found yet]"
+  if docker compose exec -T redis redis-cli -a "$REDIS_PASSWORD" ping >/dev/null 2>&1; then
+    echo "✅ Redis is healthy"
+    break
   fi
+  [ $i -eq 30 ] && { echo "❌ Redis timeout"; docker compose logs --tail=50 redis; exit 1; }
+  echo "  Waiting... ($i/30)"
   sleep 2
 done
-
-if [ "$REDIS_HEALTHY" != "true" ]; then
-  echo "❌ Redis failed to become healthy after 60 seconds"
-  docker compose logs --tail=50 redis
-  exit 1
-fi
 
 # Step 2: Update NATS with new configuration
 echo ""
 echo "🔄 Step 2/5: Updating NATS messaging service..."
-echo "  Note: NATS will restart (~2 sec), clients auto-reconnect"
-
-# Stop API/Bot before NATS restart to prevent connection errors
 echo "  Stopping API/Bot temporarily..."
 docker compose stop api bot || true
 
-# Force recreate NATS to load new config
-docker compose up -d --force-recreate --no-deps nats
+docker compose up -d --force-recreate --no-deps nats || { echo "❌ Failed to start NATS"; exit 1; }
 
 echo "⏳ Waiting for NATS to be healthy..."
-NATS_HEALTHY=false
 for i in {1..20}; do
-  # Use docker inspect to check health status
-  if docker inspect "motiv-buy-nats-${ENV}" >/dev/null 2>&1; then
-    NATS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${ENV}" 2>/dev/null || echo "unknown")
-    if [ "$NATS_STATUS" = "healthy" ]; then
-      echo "✅ NATS is healthy"
-      NATS_HEALTHY=true
-      break
-    fi
-    echo "  Waiting... ($i/20) [status: $NATS_STATUS]"
-  else
-    echo "  Waiting... ($i/20) [container not found yet]"
+  STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${ENV}" 2>/dev/null || echo "unknown")
+  if [ "$STATUS" = "healthy" ]; then
+    echo "✅ NATS is healthy"
+    break
   fi
+  [ $i -eq 20 ] && { echo "❌ NATS timeout (status: $STATUS)"; docker compose logs --tail=100 nats; exit 1; }
+  echo "  Waiting... ($i/20) [status: $STATUS]"
   sleep 2
 done
-
-if [ "$NATS_HEALTHY" != "true" ]; then
-  echo "❌ NATS failed to become healthy after 40 seconds"
-  echo "NATS logs:"
-  docker compose logs --tail=100 nats
-  exit 1
-fi
 
 # Step 3: Deploy application services
 echo ""
 echo "🚀 Step 3/5: Deploying application services..."
-echo "  Force-recreating API and Bot with latest images..."
-
-# Use --wait to ensure containers reach healthy state
-# Remove --no-deps so depends_on health checks are respected
-docker compose up -d --force-recreate --wait api bot
+docker compose up -d --force-recreate --wait api bot || { echo "❌ Failed to start API/Bot"; exit 1; }
 
 echo "⏳ Verifying API is healthy..."
-API_HEALTHY=false
 for i in {1..30}; do
-  # Check if API health endpoint responds (PORT=3000 from .env)
-  if docker compose exec -T api curl -sf http://localhost:3000/health > /dev/null 2>&1; then
+  if docker compose exec -T api curl -sf http://localhost:3000/health >/dev/null 2>&1; then
     echo "✅ API is healthy"
-    API_HEALTHY=true
     break
   fi
+  [ $i -eq 30 ] && { echo "❌ API timeout"; docker compose logs --tail=100 api; docker compose ps api; exit 1; }
   echo "  Waiting... ($i/30)"
   sleep 2
 done
 
-if [ "$API_HEALTHY" != "true" ]; then
-  echo "❌ API failed to become healthy after 60 seconds"
-  echo ""
-  echo "API logs (last 100 lines):"
-  docker compose logs --tail=100 api
-  echo ""
-  echo "Container status:"
-  docker compose ps api
-  echo ""
-  echo "Checking if API container is even running..."
-  if docker compose ps api | grep -q "Up"; then
-    echo "Container is Up - checking internal health..."
-    docker compose exec -T api wget -O- http://localhost:3000/health 2>&1 || echo "Health endpoint not responding"
-  else
-    echo "Container is not running!"
-  fi
-  exit 1
-fi
-
 echo "⏳ Verifying Bot is running..."
-BOT_HEALTHY=false
 for i in {1..10}; do
   if docker compose ps bot | grep -q "Up"; then
     echo "✅ Bot is running"
-    BOT_HEALTHY=true
     break
   fi
+  [ $i -eq 10 ] && { echo "❌ Bot timeout"; docker compose logs --tail=100 bot; docker compose ps bot; exit 1; }
   echo "  Waiting... ($i/10)"
   sleep 2
 done
-
-if [ "$BOT_HEALTHY" != "true" ]; then
-  echo "❌ Bot failed to start"
-  echo ""
-  echo "Bot logs (last 100 lines):"
-  docker compose logs --tail=100 bot
-  echo ""
-  echo "Container status:"
-  docker compose ps bot
-  exit 1
-fi
 
 # Step 4: Update monitoring and gateway
 echo ""
