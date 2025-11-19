@@ -344,12 +344,24 @@ docker compose pull
 echo "📦 Updating data services (postgres, redis)..."
 docker compose up -d --no-deps postgres redis
 
-echo "🔄 Recreating NATS with new config (apps will auto-reconnect)..."
+echo "🔄 Updating NATS with new config..."
+# Note: NATS will restart (~2 sec), but NATS clients auto-reconnect
+# This is the standard approach - NATS doesn't support live auth config reload
+
+# Force recreate NATS to load new config
+# --no-deps ensures API/Bot don't cascade restart
 docker compose up -d --force-recreate --no-deps nats
 
-# Wait for NATS to be ready (fast, usually < 2 seconds)
-echo "⏳ Waiting for NATS to start..."
-sleep 2
+# Wait for NATS to be ready (usually < 2 seconds)
+echo "⏳ Waiting for NATS to start (apps will auto-reconnect)..."
+for i in {1..10}; do
+  if docker compose exec -T nats wget -q -O- http://localhost:8222/healthz > /dev/null 2>&1; then
+    echo "✅ NATS is healthy"
+    break
+  fi
+  echo "  Attempt $i/10..."
+  sleep 1
+done
 
 # Deploy application services with zero-downtime rolling update
 # Apps have restart: unless-stopped and will reconnect to NATS automatically
