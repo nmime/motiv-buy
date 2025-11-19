@@ -250,26 +250,63 @@ jobs:
 
       - name: Download fresh deploy script from Git
         run: |
-          set -x
           echo "============================================"
           echo "📥 Downloading deploy script from Git..."
           echo "============================================"
+
+          # Download WITHOUT set -x to avoid interfering with redirection
           git show ${{ github.ref }}:scripts/deploy.sh > /tmp/deploy-fresh.sh
+          DOWNLOAD_EXIT_CODE=$?
+
+          if [ $DOWNLOAD_EXIT_CODE -ne 0 ]; then
+            echo "❌ git show failed with exit code: $DOWNLOAD_EXIT_CODE"
+            exit 1
+          fi
+
           chmod +x /tmp/deploy-fresh.sh
 
+          echo ""
           echo "Verifying downloaded script..."
+          ACTUAL_LINES=$(wc -l < /tmp/deploy-fresh.sh)
+          EXPECTED_LINES=640
+
           ls -lh /tmp/deploy-fresh.sh
+          echo "Script has $ACTUAL_LINES lines (expected ~$EXPECTED_LINES)"
+
+          if [ "$ACTUAL_LINES" -lt "$EXPECTED_LINES" ]; then
+            echo "⚠️  WARNING: Script appears truncated!"
+            echo "First 10 lines:"
+            head -10 /tmp/deploy-fresh.sh
+            echo "..."
+            echo "Last 10 lines:"
+            tail -10 /tmp/deploy-fresh.sh
+            exit 1
+          fi
+
+          echo ""
           echo "First 10 lines of script:"
           head -10 /tmp/deploy-fresh.sh
           echo "..."
-          echo "Lines 320-330 (should contain heredoc start and markers):"
-          sed -n '320,330p' /tmp/deploy-fresh.sh
+          echo "Lines 320-340 (heredoc start with markers):"
+          sed -n '320,340p' /tmp/deploy-fresh.sh
 
           if grep -q "🔥 COMMIT TEST" /tmp/deploy-fresh.sh; then
+            echo ""
             echo "✅ Test marker found in script"
           else
+            echo ""
             echo "⚠️  Test marker NOT found - script may be corrupted"
+            exit 1
           fi
+
+          if grep -q "🔧 HEREDOC START" /tmp/deploy-fresh.sh; then
+            echo "✅ Heredoc start marker found"
+          else
+            echo "⚠️  Heredoc start marker NOT found"
+            exit 1
+          fi
+
+          echo "✅ Script downloaded and verified successfully"
           echo "============================================"
 
       - name: Deploy
