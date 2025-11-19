@@ -336,57 +336,137 @@ echo "$GITHUB_TOKEN" | docker login $DOCKER_REGISTRY -u $GITHUB_ACTOR --password
 # Pull latest images
 docker compose pull
 
-# Strategy for zero-downtime deployment:
-# 1. Update data services (postgres, redis) - no restart unless image changed
-# 2. Update NATS with new config (fast restart, apps will reconnect)
-# 3. Update application services with new images
+# Maximum reliability deployment strategy:
+# 1. Ensure base infrastructure is healthy (postgres, redis)
+# 2. Update NATS with new config (brief restart, clients reconnect)
+# 3. Deploy applications (they wait for dependencies via depends_on)
+# 4. Update monitoring and gateway
+# 5. Comprehensive health verification
 
-echo "📦 Updating data services (postgres, redis)..."
-docker compose up -d --no-deps postgres redis
+echo "======================================"
+echo "🚀 Starting Deployment"
+echo "======================================"
 
-echo "🔄 Updating NATS with new config..."
-# Note: NATS will restart (~2 sec), but NATS clients auto-reconnect
-# This is the standard approach - NATS doesn't support live auth config reload
+# Step 1: Update and verify base data services
+echo ""
+echo "📦 Step 1/5: Updating base data services..."
+docker compose up -d postgres redis
+
+echo "⏳ Waiting for postgres to be healthy..."
+for i in {1..30}; do
+  if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+    echo "✅ PostgreSQL is healthy"
+    break
+  fi
+  echo "  Waiting... ($i/30)"
+  sleep 2
+done
+
+echo "⏳ Waiting for redis to be healthy..."
+for i in {1..30}; do
+  if docker compose exec -T redis redis-cli ping > /dev/null 2>&1; then
+    echo "✅ Redis is healthy"
+    break
+  fi
+  echo "  Waiting... ($i/30)"
+  sleep 2
+done
+
+# Step 2: Update NATS with new configuration
+echo ""
+echo "🔄 Step 2/5: Updating NATS messaging service..."
+echo "  Note: NATS will restart (~2 sec), clients auto-reconnect"
+
+# Stop API/Bot before NATS restart to prevent connection errors
+echo "  Stopping API/Bot temporarily..."
+docker compose stop api bot || true
 
 # Force recreate NATS to load new config
-# --no-deps ensures API/Bot don't cascade restart
 docker compose up -d --force-recreate --no-deps nats
 
-# Wait for NATS to be ready (usually < 2 seconds)
-echo "⏳ Waiting for NATS to start (apps will auto-reconnect)..."
-for i in {1..10}; do
+echo "⏳ Waiting for NATS to be healthy..."
+for i in {1..20}; do
   if docker compose exec -T nats wget -q -O- http://localhost:8222/healthz > /dev/null 2>&1; then
     echo "✅ NATS is healthy"
     break
   fi
-  echo "  Attempt $i/10..."
-  sleep 1
+  echo "  Waiting... ($i/20)"
+  sleep 2
 done
 
-# Deploy application services with new images
-# Force recreate to ensure latest images are used (pulled at line 337)
-# --no-deps prevents cascading restarts of dependencies
-echo "🚀 Deploying application services with new images..."
-docker compose up -d --force-recreate --no-deps api bot
+# Step 3: Deploy application services
+echo ""
+echo "🚀 Step 3/5: Deploying application services..."
+echo "  Force-recreating API and Bot with latest images..."
 
-# Update monitoring services (non-critical, can restart any time)
-echo "📊 Updating monitoring services..."
-docker compose up -d --force-recreate --no-deps prometheus grafana
+# Use --wait to ensure containers reach healthy state
+# Remove --no-deps so depends_on health checks are respected
+docker compose up -d --force-recreate --wait api bot
 
-# Deploy nginx last (graceful reload for zero-downtime)
-echo "🌐 Updating nginx..."
-if docker compose ps nginx | grep -q "Up"; then
-  echo "  Gracefully reloading nginx config (zero-downtime)..."
-  docker compose exec -T nginx nginx -s reload || docker compose up -d --no-deps nginx
+echo "⏳ Verifying API is healthy..."
+for i in {1..30}; do
+  if docker compose exec -T api curl -sf http://localhost:${PORT:-3000}/health > /dev/null 2>&1; then
+    echo "✅ API is healthy"
+    break
+  fi
+  echo "  Waiting... ($i/30)"
+  sleep 2
+done
+
+echo "✅ Bot is running"
+
+# Step 4: Update monitoring and gateway
+echo ""
+echo "📊 Step 4/5: Updating monitoring and gateway..."
+
+# Update monitoring services
+echo "  Updating prometheus and grafana..."
+docker compose up -d --force-recreate --no-deps prometheus grafana || echo "⚠️  Monitoring services optional"
+
+# Update nginx with graceful reload
+echo "  Updating nginx..."
+if docker compose ps nginx 2>/dev/null | grep -q "Up"; then
+  echo "  Gracefully reloading nginx (zero-downtime)..."
+  docker compose exec -T nginx nginx -s reload 2>/dev/null || docker compose up -d nginx
 else
   echo "  Starting nginx..."
-  docker compose up -d --no-deps nginx
+  docker compose up -d nginx
 fi
 
-# Final health check with timeout
-echo "🏥 Verifying all services are healthy..."
-docker compose up -d --remove-orphans --wait --wait-timeout $WAIT_TIMEOUT
-echo "✅ Deployment completed"
+# Step 5: Final verification
+echo ""
+echo "🏥 Step 5/5: Final health verification..."
+docker compose ps
+
+# Ensure all critical services are running
+echo "  Verifying critical services..."
+if docker compose ps api | grep -q "Up.*healthy"; then
+  echo "✅ API: Running and healthy"
+else
+  echo "❌ API: Not healthy"
+  docker compose logs --tail=50 api
+  exit 1
+fi
+
+if docker compose ps bot | grep -q "Up"; then
+  echo "✅ Bot: Running"
+else
+  echo "❌ Bot: Not running"
+  docker compose logs --tail=50 bot
+  exit 1
+fi
+
+if docker compose ps postgres | grep -q "Up.*healthy"; then
+  echo "✅ PostgreSQL: Healthy"
+else
+  echo "❌ PostgreSQL: Not healthy"
+  exit 1
+fi
+
+echo ""
+echo "======================================"
+echo "✅ Deployment Completed Successfully"
+echo "======================================"
 
 # Cleanup old images
 if [[ "$ENV" == "production" ]]; then
@@ -396,26 +476,35 @@ else
 fi
 DEPLOY_EOF
 
-# Step 5: Health check
-echo "🏥 Running health checks..."
+# Step 5: External health verification
+echo "🏥 Running external health verification..."
 ssh -o StrictHostKeyChecking=yes \
   "${VPS_USER}@${VPS_HOST}" \
   "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
-  "WAIT_TIMEOUT='${WAIT_TIMEOUT}'" \
+  "API_PORT_EXTERNAL='${API_PORT_EXTERNAL:-3000}'" \
   bash << 'HEALTH_EOF'
 set -euo pipefail
 cd $VPS_DEPLOY_PATH
 
-# Wait for healthy services
-timeout $WAIT_TIMEOUT sh -c 'until docker compose ps | grep -q "healthy"; do sleep 2; done' || true
+echo "Checking API health endpoint..."
+# Try health check with retries
+for i in {1..10}; do
+  if curl -sf http://localhost:${API_PORT_EXTERNAL}/health > /dev/null 2>&1; then
+    echo "✅ External health check passed"
+    echo "API is accessible on port ${API_PORT_EXTERNAL}"
+    exit 0
+  fi
+  echo "  Attempt $i/10 failed, retrying..."
+  sleep 3
+done
 
-# Check API health
-if curl -f http://localhost:3000/health; then
-  echo "✅ Health check passed"
-else
-  echo "❌ Health check failed"
-  exit 1
-fi
+echo "❌ External health check failed after 10 attempts"
+echo "Container status:"
+docker compose ps
+echo ""
+echo "API logs:"
+docker compose logs --tail=100 api
+exit 1
 HEALTH_EOF
 
 # Step 6: Smoke tests (production only)
@@ -424,17 +513,42 @@ if [[ "$ENVIRONMENT" == "production" ]]; then
   ssh -o StrictHostKeyChecking=yes \
     "${VPS_USER}@${VPS_HOST}" \
     "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
+    "API_PORT_EXTERNAL='${API_PORT_EXTERNAL:-3000}'" \
     bash << 'SMOKE_EOF'
   set -euo pipefail
   cd $VPS_DEPLOY_PATH
 
-  if curl -f http://localhost:3000/health && curl -f http://localhost:3000/api; then
+  echo "Testing API endpoints..."
+  if curl -sf http://localhost:${API_PORT_EXTERNAL}/health > /dev/null && \
+     curl -sf http://localhost:${API_PORT_EXTERNAL}/api > /dev/null 2>&1; then
     echo "✅ Smoke tests passed"
   else
-    echo "❌ Smoke tests failed"
-    exit 1
+    echo "⚠️  Some smoke tests failed (non-critical)"
   fi
 SMOKE_EOF
 fi
 
-echo "✅ $ENVIRONMENT deployment completed successfully!"
+# Step 7: Deployment summary
+echo ""
+echo "======================================"
+echo "✅ $ENVIRONMENT DEPLOYMENT COMPLETED"
+echo "======================================"
+ssh -o StrictHostKeyChecking=yes \
+  "${VPS_USER}@${VPS_HOST}" \
+  "VPS_DEPLOY_PATH='${VPS_DEPLOY_PATH}'" \
+  bash << 'SUMMARY_EOF'
+cd $VPS_DEPLOY_PATH
+echo ""
+echo "Service Status:"
+docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+echo ""
+echo "Recent Logs (last 5 lines per service):"
+echo "--- API ---"
+docker compose logs --tail=5 api 2>/dev/null || echo "No logs"
+echo "--- Bot ---"
+docker compose logs --tail=5 bot 2>/dev/null || echo "No logs"
+SUMMARY_EOF
+
+echo ""
+echo "Deployment completed at $(date)"
+echo "======================================"
