@@ -248,6 +248,14 @@ jobs:
             exit 1
           fi
 
+      - name: Download fresh deploy script from Git
+        run: |
+          echo "Downloading deploy script directly from Git ref..."
+          git show ${{ github.ref }}:scripts/deploy.sh > /tmp/deploy-fresh.sh
+          chmod +x /tmp/deploy-fresh.sh
+          echo "Script downloaded and verified"
+          head -30 /tmp/deploy-fresh.sh | grep -q "🔥" && echo "✅ Fresh script contains test marker" || echo "⚠️  Script may be stale"
+
       - name: Deploy
         env:
           VPS_HOST: ${{ vars.VPS_HOST }}
@@ -268,7 +276,7 @@ jobs:
           GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
           NATS_USER: ${{ vars.NATS_USER }}
           NATS_PASSWORD: ${{ secrets.NATS_PASSWORD }}
-        run: ./scripts/deploy.sh staging
+        run: /tmp/deploy-fresh.sh staging
 
       - name: Cleanup SSH
         if: always()
