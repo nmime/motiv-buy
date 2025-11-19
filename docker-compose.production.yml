@@ -29,19 +29,19 @@ x-common-env: &common-env
   ENV: ${ENV}
 
 x-db-env: &db-env
-  DB_HOST: postgres-prod
+  DB_HOST: postgres
   DB_PORT: 5432
   DB_NAME: ${DB_NAME}
   DB_USER: ${DB_USER}
   DB_PASSWORD: ${DB_PASSWORD}
 
 x-redis-env: &redis-env
-  REDIS_HOST: redis-prod
+  REDIS_HOST: redis
   REDIS_PORT: 6379
   REDIS_PASSWORD: ${REDIS_PASSWORD}
 
 x-nats-env: &nats-env
-  NATS_URL: nats://nats-prod:4222
+  NATS_URL: nats://nats:4222
   NATS_CLIENT_NAME: ${PROJECT_NAME}-app
   NATS_USER: ${NATS_USER}
   NATS_PASSWORD: ${NATS_PASSWORD}
@@ -71,7 +71,7 @@ x-bot-resources: &bot-resources
 
 services:
   # PostgreSQL Database
-  postgres-prod:
+  postgres:
     image: postgres:18rc1-alpine
     container_name: ${PROJECT_NAME}-postgres-${ENV}
     <<: *common-defaults
@@ -90,7 +90,7 @@ services:
       <<: *healthcheck-fast
 
   # Redis Cache
-  redis-prod:
+  redis:
     image: redis:7-alpine
     container_name: ${PROJECT_NAME}-redis-${ENV}
     <<: *common-defaults
@@ -107,7 +107,7 @@ services:
       <<: *healthcheck-fast
 
   # NATS JetStream
-  nats-prod:
+  nats:
     image: nats:2.10-alpine
     container_name: ${PROJECT_NAME}-nats-${ENV}
     <<: *common-defaults
@@ -123,7 +123,7 @@ services:
       <<: *healthcheck-fast
 
   # API Application
-  api-prod:
+  api:
     image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_PREFIX}-api:${IMAGE_TAG}
     container_name: ${PROJECT_NAME}-api-${ENV}
     <<: *common-defaults
@@ -141,11 +141,11 @@ services:
     ports:
       - '${API_PORT_EXTERNAL}:${PORT}'
     depends_on:
-      postgres-prod:
+      postgres:
         condition: service_healthy
-      redis-prod:
+      redis:
         condition: service_healthy
-      nats-prod:
+      nats:
         condition: service_healthy
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:${PORT}/health']
@@ -154,33 +154,33 @@ services:
       <<: *api-resources
 
   # Bot Application
-  bot-prod:
+  bot:
     image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_PREFIX}-bot:${IMAGE_TAG}
     container_name: ${PROJECT_NAME}-bot-${ENV}
     <<: *common-defaults
     environment:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
       BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      API_BASE_URL: http://api-prod:${PORT}
+      API_BASE_URL: http://api:${PORT}
       LOG_LEVEL: ${LOG_LEVEL}
     volumes:
       - ${VPS_DEPLOY_PATH}/data/bot/logs:/app/logs
       - ${VPS_DEPLOY_PATH}/data/bot/temp:/app/temp
       - ${VPS_DEPLOY_PATH}/data/bot/sessions:/app/sessions
     depends_on:
-      api-prod:
+      api:
         condition: service_healthy
-      postgres-prod:
+      postgres:
         condition: service_healthy
-      redis-prod:
+      redis:
         condition: service_healthy
-      nats-prod:
+      nats:
         condition: service_healthy
     deploy:
       <<: *bot-resources
 
   # Nginx Reverse Proxy
-  nginx-prod:
+  nginx:
     image: nginx:alpine
     container_name: ${PROJECT_NAME}-nginx-${ENV}
     <<: *common-defaults
@@ -191,13 +191,13 @@ services:
       - '${HTTP_PORT:-80}:80'
       - '${HTTPS_PORT:-443}:443'
     depends_on:
-      - api-prod
+      - api
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost/health']
       <<: *healthcheck-standard
 
   # Monitoring - Prometheus
-  prometheus-prod:
+  prometheus:
     image: prom/prometheus:latest
     container_name: ${PROJECT_NAME}-prometheus-${ENV}
     <<: *common-defaults
@@ -210,7 +210,7 @@ services:
       - monitoring
 
   # Monitoring - Grafana
-  grafana-prod:
+  grafana:
     image: grafana/grafana:latest
     container_name: ${PROJECT_NAME}-grafana-${ENV}
     <<: *common-defaults
@@ -222,7 +222,7 @@ services:
     ports:
       - '${GRAFANA_PORT:-3002}:3000'
     depends_on:
-      - prometheus-prod
+      - prometheus
     profiles:
       - monitoring
 

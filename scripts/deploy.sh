@@ -339,7 +339,7 @@ docker compose pull
 # Force recreate NATS container since we regenerated its config
 # This ensures the new config with properly quoted bcrypt password is loaded
 echo "🔄 Force-recreating NATS container to load new config..."
-docker compose up -d --force-recreate nats-prod
+docker compose up -d --force-recreate nats
 
 # Deploy remaining services with zero-downtime
 echo "🚀 Deploying remaining services with zero-downtime rolling update..."
