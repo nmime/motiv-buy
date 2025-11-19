@@ -363,9 +363,29 @@ mkdir -p data/postgres data/redis data/nats \
 
 # Login to Docker registry
 echo "$GITHUB_TOKEN" | docker login $DOCKER_REGISTRY -u $GITHUB_ACTOR --password-stdin
+LOGIN_EXIT=$?
+if [ $LOGIN_EXIT -ne 0 ]; then
+  echo "❌ Docker login failed with exit code: $LOGIN_EXIT"
+  exit 1
+fi
+echo "✅ Docker login successful"
 
 # Pull latest images
-docker compose pull
+echo "📥 Pulling latest Docker images..."
+echo "  This may take 1-2 minutes depending on image sizes..."
+
+# Use timeout to prevent hanging (5 minutes should be enough)
+if timeout 300 docker compose pull; then
+  echo "✅ All images pulled successfully"
+else
+  TIMEOUT_EXIT=$?
+  if [ $TIMEOUT_EXIT -eq 124 ]; then
+    echo "❌ Docker pull timed out after 5 minutes"
+  else
+    echo "❌ Docker pull failed with exit code: $TIMEOUT_EXIT"
+  fi
+  exit 1
+fi
 
 # Maximum reliability deployment strategy:
 # 1. Ensure base infrastructure is healthy (postgres, redis)
@@ -374,6 +394,7 @@ docker compose pull
 # 4. Update monitoring and gateway
 # 5. Comprehensive health verification
 
+echo ""
 echo "======================================"
 echo "🚀 Starting Deployment"
 echo "======================================"
