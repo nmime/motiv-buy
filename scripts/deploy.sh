@@ -321,7 +321,11 @@ ssh -o StrictHostKeyChecking=yes \
   "ENV='${ENVIRONMENT}'" \
   bash << 'DEPLOY_EOF'
 set -euo pipefail
+set -x  # TRACE ALL COMMANDS FOR DEBUGGING
 cd $VPS_DEPLOY_PATH
+
+echo "DEBUG: ENV variable is set to: $ENV"
+echo "DEBUG: Expected container names will be: motiv-buy-*-${ENV}"
 
 # Create data directories if they don't exist
 mkdir -p data/postgres data/redis data/nats \
@@ -373,12 +377,18 @@ if [ "$POSTGRES_HEALTHY" != "true" ]; then
 fi
 
 echo "DEBUG: PostgreSQL check passed, moving to Redis..."
+echo "DEBUG: Checking if Redis container exists..."
+if ! docker ps -a --format '{{.Names}}' | grep -q "motiv-buy-redis-${ENV}"; then
+  echo "❌ ERROR: Redis container motiv-buy-redis-${ENV} does not exist!"
+  docker ps -a
+  exit 1
+fi
 
 echo "⏳ Waiting for redis to be healthy..."
 REDIS_HEALTHY=false
 for i in {1..30}; do
-  # Use docker inspect to check health status (more compatible than --format json)
-  REDIS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' motiv-buy-redis-${ENV} 2>/dev/null || echo "unknown")
+  # Use docker inspect to check health status (most reliable method)
+  REDIS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-redis-${ENV}" 2>/dev/null || echo "unknown")
 
   if [ "$REDIS_STATUS" = "healthy" ]; then
     echo "✅ Redis is healthy"
