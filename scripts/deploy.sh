@@ -368,9 +368,15 @@ done
 echo "🚀 Deploying application services with zero-downtime..."
 docker compose up -d --no-deps api bot
 
-# Deploy nginx last
+# Deploy nginx last (graceful reload for zero-downtime)
 echo "🌐 Updating nginx..."
-docker compose up -d --no-deps nginx
+if docker compose ps nginx | grep -q "Up"; then
+  echo "  Gracefully reloading nginx config (zero-downtime)..."
+  docker compose exec -T nginx nginx -s reload || docker compose up -d --no-deps nginx
+else
+  echo "  Starting nginx..."
+  docker compose up -d --no-deps nginx
+fi
 
 # Final health check with timeout
 echo "🏥 Verifying all services are healthy..."
