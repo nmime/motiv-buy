@@ -374,17 +374,28 @@ echo "✅ Docker login successful"
 echo "📥 Pulling latest Docker images..."
 echo "  This may take 1-2 minutes depending on image sizes..."
 
-# Use timeout to prevent hanging (5 minutes should be enough)
-if timeout 300 docker compose pull; then
-  echo "✅ All images pulled successfully"
-else
-  TIMEOUT_EXIT=$?
-  if [ $TIMEOUT_EXIT -eq 124 ]; then
-    echo "❌ Docker pull timed out after 5 minutes"
+# Pull images (with timeout if available)
+if command -v timeout >/dev/null 2>&1; then
+  echo "  Using 5-minute timeout..."
+  if timeout 300 docker compose pull; then
+    echo "✅ All images pulled successfully"
   else
-    echo "❌ Docker pull failed with exit code: $TIMEOUT_EXIT"
+    TIMEOUT_EXIT=$?
+    if [ $TIMEOUT_EXIT -eq 124 ]; then
+      echo "❌ Docker pull timed out after 5 minutes"
+    else
+      echo "❌ Docker pull failed with exit code: $TIMEOUT_EXIT"
+    fi
+    exit 1
   fi
-  exit 1
+else
+  echo "  No timeout available, pulling without timeout..."
+  if docker compose pull; then
+    echo "✅ All images pulled successfully"
+  else
+    echo "❌ Docker pull failed with exit code: $?"
+    exit 1
+  fi
 fi
 
 # Maximum reliability deployment strategy:
