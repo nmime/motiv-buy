@@ -350,27 +350,45 @@ echo "======================================"
 # Step 1: Update and verify base data services
 echo ""
 echo "📦 Step 1/5: Updating base data services..."
+echo "DEBUG: About to run: docker compose up -d postgres redis"
 docker compose up -d postgres redis
+echo "DEBUG: docker compose up completed with exit code: $?"
 
 echo "⏳ Waiting for postgres to be healthy..."
+POSTGRES_HEALTHY=false
 for i in {1..30}; do
   if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
     echo "✅ PostgreSQL is healthy"
+    POSTGRES_HEALTHY=true
     break
   fi
   echo "  Waiting... ($i/30)"
   sleep 2
 done
 
+if [ "$POSTGRES_HEALTHY" != "true" ]; then
+  echo "❌ PostgreSQL failed to become healthy after 60 seconds"
+  docker compose logs --tail=50 postgres
+  exit 1
+fi
+
 echo "⏳ Waiting for redis to be healthy..."
+REDIS_HEALTHY=false
 for i in {1..30}; do
   if docker compose exec -T redis redis-cli ping > /dev/null 2>&1; then
     echo "✅ Redis is healthy"
+    REDIS_HEALTHY=true
     break
   fi
   echo "  Waiting... ($i/30)"
   sleep 2
 done
+
+if [ "$REDIS_HEALTHY" != "true" ]; then
+  echo "❌ Redis failed to become healthy after 60 seconds"
+  docker compose logs --tail=50 redis
+  exit 1
+fi
 
 # Step 2: Update NATS with new configuration
 echo ""
@@ -385,14 +403,23 @@ docker compose stop api bot || true
 docker compose up -d --force-recreate --no-deps nats
 
 echo "⏳ Waiting for NATS to be healthy..."
+NATS_HEALTHY=false
 for i in {1..20}; do
   if docker compose exec -T nats wget -q -O- http://localhost:8222/healthz > /dev/null 2>&1; then
     echo "✅ NATS is healthy"
+    NATS_HEALTHY=true
     break
   fi
   echo "  Waiting... ($i/20)"
   sleep 2
 done
+
+if [ "$NATS_HEALTHY" != "true" ]; then
+  echo "❌ NATS failed to become healthy after 40 seconds"
+  echo "NATS logs:"
+  docker compose logs --tail=100 nats
+  exit 1
+fi
 
 # Step 3: Deploy application services
 echo ""
@@ -404,14 +431,25 @@ echo "  Force-recreating API and Bot with latest images..."
 docker compose up -d --force-recreate --wait api bot
 
 echo "⏳ Verifying API is healthy..."
+API_HEALTHY=false
 for i in {1..30}; do
   if docker compose exec -T api curl -sf http://localhost:${PORT:-3000}/health > /dev/null 2>&1; then
     echo "✅ API is healthy"
+    API_HEALTHY=true
     break
   fi
   echo "  Waiting... ($i/30)"
   sleep 2
 done
+
+if [ "$API_HEALTHY" != "true" ]; then
+  echo "❌ API failed to become healthy after 60 seconds"
+  echo "API logs:"
+  docker compose logs --tail=100 api
+  echo "Container status:"
+  docker compose ps api
+  exit 1
+fi
 
 echo "✅ Bot is running"
 
