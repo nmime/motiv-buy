@@ -319,13 +319,27 @@ ssh -o StrictHostKeyChecking=yes \
   "DOCKER_REGISTRY='${DOCKER_REGISTRY}'" \
   "GITHUB_ACTOR='${GITHUB_ACTOR}'" \
   "ENV='${ENVIRONMENT}'" \
+  "VPS_DEPLOY_PATH_VALUE='${VPS_DEPLOY_PATH}'" \
   bash << 'DEPLOY_EOF'
 set -eo pipefail
-cd $VPS_DEPLOY_PATH
 
+echo "=========================================="
+echo "🔧 HEREDOC START - VERSION b73e95f"
+echo "=========================================="
+echo "Current directory BEFORE cd: $(pwd)"
+echo "VPS_DEPLOY_PATH variable: ${VPS_DEPLOY_PATH_VALUE}"
+echo "Attempting to change directory..."
+
+if ! cd "$VPS_DEPLOY_PATH_VALUE"; then
+  echo "❌ FATAL: Failed to cd to ${VPS_DEPLOY_PATH_VALUE}"
+  echo "Directory does not exist or no permission"
+  ls -la "$(dirname "$VPS_DEPLOY_PATH_VALUE")" || echo "Parent directory also doesn't exist"
+  exit 1
+fi
+
+echo "✅ Successfully changed to: $(pwd)"
 echo "========== SCRIPT START =========="
 echo "🔥 COMMIT TEST-988162c-MUST-APPEAR 🔥"
-echo "Current directory: $(pwd)"
 echo "ENV variable value: '${ENV}'"
 echo "=================================="
 
