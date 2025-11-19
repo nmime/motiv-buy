@@ -436,10 +436,16 @@ for i in {1..30}; do
     echo "✅ PostgreSQL is healthy"
     break
   fi
-  [ $i -eq 30 ] && { echo "❌ PostgreSQL timeout"; docker compose logs --tail=50 postgres; exit 1; }
+  if [ $i -eq 30 ]; then
+    echo "❌ PostgreSQL timeout"
+    docker compose logs --tail=50 postgres
+    exit 1
+  fi
   echo "  Waiting... ($i/30)"
   sleep 2
 done
+
+echo "DEBUG: Line 444 reached - PostgreSQL loop exited successfully"
 
 echo "⏳ Waiting for redis to be healthy..."
 for i in {1..30}; do
@@ -447,7 +453,11 @@ for i in {1..30}; do
     echo "✅ Redis is healthy"
     break
   fi
-  [ $i -eq 30 ] && { echo "❌ Redis timeout"; docker compose logs --tail=50 redis; exit 1; }
+  if [ $i -eq 30 ]; then
+    echo "❌ Redis timeout"
+    docker compose logs --tail=50 redis
+    exit 1
+  fi
   echo "  Waiting... ($i/30)"
   sleep 2
 done
@@ -467,7 +477,11 @@ for i in {1..20}; do
     echo "✅ NATS is healthy"
     break
   fi
-  [ $i -eq 20 ] && { echo "❌ NATS timeout (status: $STATUS)"; docker compose logs --tail=100 nats; exit 1; }
+  if [ $i -eq 20 ]; then
+    echo "❌ NATS timeout (status: $STATUS)"
+    docker compose logs --tail=100 nats
+    exit 1
+  fi
   echo "  Waiting... ($i/20) [status: $STATUS]"
   sleep 2
 done
@@ -483,7 +497,12 @@ for i in {1..30}; do
     echo "✅ API is healthy"
     break
   fi
-  [ $i -eq 30 ] && { echo "❌ API timeout"; docker compose logs --tail=100 api; docker compose ps api; exit 1; }
+  if [ $i -eq 30 ]; then
+    echo "❌ API timeout"
+    docker compose logs --tail=100 api
+    docker compose ps api
+    exit 1
+  fi
   echo "  Waiting... ($i/30)"
   sleep 2
 done
@@ -494,7 +513,12 @@ for i in {1..10}; do
     echo "✅ Bot is running"
     break
   fi
-  [ $i -eq 10 ] && { echo "❌ Bot timeout"; docker compose logs --tail=100 bot; docker compose ps bot; exit 1; }
+  if [ $i -eq 10 ]; then
+    echo "❌ Bot timeout"
+    docker compose logs --tail=100 bot
+    docker compose ps bot
+    exit 1
+  fi
   echo "  Waiting... ($i/10)"
   sleep 2
 done
