@@ -363,10 +363,15 @@ for i in {1..10}; do
   sleep 1
 done
 
-# Deploy application services with zero-downtime rolling update
-# Apps have restart: unless-stopped and will reconnect to NATS automatically
-echo "🚀 Deploying application services with zero-downtime..."
-docker compose up -d --no-deps api bot
+# Deploy application services with new images
+# Force recreate to ensure latest images are used (pulled at line 337)
+# --no-deps prevents cascading restarts of dependencies
+echo "🚀 Deploying application services with new images..."
+docker compose up -d --force-recreate --no-deps api bot
+
+# Update monitoring services (non-critical, can restart any time)
+echo "📊 Updating monitoring services..."
+docker compose up -d --force-recreate --no-deps prometheus grafana
 
 # Deploy nginx last (graceful reload for zero-downtime)
 echo "🌐 Updating nginx..."
