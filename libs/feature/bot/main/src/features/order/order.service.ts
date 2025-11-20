@@ -5,9 +5,9 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { BotContext, BotSubscriptionService } from '@app/feature-bot-shared';
-import { BotConfigService } from '../../config';
 import {
   ChannelInfo,
   defaultOrderConfig,
@@ -33,7 +33,7 @@ export class OrderService {
 
   constructor(
     private readonly botSubscriptionService: BotSubscriptionService,
-    private readonly botConfigService: BotConfigService,
+    private readonly configService: ConfigService,
   ) {
     // Start session cleanup
     this.startSessionCleanup();
@@ -214,7 +214,7 @@ export class OrderService {
     const chatId = `@${username}`;
 
     try {
-      const botToken = this.botConfigService.getBotToken();
+      const botToken = this.configService.get<string>('BOT_TOKEN');
       if (!botToken) {
         this.logger.error('Bot token not configured');
 
@@ -257,7 +257,7 @@ export class OrderService {
    */
   async checkBotIsAdmin(channelId: string): Promise<boolean> {
     try {
-      const botToken = this.botConfigService.getBotToken();
+      const botToken = this.configService.get<string>('BOT_TOKEN');
       if (!botToken) {
         this.logger.error('Bot token not configured');
 
