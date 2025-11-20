@@ -117,25 +117,23 @@ jobs:
           set -euo pipefail
           echo "🏗️  Building shared dependencies and ALL apps in optimized stages..."
           echo "📌 Using commit SHA: ${{ needs.validate.outputs.commit-sha }}"
+          echo "⚠️  Disabling build cache to ensure fresh build with latest code"
 
-          # Step 1: Build deps stage (npm install)
-          echo "📦 Step 1/2: Installing dependencies..."
+          # Step 1: Build deps stage (npm install) - NO CACHE
+          echo "📦 Step 1/2: Installing dependencies (no cache)..."
           docker buildx build \
             --target deps \
-            --cache-from type=gha,scope=deps \
-            --cache-to type=gha,scope=deps,mode=max \
+            --no-cache \
             -f Dockerfile . || exit 1
 
-          # Step 2: Build all-apps-builder stage (Nx builds all apps + libs ONCE)
-          echo "🏗️  Step 2/2: Building ALL apps (Nx will deduplicate shared libraries)..."
+          # Step 2: Build all-apps-builder stage (Nx builds all apps + libs ONCE) - NO CACHE
+          echo "🏗️  Step 2/2: Building ALL apps (Nx will deduplicate shared libraries, no cache)..."
           docker buildx build \
             --target all-apps-builder \
-            --cache-from type=gha,scope=deps \
-            --cache-from type=gha,scope=all-apps \
-            --cache-to type=gha,scope=all-apps,mode=max \
+            --no-cache \
             -f Dockerfile . || exit 1
 
-          echo "✅ All apps built successfully with deduplicated libraries!"
+          echo "✅ All apps built successfully with deduplicated libraries (fresh build)!"
 
       - name: Create and push final production images in parallel
         run: |
