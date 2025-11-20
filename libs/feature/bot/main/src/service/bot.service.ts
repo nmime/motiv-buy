@@ -64,6 +64,16 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Get the bot instance
+   * Used by services that need to interact with Telegram Bot API directly
+   *
+   * @returns Bot instance (may be null if not initialized)
+   */
+  getBot(): Bot<BotSessionContext> | null {
+    return this.bot;
+  }
+
+  /**
    * Initialize bot service with Grammy bot instance
    *
    * @returns Promise<void>

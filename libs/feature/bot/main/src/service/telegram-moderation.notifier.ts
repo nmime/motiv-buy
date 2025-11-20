@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Bot } from 'grammy';
-import { BotContext } from '@app/feature-bot-shared';
 import { TrafficSourceEntity, TrafficOrderEntity, ModerationRequestEntity, ModerationEntityType } from '@app/database';
 import { InlineKeyboard } from 'grammy';
 import { getErrorMessage } from '@app/common-shared';
+import { BotService } from './bot.service';
 
 /**
  * Telegram Moderation Notifier
@@ -16,7 +15,7 @@ export class TelegramModerationNotifier {
   private readonly moderationChannelId: string;
 
   constructor(
-    private readonly bot: Bot<BotContext>,
+    private readonly botService: BotService,
     private readonly configService: ConfigService,
   ) {
     this.moderationChannelId = this.configService.get<string>('TELEGRAM_MODERATION_CHANNEL_ID') ?? '';
@@ -43,10 +42,17 @@ export class TelegramModerationNotifier {
     }
 
     try {
+      const bot = this.botService.getBot();
+      if (!bot) {
+        this.logger.error('Bot not initialized. Cannot send notification.');
+
+        return null;
+      }
+
       const message = this.formatSourceMessage(source);
       const keyboard = this.createModerationKeyboard(moderationRequest.id, ModerationEntityType.TrafficSource);
 
-      const sentMessage = await this.bot.api.sendMessage(this.moderationChannelId, message, {
+      const sentMessage = await bot.api.sendMessage(this.moderationChannelId, message, {
         parse_mode: 'HTML',
         reply_markup: keyboard,
       });
@@ -84,10 +90,17 @@ export class TelegramModerationNotifier {
     }
 
     try {
+      const bot = this.botService.getBot();
+      if (!bot) {
+        this.logger.error('Bot not initialized. Cannot send notification.');
+
+        return null;
+      }
+
       const message = await this.formatOrderMessage(order);
       const keyboard = this.createModerationKeyboard(moderationRequest.id, ModerationEntityType.TrafficOrder);
 
-      const sentMessage = await this.bot.api.sendMessage(this.moderationChannelId, message, {
+      const sentMessage = await bot.api.sendMessage(this.moderationChannelId, message, {
         parse_mode: 'HTML',
         reply_markup: keyboard,
       });
@@ -118,10 +131,17 @@ export class TelegramModerationNotifier {
     reviewerUsername: string,
   ): Promise<void> {
     try {
+      const bot = this.botService.getBot();
+      if (!bot) {
+        this.logger.error('Bot not initialized. Cannot update message.');
+
+        return;
+      }
+
       const statusMessage = `\n\n✅ <b>Approved</b> by @${reviewerUsername}`;
       const entityName = entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order';
 
-      await this.bot.api.editMessageText(chatId, messageId, `${entityName} approved${statusMessage}`, {
+      await bot.api.editMessageText(chatId, messageId, `${entityName} approved${statusMessage}`, {
         parse_mode: 'HTML',
       });
 
@@ -142,11 +162,18 @@ export class TelegramModerationNotifier {
     reviewNote?: string,
   ): Promise<void> {
     try {
+      const bot = this.botService.getBot();
+      if (!bot) {
+        this.logger.error('Bot not initialized. Cannot update message.');
+
+        return;
+      }
+
       const note = reviewNote ? `\n<i>Note: ${reviewNote}</i>` : '';
       const statusMessage = `\n\n❌ <b>Declined</b> by @${reviewerUsername}${note}`;
       const entityName = entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order';
 
-      await this.bot.api.editMessageText(chatId, messageId, `${entityName} declined${statusMessage}`, {
+      await bot.api.editMessageText(chatId, messageId, `${entityName} declined${statusMessage}`, {
         parse_mode: 'HTML',
       });
 
