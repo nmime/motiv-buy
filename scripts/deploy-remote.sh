@@ -174,9 +174,32 @@ echo "DEBUG: NATS health verified, continuing to Step 3..."
 echo ""
 echo "🚀 Step 3/5: Deploying application services..."
 echo "DEBUG: Starting Step 3..."
-docker compose up -d --force-recreate api bot || { echo "❌ Failed to start API/Bot"; exit 1; }
-echo "DEBUG: API/Bot containers started, checking health..."
 
+# Start API first, allow failures (container might be crash-looping)
+echo "Starting API container..."
+docker compose up -d --force-recreate --no-deps api || true
+echo "DEBUG: API container start command executed"
+
+# Give container a moment to initialize
+sleep 3
+
+# Check if API container is running or crash-looping
+API_STATUS=$(docker inspect --format='{{.State.Status}}' "motiv-buy-api-${ENV}" 2>/dev/null || echo "not-found")
+echo "DEBUG: API container status: $API_STATUS"
+
+if [ "$API_STATUS" = "restarting" ] || [ "$API_STATUS" = "exited" ]; then
+  echo "❌ API container is crash-looping or exited!"
+  echo ""
+  echo "=== API CONTAINER LOGS ==="
+  docker logs "motiv-buy-api-${ENV}" --tail=100 2>&1 || echo "Failed to get logs"
+  echo "=========================="
+  echo ""
+  echo "Container status:"
+  docker compose ps api
+  exit 1
+fi
+
+# API is running, now check health
 echo "⏳ Verifying API is healthy..."
 API_ATTEMPTS=0
 set +e  # Disable exit on error for health check
@@ -185,16 +208,38 @@ until docker compose exec -T api curl -sf http://localhost:3000/health >/dev/nul
   if [ $API_ATTEMPTS -ge 30 ]; then
     set -e  # Re-enable before exit
     echo "❌ API timeout after $API_ATTEMPTS attempts"
+    echo ""
+    echo "=== API CONTAINER LOGS ==="
     docker compose logs --tail=100 api
+    echo "=========================="
+    echo ""
     docker compose ps api
     exit 1
   fi
+
+  # Check if container crashed during health check wait
+  CURRENT_STATUS=$(docker inspect --format='{{.State.Status}}' "motiv-buy-api-${ENV}" 2>/dev/null || echo "not-found")
+  if [ "$CURRENT_STATUS" = "restarting" ] || [ "$CURRENT_STATUS" = "exited" ]; then
+    set -e
+    echo "❌ API container crashed during health check (attempt $API_ATTEMPTS)"
+    echo ""
+    echo "=== API CONTAINER LOGS ==="
+    docker logs "motiv-buy-api-${ENV}" --tail=100 2>&1 || echo "Failed to get logs"
+    echo "=========================="
+    exit 1
+  fi
+
   echo "  Waiting... ($API_ATTEMPTS/30)"
   sleep 2
 done
 set -e  # Re-enable exit on error
 echo "✅ API is healthy (attempts: $API_ATTEMPTS)"
 echo "DEBUG: API health verified"
+
+# Now start Bot (depends on healthy API)
+echo "Starting Bot container..."
+docker compose up -d --force-recreate --no-deps bot || { echo "❌ Failed to start Bot"; exit 1; }
+echo "DEBUG: Bot container started"
 
 echo "⏳ Verifying Bot is running..."
 BOT_ATTEMPTS=0
