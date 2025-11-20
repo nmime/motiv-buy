@@ -438,9 +438,11 @@ echo "DEBUG: Postgres/Redis containers started"
 
 echo "⏳ Waiting for postgres to be healthy..."
 POSTGRES_ATTEMPTS=0
+set +e  # Disable exit on error for health check
 until docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1; do
   POSTGRES_ATTEMPTS=$((POSTGRES_ATTEMPTS + 1))
   if [ $POSTGRES_ATTEMPTS -ge 30 ]; then
+    set -e  # Re-enable before exit
     echo "❌ PostgreSQL timeout after $POSTGRES_ATTEMPTS attempts"
     docker compose logs --tail=50 postgres
     exit 1
@@ -448,14 +450,17 @@ until docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1; do
   echo "  Waiting... ($POSTGRES_ATTEMPTS/30)"
   sleep 2
 done
+set -e  # Re-enable exit on error
 echo "✅ PostgreSQL is healthy (attempts: $POSTGRES_ATTEMPTS)"
 echo "DEBUG: PostgreSQL health verified, continuing..."
 
 echo "⏳ Waiting for redis to be healthy..."
 REDIS_ATTEMPTS=0
+set +e  # Disable exit on error for health check
 until docker compose exec -T redis redis-cli -a "$REDIS_PASSWORD" ping >/dev/null 2>&1; do
   REDIS_ATTEMPTS=$((REDIS_ATTEMPTS + 1))
   if [ $REDIS_ATTEMPTS -ge 30 ]; then
+    set -e  # Re-enable before exit
     echo "❌ Redis timeout after $REDIS_ATTEMPTS attempts"
     docker compose logs --tail=50 redis
     exit 1
@@ -463,6 +468,7 @@ until docker compose exec -T redis redis-cli -a "$REDIS_PASSWORD" ping >/dev/nul
   echo "  Waiting... ($REDIS_ATTEMPTS/30)"
   sleep 2
 done
+set -e  # Re-enable exit on error
 echo "✅ Redis is healthy (attempts: $REDIS_ATTEMPTS)"
 echo "DEBUG: Redis health verified, continuing to Step 2..."
 
@@ -479,10 +485,12 @@ echo "DEBUG: NATS container started, checking health..."
 
 echo "⏳ Waiting for NATS to be healthy..."
 NATS_ATTEMPTS=0
+set +e  # Disable exit on error for health check
 until [ "$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${ENV}" 2>/dev/null || echo "unknown")" = "healthy" ]; do
   NATS_ATTEMPTS=$((NATS_ATTEMPTS + 1))
   STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${ENV}" 2>/dev/null || echo "unknown")
   if [ $NATS_ATTEMPTS -ge 20 ]; then
+    set -e  # Re-enable before exit
     echo "❌ NATS timeout after $NATS_ATTEMPTS attempts (status: $STATUS)"
     docker compose logs --tail=100 nats
     exit 1
@@ -490,6 +498,7 @@ until [ "$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${
   echo "  Waiting... ($NATS_ATTEMPTS/20) [status: $STATUS]"
   sleep 2
 done
+set -e  # Re-enable exit on error
 echo "✅ NATS is healthy (attempts: $NATS_ATTEMPTS)"
 echo "DEBUG: NATS health verified, continuing to Step 3..."
 
@@ -502,9 +511,11 @@ echo "DEBUG: API/Bot containers started, checking health..."
 
 echo "⏳ Verifying API is healthy..."
 API_ATTEMPTS=0
+set +e  # Disable exit on error for health check
 until docker compose exec -T api curl -sf http://localhost:3000/health >/dev/null 2>&1; do
   API_ATTEMPTS=$((API_ATTEMPTS + 1))
   if [ $API_ATTEMPTS -ge 30 ]; then
+    set -e  # Re-enable before exit
     echo "❌ API timeout after $API_ATTEMPTS attempts"
     docker compose logs --tail=100 api
     docker compose ps api
@@ -513,14 +524,17 @@ until docker compose exec -T api curl -sf http://localhost:3000/health >/dev/nul
   echo "  Waiting... ($API_ATTEMPTS/30)"
   sleep 2
 done
+set -e  # Re-enable exit on error
 echo "✅ API is healthy (attempts: $API_ATTEMPTS)"
 echo "DEBUG: API health verified"
 
 echo "⏳ Verifying Bot is running..."
 BOT_ATTEMPTS=0
+set +e  # Disable exit on error for health check
 until docker compose ps bot | grep -q "Up"; do
   BOT_ATTEMPTS=$((BOT_ATTEMPTS + 1))
   if [ $BOT_ATTEMPTS -ge 10 ]; then
+    set -e  # Re-enable before exit
     echo "❌ Bot timeout after $BOT_ATTEMPTS attempts"
     docker compose logs --tail=100 bot
     docker compose ps bot
@@ -529,6 +543,7 @@ until docker compose ps bot | grep -q "Up"; do
   echo "  Waiting... ($BOT_ATTEMPTS/10)"
   sleep 2
 done
+set -e  # Re-enable exit on error
 echo "✅ Bot is running (attempts: $BOT_ATTEMPTS)"
 echo "DEBUG: Bot verified, continuing to Step 4..."
 
