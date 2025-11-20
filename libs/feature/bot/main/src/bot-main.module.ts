@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { BotSharedModule } from '@app/feature-bot-shared';
 import { RedisModule } from '@app/common-redis';
 import { DatabaseModule } from '@app/database';
@@ -46,6 +47,7 @@ import { RateLimitMiddleware } from './middleware';
  */
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }), // Make ConfigService available globally
     RedisModule,
     DatabaseModule,
     BotSharedModule,
