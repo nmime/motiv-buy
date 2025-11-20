@@ -133,7 +133,7 @@ services:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
       PORT: ${PORT}
       JWT_SECRET: ${JWT_SECRET}
-      BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BOT_TOKEN: ${BOT_TOKEN}
       LOG_LEVEL: ${LOG_LEVEL}
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
       RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
@@ -164,7 +164,7 @@ services:
     <<: *common-defaults
     environment:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
-      BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BOT_TOKEN: ${BOT_TOKEN}
       API_BASE_URL: http://api:${PORT}
       LOG_LEVEL: ${LOG_LEVEL}
     volumes:
