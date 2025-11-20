@@ -8,6 +8,7 @@ import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
+import { ModerationService } from '@app/feature-traffic-main';
 import { BotService, MenuService, MessageService, SessionService, TelegramModerationNotifier } from './service';
 import { BotConfigService } from './config';
 import { OrderModule } from './features/order/order.module';
@@ -65,6 +66,7 @@ import { RateLimitMiddleware } from './middleware';
     SessionService,
     MessageService,
     TelegramModerationNotifier,
+    ModerationService,
     CallbackRouterHandler,
     MenuActionHandler,
     ProfileActionHandler,

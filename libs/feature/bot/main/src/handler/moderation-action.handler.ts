@@ -5,14 +5,14 @@
  * Only accessible by admin users.
  *
  * Architecture Note:
- * Uses IModerationService interface from traffic-shared to avoid circular dependency.
- * NestJS will inject the concrete ModerationService implementation from traffic-main.
+ * Uses proper Dependency Injection with ModerationService from traffic-main.
+ * The service is provided in BotMainModule to enable NestJS DI resolution.
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { ModerationEntityType } from '@app/database';
-import { IModerationService } from '@app/feature-traffic-shared';
+import { ModerationService } from '@app/feature-traffic-main';
 import { TelegramModerationNotifier } from '../service';
 import { getErrorMessage } from '@app/common-shared';
 
@@ -47,7 +47,7 @@ export class ModerationActionHandler {
   };
 
   constructor(
-    private readonly moderationService: IModerationService,
+    private readonly moderationService: ModerationService,
     private readonly telegramModerationNotifier: TelegramModerationNotifier,
   ) {}
 
