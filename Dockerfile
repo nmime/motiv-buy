@@ -43,16 +43,7 @@ RUN test -f dist/apps/api/src/main.js || (echo "ERROR: API build failed" && exit
     test -f dist/apps/migration/src/main.js || (echo "ERROR: Migration build failed" && exit 1)
 
 # -----------------------------------------------------------------------------
-# Stage 3: Production Dependencies (cached, shared by all apps)
-# -----------------------------------------------------------------------------
-FROM node:20-alpine AS prod-deps
-RUN npm install -g pnpm@10.22.0
-WORKDIR /app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --prod --frozen-lockfile
-
-# -----------------------------------------------------------------------------
-# Stage 4: Production Runtime (one per app)
+# Stage 3: Production Runtime (one per app)
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS production
 ARG APP_NAME
@@ -70,8 +61,9 @@ WORKDIR /app
 # Copy workspace configs (needed by Nx at runtime)
 COPY --chown=nodejs:nodejs package.json pnpm-workspace.yaml nx.json tsconfig.json ./
 
-# Copy production dependencies and ALL built apps (from single build stage)
-COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
+# Copy ALL dependencies (includes production + dev) and built apps
+# Note: Using full node_modules from deps stage to ensure all dependencies are available
+COPY --from=deps --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=all-apps-builder --chown=nodejs:nodejs /app/dist ./dist
 
 # Final verification for this specific app
