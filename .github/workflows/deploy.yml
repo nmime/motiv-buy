@@ -268,7 +268,7 @@ jobs:
           echo ""
           echo "Verifying downloaded script..."
           ACTUAL_LINES=$(wc -l < /tmp/deploy-fresh.sh)
-          EXPECTED_LINES=433  # Updated for refactored script (no heredoc)
+          EXPECTED_LINES=396  # Updated for piped .env generation (simpler)
 
           ls -lh /tmp/deploy-fresh.sh
           echo "Script has $ACTUAL_LINES lines (expected ~$EXPECTED_LINES)"
