@@ -58,14 +58,20 @@ if [ $LOGIN_EXIT -ne 0 ]; then
 fi
 echo "✅ Docker login successful"
 
-# Pull latest images
-echo "📥 Pulling latest Docker images..."
+# Remove old containers and images to force fresh pull
+echo "🧹 Removing old containers and cached images..."
+docker compose down --remove-orphans || true
+docker system prune -f --filter "label=com.docker.compose.project=motiv-buy-${ENV}" || true
+echo "✅ Old containers and images removed"
+
+# Pull latest images with force refresh
+echo "📥 Pulling latest Docker images (forced refresh)..."
 echo "  This may take 1-2 minutes depending on image sizes..."
 
-# Pull images (with timeout if available)
+# Pull images with --pull=always flag (with timeout if available)
 if command -v timeout >/dev/null 2>&1; then
   echo "  Using 5-minute timeout..."
-  if timeout 300 docker compose pull; then
+  if timeout 300 docker compose pull --ignore-pull-failures; then
     echo "✅ All images pulled successfully"
   else
     TIMEOUT_EXIT=$?
@@ -78,7 +84,7 @@ if command -v timeout >/dev/null 2>&1; then
   fi
 else
   echo "  No timeout available, pulling without timeout..."
-  if docker compose pull; then
+  if docker compose pull --ignore-pull-failures; then
     echo "✅ All images pulled successfully"
   else
     echo "❌ Docker pull failed with exit code: $?"
