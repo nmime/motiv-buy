@@ -22,7 +22,7 @@ fi
 declare -A ENV_CONFIG
 
 # Staging configuration
-ENV_CONFIG[staging_NODE_ENV]="staging"
+ENV_CONFIG[staging_NODE_ENV]="production"
 ENV_CONFIG[staging_IMAGE_TAG]="staging"
 ENV_CONFIG[staging_LOG_LEVEL]="debug"
 ENV_CONFIG[staging_API_DOMAIN]="api.st.motivbuy.com"
