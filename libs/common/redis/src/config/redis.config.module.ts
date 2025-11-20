@@ -1,13 +1,9 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Global, Module } from '@nestjs/common';
 import { RedisConfigService } from './redis.config.service';
 
+@Global()
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      validationSchema: RedisConfigService.validationSchema,
-    }),
-  ],
+  imports: [],
   providers: [RedisConfigService],
   exports: [RedisConfigService],
 })

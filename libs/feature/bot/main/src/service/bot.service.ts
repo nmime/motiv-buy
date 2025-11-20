@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
 import { BotCommand, BotContext } from '@app/feature-bot-shared';
-import { BotConfigService } from '../config';
 import { unknownToError, toError } from '@app/common-shared';
 import { OrderHandler } from '../features/order/order.handler';
 import { I18nService } from 'nestjs-i18n';
@@ -42,7 +42,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   private isRunning = false;
 
   constructor(
-    private readonly botConfigService: BotConfigService,
+    private readonly configService: ConfigService,
     private readonly orderHandler: OrderHandler,
     private readonly i18n: I18nService,
     private readonly callbackRouter: CallbackRouterHandler,
@@ -82,7 +82,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     try {
       this.logger.log('Initializing Telegram bot service...');
 
-      const botToken = this.botConfigService.getBotToken();
+      const botToken = this.configService.get<string>('BOT_TOKEN');
       if (!botToken) {
         throw new Error(this.i18n.t('common.errors.bot_token_not_configured'));
       }
@@ -263,7 +263,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       });
 
       if (ctx?.reply) {
-        const errorMessage = this.botConfigService.isDevelopment()
+        const errorMessage = this.configService.get<string>('NODE_ENV') === 'development'
           ? `Error: ${error.message}`
           : 'Sorry, something went wrong. Please try again later.';
 

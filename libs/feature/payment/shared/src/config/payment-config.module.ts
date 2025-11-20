@@ -10,15 +10,7 @@ import { PaymentConfigService } from './payment-config.service';
  */
 @Global()
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      validationSchema: PaymentConfigService.validationSchema,
-      validationOptions: {
-        allowUnknown: true, // Allow other env variables
-        abortEarly: false, // Validate all fields
-      },
-    }),
-  ],
+  imports: [],
   providers: [PaymentConfigService],
   exports: [PaymentConfigService],
 })
