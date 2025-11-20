@@ -170,8 +170,6 @@ jobs:
               docker buildx build \
                 --build-arg APP_NAME=$APP \
                 $TAGS \
-                --cache-from type=gha,scope=deps \
-                --cache-from type=gha,scope=all-apps \
                 --push \
                 -f Dockerfile . || exit 1
             ) &
