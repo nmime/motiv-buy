@@ -437,55 +437,33 @@ docker compose up -d postgres redis || { echo "❌ Failed to start postgres/redi
 echo "DEBUG: Postgres/Redis containers started"
 
 echo "⏳ Waiting for postgres to be healthy..."
-POSTGRES_HEALTHY=false
 POSTGRES_ATTEMPTS=0
-while [ "$POSTGRES_HEALTHY" != "true" ] && [ $POSTGRES_ATTEMPTS -lt 30 ]; do
+until docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1; do
   POSTGRES_ATTEMPTS=$((POSTGRES_ATTEMPTS + 1))
-  if docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1; then
-    echo "✅ PostgreSQL is healthy"
-    POSTGRES_HEALTHY=true
-  else
-    if [ $POSTGRES_ATTEMPTS -ge 30 ]; then
-      echo "❌ PostgreSQL timeout after $POSTGRES_ATTEMPTS attempts"
-      docker compose logs --tail=50 postgres
-      exit 1
-    fi
-    echo "  Waiting... ($POSTGRES_ATTEMPTS/30)"
-    sleep 2
+  if [ $POSTGRES_ATTEMPTS -ge 30 ]; then
+    echo "❌ PostgreSQL timeout after $POSTGRES_ATTEMPTS attempts"
+    docker compose logs --tail=50 postgres
+    exit 1
   fi
+  echo "  Waiting... ($POSTGRES_ATTEMPTS/30)"
+  sleep 2
 done
-echo "DEBUG: PostgreSQL health check completed, healthy=$POSTGRES_HEALTHY, attempts=$POSTGRES_ATTEMPTS"
-
-if [ "$POSTGRES_HEALTHY" != "true" ]; then
-  echo "❌ ERROR: PostgreSQL did not become healthy"
-  exit 1
-fi
+echo "✅ PostgreSQL is healthy (attempts: $POSTGRES_ATTEMPTS)"
 echo "DEBUG: PostgreSQL health verified, continuing..."
 
 echo "⏳ Waiting for redis to be healthy..."
-REDIS_HEALTHY=false
 REDIS_ATTEMPTS=0
-while [ "$REDIS_HEALTHY" != "true" ] && [ $REDIS_ATTEMPTS -lt 30 ]; do
+until docker compose exec -T redis redis-cli -a "$REDIS_PASSWORD" ping >/dev/null 2>&1; do
   REDIS_ATTEMPTS=$((REDIS_ATTEMPTS + 1))
-  if docker compose exec -T redis redis-cli -a "$REDIS_PASSWORD" ping >/dev/null 2>&1; then
-    echo "✅ Redis is healthy"
-    REDIS_HEALTHY=true
-  else
-    if [ $REDIS_ATTEMPTS -ge 30 ]; then
-      echo "❌ Redis timeout after $REDIS_ATTEMPTS attempts"
-      docker compose logs --tail=50 redis
-      exit 1
-    fi
-    echo "  Waiting... ($REDIS_ATTEMPTS/30)"
-    sleep 2
+  if [ $REDIS_ATTEMPTS -ge 30 ]; then
+    echo "❌ Redis timeout after $REDIS_ATTEMPTS attempts"
+    docker compose logs --tail=50 redis
+    exit 1
   fi
+  echo "  Waiting... ($REDIS_ATTEMPTS/30)"
+  sleep 2
 done
-echo "DEBUG: Redis health check completed, healthy=$REDIS_HEALTHY, attempts=$REDIS_ATTEMPTS"
-
-if [ "$REDIS_HEALTHY" != "true" ]; then
-  echo "❌ ERROR: Redis did not become healthy"
-  exit 1
-fi
+echo "✅ Redis is healthy (attempts: $REDIS_ATTEMPTS)"
 echo "DEBUG: Redis health verified, continuing to Step 2..."
 
 # Step 2: Update NATS with new configuration
@@ -500,30 +478,19 @@ docker compose up -d --force-recreate --no-deps nats || { echo "❌ Failed to st
 echo "DEBUG: NATS container started, checking health..."
 
 echo "⏳ Waiting for NATS to be healthy..."
-NATS_HEALTHY=false
 NATS_ATTEMPTS=0
-while [ "$NATS_HEALTHY" != "true" ] && [ $NATS_ATTEMPTS -lt 20 ]; do
+until [ "$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${ENV}" 2>/dev/null || echo "unknown")" = "healthy" ]; do
   NATS_ATTEMPTS=$((NATS_ATTEMPTS + 1))
   STATUS=$(docker inspect --format='{{.State.Health.Status}}' "motiv-buy-nats-${ENV}" 2>/dev/null || echo "unknown")
-  if [ "$STATUS" = "healthy" ]; then
-    echo "✅ NATS is healthy"
-    NATS_HEALTHY=true
-  else
-    if [ $NATS_ATTEMPTS -ge 20 ]; then
-      echo "❌ NATS timeout after $NATS_ATTEMPTS attempts (status: $STATUS)"
-      docker compose logs --tail=100 nats
-      exit 1
-    fi
-    echo "  Waiting... ($NATS_ATTEMPTS/20) [status: $STATUS]"
-    sleep 2
+  if [ $NATS_ATTEMPTS -ge 20 ]; then
+    echo "❌ NATS timeout after $NATS_ATTEMPTS attempts (status: $STATUS)"
+    docker compose logs --tail=100 nats
+    exit 1
   fi
+  echo "  Waiting... ($NATS_ATTEMPTS/20) [status: $STATUS]"
+  sleep 2
 done
-echo "DEBUG: NATS health check completed, healthy=$NATS_HEALTHY, attempts=$NATS_ATTEMPTS"
-
-if [ "$NATS_HEALTHY" != "true" ]; then
-  echo "❌ ERROR: NATS did not become healthy"
-  exit 1
-fi
+echo "✅ NATS is healthy (attempts: $NATS_ATTEMPTS)"
 echo "DEBUG: NATS health verified, continuing to Step 3..."
 
 # Step 3: Deploy application services
@@ -534,57 +501,35 @@ docker compose up -d --force-recreate --wait api bot || { echo "❌ Failed to st
 echo "DEBUG: API/Bot containers started, checking health..."
 
 echo "⏳ Verifying API is healthy..."
-API_HEALTHY=false
 API_ATTEMPTS=0
-while [ "$API_HEALTHY" != "true" ] && [ $API_ATTEMPTS -lt 30 ]; do
+until docker compose exec -T api curl -sf http://localhost:3000/health >/dev/null 2>&1; do
   API_ATTEMPTS=$((API_ATTEMPTS + 1))
-  if docker compose exec -T api curl -sf http://localhost:3000/health >/dev/null 2>&1; then
-    echo "✅ API is healthy"
-    API_HEALTHY=true
-  else
-    if [ $API_ATTEMPTS -ge 30 ]; then
-      echo "❌ API timeout after $API_ATTEMPTS attempts"
-      docker compose logs --tail=100 api
-      docker compose ps api
-      exit 1
-    fi
-    echo "  Waiting... ($API_ATTEMPTS/30)"
-    sleep 2
+  if [ $API_ATTEMPTS -ge 30 ]; then
+    echo "❌ API timeout after $API_ATTEMPTS attempts"
+    docker compose logs --tail=100 api
+    docker compose ps api
+    exit 1
   fi
+  echo "  Waiting... ($API_ATTEMPTS/30)"
+  sleep 2
 done
-echo "DEBUG: API health check completed, healthy=$API_HEALTHY, attempts=$API_ATTEMPTS"
-
-if [ "$API_HEALTHY" != "true" ]; then
-  echo "❌ ERROR: API did not become healthy"
-  exit 1
-fi
+echo "✅ API is healthy (attempts: $API_ATTEMPTS)"
 echo "DEBUG: API health verified"
 
 echo "⏳ Verifying Bot is running..."
-BOT_RUNNING=false
 BOT_ATTEMPTS=0
-while [ "$BOT_RUNNING" != "true" ] && [ $BOT_ATTEMPTS -lt 10 ]; do
+until docker compose ps bot | grep -q "Up"; do
   BOT_ATTEMPTS=$((BOT_ATTEMPTS + 1))
-  if docker compose ps bot | grep -q "Up"; then
-    echo "✅ Bot is running"
-    BOT_RUNNING=true
-  else
-    if [ $BOT_ATTEMPTS -ge 10 ]; then
-      echo "❌ Bot timeout after $BOT_ATTEMPTS attempts"
-      docker compose logs --tail=100 bot
-      docker compose ps bot
-      exit 1
-    fi
-    echo "  Waiting... ($BOT_ATTEMPTS/10)"
-    sleep 2
+  if [ $BOT_ATTEMPTS -ge 10 ]; then
+    echo "❌ Bot timeout after $BOT_ATTEMPTS attempts"
+    docker compose logs --tail=100 bot
+    docker compose ps bot
+    exit 1
   fi
+  echo "  Waiting... ($BOT_ATTEMPTS/10)"
+  sleep 2
 done
-echo "DEBUG: Bot health check completed, running=$BOT_RUNNING, attempts=$BOT_ATTEMPTS"
-
-if [ "$BOT_RUNNING" != "true" ]; then
-  echo "❌ ERROR: Bot did not start"
-  exit 1
-fi
+echo "✅ Bot is running (attempts: $BOT_ATTEMPTS)"
 echo "DEBUG: Bot verified, continuing to Step 4..."
 
 # Step 4: Update monitoring and gateway
