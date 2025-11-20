@@ -268,7 +268,7 @@ jobs:
           echo ""
           echo "Verifying downloaded script..."
           ACTUAL_LINES=$(wc -l < /tmp/deploy-fresh.sh)
-          EXPECTED_LINES=640
+          EXPECTED_LINES=433  # Updated for refactored script (no heredoc)
 
           ls -lh /tmp/deploy-fresh.sh
           echo "Script has $ACTUAL_LINES lines (expected ~$EXPECTED_LINES)"
@@ -287,10 +287,10 @@ jobs:
           echo "First 10 lines of script:"
           head -10 /tmp/deploy-fresh.sh
           echo "..."
-          echo "Lines 320-340 (heredoc start with markers):"
+          echo "Lines 320-340 (remote script execution):"
           sed -n '320,340p' /tmp/deploy-fresh.sh
 
-          if grep -q "🔧 DEPLOYMENT START" /tmp/deploy-fresh.sh; then
+          if grep -q "🚀 Starting" /tmp/deploy-fresh.sh; then
             echo ""
             echo "✅ Deployment start marker found in script"
           else
