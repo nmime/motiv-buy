@@ -8,7 +8,7 @@ export class AuthConfigService {
     IS_DEV: Joi.boolean().default(false),
     NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
     JWT_SECRET: Joi.string().required(),
-    BOT_TOKEN: Joi.string().required(),
+    TELEGRAM_BOT_TOKEN: Joi.string().required(),
     ALLOW_TO_ENTER_TG_IDS: Joi.string().allow('').optional().default(''),
     ALLOWED_IPS: Joi.string().allow('').optional().default('127.0.0.1,::1'),
     SKIP_AUTH_IP_CHECK: Joi.boolean().default(false),
@@ -21,7 +21,7 @@ export class AuthConfigService {
   }
 
   get botToken(): string {
-    return this.configService.get<string>('BOT_TOKEN') || '';
+    return this.configService.get<string>('TELEGRAM_BOT_TOKEN') || '';
   }
 
   get isDev(): boolean {
