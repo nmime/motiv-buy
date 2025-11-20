@@ -57,6 +57,10 @@ RUN pnpm install --prod --frozen-lockfile
 FROM node:20-alpine AS production
 ARG APP_NAME
 RUN test -n "$APP_NAME" || (echo "ERROR: APP_NAME build arg required" && exit 1)
+
+# Persist APP_NAME as ENV for runtime (ARG only available during build)
+ENV APP_NAME=${APP_NAME}
+
 RUN npm install -g pnpm@10.22.0
 
 # Security: non-root user
