@@ -174,7 +174,7 @@ echo "DEBUG: NATS health verified, continuing to Step 3..."
 echo ""
 echo "🚀 Step 3/5: Deploying application services..."
 echo "DEBUG: Starting Step 3..."
-docker compose up -d --force-recreate --wait api bot || { echo "❌ Failed to start API/Bot"; exit 1; }
+docker compose up -d --force-recreate api bot || { echo "❌ Failed to start API/Bot"; exit 1; }
 echo "DEBUG: API/Bot containers started, checking health..."
 
 echo "⏳ Verifying API is healthy..."
