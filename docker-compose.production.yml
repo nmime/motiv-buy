@@ -36,6 +36,8 @@ x-db-env: &db-env
   DB_PASSWORD: ${DB_PASSWORD}
 
 x-redis-env: &redis-env
+  REDIS_MODE: ${REDIS_MODE}
+  REDIS_HOSTS: ${REDIS_HOSTS}
   REDIS_HOST: redis
   REDIS_PORT: 6379
   REDIS_PASSWORD: ${REDIS_PASSWORD}
