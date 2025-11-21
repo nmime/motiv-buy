@@ -4,15 +4,15 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { OrderService } from '../order.service';
 import { defaultOrderConfig, OrderFlowStep, OrderStatus } from '../order.types';
 import { BotSubscriptionService } from '@app/feature-bot-shared';
-import { BotConfigService } from '../../../config';
 
 describe('OrderService', () => {
   let service: OrderService;
   let mockBotSubscriptionService: jest.Mocked<BotSubscriptionService>;
-  let mockBotConfigService: jest.Mocked<BotConfigService>;
+  let mockConfigService: jest.Mocked<ConfigService>;
 
   beforeEach(async () => {
     // Create mock services
@@ -20,8 +20,8 @@ describe('OrderService', () => {
       checkSubscription: jest.fn(),
     } as any;
 
-    mockBotConfigService = {
-      getConfig: jest.fn().mockReturnValue({ defaultLanguage: 'en' }),
+    mockConfigService = {
+      get: jest.fn().mockReturnValue('en'),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -32,8 +32,8 @@ describe('OrderService', () => {
           useValue: mockBotSubscriptionService,
         },
         {
-          provide: BotConfigService,
-          useValue: mockBotConfigService,
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();

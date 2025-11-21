@@ -10,8 +10,16 @@ import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
 import { ModerationService } from '@app/feature-traffic-main';
-import { BotService, MenuService, MessageService, SessionService, TelegramModerationNotifier } from './service';
-import { BotConfigService } from './config';
+import {
+  BotService,
+  BotUserService,
+  BotSessionService,
+  MenuService,
+  MessageService,
+  SessionService,
+  TelegramModerationNotifier,
+} from './service';
+import { BotConfigModule } from './config';
 import { OrderModule } from './features/order/order.module';
 import {
   CallbackRouterHandler,
@@ -47,7 +55,7 @@ import { RateLimitMiddleware } from './middleware';
  */
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), // Make ConfigService available globally
+    BotConfigModule,
     RedisModule,
     DatabaseModule,
     BotSharedModule,
@@ -62,8 +70,9 @@ import { RateLimitMiddleware } from './middleware';
     OrderModule,
   ],
   providers: [
-    BotConfigService,
     BotService,
+    BotUserService,
+    BotSessionService,
     MenuService,
     SessionService,
     MessageService,
@@ -81,8 +90,9 @@ import { RateLimitMiddleware } from './middleware';
     RateLimitMiddleware,
   ],
   exports: [
-    BotConfigService,
     BotService,
+    BotUserService,
+    BotSessionService,
     MenuService,
     SessionService,
     MessageService,

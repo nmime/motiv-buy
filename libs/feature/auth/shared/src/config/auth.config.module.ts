@@ -4,11 +4,7 @@ import { AuthConfigService } from './auth.config.service';
 
 @Global()
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      validationSchema: AuthConfigService.validationSchema,
-    }),
-  ],
+  imports: [],
   providers: [AuthConfigService],
   exports: [AuthConfigService],
 })
