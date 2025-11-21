@@ -5,7 +5,7 @@ import { HealthController } from './health.controller';
 import { DatabaseModule } from '@app/database';
 import { AuthController, AuthMainModule } from '@app/feature-auth-main';
 import { UserController, UserMainModule } from '@app/feature-user-main';
-import { BalanceMainModule } from '@app/feature-balance-main';
+import { BalanceController, BalanceMainModule } from '@app/feature-balance-main';
 import { PaymentController, PaymentMainModule, PaymentWebhookController } from '@app/feature-payment-main';
 import { StatisticController, StatisticMainModule, StatisticPublicController } from '@app/feature-statistic-main';
 import {
@@ -47,6 +47,7 @@ import { NotificationSharedModule } from '@app/feature-notification-shared';
 
     AuthController,
     UserController,
+    BalanceController,
     PaymentController,
     PaymentWebhookController,
     StatisticController,
