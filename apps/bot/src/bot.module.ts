@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { BotMainModule } from '@app/feature-bot-main';
 import { TrafficMainModule } from '@app/feature-traffic-main';
 import { NotificationMainModule } from '@app/feature-notification-main';
@@ -23,6 +24,13 @@ import { BotService } from './service';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 10,
+      },
+    ]),
 
     // Bot domain module - contains all business logic and handlers
     BotMainModule,

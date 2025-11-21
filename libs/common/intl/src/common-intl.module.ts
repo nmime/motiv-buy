@@ -11,7 +11,7 @@ import path from 'node:path';
     I18nModule.forRoot({
       fallbackLanguage: defaultLanguage,
       loaderOptions: {
-        path: path.join(process.cwd(), 'libs/common/intl/locales'),
+        path: path.join(__dirname, '../locales'),
         watch: true,
       },
       logging: false,

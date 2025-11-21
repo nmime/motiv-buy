@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { ModerationService, SourceManagementService, SourcePublicApiService, TrafficService } from './service';
 import { TrafficSourceManagementController, TrafficSourcePublicController } from './controller';
@@ -29,6 +30,7 @@ import { BotSharedModule } from '@app/feature-bot-shared';
 
 @Module({
   imports: [
+    ThrottlerModule,
     TrafficSharedModule,
     BotSharedModule,
     // Note: BotMainModule removed to prevent circular dependency
