@@ -8,6 +8,6 @@ import { BalanceService } from './service/balance.service';
 @Module({
   imports: [ConfigModule, DatabaseModule, PaymentMainModule, CurrencySharedModule],
   providers: [BalanceService],
-  exports: [BalanceService],
+  exports: [BalanceService, CurrencySharedModule],
 })
 export class BalanceMainModule {}
