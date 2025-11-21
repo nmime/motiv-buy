@@ -69,7 +69,7 @@ export interface NotificationExtra {
 @Index({ name: 'ix__notifications__channel', properties: ['channel'] })
 @Index({ name: 'ix__notifications__target_type', properties: ['targetType'] })
 @Index({ name: 'ix__notifications__target_id', properties: ['targetId'] })
-@Index({ name: 'ix__notifications__template_id', properties: ['templateId'] })
+@Index({ name: 'ix__notifications__template_id', properties: ['template'] })
 @Index({ name: 'ix__notifications__priority_status', properties: ['priority', 'status'] })
 @Index({ name: 'ix__notifications__created_at', properties: ['createdAt'] })
 @Index({ name: 'ix__notifications__send_at', properties: ['sendAt'] })
@@ -94,9 +94,6 @@ export class NotificationEntity {
 
   @ManyToOne('NotificationTemplateEntity', { nullable: true, fieldName: 'template_id' })
   template?: NotificationTemplateEntity;
-
-  @Property({ type: 'uuid', nullable: true, fieldName: 'template_id' })
-  templateId?: string;
 
   @Property({ type: 'varchar', length: 100, nullable: true, fieldName: 'template_code' })
   templateCode?: string;
