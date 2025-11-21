@@ -12,8 +12,8 @@ import {
   StatisticsActionHandler,
   OrderActionHandler,
   SettingsActionHandler,
-  ModerationActionHandler,
 } from '@app/feature-bot-main';
+import { ModerationActionHandler } from './handler/moderation-action.handler';
 
 /**
  * Bot Application Module

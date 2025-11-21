@@ -1,1 +1,1 @@
-export * from './balance.service.interface';
+// No exports - balance service is in balance-main

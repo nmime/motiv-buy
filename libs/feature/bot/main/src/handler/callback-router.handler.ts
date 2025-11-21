@@ -27,7 +27,6 @@ import { BalanceActionHandler } from './balance-action.handler';
 import { StatisticsActionHandler } from './statistics-action.handler';
 import { OrderActionHandler } from './order-action.handler';
 import { SettingsActionHandler } from './settings-action.handler';
-import { ModerationActionHandler } from './moderation-action.handler';
 import { RateLimitMiddleware } from '../middleware/rate-limit.middleware';
 import { MessageService } from '../service/message.service';
 

@@ -12,7 +12,6 @@ import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceService } from '@app/feature-balance-main';
 import { UserService } from '@app/feature-user-main';
 import { StatisticService } from '@app/feature-statistic-main';
-import { ITrafficService } from '@app/feature-traffic-shared';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { InlineKeyboard } from 'grammy';
@@ -23,10 +22,6 @@ import { InlineKeyboard } from 'grammy';
  * Handles menu interactions, navigation state management, and dynamic
  * menu content generation. Processes menu button presses and manages
  * navigation history with breadcrumbs.
- *
- * Architecture Note:
- * - Uses ITrafficService interface to avoid circular dependency with traffic-main
- * - Still imports from balance-main, user-main, statistic-main (pre-existing architecture issue)
  *
  * @class MenuHandler
  */
@@ -40,7 +35,6 @@ export class MenuHandler {
     private readonly balanceService: BalanceService,
     private readonly userService: UserService,
     private readonly statisticService: StatisticService,
-    private readonly trafficService: ITrafficService,
     private readonly sessionService: SessionService,
     private readonly menuService: MenuService,
   ) {}

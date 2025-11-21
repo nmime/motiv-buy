@@ -5,8 +5,7 @@ import {
   BotInstanceOptions,
   BotSessionContext,
   BotValidationResult,
-  IBotFactory,
-} from './bot-factory.interface';
+} from './bot-factory.types';
 
 /**
  * Bot Factory Service
@@ -15,10 +14,9 @@ import {
  * Supports creating bots with/without tokens and validating bot tokens.
  *
  * @class BotFactoryService
- * @implements {IBotFactory}
  */
 @Injectable()
-export class BotFactoryService implements IBotFactory {
+export class BotFactoryService {
   private readonly logger = new Logger(BotFactoryService.name);
 
   /**
