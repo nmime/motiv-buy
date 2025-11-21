@@ -10,11 +10,10 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext } from '@app/feature-bot-shared';
+import { BotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { ModerationEntityType } from '@app/database';
 import { getErrorMessage } from '@app/common-shared';
 import { ModerationService } from '../service/moderation.service';
-import { TelegramModerationNotifier } from '@app/feature-bot-main';
 
 @Injectable()
 export class ModerationActionHandler {

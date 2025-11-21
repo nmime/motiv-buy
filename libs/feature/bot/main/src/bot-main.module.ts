@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { BotSharedModule } from '@app/feature-bot-shared';
+import { BotSharedModule, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { RedisModule } from '@app/common-redis';
 import { DatabaseModule } from '@app/database';
 import { AuthSharedModule } from '@app/feature-auth-shared';
@@ -16,7 +16,6 @@ import {
   MenuService,
   MessageService,
   SessionService,
-  TelegramModerationNotifier,
 } from './service';
 import { BotConfigModule } from './config';
 import { OrderModule } from './features/order/order.module';

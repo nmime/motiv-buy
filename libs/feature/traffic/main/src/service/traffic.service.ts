@@ -44,7 +44,7 @@ import {
   TrafficTargetStatus,
   UserEntity,
 } from '@app/database';
-import { TelegramModerationNotifier } from '@app/feature-bot-main';
+import { TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { ModerationService } from './moderation.service';
 
 /**
