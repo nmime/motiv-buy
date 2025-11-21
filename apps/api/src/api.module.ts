@@ -15,7 +15,7 @@ import {
   TrafficSourceController,
   TrafficTargetController,
 } from '@app/feature-traffic-main';
-import { BotMainModule } from '@app/feature-bot-main';
+import { BotMainModule, BotWebhookController } from '@app/feature-bot-main';
 import { NotificationSharedModule } from '@app/feature-notification-shared';
 
 @Module({
@@ -56,6 +56,8 @@ import { NotificationSharedModule } from '@app/feature-notification-shared';
     TrafficTargetController,
     TrafficSourceController,
     TrafficOrderController,
+    // Bot webhook controller for receiving Telegram updates
+    BotWebhookController,
   ],
   providers: [],
 })

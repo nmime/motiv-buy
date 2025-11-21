@@ -21,6 +21,7 @@ import {
   SettingsActionHandler,
 } from './handler';
 import { RateLimitMiddleware } from './middleware';
+import { BotWebhookController } from './controller';
 
 /**
  * Bot Main Module
@@ -58,6 +59,7 @@ import { RateLimitMiddleware } from './middleware';
     AppCommonIntlModule,
     OrderModule,
   ],
+  controllers: [BotWebhookController],
   providers: [
     BotService,
     BotUserService,
