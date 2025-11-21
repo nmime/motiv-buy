@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
+import { MikroORM, RequestContext } from '@mikro-orm/core';
 import {
   CurrencyCode,
   CurrencyRatesHistoryRepository,
@@ -83,12 +84,21 @@ export class CurrencyRateService implements OnModuleInit {
   private readonly initialRetryDelay = 2000; // 2 seconds
 
   constructor(
+    private readonly orm: MikroORM,
     private readonly em: EntityManager,
     private readonly currencyRepository: CurrencyRepository,
     private readonly currencyRatesHistoryRepository: CurrencyRatesHistoryRepository,
     private readonly configService: ConfigService,
   ) {
     this.initializeCircuitBreakers();
+  }
+
+  /**
+   * Execute a function within a request context (required for background tasks)
+   * This ensures EntityManager operations have proper context
+   */
+  private async executeInContext<T>(fn: () => Promise<T>): Promise<T> {
+    return RequestContext.create(this.orm.em, fn);
   }
 
   /**
@@ -141,33 +151,35 @@ export class CurrencyRateService implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async updateAllRates(): Promise<void> {
-    this.logger.log('🔄 Starting rate update from all providers');
+    await this.executeInContext(async () => {
+      this.logger.log('🔄 Starting rate update from all providers');
 
-    const startTime = Date.now();
-    const results = await Promise.allSettled([
-      // Crypto providers (minimum 2)
-      this.fetchCoinGeckoRates(),
-      this.fetchBinanceRates(),
-      this.fetchCryptoCompareRates(),
-      this.fetchCoinCapRates(),
-      this.fetchKrakenRates(),
+      const startTime = Date.now();
+      const results = await Promise.allSettled([
+        // Crypto providers (minimum 2)
+        this.fetchCoinGeckoRates(),
+        this.fetchBinanceRates(),
+        this.fetchCryptoCompareRates(),
+        this.fetchCoinCapRates(),
+        this.fetchKrakenRates(),
 
-      // Fiat providers (minimum 2)
-      this.fetchExchangeRateAPI(),
-      this.fetchFrankfurterRates(),
-      this.fetchFreeCurrencyRates(),
-    ]);
+        // Fiat providers (minimum 2)
+        this.fetchExchangeRateAPI(),
+        this.fetchFrankfurterRates(),
+        this.fetchFreeCurrencyRates(),
+      ]);
 
-    const duration = Date.now() - startTime;
-    const successful = results.filter((r) => r.status === 'fulfilled').length;
-    const failed = results.filter((r) => r.status === 'rejected').length;
+      const duration = Date.now() - startTime;
+      const successful = results.filter((r) => r.status === 'fulfilled').length;
+      const failed = results.filter((r) => r.status === 'rejected').length;
 
-    this.logger.log(
-      `✅ Rate update completed in ${duration}ms - Success: ${successful}, Failed: ${failed}, Total: ${results.length}`,
-    );
+      this.logger.log(
+        `✅ Rate update completed in ${duration}ms - Success: ${successful}, Failed: ${failed}, Total: ${results.length}`,
+      );
 
-    // Check if we have minimum providers
-    await this.verifyMinimumProviders();
+      // Check if we have minimum providers
+      await this.verifyMinimumProviders();
+    });
   }
 
   /**
@@ -205,14 +217,16 @@ export class CurrencyRateService implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupOldRates(): Promise<void> {
-    this.logger.log('🧹 Cleaning up old rates');
+    await this.executeInContext(async () => {
+      this.logger.log('🧹 Cleaning up old rates');
 
-    try {
-      const deletedCount = await this.currencyRatesHistoryRepository.cleanupOldRates(7);
-      this.logger.log(`✅ Cleaned up ${deletedCount} old rate entries`);
-    } catch (error) {
-      this.logger.error(`Error cleaning up rates: ${error}`);
-    }
+      try {
+        const deletedCount = await this.currencyRatesHistoryRepository.cleanupOldRates(7);
+        this.logger.log(`✅ Cleaned up ${deletedCount} old rate entries`);
+      } catch (error) {
+        this.logger.error(`Error cleaning up rates: ${error}`);
+      }
+    });
   }
 
   /**
@@ -235,13 +249,18 @@ export class CurrencyRateService implements OnModuleInit {
    * Perform deferred initialization (currencies + initial rates)
    */
   private async performInitialization(): Promise<void> {
-    try {
-      await this.initializeCurrencies();
-      await this.updateAllRates();
-      this.logger.log('✅ Currency rate service fully initialized');
-    } catch (error) {
-      this.logger.error(`Error in deferred currency initialization: ${error}`);
-    }
+    await this.executeInContext(async () => {
+      try {
+        await this.initializeCurrencies();
+        this.logger.log('✅ Currencies initialized, starting rate update...');
+      } catch (error) {
+        this.logger.error(`Error in deferred currency initialization: ${error}`);
+      }
+    });
+
+    // Rate update is already wrapped in executeInContext
+    await this.updateAllRates();
+    this.logger.log('✅ Currency rate service fully initialized');
   }
 
   /**
