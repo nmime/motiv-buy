@@ -13,7 +13,7 @@ import {
   OrderActionHandler,
   SettingsActionHandler,
 } from '@app/feature-bot-main';
-import { ModerationActionHandler } from './handler/moderation-action.handler';
+import { ModerationActionHandler } from '@app/feature-traffic-main';
 
 /**
  * Bot Application Module
