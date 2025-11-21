@@ -74,8 +74,9 @@ import { RateLimitMiddleware } from './middleware';
     SessionService,
     MessageService,
     TelegramModerationNotifier,
-    // Note: Handlers moved to Bot application module to prevent instantiation in API context
-    // CallbackRouterHandler,
+    CallbackRouterHandler,
+    // Note: Other action handlers not needed - CallbackRouterHandler manages them
+    // These are only needed if used directly outside of BotService
     // MenuActionHandler,
     // ProfileActionHandler,
     // BalanceActionHandler,
