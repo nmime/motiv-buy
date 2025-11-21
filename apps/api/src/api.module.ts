@@ -3,19 +3,13 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health.controller';
 import { DatabaseModule } from '@app/database';
-import { AuthController, AuthMainModule } from '@app/feature-auth-main';
-import { UserController, UserMainModule } from '@app/feature-user-main';
-import { BalanceController, BalanceMainModule } from '@app/feature-balance-main';
-import { PaymentController, PaymentMainModule, PaymentWebhookController } from '@app/feature-payment-main';
-import { StatisticController, StatisticMainModule, StatisticPublicController } from '@app/feature-statistic-main';
-import {
-  TrafficController,
-  TrafficMainModule,
-  TrafficOrderController,
-  TrafficSourceController,
-  TrafficTargetController,
-} from '@app/feature-traffic-main';
-import { BotMainModule, BotWebhookController } from '@app/feature-bot-main';
+import { AuthMainModule } from '@app/feature-auth-main';
+import { UserMainModule } from '@app/feature-user-main';
+import { BalanceMainModule } from '@app/feature-balance-main';
+import { PaymentMainModule } from '@app/feature-payment-main';
+import { StatisticMainModule } from '@app/feature-statistic-main';
+import { TrafficMainModule } from '@app/feature-traffic-main';
+import { BotMainModule } from '@app/feature-bot-main';
 import { NotificationSharedModule } from '@app/feature-notification-shared';
 
 @Module({
@@ -44,20 +38,19 @@ import { NotificationSharedModule } from '@app/feature-notification-shared';
   ],
   controllers: [
     HealthController,
-
-    AuthController,
-    UserController,
-    BalanceController,
-    PaymentController,
-    PaymentWebhookController,
-    StatisticController,
-    StatisticPublicController,
-    TrafficController,
-    TrafficTargetController,
-    TrafficSourceController,
-    TrafficOrderController,
-    // Bot webhook controller for receiving Telegram updates
-    BotWebhookController,
+    // Feature module controllers are already exported by their respective modules
+    // AuthController - from AuthMainModule
+    // UserController - from UserMainModule
+    // BalanceController - from BalanceMainModule
+    // PaymentController - from PaymentMainModule
+    // PaymentWebhookController - from PaymentMainModule
+    // StatisticController - from StatisticMainModule
+    // StatisticPublicController - from StatisticMainModule
+    // TrafficController - from TrafficMainModule
+    // TrafficTargetController - from TrafficMainModule
+    // TrafficSourceController - from TrafficMainModule
+    // TrafficOrderController - from TrafficMainModule
+    // BotWebhookController - from BotMainModule
   ],
   providers: [],
 })
