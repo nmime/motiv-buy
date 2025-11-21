@@ -10,6 +10,7 @@ export * from './UserSourceVisit.entity';
 // Currency and payment entities
 export * from './Currency.entity';
 export * from './CurrencyRatesHistory.entity';
+export * from './CurrencyRateProvider.entity';
 export * from './PaymentTransaction.entity';
 export * from './PaymentProvider.entity';
 export * from './ProviderCurrency.entity';

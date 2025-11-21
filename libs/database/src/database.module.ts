@@ -22,6 +22,7 @@ import {
   UserSourceVisitEntity,
   CurrencyEntity,
   CurrencyRatesHistoryEntity,
+  CurrencyRateProviderEntity,
   NotificationEntity,
   NotificationTemplateEntity,
 } from './entity';
@@ -46,6 +47,7 @@ const entityClasses = [
   UserSourceVisitEntity,
   CurrencyEntity,
   CurrencyRatesHistoryEntity,
+  CurrencyRateProviderEntity,
   TrafficSourceEntity,
   TrafficSourceCategoryEntity,
   TrafficTargetEntity,
