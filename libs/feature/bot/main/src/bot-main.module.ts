@@ -19,7 +19,7 @@ import {
   SessionService,
   TelegramModerationNotifier,
 } from './service';
-import { BotConfigService } from './config';
+import { BotConfigModule } from './config';
 import { OrderModule } from './features/order/order.module';
 import {
   CallbackRouterHandler,
@@ -55,6 +55,7 @@ import { RateLimitMiddleware } from './middleware';
  */
 @Module({
   imports: [
+    BotConfigModule,
     RedisModule,
     DatabaseModule,
     BotSharedModule,
@@ -69,7 +70,6 @@ import { RateLimitMiddleware } from './middleware';
     OrderModule,
   ],
   providers: [
-    BotConfigService,
     BotService,
     BotUserService,
     BotSessionService,
@@ -90,7 +90,6 @@ import { RateLimitMiddleware } from './middleware';
     RateLimitMiddleware,
   ],
   exports: [
-    BotConfigService,
     BotService,
     BotUserService,
     BotSessionService,
