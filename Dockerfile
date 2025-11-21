@@ -66,6 +66,9 @@ COPY --chown=nodejs:nodejs package.json pnpm-workspace.yaml nx.json tsconfig.jso
 COPY --from=deps --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=all-apps-builder --chown=nodejs:nodejs /app/dist ./dist
 
+# Copy i18n locales (needed at runtime by the i18n module)
+COPY --chown=nodejs:nodejs libs/common/intl/locales ./libs/common/intl/locales
+
 # Final verification for this specific app
 RUN test -f dist/apps/${APP_NAME}/src/main.js || \
     (echo "ERROR: Production image missing entrypoint for ${APP_NAME}" && exit 1)
