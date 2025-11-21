@@ -4,22 +4,17 @@ import { BotMainModule } from '@app/feature-bot-main';
 import { TrafficMainModule } from '@app/feature-traffic-main';
 import { NotificationMainModule } from '@app/feature-notification-main';
 import { BotService } from './service';
-import {
-  CallbackRouterHandler,
-  MenuActionHandler,
-  ProfileActionHandler,
-  BalanceActionHandler,
-  StatisticsActionHandler,
-  OrderActionHandler,
-  SettingsActionHandler,
-} from '@app/feature-bot-main';
-import { ModerationActionHandler } from '@app/feature-traffic-main';
 
 /**
  * Bot Application Module
  *
  * Thin composition root that wires up domain modules for bot functionality.
  * No business logic should be implemented here.
+ *
+ * Architecture:
+ * - All handlers and services are provided by BotMainModule
+ * - This module only provides the thin wrapper BotService
+ * - Follows proper NestJS module architecture with no duplicate providers
  *
  * Integrates notification system for scheduled notifications and event processing.
  */
@@ -29,7 +24,7 @@ import { ModerationActionHandler } from '@app/feature-traffic-main';
       isGlobal: true,
     }),
 
-    // Bot domain module - contains all business logic
+    // Bot domain module - contains all business logic and handlers
     BotMainModule,
 
     // Traffic domain module - integrates with bot and notification systems
@@ -39,18 +34,9 @@ import { ModerationActionHandler } from '@app/feature-traffic-main';
     NotificationMainModule,
   ],
   providers: [
-    // Thin wrapper service
+    // Only the thin wrapper service is provided here
+    // All other services and handlers are provided by BotMainModule
     BotService,
-
-    // Handlers from BotMainModule (only needed in Bot app, not API)
-    CallbackRouterHandler,
-    MenuActionHandler,
-    ProfileActionHandler,
-    BalanceActionHandler,
-    StatisticsActionHandler,
-    OrderActionHandler,
-    SettingsActionHandler,
-    ModerationActionHandler,
   ],
   exports: [BotService],
 })

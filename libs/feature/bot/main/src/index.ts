@@ -7,3 +7,4 @@ export * from './composer';
 export * from './middleware';
 export * from './util';
 export * from './config';
+export * from './controller';

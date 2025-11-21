@@ -184,6 +184,7 @@ export class BotTokenValidationService {
         this.logger.warn('Invalid botId format in getBotPermissions', {
           botId,
         });
+
         return [];
       }
 
@@ -469,10 +470,13 @@ export class BotTokenValidationService {
           this.logger.warn('Invalid cached validation format, invalidating cache', {
             cacheKey,
           });
+
           // Invalidate corrupt cache entry
           await this.redisClient.del(cacheKey);
+
           return null;
         }
+
         return parsed;
       }
 

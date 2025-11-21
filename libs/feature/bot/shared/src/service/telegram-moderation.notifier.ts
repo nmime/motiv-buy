@@ -19,9 +19,7 @@ export class TelegramModerationNotifier {
   private readonly moderationChannelId: string;
   private bot: Bot<any> | null = null;
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     this.moderationChannelId = this.configService.get<string>('TELEGRAM_MODERATION_CHANNEL_ID') ?? '';
 
     if (!this.moderationChannelId) {

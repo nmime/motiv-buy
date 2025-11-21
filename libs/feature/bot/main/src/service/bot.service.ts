@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
+import type { Update } from 'grammy/types';
 import { BotCommand, BotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
 import { unknownToError, toError } from '@app/common-shared';
@@ -40,6 +41,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BotService.name);
   private bot: Bot<BotSessionContext> | null = null;
   private isRunning = false;
+  private webhookMode = false;
 
   constructor(
     private readonly botConfigService: BotConfigService,
@@ -146,7 +148,8 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Start the bot polling
+   * Start the bot in appropriate mode (webhook or polling)
+   * Automatically detects mode based on BOT_WEBHOOK_URL configuration
    *
    * @returns Promise<void>
    */
@@ -162,10 +165,16 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      this.logger.log('Starting bot polling...');
-      this.isRunning = true;
-      await this.bot.start();
-      this.logger.log('Bot started successfully');
+      const webhookConfig = this.botConfigService.getBotConfig().webhook;
+
+      // Decide mode based on webhook URL configuration
+      if (webhookConfig && webhookConfig.url) {
+        // Webhook mode - for production
+        await this.startWebhook(webhookConfig);
+      } else {
+        // Polling mode - for development
+        await this.startPolling();
+      }
     } catch (err: unknown) {
       this.isRunning = false;
       this.logger.error('Failed to start bot', {
@@ -177,7 +186,64 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Stop the bot polling
+   * Start bot in polling mode (development)
+   *
+   * @returns Promise<void>
+   */
+  private async startPolling(): Promise<void> {
+    if (!this.bot) {
+      throw new Error('Bot not initialized');
+    }
+
+    this.logger.log('Starting bot in polling mode...');
+    this.webhookMode = false;
+    this.isRunning = true;
+
+    await this.bot.start();
+
+    this.logger.log('Bot started successfully in polling mode');
+  }
+
+  /**
+   * Start bot in webhook mode (production)
+   * Sets up webhook with Telegram and prepares bot to receive updates via HTTP
+   *
+   * @param webhookConfig - Webhook configuration
+   * @returns Promise<void>
+   */
+  private async startWebhook(webhookConfig: { url: string; secretToken?: string; maxConnections?: number }): Promise<void> {
+    if (!this.bot) {
+      throw new Error('Bot not initialized');
+    }
+
+    this.logger.log('Starting bot in webhook mode...');
+    this.logger.log(`Webhook URL: ${webhookConfig.url}`);
+
+    // Set webhook with Telegram
+    await this.bot.api.setWebhook(webhookConfig.url, {
+      secret_token: webhookConfig.secretToken,
+      max_connections: webhookConfig.maxConnections || 40,
+      drop_pending_updates: false,
+    });
+
+    // Verify webhook was set
+    const webhookInfo = await this.bot.api.getWebhookInfo();
+    this.logger.log('Webhook set successfully', {
+      url: webhookInfo.url,
+      hasCustomCertificate: webhookInfo.has_custom_certificate,
+      pendingUpdateCount: webhookInfo.pending_update_count,
+      maxConnections: webhookInfo.max_connections,
+    });
+
+    this.webhookMode = true;
+    this.isRunning = true;
+
+    this.logger.log('Bot started successfully in webhook mode');
+  }
+
+  /**
+   * Stop the bot and clean up resources
+   * Removes webhook if in webhook mode
    *
    * @returns Promise<void>
    */
@@ -188,7 +254,15 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
     try {
       this.logger.log('Stopping bot...');
-      await this.bot.stop();
+
+      // Remove webhook if in webhook mode
+      if (this.webhookMode) {
+        await this.stopWebhook();
+      } else {
+        // Stop polling
+        await this.bot.stop();
+      }
+
       this.isRunning = false;
       this.logger.log('Bot stopped successfully');
     } catch (err: unknown) {
@@ -196,6 +270,62 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         error: unknownToError(err),
       });
     }
+  }
+
+  /**
+   * Stop webhook mode and delete webhook from Telegram
+   *
+   * @returns Promise<void>
+   */
+  private async stopWebhook(): Promise<void> {
+    if (!this.bot) {
+      return;
+    }
+
+    this.logger.log('Removing webhook...');
+
+    try {
+      await this.bot.api.deleteWebhook({ drop_pending_updates: false });
+      this.logger.log('Webhook removed successfully');
+    } catch (err: unknown) {
+      this.logger.error('Failed to remove webhook', {
+        error: unknownToError(err),
+      });
+    }
+
+    this.webhookMode = false;
+  }
+
+  /**
+   * Handle incoming webhook update
+   * Called by BotWebhookController when update is received
+   *
+   * @param update - Telegram update object
+   * @returns Promise<void>
+   */
+  async handleWebhookUpdate(update: Update): Promise<void> {
+    if (!this.bot) {
+      throw new Error('Bot not initialized');
+    }
+
+    if (!this.webhookMode) {
+      this.logger.warn('Received webhook update but not in webhook mode');
+
+      return;
+    }
+
+    // Process update through Grammy bot
+    // Grammy's handleUpdate accepts any update and processes it through the middleware chain
+    await this.bot.handleUpdate(update);
+  }
+
+  /**
+   * Check if bot is running in webhook mode
+   *
+   * @returns True if webhook mode, false if polling mode
+   */
+  isWebhookMode(): boolean {
+    return this.webhookMode;
   }
 
   /**
