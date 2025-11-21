@@ -24,6 +24,7 @@ import {
   PaymentProviderEntity,
   ProviderCurrencyEntity,
   ProviderRoutingEntity,
+  ModerationRequestEntity,
   NotificationEntity,
   NotificationTemplateEntity,
 } from '../entity';
@@ -66,6 +67,7 @@ export function createMikroOrmConfig(config: DatabaseConfig): Options {
       PaymentProviderEntity,
       ProviderCurrencyEntity,
       ProviderRoutingEntity,
+      ModerationRequestEntity,
       NotificationEntity,
       NotificationTemplateEntity,
     ],
