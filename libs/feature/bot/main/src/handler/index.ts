@@ -16,5 +16,4 @@ export { BalanceActionHandler } from './balance-action.handler';
 export { StatisticsActionHandler } from './statistics-action.handler';
 export { OrderActionHandler } from './order-action.handler';
 export { SettingsActionHandler } from './settings-action.handler';
-export { ModerationActionHandler } from './moderation-action.handler';
 export { CallbackRouterHandler } from './callback-router.handler';

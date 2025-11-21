@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { BotSharedModule } from '@app/feature-bot-shared';
+import { BotSharedModule, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { RedisModule } from '@app/common-redis';
 import { DatabaseModule } from '@app/database';
 import { AuthSharedModule } from '@app/feature-auth-shared';
@@ -9,7 +9,6 @@ import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
-import { ModerationService } from '@app/feature-traffic-main';
 import {
   BotService,
   BotUserService,
@@ -17,7 +16,6 @@ import {
   MenuService,
   MessageService,
   SessionService,
-  TelegramModerationNotifier,
 } from './service';
 import { BotConfigModule } from './config';
 import { OrderModule } from './features/order/order.module';
@@ -29,7 +27,6 @@ import {
   StatisticsActionHandler,
   OrderActionHandler,
   SettingsActionHandler,
-  ModerationActionHandler,
 } from './handler';
 import { RateLimitMiddleware } from './middleware';
 
@@ -77,7 +74,6 @@ import { RateLimitMiddleware } from './middleware';
     SessionService,
     MessageService,
     TelegramModerationNotifier,
-    ModerationService,
     // Note: Handlers moved to Bot application module to prevent instantiation in API context
     // CallbackRouterHandler,
     // MenuActionHandler,
@@ -97,8 +93,7 @@ import { RateLimitMiddleware } from './middleware';
     SessionService,
     MessageService,
     TelegramModerationNotifier,
-    // Export middleware and service for use by Bot app
-    ModerationService,
+    // Export middleware for use by Bot app
     RateLimitMiddleware,
   ],
 })

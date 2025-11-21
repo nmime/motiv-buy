@@ -44,7 +44,7 @@ import {
   TrafficTargetStatus,
   UserEntity,
 } from '@app/database';
-import { ITelegramModerationNotifier } from '@app/feature-bot-shared';
+import { TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { ModerationService } from './moderation.service';
 
 /**
@@ -64,7 +64,7 @@ export class TrafficService {
     private readonly userRepository: EntityRepository<UserEntity>,
     private readonly botTokenValidationService: BotTokenValidationService,
     private readonly moderationService: ModerationService,
-    private readonly telegramModerationNotifier: ITelegramModerationNotifier,
+    private readonly telegramModerationNotifier: TelegramModerationNotifier,
   ) {}
 
   // =====================================================

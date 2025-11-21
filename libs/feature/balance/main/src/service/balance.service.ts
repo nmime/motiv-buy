@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { IBalanceService } from '../interfaces/balance.service.interface';
 import {
   CurrencyCode,
   TransactionStatus,
@@ -20,7 +19,7 @@ import { WithdrawRequestDto } from '../dto/withdraw-request.dto';
  * Handles balance operations, topup via payment invoices, and withdrawals
  */
 @Injectable()
-export class BalanceService implements IBalanceService {
+export class BalanceService {
   private readonly logger = new Logger(BalanceService.name);
 
   constructor(

@@ -5,9 +5,8 @@ import {
   ChatInformation,
   ChatMemberStatus,
   ChatType,
-  IBotSubscriptionService,
   SubscriptionCheckResult,
-} from './bot-subscription.interface';
+} from './bot-subscription.types';
 
 /**
  * Bot Subscription Service
@@ -16,10 +15,9 @@ import {
  * Uses Telegram Bot API to verify if users are members of specific chats.
  *
  * @class BotSubscriptionService
- * @implements {IBotSubscriptionService}
  */
 @Injectable()
-export class BotSubscriptionService implements IBotSubscriptionService {
+export class BotSubscriptionService {
   private readonly logger = new Logger(BotSubscriptionService.name);
 
   /**

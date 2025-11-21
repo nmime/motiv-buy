@@ -10,7 +10,7 @@ import {
   UpdateSourceDto,
 } from '@app/feature-traffic-shared';
 import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType, TrafficSourceStatus } from '@app/database';
-import { ITelegramModerationNotifier, BotFactoryService } from '@app/feature-bot-shared';
+import { BotFactoryService, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { ModerationService } from './moderation.service';
 
 /**
@@ -31,7 +31,7 @@ export class SourceManagementService {
     private readonly em: EntityManager,
     private readonly trafficSourceRepository: TrafficSourceRepository,
     private readonly moderationService: ModerationService,
-    private readonly telegramModerationNotifier: ITelegramModerationNotifier,
+    private readonly telegramModerationNotifier: TelegramModerationNotifier,
     private readonly botTokenValidator: BotFactoryService,
   ) {}
 

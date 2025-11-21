@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
-import { BotCommand, BotContext } from '@app/feature-bot-shared';
+import { BotCommand, BotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
 import { unknownToError, toError } from '@app/common-shared';
 import { OrderHandler } from '../features/order/order.handler';
@@ -48,6 +48,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     private readonly callbackRouter: CallbackRouterHandler,
     private readonly botUserService: BotUserService,
     private readonly botSessionService: BotSessionService,
+    private readonly telegramModerationNotifier: TelegramModerationNotifier,
   ) {
     // Note: ProfileActionHandler, SettingsActionHandler, BalanceActionHandler, and MenuActionHandler
     // cannot be injected here because they depend on services that are not available in bot.service.ts scope.
@@ -130,6 +131,9 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
       // Register feature handlers (Order feature)
       this.registerFeatureHandlers();
+
+      // Inject bot instance into TelegramModerationNotifier
+      this.telegramModerationNotifier.setBot(this.bot);
 
       this.logger.log('Bot service initialized successfully');
     } catch (err: unknown) {

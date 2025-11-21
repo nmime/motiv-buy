@@ -1,7 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { getErrorMessage } from '@app/common-shared';
-import { IModerationService } from '@app/feature-traffic-shared';
 import {
   ModerationRequestEntity,
   ModerationRequestRepository,
@@ -14,11 +13,9 @@ import {
 /**
  * Moderation Service
  * Handles approval workflow for traffic sources and orders via Telegram channel
- *
- * Implements IModerationService interface to allow bot-main to use it without circular dependency.
  */
 @Injectable()
-export class ModerationService implements IModerationService {
+export class ModerationService {
   private readonly logger = new Logger(ModerationService.name);
 
   constructor(
