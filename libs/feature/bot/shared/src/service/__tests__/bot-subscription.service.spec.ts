@@ -6,7 +6,7 @@ import {
   ChatMemberStatus,
   ChatType,
   SubscriptionCheckResult,
-} from '../bot-subscription.interface';
+} from '../bot-subscription.types';
 import { Bot } from 'grammy';
 
 // Mock Grammy Bot
