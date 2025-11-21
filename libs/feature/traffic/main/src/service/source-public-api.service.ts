@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { getErrorMessage, add, toDbString, decimal, toNumber } from '@app/common-shared';
 import type { Decimal } from 'decimal.js';
 import { BotFactoryService } from '@app/feature-bot-shared';
@@ -72,6 +73,7 @@ export class SourcePublicApiService {
     private readonly trafficOrderRepository: TrafficOrderRepository,
     private readonly trafficOrderBalanceRepository: TrafficOrderBalanceRepository,
     private readonly trafficActionsRepository: TrafficActionsRepository,
+    @InjectRepository(TrafficUserEntity)
     private readonly trafficUserRepository: EntityRepository<TrafficUserEntity>,
     private readonly userBalanceRepository: UserBalanceRepository,
     private readonly userBalanceHistoryRepository: UserBalanceHistoryRepository,
