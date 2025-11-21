@@ -31,6 +31,7 @@ EOF
 ```
 
 This will output a bcrypt hash like:
+
 ```
 $2a$11$abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOP
 ```
@@ -47,6 +48,7 @@ The configuration files use environment variable substitution:
 ### Runtime Configuration Generation
 
 During deployment, the `prepare-nats-config.sh` script:
+
 1. Generates a bcrypt hash from `NATS_PASSWORD`
 2. Substitutes environment variables in the config template
 3. Creates `nats-<env>-runtime.conf` with the bcrypt hash
@@ -77,11 +79,13 @@ For production and staging environments:
 ## Why Bcrypt?
 
 NATS server logs a warning when plaintext passwords are detected:
+
 ```
 [WRN] Plaintext passwords detected, use nkeys or bcrypt
 ```
 
 Using bcrypt hashed passwords:
+
 - Prevents password exposure in configuration files
 - Protects against unauthorized access if config files are compromised
 - Follows security best practices for production systems

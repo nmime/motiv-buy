@@ -57,9 +57,11 @@ motiv-buy/
 ## Applications
 
 ### API (`apps/api`)
+
 REST API backend providing HTTP endpoints for web clients and external integrations.
 
 **Features:**
+
 - User authentication & authorization
 - Payment processing
 - Balance management
@@ -67,9 +69,11 @@ REST API backend providing HTTP endpoints for web clients and external integrati
 - Health checks & monitoring
 
 ### Bot (`apps/bot`)
+
 Telegram bot interface for user interactions.
 
 **Features:**
+
 - Telegram Bot API integration
 - Interactive commands
 - Payment notifications
@@ -77,9 +81,11 @@ Telegram bot interface for user interactions.
 - Bot-specific business logic
 
 ### Migration (`apps/migration`)
+
 Database migration CLI tool for managing schema changes.
 
 **Features:**
+
 - Create migrations
 - Run/revert migrations
 - Check migration status
@@ -151,6 +157,7 @@ pnpm run migration:fresh   # Fresh database (⚠️ DROPS ALL TABLES!)
 **→ [docs/DEPLOY.md](docs/DEPLOY.md)** - Single guide with everything you need
 
 This guide covers:
+
 - Server setup
 - GitHub secrets (what to fill and where)
 - Deploying to staging
@@ -172,6 +179,7 @@ This guide covers:
 ### How to Deploy
 
 **Staging:**
+
 ```bash
 # 1. Push your branch
 git push origin feature/my-feature
@@ -182,6 +190,7 @@ git push origin feature/my-feature
 ```
 
 **Production:**
+
 ```bash
 # 1. Merge to master
 git checkout master

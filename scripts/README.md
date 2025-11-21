@@ -34,6 +34,7 @@ bash setup-server.sh staging mydomain.com me@mydomain.com # Full custom
 ```
 
 **What it does:**
+
 - ✅ System updates with automatic security patches
 - ✅ Docker installation
 - ✅ User and permission setup
@@ -44,6 +45,7 @@ bash setup-server.sh staging mydomain.com me@mydomain.com # Full custom
 - ✅ Auto-renewal configuration
 
 **Environment-specific:**
+
 - Staging: Less restrictive firewall, more retries for fail2ban
 - Production: Stricter security, rate-limiting on SSH, hardened SSL
 
@@ -60,9 +62,11 @@ bash setup-server.sh staging mydomain.com me@mydomain.com # Full custom
 ## 🔧 Available Scripts
 
 ### setup-server.sh ⭐
+
 **Unified server setup script** (staging and production)
 
 **Usage:**
+
 ```bash
 # Copy to server
 scp scripts/setup-server.sh root@YOUR_IP:/root/
@@ -81,14 +85,17 @@ ssh root@YOUR_IP "bash /root/setup-server.sh production example.com admin@exampl
 ```
 
 ### deploy-local.sh
+
 **Local development helper**
 
 **Usage:**
+
 ```bash
 ./scripts/deploy-local.sh [start|stop|restart|logs|build|clean]
 ```
 
 **Commands:**
+
 - `start` - Start all services
 - `stop` - Stop all services
 - `restart` - Restart all services
@@ -101,12 +108,15 @@ ssh root@YOUR_IP "bash /root/setup-server.sh production example.com admin@exampl
 ## 📚 Database Scripts
 
 ### init-db.sql
+
 Production database initialization
 
 ### init-db-dev.sql
+
 Development database with additional dev settings
 
 ### seed-dev-data.sql/
+
 Development seed data for testing
 
 ---

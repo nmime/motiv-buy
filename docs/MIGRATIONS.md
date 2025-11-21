@@ -50,11 +50,13 @@ pnpm run migration:fresh
 ### Creating a New Migration
 
 1. **Create the migration file**:
+
    ```bash
    pnpm run migration:create AddUserEmailVerification
    ```
 
 2. **Edit the migration** in `libs/database/src/migrations/`:
+
    ```typescript
    import { Migration } from '@mikro-orm/migrations';
 
@@ -76,6 +78,7 @@ pnpm run migration:fresh
    ```
 
 3. **Test locally**:
+
    ```bash
    # Check status
    pnpm run migration:status
@@ -134,10 +137,10 @@ Migrations are run using GitHub Actions from the Actions menu:
 
 ### Migration Workflow Inputs
 
-| Input         | Options                    | Description                           |
-| ------------- | -------------------------- | ------------------------------------- |
-| `environment` | `staging`, `production`    | Target environment                    |
-| `action`      | `status`, `up`, `down`     | Migration action to perform           |
+| Input         | Options                 | Description                 |
+| ------------- | ----------------------- | --------------------------- |
+| `environment` | `staging`, `production` | Target environment          |
+| `action`      | `status`, `up`, `down`  | Migration action to perform |
 
 ### Migration Actions
 
@@ -155,6 +158,7 @@ To see which migrations have been applied and which are pending:
 4. **Click "Run workflow"**
 
 The workflow will display:
+
 - ✅ **Executed migrations**: List of all migrations that have been applied (with execution dates)
 - ⏳ **Pending migrations**: List of migrations waiting to be applied
 - 📊 **Summary**: Total count of executed and pending migrations
@@ -167,14 +171,14 @@ The workflow will display:
 
 ### Available Commands
 
-| Command                     | Description                              |
-| --------------------------- | ---------------------------------------- |
-| `pnpm run migration:status` | Show migration status                    |
-| `pnpm run migration:run`    | Run pending migrations (development)     |
-| `pnpm run migration:revert` | Rollback last migration                  |
-| `pnpm run migration:create` | Create new migration file                |
-| `pnpm run migration:fresh`  | Drop all tables and re-run migrations    |
-| `pnpm run migration:prod`   | Run migrations (production build)        |
+| Command                     | Description                           |
+| --------------------------- | ------------------------------------- |
+| `pnpm run migration:status` | Show migration status                 |
+| `pnpm run migration:run`    | Run pending migrations (development)  |
+| `pnpm run migration:revert` | Rollback last migration               |
+| `pnpm run migration:create` | Create new migration file             |
+| `pnpm run migration:fresh`  | Drop all tables and re-run migrations |
+| `pnpm run migration:prod`   | Run migrations (production build)     |
 
 ### Migration CLI (Direct Access)
 
@@ -189,6 +193,7 @@ node dist/apps/migration/main.js <command>
 ```
 
 **Available commands**:
+
 - `status` - Show migration status
 - `up` - Run pending migrations
 - `down` - Rollback last migration
@@ -222,6 +227,7 @@ node dist/apps/migration/main.js <command>
    - Monitor for issues
 
 5. **Use transactions for complex migrations**
+
    ```typescript
    async up(): Promise<void> {
      this.addSql('BEGIN;');
@@ -232,6 +238,7 @@ node dist/apps/migration/main.js <command>
    ```
 
 6. **Add indexes carefully**
+
    ```typescript
    // For large tables, create indexes concurrently
    this.addSql('CREATE INDEX CONCURRENTLY idx_users_email ON users(email);');
@@ -275,6 +282,7 @@ node dist/apps/migration/main.js <command>
    - Fix or rollback before proceeding
 
 5. **Don't drop columns with data carelessly**
+
    ```typescript
    // ❌ BAD - Immediate data loss
    this.addSql('ALTER TABLE users DROP COLUMN old_field;');
@@ -288,6 +296,7 @@ node dist/apps/migration/main.js <command>
    ```
 
 6. **Don't use blocking operations on large tables**
+
    ```typescript
    // ❌ BAD - Blocks table during migration
    this.addSql('ALTER TABLE large_table ADD COLUMN new_field VARCHAR(255) NOT NULL;');
@@ -368,6 +377,7 @@ docker compose exec postgres psql -U $DB_USER $DB_NAME -c "DELETE FROM mikro_orm
 If application reports schema mismatch:
 
 1. **Check migration status**:
+
    ```bash
    pnpm run migration:status
    ```

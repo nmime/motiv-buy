@@ -149,8 +149,8 @@ services:
       redis:
         condition: service_healthy
       nats:
-        condition: service_started  # Allow API to start while NATS is restarting
-    restart: unless-stopped  # Auto-restart if NATS connection fails
+        condition: service_started # Allow API to start while NATS is restarting
+    restart: unless-stopped # Auto-restart if NATS connection fails
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:${PORT}/health']
       <<: *healthcheck-standard
@@ -179,8 +179,8 @@ services:
       redis:
         condition: service_healthy
       nats:
-        condition: service_started  # Allow Bot to start while NATS is restarting
-    restart: unless-stopped  # Auto-restart if NATS connection fails
+        condition: service_started # Allow Bot to start while NATS is restarting
+    restart: unless-stopped # Auto-restart if NATS connection fails
     deploy:
       <<: *bot-resources
 

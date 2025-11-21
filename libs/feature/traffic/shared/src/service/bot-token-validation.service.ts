@@ -17,17 +17,13 @@ import {
  * Type guard to validate if parsed data is a string array
  */
 function isStringArray(data: unknown): data is string[] {
-  return (
-    Array.isArray(data) && data.every((item) => typeof item === 'string')
-  );
+  return Array.isArray(data) && data.every((item) => typeof item === 'string');
 }
 
 /**
  * Type guard to validate if parsed data is BotTokenValidationResponseDto
  */
-function isBotTokenValidationResponse(
-  data: unknown,
-): data is BotTokenValidationResponseDto {
+function isBotTokenValidationResponse(data: unknown): data is BotTokenValidationResponseDto {
   if (typeof data !== 'object' || data === null) {
     return false;
   }
@@ -52,11 +48,7 @@ function isBotTokenValidationResponse(
     return false;
   }
 
-  if (
-    obj['expiresAt'] !== undefined &&
-    !(obj['expiresAt'] instanceof Date) &&
-    typeof obj['expiresAt'] !== 'string'
-  ) {
+  if (obj['expiresAt'] !== undefined && !(obj['expiresAt'] instanceof Date) && typeof obj['expiresAt'] !== 'string') {
     return false;
   }
 
@@ -64,10 +56,7 @@ function isBotTokenValidationResponse(
     return false;
   }
 
-  if (
-    obj['metadata'] !== undefined &&
-    (typeof obj['metadata'] !== 'object' || obj['metadata'] === null)
-  ) {
+  if (obj['metadata'] !== undefined && (typeof obj['metadata'] !== 'object' || obj['metadata'] === null)) {
     return false;
   }
 

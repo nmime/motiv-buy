@@ -21,19 +21,23 @@ The `auto-deploy.yml` workflow uses **GitHub Environment Protection Rules** to r
 Click on the `staging` environment and configure:
 
 #### Required Reviewers
+
 - **Add reviewers**: Select team members who can approve staging deployments
 - **Recommended**: At least 1 reviewer from the development team
 - Reviewers will receive a notification when a deployment is waiting for approval
 
 #### Wait Timer (Optional)
+
 - Set a delay before deployment can be approved (e.g., 5 minutes)
 - Useful for giving time to cancel accidental deployments
 
 #### Deployment Branches
+
 - **Recommended**: Allow all branches (for PR deployments)
 - Or restrict to specific branch patterns if needed
 
 #### Example Configuration
+
 ```
 Environment name: staging
 Required reviewers: @dev-team-member-1
@@ -46,20 +50,24 @@ Deployment branches: All branches
 Click on the `production` environment and configure:
 
 #### Required Reviewers
+
 - **Add reviewers**: Select team members who can approve production deployments
 - **Recommended**: At least 2 reviewers, including a senior developer or tech lead
 - Consider requiring multiple approvals for production
 
 #### Wait Timer (Recommended)
+
 - Set a delay of 15-30 minutes
 - Allows time to monitor staging deployment before production
 - Example: Deploy to staging → wait 30 min → approve production if staging is healthy
 
 #### Deployment Branches
+
 - **CRITICAL**: Limit to `master` branch only
 - Prevents accidental production deployments from feature branches
 
 #### Example Configuration
+
 ```
 Environment name: production
 Required reviewers: @tech-lead, @senior-dev
@@ -124,6 +132,7 @@ When a deployment is waiting for approval:
 ### Rejecting a Deployment
 
 If you reject a deployment:
+
 - The workflow will fail and stop
 - No changes will be deployed
 - The team will be notified of the rejection
@@ -132,12 +141,14 @@ If you reject a deployment:
 ## Best Practices
 
 ### Staging Approvals
+
 - ✅ Quick review of CI results
 - ✅ Check that tests passed
 - ✅ Verify it's the correct PR/commit
 - ⚠️ Don't approve if CI failed
 
 ### Production Approvals
+
 - ✅ Verify staging deployment is healthy
 - ✅ Check staging health endpoints
 - ✅ Review what changed since last production deploy
@@ -149,6 +160,7 @@ If you reject a deployment:
 ### Emergency Deployments
 
 For urgent hotfixes:
+
 1. Use manual workflow_dispatch trigger
 2. Select production environment
 3. Request emergency approval from on-call team
@@ -177,14 +189,17 @@ If a deployment causes issues:
 ## Security Notes
 
 ### Required Configuration
+
 ⚠️ **WARNING**: Without environment protection rules configured, the workflow will auto-deploy without any approval. This is a security risk.
 
 ### Access Control
+
 - Only trusted team members should be reviewers
 - Production reviewers should have senior/lead level permissions
 - Regular review of who has approval permissions
 
 ### Audit Trail
+
 - All approvals are logged in GitHub
 - Check Actions → Deployments tab for full history
 - Each deployment shows who approved and when
@@ -218,6 +233,7 @@ If a deployment causes issues:
 ❌ **Not Configured**: Deployments auto-execute (DANGEROUS)
 
 To verify configuration:
+
 1. Trigger a test deployment
 2. Check if it asks for approval
 3. If it deploys immediately → protection rules not configured!

@@ -38,7 +38,7 @@ jobs:
         uses: github/codeql-action/analyze@v4
         continue-on-error: true
         with:
-          category: "/language:typescript"
+          category: '/language:typescript'
           upload: false
           output: sarif-results
 

@@ -21,6 +21,7 @@ Deploy Motiv-Buy to staging and production environments.
 ### DNS Configuration
 
 **Staging (157.180.64.229):**
+
 ```
 A    st            → 157.180.64.229
 A    api.st        → 157.180.64.229
@@ -28,6 +29,7 @@ A    bot.st        → 157.180.64.229
 ```
 
 **Production (65.108.218.78):**
+
 ```
 A    @             → 65.108.218.78
 A    api           → 65.108.218.78
@@ -81,6 +83,7 @@ openssl rand -base64 32  # NATS_PASSWORD
 **Note:** The bcrypt hash for NATS will be automatically generated from `NATS_PASSWORD` during deployment. You only need to store the plaintext password in GitHub secrets.
 
 **Telegram Bot Tokens:**
+
 - Open @BotFather in Telegram
 - Create separate bots for staging and production
 - Save tokens for GitHub secrets
@@ -111,6 +114,7 @@ DB_HOST                  # postgres-prod (default)
 ### Environment Variables (Settings → Environments)
 
 **Create `staging` environment:**
+
 ```
 VPS_HOST                 # 157.180.64.229
 VPS_USER                 # deployer
@@ -118,6 +122,7 @@ VPS_DEPLOY_PATH          # /opt/motiv-buy/staging
 ```
 
 **Create `production` environment:**
+
 ```
 VPS_HOST                 # 65.108.218.78
 VPS_USER                 # deployer
@@ -194,10 +199,10 @@ GitHub → Actions → Run Database Migrations → Run workflow
 
 ### Deployment URLs
 
-| Environment | API                         | Bot                         | Status   |
-|-------------|-----------------------------|-----------------------------|----------|
-| Staging     | https://api.st.motivbuy.com | https://bot.st.motivbuy.com | `/health`|
-| Production  | https://api.motivbuy.com    | https://bot.motivbuy.com    | `/health`|
+| Environment | API                         | Bot                         | Status    |
+| ----------- | --------------------------- | --------------------------- | --------- |
+| Staging     | https://api.st.motivbuy.com | https://bot.st.motivbuy.com | `/health` |
+| Production  | https://api.motivbuy.com    | https://bot.motivbuy.com    | `/health` |
 
 ### SSH Access
 
@@ -305,6 +310,7 @@ All data is persisted to server directories under `/opt/motiv-buy/<environment>/
 ### Zero-Downtime Deployments
 
 Deployments use rolling updates:
+
 - Health checks ensure services are ready before switching traffic
 - Infrastructure services (PostgreSQL, Redis, NATS) remain running
 - Only application services (API, Bot) are updated
@@ -313,12 +319,14 @@ Deployments use rolling updates:
 ### Deployment Order Explained
 
 **First-Time (Fresh Server):**
+
 ```
 1. Deploy → Creates infrastructure (PostgreSQL, Redis, NATS)
 2. Migrate → Creates tables in newly created database
 ```
 
 **Subsequent (Updates):**
+
 ```
 1. Migrate → Updates database schema for new code
 2. Deploy → Updates application code (uses updated schema)
@@ -327,17 +335,20 @@ Deployments use rolling updates:
 ### CI/CD Pipeline
 
 **On Push/PR:**
+
 1. Quality checks (lint, format, tests) - non-blocking
 2. Docker build (all apps) - blocking
 3. Security scan - non-blocking
 
 **On Manual Deploy:**
+
 1. Validate environment and branch
 2. Build and push Docker images
 3. Deploy to target environment
 4. Run health checks
 
 **Manual Migrations:**
+
 1. Build migration image
 2. Run migration in environment
 3. Display status
@@ -351,6 +362,7 @@ For detailed CI/CD workflow execution, see GitHub Actions workflow files in `.gi
 All environment variables are automatically created during deployment:
 
 **Common:**
+
 - `NODE_ENV`: staging or production
 - `VPS_DEPLOY_PATH`: Deployment directory on server
 - `DOCKER_REGISTRY`: ghcr.io
@@ -358,6 +370,7 @@ All environment variables are automatically created during deployment:
 - `IMAGE_TAG`: staging or latest
 
 **Database:**
+
 - `DB_HOST`: postgres-prod (container name)
 - `DB_PORT`: 5432
 - `DB_NAME`: Database name
@@ -365,16 +378,19 @@ All environment variables are automatically created during deployment:
 - `DB_PASSWORD`: Database password
 
 **Redis:**
+
 - `REDIS_HOST`: redis-prod (container name)
 - `REDIS_PORT`: 6379
 - `REDIS_PASSWORD`: Redis password
 
 **NATS:**
+
 - `NATS_URL`: nats://nats-prod:4222 (container URL)
 - `NATS_USER`: NATS username
 - `NATS_PASSWORD`: NATS plaintext password (bcrypt hash auto-generated during deployment)
 
 **Application:**
+
 - `JWT_SECRET`: JWT signing secret
 - `JWT_EXPIRES_IN`: Token expiration (7d)
 - `TELEGRAM_BOT_TOKEN`: Bot token from @BotFather
@@ -382,6 +398,7 @@ All environment variables are automatically created during deployment:
 - `LOG_LEVEL`: debug (staging), warn (production)
 
 **Domains (auto-configured):**
+
 - Staging: `api.st.motivbuy.com`, `bot.st.motivbuy.com`
 - Production: `api.motivbuy.com`, `bot.motivbuy.com`
 
