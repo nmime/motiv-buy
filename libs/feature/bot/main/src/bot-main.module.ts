@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { BotSharedModule, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { RedisModule } from '@app/common-redis';
 import { DatabaseModule } from '@app/database';
@@ -9,14 +8,7 @@ import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
-import {
-  BotService,
-  BotUserService,
-  BotSessionService,
-  MenuService,
-  MessageService,
-  SessionService,
-} from './service';
+import { BotService, BotUserService, BotSessionService, MenuService, MessageService, SessionService } from './service';
 import { BotConfigModule } from './config';
 import { OrderModule } from './features/order/order.module';
 import {
@@ -75,15 +67,13 @@ import { RateLimitMiddleware } from './middleware';
     MessageService,
     TelegramModerationNotifier,
     CallbackRouterHandler,
-    // Note: Other action handlers not needed - CallbackRouterHandler manages them
-    // These are only needed if used directly outside of BotService
-    // MenuActionHandler,
-    // ProfileActionHandler,
-    // BalanceActionHandler,
-    // StatisticsActionHandler,
-    // OrderActionHandler,
-    // SettingsActionHandler,
-    // ModerationActionHandler,
+    // Action handlers required by CallbackRouterHandler
+    MenuActionHandler,
+    ProfileActionHandler,
+    BalanceActionHandler,
+    StatisticsActionHandler,
+    OrderActionHandler,
+    SettingsActionHandler,
     RateLimitMiddleware,
   ],
   exports: [
