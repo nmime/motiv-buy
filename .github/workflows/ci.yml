@@ -26,6 +26,8 @@ jobs:
     name: Quality & Tests
     runs-on: [self-hosted, linux]
     continue-on-error: true
+    env:
+      NX_CLOUD_DISABLED: 'true'
 
     steps:
       - name: Checkout code
@@ -166,6 +168,8 @@ jobs:
     # Run in parallel with quality for faster execution
     if: always()
     continue-on-error: true
+    env:
+      NX_CLOUD_DISABLED: 'true'
 
     steps:
       - name: Checkout code
@@ -267,4 +271,3 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Docker build succeeded. Deployment is possible, but please address warnings above." >> $GITHUB_STEP_SUMMARY
           fi
-
