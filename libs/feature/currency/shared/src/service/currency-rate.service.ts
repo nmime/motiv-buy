@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
+import { EntityManager } from '@mikro-orm/postgresql';
 import {
   CurrencyCode,
   CurrencyRatesHistoryRepository,
@@ -82,6 +83,7 @@ export class CurrencyRateService implements OnModuleInit {
   private readonly initialRetryDelay = 2000; // 2 seconds
 
   constructor(
+    private readonly em: EntityManager,
     private readonly currencyRepository: CurrencyRepository,
     private readonly currencyRatesHistoryRepository: CurrencyRatesHistoryRepository,
     private readonly configService: ConfigService,
@@ -215,17 +217,30 @@ export class CurrencyRateService implements OnModuleInit {
 
   /**
    * Initialize currencies and fetch initial rates
+   * Note: Database initialization is deferred to avoid EntityManager context issues during module init.
+   * Currency data will be lazily initialized on first use or via cron jobs.
    */
   async onModuleInit(): Promise<void> {
-    this.logger.log('🚀 Initializing currency rate service');
+    this.logger.log('🚀 Currency rate service initialized (initialization deferred)');
+    // Schedule initial currency load and rate update after a short delay
+    // to ensure EntityManager context is properly established
+    setTimeout(() => {
+      this.performInitialization().catch((error) => {
+        this.logger.error(`Deferred initialization failed: ${error}`);
+      });
+    }, 1000);
+  }
 
+  /**
+   * Perform deferred initialization (currencies + initial rates)
+   */
+  private async performInitialization(): Promise<void> {
     try {
       await this.initializeCurrencies();
       await this.updateAllRates();
-
-      this.logger.log('✅ Currency rate service initialized successfully');
+      this.logger.log('✅ Currency rate service fully initialized');
     } catch (error) {
-      this.logger.error(`Error initializing currency service: ${error}`);
+      this.logger.error(`Error in deferred currency initialization: ${error}`);
     }
   }
 
