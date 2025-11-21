@@ -18,7 +18,6 @@ import {
   TrafficSourceStatus,
   TrafficOrderEntity,
   TrafficOrderStatus,
-  ModerationEntityType,
 } from '@app/database';
 import { decimal, add, subtract, sum, multiply, divide, toDisplayString } from '@app/common-shared';
 import { MenuActionHandler } from './menu-action.handler';
@@ -51,7 +50,6 @@ export class CallbackRouterHandler {
     private readonly statisticsHandler: StatisticsActionHandler,
     private readonly orderHandler: OrderActionHandler,
     private readonly settingsHandler: SettingsActionHandler,
-    private readonly moderationHandler: ModerationActionHandler,
     private readonly rateLimitMiddleware: RateLimitMiddleware,
     private readonly messageService: MessageService,
   ) {
@@ -73,7 +71,8 @@ export class CallbackRouterHandler {
       ['withdraw', this.routeWithdrawalAction.bind(this)],
       ['withdrawal', this.routeWithdrawalAction.bind(this)],
       ['traffic', this.routeTrafficAction.bind(this)],
-      ['moderation', this.routeModerationAction.bind(this)],
+      // Note: Moderation routing moved to app layer to avoid circular dependency
+      // ['moderation', this.routeModerationAction.bind(this)],
       ['support', this.routeSupportAction.bind(this)],
       ['help', this.routeHelpAction.bind(this)],
       ['campaign', this.routeCampaignAction.bind(this)],
@@ -427,9 +426,14 @@ export class CallbackRouterHandler {
 
   /**
    * Route moderation actions
+   * Note: Moderation handler moved to app layer (apps/bot/src/handler/moderation-action.handler.ts)
+   * to avoid circular dependency between bot-main and traffic-main.
+   * This routing is now handled at the app level.
+   *
    * Format: moderation:approve:traffic_source:requestId
    * or: moderation:decline:traffic_order:requestId
    */
+  /*
   private async routeModerationAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     // Verify admin access (action should be 'approve' or 'decline')
     // params[0] should be entity type, params[1] should be requestId
@@ -464,6 +468,7 @@ export class CallbackRouterHandler {
       await ctx.answerCallbackQuery('❌ Unknown moderation action');
     }
   }
+  */
 
   /**
    * Route referral actions
