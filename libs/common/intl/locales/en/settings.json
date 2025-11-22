@@ -1,6 +1,18 @@
 {
   "settings": {
-    "theme": "Theme Settings\n\nCustomize your app appearance.",
-    "privacy_updated": "Privacy settings updated successfully."
+    "title": "⚙️ Settings",
+    "theme": "🎨 Theme Settings\n\nCustomize your app appearance.",
+    "privacy_updated": "✅ Privacy settings updated successfully.",
+    "language": "🌐 Language Settings\n\nSelect your preferred language.",
+    "language_changed": "✅ Language changed successfully.",
+    "notifications": "🔔 Notification Settings\n\nManage your notification preferences.",
+    "notification_enabled": "✅ {{type}} notifications enabled",
+    "notification_disabled": "❌ {{type}} notifications disabled",
+    "preferences": "⚙️ Preferences\n\nCustomize your account settings.",
+    "privacy": "🔒 Privacy Settings\n\nManage your privacy options.",
+    "export_data": "📥 Export Data\n\nDownload your account data.",
+    "reset_settings": "🔄 Reset Settings\n\nReset all settings to default.",
+    "reset_confirm": "Are you sure you want to reset all settings?",
+    "reset_success": "✅ Settings have been reset to default."
   }
 }

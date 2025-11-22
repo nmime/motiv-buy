@@ -10,41 +10,47 @@
     "back_to_menu": "В меню",
     "balance": {
       "title": "Баланс",
-      "history_coming_soon": "История транзакций скоро!",
-      "analytics_coming_soon": "Аналитика баланса скоро!"
+      "history": "📊 История транзакций",
+      "analytics": "📈 Аналитика баланса",
+      "deposit": "💳 Пополнить",
+      "withdraw": "💸 Вывод"
     },
     "profile": {
       "title": "Профиль",
-      "edit_coming_soon": "Редактирование профиля скоро!",
-      "stats_coming_soon": "Статистика профиля скоро!",
-      "security_coming_soon": "Параметры безопасности скоро!"
+      "edit": "✏️ Редактировать профиль",
+      "stats": "📊 Ваша статистика",
+      "security": "🔒 Настройки безопасности",
+      "details": "📋 Подробная информация"
     },
     "settings": {
       "title": "Настройки",
-      "notifications_coming_soon": "Уведомления скоро!",
-      "language_coming_soon": "Язык скоро!",
-      "theme_coming_soon": "Тема скоро!",
-      "export_coming_soon": "Экспорт данных скоро!",
-      "reset_coming_soon": "Сброс скоро!"
+      "notifications": "🔔 Настройки уведомлений",
+      "language": "🌐 Настройки языка",
+      "theme": "🎨 Настройки темы",
+      "preferences": "⚙️ Предпочтения",
+      "privacy": "🔒 Настройки приватности",
+      "export": "📥 Экспорт данных",
+      "reset": "🔄 Сброс настроек"
     },
     "stats": {
       "title": "Статистика",
-      "overview_coming_soon": "Обзор статистики скоро!",
-      "daily_coming_soon": "Дневная статистика скоро!",
-      "weekly_coming_soon": "Недельная статистика скоро!",
-      "monthly_coming_soon": "Месячная статистика скоро!"
+      "overview": "📊 Обзор",
+      "detailed": "📈 Детальная статистика",
+      "traffic": "🎯 Статистика трафика",
+      "earnings": "💰 Статистика заработка"
     },
     "traffic": {
       "title": "Трафик",
-      "live_coming_soon": "Статистика трафика в реальном времени скоро!",
-      "sources_coming_soon": "Источники трафика скоро!",
-      "analytics_coming_soon": "Аналитика трафика скоро!",
-      "optimize_coming_soon": "Оптимизация трафика скоро!"
+      "live": "📡 Статистика в реальном времени",
+      "sources": "🎯 Источники трафика",
+      "analytics": "📊 Аналитика трафика",
+      "optimize": "⚡ Оптимизация"
     },
     "help": {
       "title": "Справка",
-      "faq_coming_soon": "Раздел FAQ скоро!",
-      "tutorials_coming_soon": "Уроки скоро!"
+      "faq": "❓ FAQ",
+      "tutorials": "📚 Уроки",
+      "contact": "📞 Связаться с поддержкой"
     }
   }
 }
