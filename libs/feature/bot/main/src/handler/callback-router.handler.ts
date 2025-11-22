@@ -7,6 +7,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { MikroORM } from '@mikro-orm/core';
+import { InlineKeyboard } from 'grammy';
 import { BotContext, AuthenticatedBotContext } from '@app/feature-bot-shared';
 import {
   UserEntity,
@@ -355,15 +356,16 @@ export class CallbackRouterHandler {
    * Route menu actions
    */
   private async routeMenuAction(ctx: BotContext, action: string, _params: string[]): Promise<void> {
-    const handler = this.menuActionHandlers.get(action);
+    // Default to 'main' if action is undefined or empty
+    const menuAction = action || 'main';
+    const handler = this.menuActionHandlers.get(menuAction);
 
     if (handler) {
       await handler(ctx);
     } else {
-      this.logger.warn('Unknown menu action', { action });
-      await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('common.errors.unknown_menu_action'),
-      });
+      this.logger.warn('Unknown menu action', { action: menuAction });
+      // Fall back to main menu for unknown actions
+      await this.handleMainMenu(ctx);
     }
   }
 
@@ -516,8 +518,19 @@ export class CallbackRouterHandler {
   /**
    * Route support actions
    */
-  private async routeSupportAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleSupportMenu(ctx);
+  private async routeSupportAction(ctx: BotContext, action: string, _params: string[]): Promise<void> {
+    const supportHandlers: Record<string, (ctx: BotContext) => Promise<void>> = {
+      contact: (ctx) => this.handleSupportContact(ctx),
+      report: (ctx) => this.handleSupportReport(ctx),
+      suggest: (ctx) => this.handleSupportSuggest(ctx),
+    };
+
+    const handler = supportHandlers[action];
+    if (handler) {
+      await handler(ctx);
+    } else {
+      await this.handleSupportMenu(ctx);
+    }
   }
 
   /**
@@ -530,8 +543,22 @@ export class CallbackRouterHandler {
   /**
    * Route help actions
    */
-  private async routeHelpAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleHelpMenu(ctx);
+  private async routeHelpAction(ctx: BotContext, action: string, _params: string[]): Promise<void> {
+    const helpHandlers: Record<string, (ctx: BotContext) => Promise<void>> = {
+      faq: (ctx) => this.handleHelpFAQ(ctx),
+      create_order: (ctx) => this.handleHelpCreateOrder(ctx),
+      topup: (ctx) => this.handleHelpTopup(ctx),
+      withdraw: (ctx) => this.handleHelpWithdraw(ctx),
+      stats: (ctx) => this.handleHelpStats(ctx),
+      traffic: (ctx) => this.handleHelpTraffic(ctx),
+    };
+
+    const handler = helpHandlers[action];
+    if (handler) {
+      await handler(ctx);
+    } else {
+      await this.handleHelpMenu(ctx);
+    }
   }
 
   /**
@@ -595,52 +622,288 @@ export class CallbackRouterHandler {
   // Placeholder methods for additional features
 
   private async handleMainMenu(ctx: BotContext): Promise<void> {
-    const keyboard = this.menuHandler.createMainMenuKeyboard();
+    const userName = ctx.from?.first_name || 'Пользователь';
+    const text = `<b>👋 Привет, ${userName}!</b>
+
+Добро пожаловать в <b>MotivBuy</b> — сервис для продвижения Telegram каналов и групп!
+
+<b>🚀 Что можно сделать:</b>
+• Купить подписчиков для вашего канала
+• Продать трафик и заработать
+• Отслеживать статистику
+
+<i>Выберите нужный раздел ниже 👇</i>`;
+
+    const keyboard = new InlineKeyboard()
+      .text('👥 Купить подписчиков', 'order:list')
+      .row()
+      .text('🤖 Продажа трафика', 'traffic:manage')
+      .text('📋 Мои заказы', 'order:list')
+      .row()
+      .text('👤 Профиль', 'profile:view')
+      .text('💰 Баланс', 'balance:view')
+      .row()
+      .text('📊 Статистика', 'stats:overview')
+      .text('⚙️ Настройки', 'settings')
+      .row()
+      .text('❓ Помощь', 'help')
+      .text('🏢 Поддержка', 'support');
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('menu.main'),
+      text,
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
 
   private async handleOrdersMenu(ctx: BotContext): Promise<void> {
-    const keyboard = this.menuHandler.createOrdersMenuKeyboard();
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('menu.orders'),
-      parseMode: 'HTML',
-      replyMarkup: keyboard,
-    });
+    try {
+      if (!ctx.from) {
+        await ctx.reply('Требуется авторизация. Используйте /start');
+        return;
+      }
+
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      if (!user) {
+        await ctx.reply('Пользователь не найден');
+        return;
+      }
+
+      // Get order counts
+      const [activeCount, completedCount, totalCount] = await Promise.all([
+        this.em.count(TrafficOrderEntity, {
+          creator: user.id,
+          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        }),
+        this.em.count(TrafficOrderEntity, {
+          creator: user.id,
+          status: TrafficOrderStatus.Completed,
+        }),
+        this.em.count(TrafficOrderEntity, { creator: user.id }),
+      ]);
+
+      const text = `<b>📦 Мои заказы</b>
+
+<b>📊 Статистика заказов:</b>
+• Активных: ${activeCount}
+• Завершенных: ${completedCount}
+• Всего: ${totalCount}
+
+<i>Выберите действие ниже:</i>`;
+
+      const keyboard = new InlineKeyboard()
+        .text('🆕 Новый заказ', 'order:create:start')
+        .row()
+        .text('📋 Активные заказы', 'orders:active')
+        .text('✅ Завершенные', 'orders:completed')
+        .row()
+        .text('🔍 Поиск заказов', 'orders:search')
+        .row()
+        .text('« Назад в меню', 'menu:main');
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, error as Error);
+    }
   }
 
   private async handleReferralsMenu(ctx: BotContext): Promise<void> {
-    const keyboard = this.menuHandler.createReferralsMenuKeyboard();
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('menu.referrals'),
-      parseMode: 'HTML',
-      replyMarkup: keyboard,
-    });
+    try {
+      if (!ctx.from) {
+        await ctx.reply('Требуется авторизация. Используйте /start');
+        return;
+      }
+
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      if (!user) {
+        await ctx.reply('Пользователь не найден');
+        return;
+      }
+
+      // Generate referral link
+      const botUsername = 'motivbuy_bot'; // TODO: Get from config
+      const referralCode = user.id.substring(0, 8);
+      const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
+
+      const text = `<b>🎁 Реферальная программа</b>
+
+Приглашайте друзей и получайте бонусы!
+
+<b>💰 Ваши вознаграждения:</b>
+• 10% от каждой покупки реферала
+• Бессрочное начисление
+• Без ограничений по количеству
+
+<b>🔗 Ваша реферальная ссылка:</b>
+<code>${referralLink}</code>
+
+<b>📊 Статистика:</b>
+• Приглашено: 0 пользователей
+• Заработано: $0.00
+
+<i>Поделитесь ссылкой с друзьями!</i>`;
+
+      const keyboard = new InlineKeyboard()
+        .text('📋 Скопировать ссылку', 'referral:copy')
+        .row()
+        .text('📊 Мои рефералы', 'referral:list')
+        .text('💰 Статистика', 'referral:stats')
+        .row()
+        .text('📤 Поделиться', 'referral:share')
+        .row()
+        .text('« Назад в меню', 'menu:main');
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, error as Error);
+    }
   }
 
   private async handlePaymentsMenu(ctx: BotContext): Promise<void> {
-    const keyboard = this.menuHandler.createPaymentsMenuKeyboard();
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('menu.payments'),
-      parseMode: 'HTML',
-      replyMarkup: keyboard,
-    });
+    try {
+      if (!ctx.from) {
+        await ctx.reply('Требуется авторизация. Используйте /start');
+        return;
+      }
+
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      if (!user) {
+        await ctx.reply('Пользователь не найден');
+        return;
+      }
+
+      // Get recent transactions count
+      const transactionCount = await this.em.count(UserBalanceHistoryEntity, { user: user.id });
+
+      const text = `<b>💳 Платежи</b>
+
+Управляйте своими финансами в одном месте.
+
+<b>📊 Статистика:</b>
+• Всего операций: ${transactionCount}
+
+<b>💰 Способы оплаты:</b>
+• Банковские карты (Visa, MC, МИР)
+• Криптовалюты (BTC, ETH, USDT)
+• Электронные кошельки
+
+<b>💸 Способы вывода:</b>
+• Криптовалюты
+• Электронные кошельки
+• Минимум: $10
+
+<i>Выберите действие ниже:</i>`;
+
+      const keyboard = new InlineKeyboard()
+        .text('💰 Пополнить баланс', 'balance:deposit')
+        .text('💸 Вывести', 'balance:withdraw')
+        .row()
+        .text('📜 История платежей', 'payment:history')
+        .row()
+        .text('💳 Способы оплаты', 'payment:methods')
+        .row()
+        .text('« Назад в меню', 'menu:main');
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, error as Error);
+    }
   }
 
   private async handleSupportMenu(ctx: BotContext): Promise<void> {
+    const text = `<b>🏢 Техническая поддержка</b>
+
+Мы всегда рады помочь вам!
+
+<b>📞 Способы связи:</b>
+• Телеграм: @motivbuy_support
+• Email: support@motivbuy.com
+
+<b>⏰ Время работы:</b>
+• Пн-Пт: 9:00 - 21:00 (МСК)
+• Сб-Вс: 10:00 - 18:00 (МСК)
+
+<b>📋 Частые вопросы:</b>
+• Как создать заказ?
+• Как пополнить баланс?
+• Как вывести средства?
+• Проблемы с ботом
+
+<i>Выберите действие ниже или напишите нам напрямую.</i>`;
+
+    const keyboard = new InlineKeyboard()
+      .text('💬 Написать в поддержку', 'support:contact')
+      .row()
+      .text('❓ FAQ - Частые вопросы', 'help:faq')
+      .row()
+      .text('📝 Сообщить о проблеме', 'support:report')
+      .text('💡 Предложить идею', 'support:suggest')
+      .row()
+      .text('« Назад в меню', 'menu:main');
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('menu.support'),
+      text,
       parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
   private async handleHelpMenu(ctx: BotContext): Promise<void> {
+    const text = `<b>❓ Справка и помощь</b>
+
+Добро пожаловать в справочный центр MotivBuy!
+
+<b>🚀 Быстрый старт:</b>
+1. Создайте заказ через "Купить подписчиков"
+2. Укажите ссылку на канал/чат
+3. Добавьте бота в администраторы
+4. Настройте параметры и запустите
+
+<b>📚 Разделы справки:</b>
+• Создание и настройка заказов
+• Управление балансом
+• Статистика и аналитика
+• Продажа трафика
+
+<b>💬 Основные команды:</b>
+/start - Главное меню
+/menu - Открыть меню
+/balance - Проверить баланс
+/profile - Ваш профиль
+/settings - Настройки
+/help - Эта справка
+
+<i>Если у вас остались вопросы, обратитесь в поддержку.</i>`;
+
+    const keyboard = new InlineKeyboard()
+      .text('📖 Как создать заказ', 'help:create_order')
+      .row()
+      .text('💰 Пополнение баланса', 'help:topup')
+      .text('💸 Вывод средств', 'help:withdraw')
+      .row()
+      .text('📊 Статистика', 'help:stats')
+      .text('🤖 Продажа трафика', 'help:traffic')
+      .row()
+      .text('🏢 Связаться с поддержкой', 'support:contact')
+      .row()
+      .text('« Назад в меню', 'menu:main');
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('menu.help'),
+      text,
       parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -1500,6 +1763,336 @@ export class CallbackRouterHandler {
       }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+    });
+  }
+
+  // Support action handlers
+  private async handleSupportContact(ctx: BotContext): Promise<void> {
+    const text = `<b>💬 Связаться с поддержкой</b>
+
+Вы можете связаться с нами следующими способами:
+
+<b>📱 Telegram:</b>
+@motivbuy_support - Быстрый ответ
+
+<b>📧 Email:</b>
+support@motivbuy.com
+
+<b>⏰ Среднее время ответа:</b>
+• Telegram: 5-15 минут
+• Email: 2-4 часа
+
+<i>Напишите нам, и мы обязательно поможем!</i>`;
+
+    const keyboard = new InlineKeyboard()
+      .url('💬 Написать в Telegram', 'https://t.me/motivbuy_support')
+      .row()
+      .text('« Назад', 'support');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleSupportReport(ctx: BotContext): Promise<void> {
+    const text = `<b>📝 Сообщить о проблеме</b>
+
+Пожалуйста, опишите проблему как можно подробнее:
+
+<b>Что нам нужно знать:</b>
+• Что произошло?
+• Какие действия вы выполняли?
+• Когда это случилось?
+• Есть ли скриншоты?
+
+<b>Частые проблемы:</b>
+• Заказ не работает
+• Ошибка при оплате
+• Не начисляются подписчики
+• Проблемы с ботом
+
+<i>Отправьте описание проблемы следующим сообщением.</i>`;
+
+    const keyboard = new InlineKeyboard()
+      .url('📝 Отправить в поддержку', 'https://t.me/motivbuy_support')
+      .row()
+      .text('« Назад', 'support');
+
+    if (ctx.session) {
+      ctx.session.conversationState = 'awaiting_support_report';
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleSupportSuggest(ctx: BotContext): Promise<void> {
+    const text = `<b>💡 Предложить идею</b>
+
+Мы всегда рады вашим идеям и предложениям!
+
+<b>Что можно предложить:</b>
+• Новые функции
+• Улучшения интерфейса
+• Оптимизацию процессов
+• Любые другие идеи
+
+<b>Как отправить:</b>
+Просто напишите вашу идею следующим сообщением!
+
+<i>Ваши предложения помогают нам становиться лучше!</i>`;
+
+    const keyboard = new InlineKeyboard()
+      .url('💡 Отправить предложение', 'https://t.me/motivbuy_support')
+      .row()
+      .text('« Назад', 'support');
+
+    if (ctx.session) {
+      ctx.session.conversationState = 'awaiting_support_suggestion';
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  // Help action handlers
+  private async handleHelpFAQ(ctx: BotContext): Promise<void> {
+    const text = `<b>❓ Часто задаваемые вопросы</b>
+
+<b>Q: Как создать заказ?</b>
+A: Нажмите "Купить подписчиков", введите ссылку на канал и следуйте инструкциям.
+
+<b>Q: Как пополнить баланс?</b>
+A: Перейдите в раздел "Баланс" → "Пополнить" и выберите способ оплаты.
+
+<b>Q: Как быстро приходят подписчики?</b>
+A: Обычно в течение 24 часов после запуска заказа.
+
+<b>Q: Можно ли отменить заказ?</b>
+A: Да, вы можете остановить заказ в любой момент.
+
+<b>Q: Как вывести средства?</b>
+A: Баланс → Вывод. Минимальная сумма: $10.
+
+<b>Q: Подписчики настоящие?</b>
+A: Да, все подписчики - реальные пользователи Telegram.`;
+
+    const keyboard = new InlineKeyboard()
+      .text('📖 Подробнее о заказах', 'help:create_order')
+      .row()
+      .text('💰 Вопросы по балансу', 'help:topup')
+      .row()
+      .text('« Назад в справку', 'help');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
+    const text = `<b>📖 Как создать заказ</b>
+
+<b>Шаг 1: Начало</b>
+Нажмите "👥 Купить подписчиков" в главном меню.
+
+<b>Шаг 2: Ссылка на канал</b>
+Отправьте пригласительную ссылку на ваш канал или группу.
+Формат: t.me/joinchat/xxx или t.me/+xxx
+
+<b>Шаг 3: Добавление бота</b>
+Добавьте нашего бота в администраторы вашего канала.
+Это нужно для отслеживания статистики.
+
+<b>Шаг 4: Настройка</b>
+Укажите желаемое количество подписчиков и другие параметры.
+
+<b>Шаг 5: Запуск</b>
+После модерации заказ будет запущен автоматически.
+
+<b>💡 Совет:</b>
+Чем интереснее ваш канал, тем больше подписчиков останется!`;
+
+    const keyboard = new InlineKeyboard()
+      .text('🆕 Создать заказ', 'order:create:start')
+      .row()
+      .text('« Назад в справку', 'help');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleHelpTopup(ctx: BotContext): Promise<void> {
+    const text = `<b>💰 Пополнение баланса</b>
+
+<b>Доступные способы оплаты:</b>
+
+<b>💳 Банковская карта</b>
+• Visa, MasterCard, МИР
+• Моментальное зачисление
+• Комиссия: 0%
+
+<b>🪙 Криптовалюта</b>
+• Bitcoin (BTC)
+• Ethereum (ETH)
+• USDT (TRC-20, ERC-20)
+• Зачисление: 1-3 подтверждения
+
+<b>📱 Электронные кошельки</b>
+• QIWI, ЮMoney
+• Моментальное зачисление
+
+<b>Минимальная сумма:</b> $10
+<b>Максимальная сумма:</b> $10,000
+
+<b>💡 Бонус:</b>
+При пополнении от $100 - бонус 5%!`;
+
+    const keyboard = new InlineKeyboard()
+      .text('💰 Пополнить сейчас', 'balance:deposit')
+      .row()
+      .text('« Назад в справку', 'help');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleHelpWithdraw(ctx: BotContext): Promise<void> {
+    const text = `<b>💸 Вывод средств</b>
+
+<b>Способы вывода:</b>
+
+<b>🪙 Криптовалюта</b>
+• Bitcoin, Ethereum, USDT
+• Комиссия: сетевая
+• Срок: до 24 часов
+
+<b>📱 Электронные кошельки</b>
+• QIWI, ЮMoney
+• Комиссия: 1-2%
+• Срок: до 24 часов
+
+<b>Условия вывода:</b>
+• Минимальная сумма: $10
+• Верификация: для сумм от $500
+
+<b>Статусы выплат:</b>
+⏳ Ожидание - заявка в обработке
+✅ Выполнено - средства отправлены
+❌ Отклонено - проверьте реквизиты
+
+<b>💡 Совет:</b>
+Выводите на верифицированные кошельки!`;
+
+    const keyboard = new InlineKeyboard()
+      .text('💸 Вывести средства', 'balance:withdraw')
+      .row()
+      .text('« Назад в справку', 'help');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleHelpStats(ctx: BotContext): Promise<void> {
+    const text = `<b>📊 Статистика и аналитика</b>
+
+<b>Какую статистику можно видеть:</b>
+
+<b>📈 По заказам:</b>
+• Количество подписчиков
+• Скорость набора
+• Процент отписок
+• Конверсия
+
+<b>💰 Финансовая:</b>
+• Доходы за период
+• Расходы на заказы
+• История транзакций
+• Прогноз расходов
+
+<b>🎯 По трафику:</b>
+• Источники трафика
+• Качество подписчиков
+• Активность аудитории
+
+<b>📅 Периоды:</b>
+• Сегодня
+• Неделя
+• Месяц
+• Произвольный период
+
+<b>💡 Совет:</b>
+Анализируйте статистику для оптимизации кампаний!`;
+
+    const keyboard = new InlineKeyboard()
+      .text('📊 Посмотреть статистику', 'stats:overview')
+      .row()
+      .text('« Назад в справку', 'help');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleHelpTraffic(ctx: BotContext): Promise<void> {
+    const text = `<b>🤖 Продажа трафика</b>
+
+Зарабатывайте, привлекая подписчиков для других каналов!
+
+<b>Как это работает:</b>
+1. Добавьте свой бот/канал как источник трафика
+2. Показывайте рекламу в своих ботах
+3. Получайте оплату за каждого подписчика
+
+<b>💰 Сколько можно заработать:</b>
+• От $0.01 до $0.10 за подписчика
+• Зависит от качества аудитории
+• Выплаты автоматически
+
+<b>📋 Требования:</b>
+• Минимум 1000 активных пользователей
+• Реальные пользователи (не боты)
+• Соблюдение правил Telegram
+
+<b>🚀 Преимущества:</b>
+• Автоматическая интеграция
+• Детальная статистика
+• Мгновенные выплаты
+• Поддержка 24/7
+
+<i>Начните зарабатывать уже сегодня!</i>`;
+
+    const keyboard = new InlineKeyboard()
+      .text('🤖 Добавить источник трафика', 'traffic:sources')
+      .row()
+      .text('📊 Мои источники', 'traffic')
+      .row()
+      .text('« Назад в справку', 'help');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 }
