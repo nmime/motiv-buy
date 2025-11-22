@@ -30,7 +30,7 @@ These **MUST** be configured for the application to run:
 | `DB_USER`     | Database username                 | `postgres`                       | ✅ Yes   |
 | `DB_PASSWORD` | Database password                 | `strong_password_here`           | ✅ Yes   |
 | `JWT_SECRET`  | JWT signing key (64+ chars)       | `openssl rand -base64 64`        | ✅ Yes   |
-| `BOT_TOKEN`   | Telegram bot token                | `123456:ABC-DEF...`              | ✅ Yes   |
+| `TELEGRAM_BOT_TOKEN`   | Telegram bot token                | `123456:ABC-DEF...`              | ✅ Yes   |
 | `REDIS_MODE`  | Redis mode                        | `default`, `cluster`, `sentinel` | ✅ Yes   |
 | `REDIS_HOSTS` | Redis host:port (comma-separated) | `redis:6379`                     | ✅ Yes   |
 
@@ -127,7 +127,7 @@ openssl rand -base64 64
 
 | Variable           | Description                        | Default | Required |
 | ------------------ | ---------------------------------- | ------- | -------- |
-| `BOT_TOKEN`        | Telegram bot token from @BotFather | -       | ✅ Yes   |
+| `TELEGRAM_BOT_TOKEN`        | Telegram bot token from @BotFather | -       | ✅ Yes   |
 | `BOT_USERNAME`     | Bot username (without @)           | -       | ❌ No    |
 | `BOT_DISPLAY_NAME` | Bot display name                   | -       | ❌ No    |
 | `BOT_DESCRIPTION`  | Bot description                    | -       | ❌ No    |
@@ -378,7 +378,7 @@ cp .env.example .env
 # Edit .env and fill in these REQUIRED variables:
 DB_PASSWORD=your_secure_password
 JWT_SECRET=$(openssl rand -base64 64)
-BOT_TOKEN=your_telegram_bot_token_from_botfather
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_from_botfather
 REDIS_PASSWORD=your_redis_password
 
 # Optional: Configure at least one payment provider
@@ -395,7 +395,7 @@ cp .env.production.example .env
 NODE_ENV=production
 DB_PASSWORD=STRONG_PASSWORD_HERE
 JWT_SECRET=$(openssl rand -base64 64)
-BOT_TOKEN=PRODUCTION_BOT_TOKEN
+TELEGRAM_BOT_TOKEN=PRODUCTION_BOT_TOKEN
 REDIS_PASSWORD=STRONG_REDIS_PASSWORD
 
 # Domain configuration
@@ -499,7 +499,7 @@ pnpm run dev
 
 - Check that all required variables are set
 - Verify database connection (`DB_HOST`, `DB_PORT`, `DB_PASSWORD`)
-- Ensure `BOT_TOKEN` is valid
+- Ensure `TELEGRAM_BOT_TOKEN` is valid
 - Check `REDIS_HOSTS` format: `host:port`
 
 **Payment not working:**
@@ -518,7 +518,7 @@ pnpm run dev
 
 **Bot not responding:**
 
-- Verify `BOT_TOKEN` is correct
+- Verify `TELEGRAM_BOT_TOKEN` is correct
 - If using webhook, check `BOT_WEBHOOK_URL` is publicly accessible
 - If using polling, ensure no webhook is configured
 - Check Redis connection for session storage

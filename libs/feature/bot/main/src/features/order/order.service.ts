@@ -214,7 +214,7 @@ export class OrderService {
     const chatId = `@${username}`;
 
     try {
-      const botToken = this.configService.get<string>('BOT_TOKEN');
+      const botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
       if (!botToken) {
         this.logger.error('Bot token not configured');
 
@@ -257,7 +257,7 @@ export class OrderService {
    */
   async checkBotIsAdmin(channelId: string): Promise<boolean> {
     try {
-      const botToken = this.configService.get<string>('BOT_TOKEN');
+      const botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
       if (!botToken) {
         this.logger.error('Bot token not configured');
 

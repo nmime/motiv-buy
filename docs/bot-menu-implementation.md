@@ -351,7 +351,7 @@ Test security features:
 
 No new environment variables required. Uses existing:
 
-- `BOT_TOKEN` - Telegram bot token
+- `TELEGRAM_BOT_TOKEN` - Telegram bot token
 - Database connection configuration
 
 ### Dependencies
