@@ -325,7 +325,7 @@ LOG_LEVEL=debug
 
 1. Copy `.env.example` to `.env`
 2. Configure database connection
-3. Set Telegram bot token (for bot app)
+3. Set `TELEGRAM_BOT_TOKEN` (for bot app)
 4. Run `pnpm install` to install dependencies
 5. Run `pnpm migration:up` to set up database
 6. Run `pnpm dev` to start development servers
