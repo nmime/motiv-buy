@@ -3,7 +3,7 @@ import { RedisClient } from '@app/common-redis';
 import { BotFactoryService } from '@app/feature-bot-shared';
 import { BotTokenValidationService } from '../bot-token-validation.service';
 import { BotTokenValidationDto } from '../../dto';
-import { BotTokenInvalidException, BotTokenRateLimitException } from '../../exception/bot-token-validation.exception';
+import { TelegramBotTokenInvalidException, TelegramBotTokenRateLimitException } from '../../exception';
 
 describe('BotTokenValidationService', () => {
   let service: BotTokenValidationService;
@@ -126,7 +126,7 @@ describe('BotTokenValidationService', () => {
       expect(result.err).toBe(true);
       if (result.err) {
         const error = result.val;
-        expect(error).toBeInstanceOf(BotTokenInvalidException);
+        expect(error).toBeInstanceOf(TelegramBotTokenInvalidException);
         expect(error.message).toContain('Invalid token format');
       }
     });
@@ -143,7 +143,7 @@ describe('BotTokenValidationService', () => {
       expect(result.err).toBe(true);
       if (result.err) {
         const error = result.val;
-        expect(error).toBeInstanceOf(BotTokenRateLimitException);
+        expect(error).toBeInstanceOf(TelegramBotTokenRateLimitException);
         expect(error.message).toContain('Rate limit exceeded');
       }
     });
@@ -398,7 +398,7 @@ describe('BotTokenValidationService', () => {
       // Token with non-numeric botId should be rejected during format validation
       expect(result.err).toBe(true);
       if (result.err) {
-        expect(result.val).toBeInstanceOf(BotTokenInvalidException);
+        expect(result.val).toBeInstanceOf(TelegramBotTokenInvalidException);
       }
     });
   });

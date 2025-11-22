@@ -1,19 +1,19 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 /**
- * Bot Token Validation Exceptions
+ * Telegram Bot Token Validation Exceptions
  *
- * Custom exceptions for bot token validation following existing patterns
+ * Custom exceptions for Telegram bot token validation following existing patterns
  */
 
 /**
- * Bot Token Expired Exception
+ * Telegram Bot Token Expired Exception
  */
-export class BotTokenExpiredException extends HttpException {
-  constructor(message = 'Bot token has expired') {
+export class TelegramBotTokenExpiredException extends HttpException {
+  constructor(message = 'Telegram bot token has expired') {
     super(
       {
-        error: 'BOT_TOKEN_EXPIRED',
+        error: 'TELEGRAM_BOT_TOKEN_EXPIRED',
         message,
         statusCode: HttpStatus.UNAUTHORIZED,
       },
@@ -23,13 +23,13 @@ export class BotTokenExpiredException extends HttpException {
 }
 
 /**
- * Bot Token Invalid Exception
+ * Telegram Bot Token Invalid Exception
  */
-export class BotTokenInvalidException extends HttpException {
-  constructor(message = 'Invalid bot token') {
+export class TelegramBotTokenInvalidException extends HttpException {
+  constructor(message = 'Invalid Telegram bot token') {
     super(
       {
-        error: 'BOT_TOKEN_INVALID',
+        error: 'TELEGRAM_BOT_TOKEN_INVALID',
         message,
         statusCode: HttpStatus.UNAUTHORIZED,
       },
@@ -39,14 +39,14 @@ export class BotTokenInvalidException extends HttpException {
 }
 
 /**
- * Bot Token Insufficient Permissions Exception
+ * Telegram Bot Token Insufficient Permissions Exception
  */
-export class BotTokenInsufficientPermissionsException extends HttpException {
+export class TelegramBotTokenInsufficientPermissionsException extends HttpException {
   constructor(requiredPermissions: string[] = [], message?: string) {
     const defaultMessage = `Insufficient permissions. Required: ${requiredPermissions.join(', ')}`;
     super(
       {
-        error: 'BOT_TOKEN_INSUFFICIENT_PERMISSIONS',
+        error: 'TELEGRAM_BOT_TOKEN_INSUFFICIENT_PERMISSIONS',
         message: message || defaultMessage,
         statusCode: HttpStatus.FORBIDDEN,
         requiredPermissions,
@@ -57,13 +57,13 @@ export class BotTokenInsufficientPermissionsException extends HttpException {
 }
 
 /**
- * Bot Token Service Unavailable Exception
+ * Telegram Bot Token Service Unavailable Exception
  */
-export class BotTokenServiceUnavailableException extends HttpException {
-  constructor(message = 'Bot token validation service is temporarily unavailable') {
+export class TelegramBotTokenServiceUnavailableException extends HttpException {
+  constructor(message = 'Telegram bot token validation service is temporarily unavailable') {
     super(
       {
-        error: 'BOT_TOKEN_SERVICE_UNAVAILABLE',
+        error: 'TELEGRAM_BOT_TOKEN_SERVICE_UNAVAILABLE',
         message,
         statusCode: HttpStatus.SERVICE_UNAVAILABLE,
       },
@@ -73,13 +73,13 @@ export class BotTokenServiceUnavailableException extends HttpException {
 }
 
 /**
- * Bot Token Rate Limit Exceeded Exception
+ * Telegram Bot Token Rate Limit Exceeded Exception
  */
-export class BotTokenRateLimitException extends HttpException {
-  constructor(retryAfter = 60, message = 'Bot token validation rate limit exceeded') {
+export class TelegramBotTokenRateLimitException extends HttpException {
+  constructor(retryAfter = 60, message = 'Telegram bot token validation rate limit exceeded') {
     super(
       {
-        error: 'BOT_TOKEN_RATE_LIMIT_EXCEEDED',
+        error: 'TELEGRAM_BOT_TOKEN_RATE_LIMIT_EXCEEDED',
         message,
         statusCode: HttpStatus.TOO_MANY_REQUESTS,
         retryAfter,
