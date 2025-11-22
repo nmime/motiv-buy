@@ -5,9 +5,8 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import { BotContext, BotSubscriptionService } from '@app/feature-bot-shared';
+import { BotContext, ChannelService, ChannelInfo as ChannelServiceInfo } from '@app/feature-bot-shared';
 import {
   ChannelInfo,
   defaultOrderConfig,
@@ -31,10 +30,7 @@ export class OrderService {
   private readonly sessionTtlMs = 60 * 60 * 1000; // 1 hour
   private readonly sessionCleanupIntervalMs = 15 * 60 * 1000; // 15 minutes
 
-  constructor(
-    private readonly botSubscriptionService: BotSubscriptionService,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly channelService: ChannelService) {
     // Start session cleanup
     this.startSessionCleanup();
   }
@@ -204,84 +200,29 @@ export class OrderService {
    * Get channel info from link
    */
   async getChannelInfo(link: string): Promise<ChannelInfo | null> {
-    // Extract username from link
-    const match = link.match(/t\.me\/(\w+)/i);
-    if (!match) {
+    const result = await this.channelService.getChannelInfoFromLink(link);
+
+    if (!result) {
       return null;
     }
 
-    const [, username] = match;
-    const chatId = `@${username}`;
-
-    try {
-      const botToken = this.configService.get<string>('BOT_TOKEN');
-      if (!botToken) {
-        this.logger.error('Bot token not configured');
-
-        return null;
-      }
-
-      // Get chat information from Telegram API
-      const chatInfo = await this.botSubscriptionService.getChatInfo(botToken, chatId);
-
-      // Get member count
-      const memberCount = await this.botSubscriptionService.getChatMemberCount(botToken, chatId);
-
-      // Get bot's own user ID to check admin status
-      const botId = await this.getBotUserId(botToken);
-      const botIsAdmin = botId ? await this.botSubscriptionService.isUserAdmin(botToken, chatId, botId) : false;
-
-      const channelInfo: ChannelInfo = {
-        id: chatInfo.id.toString(),
-        title: chatInfo.title ?? username,
-        username: chatInfo.username ?? username,
-        subscriberCount: memberCount,
-        description: undefined, // Telegram API doesn't provide description via getChat
-        category: undefined, // Category must be manually set
-        botIsAdmin,
-      };
-
-      this.logger.log(`Channel info retrieved: ${username} (${memberCount} members, bot admin: ${botIsAdmin})`);
-
-      return channelInfo;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to get channel info for ${username}: ${errorMessage}`);
-
-      return null;
-    }
+    // Map ChannelServiceInfo to local ChannelInfo type
+    return {
+      id: result.id,
+      title: result.title,
+      username: result.username,
+      subscriberCount: result.subscriberCount,
+      description: result.description,
+      category: result.category,
+      botIsAdmin: result.botIsAdmin,
+    };
   }
 
   /**
    * Check if bot is admin in channel
    */
   async checkBotIsAdmin(channelId: string): Promise<boolean> {
-    try {
-      const botToken = this.configService.get<string>('BOT_TOKEN');
-      if (!botToken) {
-        this.logger.error('Bot token not configured');
-
-        return false;
-      }
-
-      // Get bot's own user ID
-      const botId = await this.getBotUserId(botToken);
-      if (!botId) {
-        return false;
-      }
-
-      // Check if bot is admin using Telegram API
-      const isAdmin = await this.botSubscriptionService.isUserAdmin(botToken, channelId, botId);
-
-      this.logger.log(`Bot admin status for channel ${channelId}: ${isAdmin}`);
-
-      return isAdmin;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to check bot admin status for channel ${channelId}: ${errorMessage}`);
-
-      return false;
-    }
+    return this.channelService.checkBotIsAdmin(channelId);
   }
 
   /**
@@ -447,24 +388,6 @@ Created: ${order.createdAt.toLocaleDateString()}
     `.trim();
 
     return report;
-  }
-
-  /**
-   * Helper: Get bot's own user ID from Telegram API
-   */
-  private async getBotUserId(botToken: string): Promise<number | null> {
-    try {
-      const { Bot } = await import('grammy');
-      const bot = new Bot(botToken);
-      const botInfo = await bot.api.getMe();
-
-      return botInfo.id;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to get bot user ID: ${errorMessage}`);
-
-      return null;
-    }
   }
 
   /**

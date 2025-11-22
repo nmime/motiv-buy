@@ -7,10 +7,10 @@ import { BadTokenException, InternalException, RateLimitExceedException } from '
 import { BotFactoryService } from '@app/feature-bot-shared';
 import { BotTokenValidationDto, BotTokenValidationResponseDto } from '../dto';
 import {
-  BotTokenExpiredException,
-  BotTokenInvalidException,
-  BotTokenRateLimitException,
-  BotTokenServiceUnavailableException,
+  TelegramBotTokenExpiredException,
+  TelegramBotTokenInvalidException,
+  TelegramBotTokenRateLimitException,
+  TelegramBotTokenServiceUnavailableException,
 } from '../exception';
 
 /**
@@ -97,9 +97,9 @@ export class BotTokenValidationService {
   ): Promise<
     Result<
       BotTokenValidationResponseDto,
-      | BotTokenExpiredException
-      | BotTokenInvalidException
-      | BotTokenServiceUnavailableException
+      | TelegramBotTokenExpiredException
+      | TelegramBotTokenInvalidException
+      | TelegramBotTokenServiceUnavailableException
       | BadTokenException
       | RateLimitExceedException
       | InternalException
@@ -261,9 +261,9 @@ export class BotTokenValidationService {
   ): Promise<
     | Result<
         BotTokenValidationResponseDto,
-        | BotTokenExpiredException
-        | BotTokenInvalidException
-        | BotTokenServiceUnavailableException
+        | TelegramBotTokenExpiredException
+        | TelegramBotTokenInvalidException
+        | TelegramBotTokenServiceUnavailableException
         | BadTokenException
         | RateLimitExceedException
         | InternalException
@@ -291,9 +291,9 @@ export class BotTokenValidationService {
     cachedResult: BotTokenValidationResponseDto,
   ): Result<
     BotTokenValidationResponseDto,
-    | BotTokenExpiredException
-    | BotTokenInvalidException
-    | BotTokenServiceUnavailableException
+    | TelegramBotTokenExpiredException
+    | TelegramBotTokenInvalidException
+    | TelegramBotTokenServiceUnavailableException
     | BadTokenException
     | RateLimitExceedException
     | InternalException
@@ -309,7 +309,7 @@ export class BotTokenValidationService {
   /**
    * Validate token format and extract bot ID
    */
-  private validateTokenFormatAndExtractBotId(dto: BotTokenValidationDto): Result<string, BotTokenInvalidException> {
+  private validateTokenFormatAndExtractBotId(dto: BotTokenValidationDto): Result<string, TelegramBotTokenInvalidException> {
     const formatValidation = this.validateTokenFormat(dto.token);
     if (!formatValidation) {
       this.logger.warn('Invalid token format', {
@@ -318,7 +318,7 @@ export class BotTokenValidationService {
         correlationId: this.generateCorrelationId(),
       });
 
-      return Err(new BotTokenInvalidException('Invalid token format'));
+      return Err(new TelegramBotTokenInvalidException('Invalid token format'));
     }
 
     const botId = this.extractBotId(dto.token);
@@ -329,7 +329,7 @@ export class BotTokenValidationService {
         correlationId: this.generateCorrelationId(),
       });
 
-      return Err(new BotTokenInvalidException('Unable to extract bot ID from token'));
+      return Err(new TelegramBotTokenInvalidException('Unable to extract bot ID from token'));
     }
 
     return Ok(botId);
@@ -344,9 +344,9 @@ export class BotTokenValidationService {
   ): Promise<
     Result<
       BotTokenValidationResponseDto,
-      | BotTokenExpiredException
-      | BotTokenInvalidException
-      | BotTokenServiceUnavailableException
+      | TelegramBotTokenExpiredException
+      | TelegramBotTokenInvalidException
+      | TelegramBotTokenServiceUnavailableException
       | BadTokenException
       | RateLimitExceedException
       | InternalException
@@ -383,9 +383,9 @@ export class BotTokenValidationService {
     clientIp?: string,
   ): Result<
     BotTokenValidationResponseDto,
-    | BotTokenExpiredException
-    | BotTokenInvalidException
-    | BotTokenServiceUnavailableException
+    | TelegramBotTokenExpiredException
+    | TelegramBotTokenInvalidException
+    | TelegramBotTokenServiceUnavailableException
     | BadTokenException
     | RateLimitExceedException
     | InternalException
@@ -411,7 +411,7 @@ export class BotTokenValidationService {
         err.message.toLowerCase().includes('timeout') ||
         err.message.toLowerCase().includes('econnrefused'))
     ) {
-      return Err(new BotTokenServiceUnavailableException('Bot validation service is temporarily unavailable'));
+      return Err(new TelegramBotTokenServiceUnavailableException('Bot validation service is temporarily unavailable'));
     }
 
     return Err(new InternalException({ detail: 'Token validation failed' }));
@@ -422,7 +422,7 @@ export class BotTokenValidationService {
    */
   private async checkRateLimit(
     clientIp: string,
-  ): AsyncResult<void, RateLimitExceedException | BotTokenRateLimitException> {
+  ): AsyncResult<void, RateLimitExceedException | TelegramBotTokenRateLimitException> {
     try {
       const rateLimitKey = `${this.rateLimitPrefix}:${clientIp}`;
       const current = await this.redisClient.incr(rateLimitKey);
@@ -441,7 +441,7 @@ export class BotTokenValidationService {
           correlationId: this.generateCorrelationId(),
         });
 
-        return Err(new BotTokenRateLimitException(ttl, `Rate limit exceeded. Try again in ${ttl} seconds`));
+        return Err(new TelegramBotTokenRateLimitException(ttl, `Rate limit exceeded. Try again in ${ttl} seconds`));
       }
 
       return Ok(undefined);

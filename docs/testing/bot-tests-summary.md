@@ -331,13 +331,13 @@ jobs:
 
 1. **Dependencies Not Installed**: Tests created but not executed due to missing `node_modules` in test environment
 2. **Integration Tests**: Only unit tests created; integration tests need separate setup
-3. **E2E Tests**: End-to-end tests would require real Telegram bot token
+3. **E2E Tests**: End-to-end tests would require real `TELEGRAM_BOT_TOKEN`
 
 ### Workarounds
 
 1. Tests can be executed in development environment with installed dependencies
 2. Mock all external services for unit testing
-3. Use test bot tokens for integration testing
+3. Use test `TELEGRAM_BOT_TOKEN` for integration testing
 
 ---
 

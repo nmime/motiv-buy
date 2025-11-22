@@ -10,7 +10,7 @@ process.env['REDIS_HOSTS'] = 'localhost:6379';
 
 // Auth environment variables
 process.env['JWT_SECRET'] = 'test-jwt-secret-key-for-testing';
-process.env['BOT_TOKEN'] = 'test-bot-token-123456';
+process.env['TELEGRAM_BOT_TOKEN'] = 'test-bot-token-123456';
 
 // Payment gateway environment variables
 process.env['CRYPTO_BOT_API_TOKEN'] = 'test-crypto-bot-token';

@@ -398,7 +398,7 @@ jobs:
 
 1. **Integration Tests**: Current tests are unit tests. Integration tests with real Telegram API would require additional setup.
 
-2. **E2E Tests**: End-to-end tests with actual bot instance not included (would require test bot token).
+2. **E2E Tests**: End-to-end tests with actual bot instance not included (would require test `TELEGRAM_BOT_TOKEN`).
 
 3. **Performance Tests**: Load testing and stress testing would require dedicated environment.
 

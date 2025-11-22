@@ -10,4 +10,4 @@ process.env['REDIS_HOSTS'] = 'localhost:6379';
 
 // Auth environment variables
 process.env['JWT_SECRET'] = 'test-jwt-secret-key-for-testing';
-process.env['BOT_TOKEN'] = 'test-bot-token-123456';
+process.env['TELEGRAM_BOT_TOKEN'] = 'test-bot-token-123456';

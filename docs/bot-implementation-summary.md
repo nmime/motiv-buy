@@ -253,7 +253,7 @@ User-friendly error messages:
 
 - Node.js 18+
 - PostgreSQL database
-- Telegram bot token
+- `TELEGRAM_BOT_TOKEN` configured
 - Environment variables configured
 
 ### Installation
@@ -268,7 +268,7 @@ User-friendly error messages:
 No new configuration required. Uses existing:
 
 - Database connection
-- Bot token
+- `TELEGRAM_BOT_TOKEN`
 - Session storage
 
 ### Monitoring

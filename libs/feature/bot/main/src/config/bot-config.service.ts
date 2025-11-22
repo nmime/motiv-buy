@@ -20,7 +20,7 @@ export class BotConfigService {
    */
   getBotConfig(): BotConfig {
     return {
-      token: this.configService.get<string>('BOT_TOKEN', ''),
+      token: this.configService.get<string>('TELEGRAM_BOT_TOKEN', ''),
       username: this.configService.get<string>('BOT_USERNAME'),
       displayName: this.configService.get<string>('BOT_DISPLAY_NAME'),
       description: this.configService.get<string>('BOT_DESCRIPTION'),
@@ -109,9 +109,9 @@ export class BotConfigService {
    * @returns Bot token
    */
   getBotToken(): string {
-    const token = this.configService.get<string>('BOT_TOKEN');
+    const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     if (!token) {
-      throw new Error('BOT_TOKEN environment variable is required');
+      throw new Error('TELEGRAM_BOT_TOKEN environment variable is required');
     }
 
     return token;
