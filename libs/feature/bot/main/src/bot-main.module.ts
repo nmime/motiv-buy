@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BotSharedModule, TelegramModerationNotifier } from '@app/feature-bot-shared';
+import { BotSharedModule } from '@app/feature-bot-shared';
 import { RedisModule } from '@app/common-redis';
 import { DatabaseModule } from '@app/database';
 import { AuthSharedModule } from '@app/feature-auth-shared';
@@ -67,7 +67,6 @@ import { BotWebhookController } from './controller';
     MenuService,
     SessionService,
     MessageService,
-    TelegramModerationNotifier,
     CallbackRouterHandler,
     // Action handlers required by CallbackRouterHandler
     MenuActionHandler,
@@ -85,7 +84,6 @@ import { BotWebhookController } from './controller';
     MenuService,
     SessionService,
     MessageService,
-    TelegramModerationNotifier,
     // Export middleware for use by Bot app
     RateLimitMiddleware,
   ],

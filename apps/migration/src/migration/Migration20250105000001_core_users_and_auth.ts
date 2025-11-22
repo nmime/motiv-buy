@@ -26,7 +26,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
     // 2. Create users table
     this.addSql(`
       CREATE TABLE users (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         telegram_id bigint UNIQUE NOT NULL,
         username varchar(32),
         first_name varchar(64) NOT NULL,
@@ -72,7 +72,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
     // 3. Create user_settings table with foreign key
     this.addSql(`
       CREATE TABLE user_settings (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid UNIQUE NOT NULL,
         notifications_enabled boolean NOT NULL DEFAULT true,
         language varchar(10) NOT NULL DEFAULT 'en',
@@ -97,7 +97,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
     // 4. Create user_last_auth table with foreign key
     this.addSql(`
       CREATE TABLE user_last_auth (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid UNIQUE NOT NULL,
         ip_address inet,
         user_agent text,
@@ -122,7 +122,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
     // 5. Create user_ref_links table with foreign key
     this.addSql(`
       CREATE TABLE user_ref_links (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         ref_code varchar(32) UNIQUE NOT NULL,
         clicks integer NOT NULL DEFAULT 0,
@@ -149,25 +149,37 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
     // 6. Create user_source_visits table with foreign key
     this.addSql(`
       CREATE TABLE user_source_visits (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
-        source varchar(100) NOT NULL,
-        medium varchar(50),
-        campaign varchar(100),
-        content varchar(255),
-        term varchar(100),
-        referrer text,
-        ip_address inet,
-        user_agent text,
-        visited_at timestamptz NOT NULL DEFAULT now(),
+        link_user_id uuid,
+        platform_type varchar(20) NOT NULL,
+        platform_data json,
+        params text,
+        utm_source varchar(255),
+        utm_medium varchar(255),
+        utm_campaign varchar(255),
+        utm_content varchar(255),
+        link_type varchar(255),
+        link_code varchar(255),
+        language varchar(10),
+        telegram_language varchar(10),
+        continent varchar(64),
+        country varchar(64),
+        city varchar(128),
+        ip inet,
+        is_signup boolean NOT NULL DEFAULT false,
         created_at timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT fk__user_source_visits__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        CONSTRAINT fk__user_source_visits__user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        CONSTRAINT fk__user_source_visits__link_user_id FOREIGN KEY (link_user_id) REFERENCES users(id) ON DELETE SET NULL
       );
     `);
 
     this.addSql('CREATE INDEX ix__user_source_visits__user_id ON user_source_visits (user_id);');
-    this.addSql('CREATE INDEX ix__user_source_visits__source ON user_source_visits (source);');
-    this.addSql('CREATE INDEX ix__user_source_visits__visited_at ON user_source_visits (visited_at);');
+    this.addSql('CREATE INDEX ix__user_source_visits__created_at ON user_source_visits (created_at);');
+    this.addSql('CREATE INDEX ix__user_source_visits__utm_source ON user_source_visits (utm_source);');
+    this.addSql('CREATE INDEX ix__user_source_visits__utm_medium ON user_source_visits (utm_medium);');
+    this.addSql('CREATE INDEX ix__user_source_visits__utm_campaign ON user_source_visits (utm_campaign);');
+    this.addSql('CREATE INDEX ix__user_source_visits__platform_type ON user_source_visits (platform_type);');
 
     // Ensure async compliance
     await Promise.resolve();

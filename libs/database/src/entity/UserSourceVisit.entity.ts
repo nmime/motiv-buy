@@ -10,14 +10,11 @@ import { UserEntity } from './User.entity';
 @Index({ name: 'ix__user_source_visits__utm_campaign', properties: ['utmCampaign'] })
 @Index({ name: 'ix__user_source_visits__platform_type', properties: ['platformType'] })
 export class UserSourceVisitEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'timestamptz', defaultRaw: 'now()', fieldName: 'created_at' })
   createdAt!: Date;
-
-  @Property({ type: 'boolean', default: false, fieldName: 'is_signup' })
-  isSignup = false;
 
   @Property({ type: 'varchar', length: 20, fieldName: 'platform_type' })
   @Enum(() => PlatformType)
@@ -64,6 +61,9 @@ export class UserSourceVisitEntity {
 
   @Property({ type: 'inet', nullable: true })
   ip?: string;
+
+  @Property({ type: 'boolean', default: false, fieldName: 'is_signup' })
+  isSignup = false;
 
   @ManyToOne(() => UserEntity, { ref: true, nullable: false, joinColumn: 'user_id' })
   user!: Ref<UserEntity>;

@@ -27,7 +27,7 @@ export enum UserStatus {
 @Index({ name: 'ix__users__status', properties: ['status'] })
 @Index({ name: 'ix__users__created_at', properties: ['createdAt'] })
 export class UserEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'bigint', unique: true, fieldName: 'telegram_id' })
@@ -58,15 +58,6 @@ export class UserEntity {
 
   @Property({ type: 'integer', default: 0, fieldName: 'referral_count' })
   referralCount = 0;
-
-  @Property({ type: 'boolean', default: true, fieldName: 'is_active' })
-  isActive = true;
-
-  @Property({ type: 'boolean', default: false, fieldName: 'is_verified' })
-  isVerified = false;
-
-  @Property({ type: 'boolean', default: false, fieldName: 'is_admin' })
-  isAdmin = false;
 
   @Property({ type: 'uuid', nullable: true, fieldName: 'ref_link_level_1' })
   refLinkLevel1?: string;
@@ -105,11 +96,7 @@ export class UserEntity {
   createdOrders? = new Collection<TrafficOrderEntity>(this);
 
   constructor(
-    data: EntityConstructorData<
-      UserEntity,
-      'id' | 'createdAt' | 'updatedAt',
-      'status' | 'role' | 'referralCount' | 'isActive' | 'isVerified' | 'isAdmin'
-    >,
+    data: EntityConstructorData<UserEntity, 'id' | 'createdAt' | 'updatedAt', 'status' | 'role' | 'referralCount'>,
   ) {
     Object.assign(this, data);
   }

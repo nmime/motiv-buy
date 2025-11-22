@@ -25,7 +25,7 @@ export enum UserRefPercentLevel3 {
 @Unique({ name: 'uq__user_ref_links__ref_code_ref_code_unique_key', properties: ['refCode', 'refCodeUniqueKey'] })
 @Unique({ name: 'uq__user_ref_links__default_default_unique_key', properties: ['isDefault', 'defaultUniqueKey'] })
 export class UserRefLinkEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 50, fieldName: 'type' })

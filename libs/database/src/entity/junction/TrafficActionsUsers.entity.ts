@@ -9,7 +9,7 @@ import { assignEntityData, EntityConstructorData } from '../../type';
 @Index({ name: 'ix__traffic_actions_users__is_completed', properties: ['isCompleted'] })
 @Unique({ name: 'uq__traffic_actions_users__action_user', properties: ['trafficAction', 'trafficUser'] })
 export class TrafficActionsUsersEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('TrafficActionsEntity', {

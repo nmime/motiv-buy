@@ -1,0 +1,5 @@
+{
+  "commands": {
+    "help_text": "Available commands:\n/start - Start bot\n/menu - Open menu\n/help - Show help\n/profile - View profile\n/balance - Check balance\n/settings - Settings\n/stats - Statistics"
+  }
+}

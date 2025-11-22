@@ -55,6 +55,8 @@
     "user_blocked": "🚫 You have been temporarily blocked due to excessive requests.\nPlease try again in {{minutes}} minutes.",
     "unknown_action": "❌ Unknown action",
     "unknown_action_help": "Unknown action. Please try again or use /menu.",
+    "unknown_menu_action": "❌ Unknown menu action",
+    "channel_not_found": "❌ Channel not found",
     "user_not_found": "❌ User not found. Please use /start to register.",
     "fetch_failed": "❌ Unable to fetch information. Please try again later.",
     "verify_failed": "❌ Unable to verify. Please try again later.",

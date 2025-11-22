@@ -12,12 +12,14 @@ export async function bootstrap(): Promise<void> {
     .description('Database migration management tool for Motiv-Buy project')
     .version('1.0.0');
 
+  let orm: MikroORM | undefined;
+
   try {
     const dbConfig = getDatabaseConfig();
     const ormConfig = createMikroOrmConfig(dbConfig);
 
     logger.log('Initializing database connection...');
-    const orm = await MikroORM.init(ormConfig);
+    orm = await MikroORM.init(ormConfig);
 
     const migrationCLI = new MigrationCLI(orm, logger);
 
@@ -27,5 +29,10 @@ export async function bootstrap(): Promise<void> {
   } catch (error: unknown) {
     logger.error('Failed to initialize migration CLI:', error);
     throw error;
+  } finally {
+    if (orm) {
+      await orm.close(true);
+    }
+    process.exit(0);
   }
 }

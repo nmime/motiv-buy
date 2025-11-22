@@ -22,7 +22,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 1. Create traffic_sources table
     this.addSql(`
       CREATE TABLE traffic_sources (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         name varchar(255) NOT NULL,
         description text,
         type varchar(20) NOT NULL,
@@ -54,7 +54,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 2. Create traffic_source_categories table
     this.addSql(`
       CREATE TABLE traffic_source_categories (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         name varchar(100) UNIQUE NOT NULL,
         slug varchar(100) UNIQUE NOT NULL,
         description text,
@@ -74,7 +74,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 3. Create traffic_targets table
     this.addSql(`
       CREATE TABLE traffic_targets (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         name varchar(255) NOT NULL,
         description text,
         type varchar(20) NOT NULL,
@@ -102,7 +102,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 4. Create traffic_users table
     this.addSql(`
       CREATE TABLE traffic_users (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         telegram_id bigint UNIQUE NOT NULL,
         username varchar(32),
         first_name varchar(64),
@@ -126,7 +126,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 5. Create traffic_orders table
     this.addSql(`
       CREATE TABLE traffic_orders (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         order_id varchar(64) UNIQUE NOT NULL,
         type varchar(20) NOT NULL,
         status varchar(20) NOT NULL,
@@ -177,7 +177,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 6. Create traffic_actions table
     this.addSql(`
       CREATE TABLE traffic_actions (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_order_id uuid NOT NULL,
         action_type varchar(20) NOT NULL,
         status varchar(20) NOT NULL,
@@ -205,7 +205,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 7. Create moderation_requests table
     this.addSql(`
       CREATE TABLE moderation_requests (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         entity_type varchar(20) NOT NULL,
         entity_id uuid NOT NULL,
         status varchar(20) NOT NULL,
@@ -247,7 +247,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 7. Create traffic_source_categories junction table
     this.addSql(`
       CREATE TABLE traffic_source_categories_junction (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_source_id uuid NOT NULL,
         traffic_source_category_id uuid NOT NULL,
         is_primary boolean NOT NULL DEFAULT false,
@@ -282,7 +282,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 8. Create traffic_target_sources junction table
     this.addSql(`
       CREATE TABLE traffic_target_sources (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_target_id uuid NOT NULL,
         traffic_source_id uuid NOT NULL,
         is_active boolean NOT NULL DEFAULT true,
@@ -315,7 +315,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 9. Create traffic_target_users junction table
     this.addSql(`
       CREATE TABLE traffic_target_users (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_target_id uuid NOT NULL,
         traffic_user_id uuid NOT NULL,
         can_view boolean NOT NULL DEFAULT true,
@@ -346,7 +346,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 10. Create user_traffic_targets junction table
     this.addSql(`
       CREATE TABLE user_traffic_targets (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         traffic_target_id uuid NOT NULL,
         role varchar(20) NOT NULL,
@@ -377,7 +377,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 11. Create user_traffic_sources junction table
     this.addSql(`
       CREATE TABLE user_traffic_sources (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         traffic_source_id uuid NOT NULL,
         role varchar(20) NOT NULL,
@@ -408,7 +408,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 12. Create user_traffic_orders junction table
     this.addSql(`
       CREATE TABLE user_traffic_orders (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         traffic_order_id uuid NOT NULL,
         role varchar(20) NOT NULL,
@@ -438,7 +438,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 13. Create traffic_actions_users junction table
     this.addSql(`
       CREATE TABLE traffic_actions_users (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_action_id uuid NOT NULL,
         traffic_user_id uuid NOT NULL,
         role varchar(20) NOT NULL,
@@ -464,7 +464,7 @@ export class Migration20250105000003TrafficSystem extends Migration {
     // 14. Create traffic_order_balances table (locked funds for guaranteed payments)
     this.addSql(`
       CREATE TABLE traffic_order_balances (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         traffic_order_id uuid NOT NULL UNIQUE,
         currency_id uuid NOT NULL,
         locked_amount decimal(20,8) NOT NULL,

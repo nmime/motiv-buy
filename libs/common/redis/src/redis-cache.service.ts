@@ -61,10 +61,25 @@ export class RedisCacheService {
     const result = await this.redis.hgetall(hashKey);
 
     return Object.entries(result).reduce(
-      (acc, [field, value]: [string, string]) => ({
-        ...acc,
-        [field]: JSON.parse(value) as T,
-      }),
+      (acc, [field, value]: [string, string]) => {
+        // Skip empty or invalid values
+        if (!value || value === '') {
+          return acc;
+        }
+
+        try {
+          return {
+            ...acc,
+            [field]: JSON.parse(value) as T,
+          };
+        } catch {
+          // If JSON parsing fails, return the raw value
+          return {
+            ...acc,
+            [field]: value as unknown as T,
+          };
+        }
+      },
       {} as Record<string, T>,
     );
   }

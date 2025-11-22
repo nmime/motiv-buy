@@ -22,7 +22,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
     // 1. Create currencies table
     this.addSql(`
       CREATE TABLE currencies (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         code varchar(10) NOT NULL UNIQUE,
         name varchar(50) NOT NULL,
         symbol varchar(10),
@@ -43,7 +43,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
     // 2. Create currency_rates_history table
     this.addSql(`
       CREATE TABLE currency_rates_history (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         currency_id uuid NOT NULL,
         provider varchar(30) NOT NULL,
         rate_to_usd decimal(20, 8) NOT NULL,
@@ -69,7 +69,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
     // 3. Create payment_transactions table
     this.addSql(`
       CREATE TABLE payment_transactions (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id varchar(255) NOT NULL,
         type varchar(20) NOT NULL,
         provider varchar(20) NOT NULL,
@@ -113,7 +113,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
     // 4. Create payment_providers table
     this.addSql(`
       CREATE TABLE payment_providers (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         provider varchar(50) NOT NULL UNIQUE,
         provider_type varchar(30) NOT NULL DEFAULT 'CRYPTO_NATIVE',
         is_enabled boolean NOT NULL DEFAULT true,
@@ -150,7 +150,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
     // 5. Create provider_currencies table
     this.addSql(`
       CREATE TABLE provider_currencies (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         provider_id uuid NOT NULL,
         currency_id uuid NOT NULL,
         network varchar(30) NOT NULL DEFAULT 'NATIVE',
@@ -198,7 +198,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
     // 6. Create provider_routings table
     this.addSql(`
       CREATE TABLE provider_routings (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         name varchar(255) NOT NULL,
         description text,
         rule_type varchar(30) NOT NULL,

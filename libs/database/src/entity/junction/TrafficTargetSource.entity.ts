@@ -9,7 +9,7 @@ import { assignEntityData, EntityConstructorData, TrafficTargetSourceContract } 
 @Index({ name: 'ix__traffic_target_sources__is_active', properties: ['isActive'] })
 @Unique({ name: 'uq__traffic_target_sources__target_source', properties: ['trafficTarget', 'trafficSource'] })
 export class TrafficTargetSourceEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('TrafficTargetEntity', {

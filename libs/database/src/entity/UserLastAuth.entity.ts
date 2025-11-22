@@ -6,7 +6,7 @@ import { UserEntity } from './User.entity';
 @Unique({ properties: ['user'] })
 @Index({ name: 'ix__user_last_auth__user_id', properties: ['user'] })
 export class UserLastAuthEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'inet', nullable: true })

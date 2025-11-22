@@ -36,7 +36,7 @@ export enum TrafficOrderType {
 @Index({ name: 'ix__traffic_orders__assigned_traffic_user_id', properties: ['assignedTrafficUser'] })
 @Index({ name: 'ix__traffic_orders__created_by', properties: ['createdBy'] })
 export class TrafficOrderEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 64, unique: true, fieldName: 'order_id' })

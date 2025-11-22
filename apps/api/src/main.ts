@@ -1,3 +1,14 @@
+// Suppress url.parse() deprecation warning from nats library (DEP0169)
+// The nats library uses url.parse() internally which triggers this warning
+// This is a known issue and will be fixed when nats updates to use WHATWG URL API
+process.removeAllListeners('warning');
+process.on('warning', (warning) => {
+  if (warning.name === 'DeprecationWarning' && warning.message.includes('url.parse()')) {
+    return;
+  }
+  console.warn(warning.name, warning.message);
+});
+
 /**
  * API Application Bootstrap
  *
@@ -5,11 +16,12 @@
  * Supports both single-process and cluster mode operation.
  *
  * Environment Variables:
- * - CLUSTER_MODE=true - Enable cluster mode with multiple workers
- * - CLUSTER_WORKERS=N - Number of worker processes (defaults to CPU count)
- * - PORT - HTTP port (default: 3000)
- * - HOST - Bind address (default: 0.0.0.0)
- * - API_PREFIX - API route prefix (default: api)
+ * - CLUSTER_MODE=true - Enable cluster mode with multiple workers (separate for API and Bot)
+ * - CLUSTER_WORKERS=N - Number of worker processes (defaults to CPU count, separate for API and Bot)
+ * - API_PORT - HTTP port (default: 5501)
+ * - BOT_PORT - Bot service port (default: 5502, reserved for future HTTP server)
+ * - API_HOST - Bind address (default: 0.0.0.0)
+ * - API_PREFIX - API route prefix (default: api/v1)
  * - NODE_ENV - Environment (development/production)
  * - CORS_ENABLED - Enable CORS (default: true)
  */
@@ -26,17 +38,16 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     ApiModule,
     new FastifyAdapter({
-      logger: true,
-      disableRequestLogging: false,
+      logger: false,
       trustProxy: true,
     }),
   );
 
   // Application configuration
   const appConfig = {
-    apiPrefix: process.env.API_PREFIX || 'api',
-    port: parseInt(process.env.PORT || '3000', 10),
-    host: process.env.HOST || '0.0.0.0',
+    apiPrefix: process.env.API_PREFIX || 'api/v1',
+    port: parseInt(process.env.API_PORT || '5501', 10),
+    host: process.env.API_HOST || '0.0.0.0',
     nodeEnv: process.env.NODE_ENV || 'development',
     corsEnabled: process.env.CORS_ENABLED !== 'false',
   };

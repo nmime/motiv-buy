@@ -6,7 +6,7 @@ import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceDto, BalanceService } from '@app/feature-balance-main';
-import { UserEntity } from '@app/database';
+import { UserEntity, UserRole, UserStatus } from '@app/database';
 
 /**
  * Main Menu Composer
@@ -78,7 +78,7 @@ export class MainMenuComposer {
           userId,
           timestamp: Date.now(),
           hasBalance: !!balance,
-          isVerified: user?.isVerified || false,
+          isActive: user?.status === UserStatus.Active,
         },
       };
     } catch (err: unknown) {
@@ -199,7 +199,7 @@ export class MainMenuComposer {
         customizedMenu.buttons = await this.applyRolePermissions(customizedMenu.buttons, user);
 
         // Admin features
-        if (user.isAdmin) {
+        if (user.role !== UserRole.User) {
           customizedMenu.buttons = this.addAdminFeatures(customizedMenu.buttons);
         }
       }
@@ -523,9 +523,9 @@ export class MainMenuComposer {
     // User management row
     buttons.push([
       {
-        text: user?.isVerified ? '👤 Profile ✅' : '👤 Profile',
+        text: '👤 Profile',
         callbackData: CallbackUtil.createMenuCallback('profile', 'navigate'),
-        metadata: { feature: 'profile', verified: user?.isVerified },
+        metadata: { feature: 'profile' },
       },
       {
         text: '⚙️ Settings',
@@ -633,10 +633,10 @@ export class MainMenuComposer {
       parts.push(`Balance: $${balance.availableAmount.toFixed(2)}`);
     }
 
-    if (user.isVerified) {
-      parts.push('Account verified ✅');
+    if (user.status === UserStatus.Active) {
+      parts.push('Account active ✅');
     } else {
-      parts.push('Account not verified ⚠️');
+      parts.push('Account restricted ⚠️');
     }
 
     return parts.join(' • ');
@@ -654,9 +654,9 @@ export class MainMenuComposer {
 
     switch (feature) {
       case 'withdrawal':
-        return user.isVerified;
+        return user.status === UserStatus.Active;
       case 'admin':
-        return user.isAdmin;
+        return user.role !== UserRole.User;
       default:
         return true;
     }

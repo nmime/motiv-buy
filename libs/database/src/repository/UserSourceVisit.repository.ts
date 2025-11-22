@@ -28,12 +28,12 @@ export class UserSourceVisitRepository extends EntityRepository<UserSourceVisitE
     ip?: string;
     isSignup?: boolean;
   }): Promise<UserSourceVisitEntity> {
-    const { userId, linkUserId, ...visitData } = data;
+    const { userId, linkUserId, isSignup, ...visitData } = data;
 
     const visit = new UserSourceVisitEntity({
       userId,
       linkUserId,
-      isSignup: data.isSignup,
+      isSignup,
       ...visitData,
     });
 

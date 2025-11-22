@@ -145,9 +145,14 @@ export class MigrationService {
 
     try {
       const generator = this.orm.getSchemaGenerator();
+      const connection = this.orm.em.getConnection();
 
       this.logger.log('Dropping all tables...');
       await generator.dropSchema();
+
+      // Clear migration tracking table to allow re-running migrations
+      this.logger.log('Clearing migration history...');
+      await connection.execute('DELETE FROM mikro_orm_migrations');
 
       this.logger.log('Running fresh migrations...');
       const migrationResult = await this.migrator.up();

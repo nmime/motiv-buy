@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { MikroORM, EntityManager as SqlEntityManager } from '@mikro-orm/postgresql';
 import { NotificationRepository, NotificationTargetType } from '@app/database';
 import { NotificationSenderService } from './notification-sender.service';
 
@@ -10,7 +11,7 @@ export class NotificationSchedulerService implements OnModuleInit {
   private readonly batchSize = 100;
 
   constructor(
-    private readonly notificationRepository: NotificationRepository,
+    private readonly orm: MikroORM,
     private readonly notificationSenderService: NotificationSenderService,
   ) {}
 
@@ -26,8 +27,12 @@ export class NotificationSchedulerService implements OnModuleInit {
 
     this.isProcessing = true;
 
+    // Fork EntityManager for cron job context (cron jobs run outside request context)
+    const em = this.orm.em.fork() as SqlEntityManager;
+    const notificationRepository = new NotificationRepository(em);
+
     try {
-      const pendingNotifications = await this.notificationRepository.findPending({
+      const pendingNotifications = await notificationRepository.findPending({
         targetType: NotificationTargetType.User,
         limit: this.batchSize,
       });
@@ -40,7 +45,7 @@ export class NotificationSchedulerService implements OnModuleInit {
 
       for (const notification of pendingNotifications) {
         // eslint-disable-next-line no-await-in-loop
-        const canProcess = await this.notificationRepository.markAsProcessing(notification.id);
+        const canProcess = await notificationRepository.markAsProcessing(notification.id);
 
         if (!canProcess) {
           continue;
@@ -60,8 +65,12 @@ export class NotificationSchedulerService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async processRetryableNotifications(): Promise<void> {
+    // Fork EntityManager for cron job context (cron jobs run outside request context)
+    const em = this.orm.em.fork() as SqlEntityManager;
+    const notificationRepository = new NotificationRepository(em);
+
     try {
-      const retryableNotifications = await this.notificationRepository.findRetryable(50);
+      const retryableNotifications = await notificationRepository.findRetryable(50);
 
       if (retryableNotifications.length === 0) {
         return;

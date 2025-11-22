@@ -17,7 +17,7 @@ export enum UserTrafficSourceRole {
 @Index({ name: 'ix__user_traffic_sources__is_active', properties: ['isActive'] })
 @Unique({ name: 'uq__user_traffic_sources__user_source', properties: ['user', 'trafficSource'] })
 export class UserTrafficSourceEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })

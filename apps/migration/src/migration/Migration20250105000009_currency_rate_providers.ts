@@ -15,7 +15,7 @@ export class Migration20250105000009CurrencyRateProviders extends Migration {
     // Create currency_rate_providers table
     this.addSql(`
       CREATE TABLE currency_rate_providers (
-        id uuid NOT NULL DEFAULT gen_random_uuid_v7(),
+        id uuid NOT NULL DEFAULT uuidv7(),
         name varchar(50) NOT NULL,
         type varchar(20) NOT NULL,
         reliability integer NOT NULL DEFAULT 80,

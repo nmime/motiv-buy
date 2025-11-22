@@ -45,7 +45,7 @@ export enum ConditionOperator {
 @Index({ name: 'ix__provider_routings__provider', properties: ['provider'] })
 @Index({ name: 'ix__provider_routings__currency', properties: ['currency'] })
 export class ProviderRoutingEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   /**

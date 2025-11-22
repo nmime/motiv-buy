@@ -4,6 +4,7 @@ import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceService } from '@app/feature-balance-main';
 import { UserService } from '@app/feature-user-main';
+import { UserRole, UserStatus } from '@app/database';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { unknownToError } from '@app/common-shared';
@@ -456,7 +457,7 @@ export class CommandHandler {
 
     try {
       const user = await this.authUserService.findByPlatformId(userId);
-      if (!user || !user.isAdmin) {
+      if (!user || user.role === UserRole.User) {
         await ctx.reply('❌ Access denied. Admin privileges required.');
 
         return;
@@ -755,9 +756,8 @@ Export your data in various formats:
 • Platform ID: ${userId}
 
 <b>🔐 Account Status:</b>
-• Status: ${user.isActive ? '✅ Active' : '❌ Inactive'}
-• Verified: ${user.isVerified ? '✅ Verified' : '❌ Not verified'}
-• Admin: ${user.isAdmin ? '✅ Yes' : '❌ No'}
+• Status: ${user.status === UserStatus.Active ? '✅ Active' : '❌ Inactive'}
+• Role: ${user.role !== UserRole.User ? '✅ Admin' : '❌ User'}
 • Member since: ${new Date(user.createdAt).toLocaleDateString()}
 
 <b>💰 Financial Status:</b>

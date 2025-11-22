@@ -31,7 +31,7 @@ export enum TransactionStatus {
 @Index({ name: 'ix__user_balance_history__reference_id', properties: ['referenceId'] })
 @Index({ name: 'ix__user_balance_history__created_at', properties: ['createdAt'] })
 export class UserBalanceHistoryEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })

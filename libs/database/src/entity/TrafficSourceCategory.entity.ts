@@ -67,7 +67,7 @@ export enum TopicCategory {
 @Index({ name: 'ix__traffic_source_categories__category_type', properties: ['categoryType'] })
 @Index({ name: 'ix__traffic_source_categories__is_active', properties: ['isActive'] })
 export class TrafficSourceCategoryEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'json', fieldName: 'name' })

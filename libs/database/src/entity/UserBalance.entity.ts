@@ -9,7 +9,7 @@ import { add, toDbString } from '@app/common-shared';
 @Index({ name: 'ix__user_balances__currency_id', properties: ['currency'] })
 @Unique({ name: 'uq__user_balances__user_currency', properties: ['user', 'currency'] })
 export class UserBalanceEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })

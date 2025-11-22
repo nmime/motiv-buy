@@ -6,7 +6,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
+import { MikroORM } from '@mikro-orm/core';
 import { BotContext, AuthenticatedBotContext } from '@app/feature-bot-shared';
 import {
   UserEntity,
@@ -14,6 +14,7 @@ import {
   UserBalanceHistoryEntity,
   UserBalanceEntity,
   UserRole,
+  UserStatus,
   TrafficSourceEntity,
   TrafficSourceStatus,
   TrafficOrderEntity,
@@ -43,7 +44,7 @@ export class CallbackRouterHandler {
   private settingsActionHandlers!: Map<string, (ctx: BotContext, _params: string[]) => Promise<void>>;
 
   constructor(
-    private readonly em: EntityManager,
+    private readonly orm: MikroORM,
     private readonly menuHandler: MenuActionHandler,
     private readonly profileHandler: ProfileActionHandler,
     private readonly balanceHandler: BalanceActionHandler,
@@ -54,6 +55,13 @@ export class CallbackRouterHandler {
     private readonly messageService: MessageService,
   ) {
     this.initializeHandlerMaps();
+  }
+
+  /**
+   * Get a forked EntityManager for context-safe database operations
+   */
+  private get em() {
+    return this.orm.em.fork();
   }
 
   private initializeHandlerMaps(): void {
@@ -1005,13 +1013,6 @@ export class CallbackRouterHandler {
         return;
       }
 
-      // Check if user is verified
-      if (!user.isVerified) {
-        await ctx.reply('⚠️ Account verification required for withdrawals.\n\nPlease verify your account first.');
-
-        return;
-      }
-
       // Get user balances
       const balances = await this.em.find(UserBalanceEntity, { user: user.id }, { populate: ['currency'] });
 
@@ -1113,12 +1114,10 @@ export class CallbackRouterHandler {
       }
 
       // Get admin statistics
-      const [totalUsers, verifiedUsers] = await Promise.all([
+      const [totalUsers, activeUsers] = await Promise.all([
         this.em.count(UserEntity),
-        this.em.count(UserEntity, { isVerified: true }),
+        this.em.count(UserEntity, { status: UserStatus.Active }),
       ]);
-
-      const activeUsers = totalUsers; // Simplified - count all users as active
 
       const [totalOrders, activeOrders] = await Promise.all([
         this.em.count(TrafficOrderEntity),
@@ -1132,8 +1131,7 @@ export class CallbackRouterHandler {
       let text = '<b>🔧 Admin Panel</b>\n\n';
       text += '<b>👥 Users:</b>\n';
       text += `• Total: ${totalUsers}\n`;
-      text += `• Active: ${activeUsers}\n`;
-      text += `• Verified: ${verifiedUsers}\n\n`;
+      text += `• Active: ${activeUsers}\n\n`;
       text += '<b>📋 Orders:</b>\n';
       text += `• Total: ${totalOrders}\n`;
       text += `• Active: ${activeOrders}\n\n`;
@@ -1398,8 +1396,8 @@ export class CallbackRouterHandler {
         return;
       }
 
-      const em = this.em.fork();
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const em = this.em;
+      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
         await ctx.reply(ctx.t('common.errors.user_not_found'));

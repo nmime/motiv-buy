@@ -1,0 +1,50 @@
+{
+  "menu": {
+    "main": "Main Menu",
+    "orders": "Orders",
+    "referrals": "Referrals",
+    "payments": "Payments",
+    "support": "Support",
+    "help": "Help",
+    "back_to_balance": "Back to Balance",
+    "back_to_menu": "Back to Menu",
+    "balance": {
+      "title": "Balance",
+      "history_coming_soon": "Transaction history coming soon!",
+      "analytics_coming_soon": "Balance analytics coming soon!"
+    },
+    "profile": {
+      "title": "Profile",
+      "edit_coming_soon": "Profile editing coming soon!",
+      "stats_coming_soon": "Profile stats coming soon!",
+      "security_coming_soon": "Security settings coming soon!"
+    },
+    "settings": {
+      "title": "Settings",
+      "notifications_coming_soon": "Notification settings coming soon!",
+      "language_coming_soon": "Language settings coming soon!",
+      "theme_coming_soon": "Theme settings coming soon!",
+      "export_coming_soon": "Data export coming soon!",
+      "reset_coming_soon": "Reset options coming soon!"
+    },
+    "stats": {
+      "title": "Statistics",
+      "overview_coming_soon": "Statistics overview coming soon!",
+      "daily_coming_soon": "Daily statistics coming soon!",
+      "weekly_coming_soon": "Weekly statistics coming soon!",
+      "monthly_coming_soon": "Monthly statistics coming soon!"
+    },
+    "traffic": {
+      "title": "Traffic",
+      "live_coming_soon": "Live traffic stats coming soon!",
+      "sources_coming_soon": "Traffic sources coming soon!",
+      "analytics_coming_soon": "Traffic analytics coming soon!",
+      "optimize_coming_soon": "Traffic optimization coming soon!"
+    },
+    "help": {
+      "title": "Help",
+      "faq_coming_soon": "FAQ section coming soon!",
+      "tutorials_coming_soon": "Tutorials coming soon!"
+    }
+  }
+}

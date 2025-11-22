@@ -40,7 +40,7 @@ export enum NetworkType {
 @Index({ name: 'ix__provider_currencies__is_enabled', properties: ['isEnabled'] })
 @Index({ name: 'ix__provider_currencies__is_preferred', properties: ['isPreferred'] })
 export class ProviderCurrencyEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   /**

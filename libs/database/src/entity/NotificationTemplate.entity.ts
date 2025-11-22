@@ -94,7 +94,7 @@ export interface VenueConfig {
 @Index({ name: 'ix__notification_templates__content_type', properties: ['contentType'] })
 @Index({ name: 'ix__notification_templates__is_active', properties: ['isActive'] })
 export class NotificationTemplateEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 100, unique: true, fieldName: 'code' })

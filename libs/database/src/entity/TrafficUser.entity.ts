@@ -16,7 +16,7 @@ export enum TrafficUserStatus {
 @Index({ name: 'ix__traffic_users__status', properties: ['status'] })
 @Index({ name: 'ix__traffic_users__traffic_source_id', properties: ['trafficSource'] })
 export class TrafficUserEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'bigint', unique: true, fieldName: 'telegram_id' })

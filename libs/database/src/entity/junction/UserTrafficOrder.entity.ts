@@ -16,7 +16,7 @@ export enum UserTrafficOrderRole {
 @Index({ name: 'ix__user_traffic_orders__role', properties: ['role'] })
 @Unique({ name: 'uq__user_traffic_orders__user_order', properties: ['user', 'trafficOrder'] })
 export class UserTrafficOrderEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })

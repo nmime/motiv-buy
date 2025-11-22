@@ -29,7 +29,7 @@ export enum TrafficActionType {
 @Index({ name: 'ix__traffic_actions__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_actions__scheduled_at', properties: ['scheduledAt'] })
 export class TrafficActionsEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 64, unique: true, fieldName: 'action_id' })

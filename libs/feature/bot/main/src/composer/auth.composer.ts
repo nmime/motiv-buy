@@ -6,7 +6,7 @@ import { SessionService } from '../service/session.service';
 import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { UserService } from '@app/feature-user-main';
-import { PlatformType, UserEntity } from '@app/database';
+import { PlatformType, UserEntity, UserStatus } from '@app/database';
 
 /**
  * Authentication State Enum
@@ -1002,7 +1002,7 @@ export class AuthComposer {
       const session = await this.sessionService.getSession(userId);
       const user = await this.authUserService.findByPlatformId(userId);
 
-      if (user && user.isActive) {
+      if (user && user.status === UserStatus.Active) {
         if (session?.data.conversationState?.currentStep === 'just_registered') {
           return AuthState.ProfileSetup;
         }

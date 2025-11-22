@@ -5,7 +5,7 @@ import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceService } from '@app/feature-balance-main';
 import { UserService } from '@app/feature-user-main';
-import { PlatformType } from '@app/database';
+import { PlatformType, UserStatus } from '@app/database';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { MenuHandler } from './menu.handler';
@@ -747,8 +747,7 @@ export class CallbackHandler {
 • Name: ${user.firstName} ${user.lastName || ''}
 • Username: ${user.username || 'Not set'}
 • Member for: ${membershipDays} days
-• Status: ${user.isActive ? '✅ Active' : '❌ Inactive'}
-• Verified: ${user.isVerified ? '✅ Yes' : '❌ No'}
+• Status: ${user.status === UserStatus.Active ? '✅ Active' : '❌ Inactive'}
 
 💰 <b>Financial Summary:</b>
 • Current Balance: $${balance.availableAmount.toFixed(2)}

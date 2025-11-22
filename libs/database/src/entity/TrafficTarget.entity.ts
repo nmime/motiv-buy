@@ -22,7 +22,7 @@ export enum TrafficTargetStatus {
 @Index({ name: 'ix__traffic_targets__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_targets__status', properties: ['status'] })
 export class TrafficTargetEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 255, fieldName: 'name' })

@@ -9,7 +9,7 @@ import { TrafficSourceCategoryEntity } from '../TrafficSourceCategory.entity';
 @Index({ name: 'ix__traffic_source_categories_junction__is_primary', properties: ['isPrimary'] })
 @Unique({ name: 'uq__traffic_source_categories_junction__source_category', properties: ['trafficSource', 'category'] })
 export class TrafficSourceCategoriesEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('TrafficSourceEntity', {

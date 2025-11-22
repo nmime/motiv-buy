@@ -23,7 +23,7 @@ export enum NotificationType {
 @Index({ name: 'ix__user_settings__is_active', properties: ['isActive'] })
 @Unique({ name: 'uq__user_settings__user_key', properties: ['user', 'key'] })
 export class UserSettingsEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('UserEntity', { nullable: false, joinColumn: 'user_id', referenceColumnName: 'id', ref: true })

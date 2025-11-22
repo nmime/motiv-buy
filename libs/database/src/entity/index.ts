@@ -11,6 +11,7 @@ export * from './UserSourceVisit.entity';
 export * from './Currency.entity';
 export * from './CurrencyRatesHistory.entity';
 export * from './CurrencyRateProvider.entity';
+export * from './RateProviderCurrency.entity';
 export * from './PaymentTransaction.entity';
 export * from './PaymentProvider.entity';
 export * from './ProviderCurrency.entity';

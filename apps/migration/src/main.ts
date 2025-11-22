@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
+// Load environment variables FIRST, before any other imports
 import dotenv from 'dotenv';
+dotenv.config({ path: '.env' });
+
 import { bootstrap } from './migration-cli.bootstrap';
 import { logger } from './util';
-
-dotenv.config({ path: '.env' });
 
 async function main(): Promise<void> {
   try {

@@ -12,6 +12,7 @@ import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceService } from '@app/feature-balance-main';
 import { UserService } from '@app/feature-user-main';
 import { StatisticService } from '@app/feature-statistic-main';
+import { UserStatus } from '@app/database';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { InlineKeyboard } from 'grammy';
@@ -433,8 +434,7 @@ Last updated: ${new Date().toLocaleTimeString()}
       const enhancedDescription = `
 Name: ${user.firstName} ${user.lastName || ''}
 Username: ${user.username || 'Not set'}
-Status: ${user.isActive ? '✅ Active' : '❌ Inactive'}
-Verified: ${user.isVerified ? '✅ Verified' : '❌ Unverified'}
+Status: ${user.status === UserStatus.Active ? '✅ Active' : '❌ Inactive'}
 Member since: ${new Date(user.createdAt).toLocaleDateString()}
 `;
 

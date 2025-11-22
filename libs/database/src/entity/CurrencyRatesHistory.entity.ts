@@ -35,7 +35,7 @@ export enum RateProvider {
 @Index({ name: 'ix__currency_rates_history__created_at', properties: ['createdAt'] })
 @Index({ name: 'ix__currency_rates_history__currency_provider', properties: ['currency', 'provider'] })
 export class CurrencyRatesHistoryEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('CurrencyEntity', { nullable: false, joinColumn: 'currency_id', referenceColumnName: 'id', ref: true })

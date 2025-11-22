@@ -1,0 +1,8 @@
+{
+  "profile": {
+    "enter_new_field": "Enter new value for {{field}}:",
+    "security_menu": "Security Settings\n\nManage your account security.",
+    "password_change": "Change Password\n\nUpdate your account password.",
+    "email_security": "Email Security\n\nManage your email security settings."
+  }
+}

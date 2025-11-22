@@ -169,13 +169,6 @@ export class OrderActionHandler {
         return;
       }
 
-      // Check if user is verified
-      if (!user.isVerified) {
-        await ctx.reply('❌ You must verify your account before creating orders. Use the Profile menu to verify.');
-
-        return;
-      }
-
       // Store order creation state in session
       if (ctx.session) {
         ctx.session.conversationState = 'order_create';

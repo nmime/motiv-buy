@@ -47,7 +47,7 @@ export enum CurrencyCode {
 @Index({ name: 'ix__currencies__type', properties: ['type'] })
 @Index({ name: 'ix__currencies__is_active', properties: ['isActive'] })
 export class CurrencyEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 10, fieldName: 'code', unique: true })

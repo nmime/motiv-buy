@@ -12,7 +12,7 @@ export class Migration20250105000008NotificationSystem extends Migration {
     // 1. Create notification_templates table
     this.addSql(`
       CREATE TABLE notification_templates (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         code varchar(100) UNIQUE NOT NULL,
         name varchar(255),
         description text,
@@ -52,7 +52,7 @@ export class Migration20250105000008NotificationSystem extends Migration {
     // 2. Create notifications table
     this.addSql(`
       CREATE TABLE notifications (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         channel varchar(32) NOT NULL,
         target_type varchar(32) NOT NULL,
         target_id varchar(255) NOT NULL,

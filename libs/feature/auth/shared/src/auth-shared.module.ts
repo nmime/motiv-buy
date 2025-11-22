@@ -1,12 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { RedisModule } from '@app/common-redis';
-import {
-  UserLastAuthRepository,
-  UserRefLinkRepository,
-  UserRepository,
-  UserSourceVisitRepository,
-} from '@app/database';
 import { AuthConfigModule, AuthConfigService } from './config';
 import { createAuthJwtModuleOptions } from './const';
 import {
@@ -22,6 +16,10 @@ import {
 } from './service';
 import { JwtStrategy } from './strategy';
 
+/**
+ * Auth shared module.
+ * Note: Repositories are provided globally by DatabaseModule, no need to re-provide them here.
+ */
 @Module({
   imports: [
     RedisModule,
@@ -42,10 +40,6 @@ import { JwtStrategy } from './strategy';
     SourceRegisterService,
     UserVisitService,
     JwtStrategy,
-    UserRepository,
-    UserRefLinkRepository,
-    UserSourceVisitRepository,
-    UserLastAuthRepository,
   ],
   exports: [
     AuthJwtCacheService,
@@ -59,10 +53,6 @@ import { JwtStrategy } from './strategy';
     UserVisitService,
     JwtStrategy,
     JwtModule,
-    UserRepository,
-    UserRefLinkRepository,
-    UserSourceVisitRepository,
-    UserLastAuthRepository,
   ],
 })
 export class AuthSharedModule {}

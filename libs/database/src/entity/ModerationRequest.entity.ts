@@ -23,7 +23,7 @@ export enum ModerationStatus {
 @Index({ name: 'ix__moderation_requests__telegram_message', properties: ['telegramChatId', 'telegramMessageId'] })
 @Index({ name: 'ix__moderation_requests__created_at', properties: ['createdAt'] })
 export class ModerationRequestEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 20, fieldName: 'entity_type' })

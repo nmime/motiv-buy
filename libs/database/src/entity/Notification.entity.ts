@@ -78,7 +78,7 @@ export interface NotificationExtra {
   properties: ['status', 'targetType', 'sendTimeFrom', 'sendTimeTo'],
 })
 export class NotificationEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 32, fieldName: 'channel' })

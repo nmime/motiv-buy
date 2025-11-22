@@ -9,7 +9,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
-import { UserEntity, UserStatus } from '@app/database';
+import { UserEntity, UserRole, UserStatus } from '@app/database';
 import { BotValidationUtil } from '../util/bot-validation.util';
 import { MenuActionHandler } from './menu-action.handler';
 import { MessageService } from '../service/message.service';
@@ -117,12 +117,6 @@ export class ProfileActionHandler {
    * Note: This handler must be wrapped with protectHandler()
    */
   async handleVerification(ctx: AuthenticatedBotContext): Promise<void> {
-    if (ctx.user.isVerified) {
-      await ctx.reply(ctx.t('user.profile.already_verified'));
-
-      return;
-    }
-
     const verificationText =
       '🔐 <b>Account Verification</b>\n\n' +
       'To verify your account, please complete the following steps:\n\n' +
@@ -218,14 +212,12 @@ export class ProfileActionHandler {
     };
 
     const statusEmoji = statusEmojiMap[user.status] || '❓';
-    const verifiedEmoji = user.isVerified ? '✅' : '❌';
 
     return (
       '<b>👤 Your Profile</b>\n\n' +
       `<b>Name:</b> ${user.firstName}${user.lastName ? ' ' + user.lastName : ''}\n` +
       `<b>Username:</b> ${user.username || 'Not set'}\n` +
       `<b>Status:</b> ${statusEmoji} ${user.status}\n` +
-      `<b>Verified:</b> ${verifiedEmoji}\n` +
       `<b>Referrals:</b> ${user.referralCount}\n` +
       `<b>Member since:</b> ${user.createdAt.toLocaleDateString()}\n\n` +
       `<i>Use the buttons below to manage your profile.</i>`
@@ -236,6 +228,9 @@ export class ProfileActionHandler {
    * Format profile details text
    */
   private formatProfileDetails(user: UserEntity): string {
+    const isActive = user.status === UserStatus.Active;
+    const isAdmin = user.role !== UserRole.User;
+
     return (
       '<b>📋 Detailed Profile Information</b>\n\n' +
       `<b>User ID:</b> <code>${user.id}</code>\n` +
@@ -246,9 +241,8 @@ export class ProfileActionHandler {
       `<b>Account Status:</b>\n` +
       `• Status: ${user.status}\n` +
       `• Role: ${user.role}\n` +
-      `• Active: ${user.isActive ? 'Yes' : 'No'}\n` +
-      `• Verified: ${user.isVerified ? 'Yes' : 'No'}\n` +
-      `• Admin: ${user.isAdmin ? 'Yes' : 'No'}\n\n` +
+      `• Active: ${isActive ? 'Yes' : 'No'}\n` +
+      `• Admin: ${isAdmin ? 'Yes' : 'No'}\n\n` +
       `<b>Referral Information:</b>\n` +
       `• Total Referrals: ${user.referralCount}\n` +
       `• Referred By: ${user.referredBy || 'None'}\n\n` +

@@ -42,7 +42,7 @@ export enum UpdateStrategy {
 @Index({ name: 'ix__payment_providers__is_enabled', properties: ['isEnabled'] })
 @Index({ name: 'ix__payment_providers__priority', properties: ['priority'] })
 export class PaymentProviderEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 50, fieldName: 'provider', unique: true })

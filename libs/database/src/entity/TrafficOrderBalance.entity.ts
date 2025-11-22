@@ -20,7 +20,7 @@ import { CurrencyEntity } from './Currency.entity';
 @Index({ name: 'ix__traffic_order_balances__traffic_order_id', properties: ['trafficOrder'] })
 @Index({ name: 'ix__traffic_order_balances__currency_id', properties: ['currency'] })
 export class TrafficOrderBalanceEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('TrafficOrderEntity', {

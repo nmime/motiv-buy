@@ -2,6 +2,10 @@ import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
 import { UserEntity, UserLastAuthEntity } from '../entity';
 
 export class UserLastAuthRepository extends EntityRepository<UserLastAuthEntity> {
+  constructor(em: EntityManager) {
+    super(em, UserLastAuthEntity);
+  }
+
   /**
    * Updates existing user auth info or creates new record if not exists
    * Cleaner implementation using MikroORM's assign and persist pattern

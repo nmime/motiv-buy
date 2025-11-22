@@ -105,13 +105,6 @@ export class BalanceActionHandler {
    */
   async handleWithdrawalStart(ctx: AuthenticatedBotContext): Promise<void> {
     try {
-      // Check if user is verified
-      if (!ctx.user.isVerified) {
-        await ctx.reply(ctx.t('balance.verification_required'));
-
-        return;
-      }
-
       const balances = await this.getUserBalances(ctx.user.id);
       const availableBalance = balances.length > 0 ? balances[0].getAvailableBalance() : decimal(0);
 

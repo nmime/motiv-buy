@@ -25,7 +25,7 @@ export enum TrafficSourceStatus {
 @Index({ name: 'ix__traffic_sources__bot_username', properties: ['botUsername'] })
 @Index({ name: 'ix__traffic_sources__api_key_prefix', properties: ['apiKeyPrefix'] })
 export class TrafficSourceEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 255, fieldName: 'name' })

@@ -18,7 +18,7 @@ export enum CurrencyRateProviderType {
 @Entity({ tableName: 'currency_rate_providers' })
 @Unique({ name: 'uq__currency_rate_providers__name', properties: ['name'] })
 export class CurrencyRateProviderEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @Property({ type: 'varchar', length: 50, fieldName: 'name' })

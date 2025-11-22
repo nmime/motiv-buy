@@ -9,7 +9,7 @@ import { assignEntityData, EntityConstructorData } from '../../type';
 @Index({ name: 'ix__traffic_target_users__is_blocked', properties: ['isBlocked'] })
 @Unique({ name: 'uq__traffic_target_users__target_user', properties: ['trafficTarget', 'trafficUser'] })
 export class TrafficTargetUsersEntity {
-  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid_v7()' })
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'uuidv7()' })
   id!: string;
 
   @ManyToOne('TrafficTargetEntity', {

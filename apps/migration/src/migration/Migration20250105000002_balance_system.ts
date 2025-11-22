@@ -15,7 +15,7 @@ export class Migration20250105000002BalanceSystem extends Migration {
     // 1. Create user_balances table with foreign key and unique constraint
     this.addSql(`
       CREATE TABLE user_balances (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         balance decimal(20,8) NOT NULL DEFAULT 0,
         reserved decimal(20,8) NOT NULL DEFAULT 0,
@@ -40,7 +40,7 @@ export class Migration20250105000002BalanceSystem extends Migration {
     // 2. Create user_balance_history table with foreign key
     this.addSql(`
       CREATE TABLE user_balance_history (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid_v7(),
+        id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         amount decimal(20,8) NOT NULL,
         previous_balance decimal(20,8) NOT NULL,

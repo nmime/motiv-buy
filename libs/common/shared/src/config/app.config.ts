@@ -11,8 +11,8 @@ export interface AppConfig {
 export function createAppConfig(configService: ConfigService): AppConfig {
   return {
     nodeEnv: configService.get<string>('NODE_ENV', 'development'),
-    port: configService.get<number>('PORT', 3000),
-    host: configService.get<string>('HOST', '0.0.0.0'),
+    port: configService.get<number>('API_PORT', 5501),
+    host: configService.get<string>('API_HOST', '0.0.0.0'),
     apiPrefix: configService.get<string>('API_PREFIX', 'api/v1'),
     corsEnabled: configService.get<boolean>('CORS_ENABLED', true),
   };
