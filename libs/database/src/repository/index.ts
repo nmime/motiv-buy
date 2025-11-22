@@ -14,6 +14,7 @@ export * from './TrafficActions.repository';
 export * from './ModerationRequest.repository';
 export * from './Currency.repository';
 export * from './CurrencyRatesHistory.repository';
+export * from './CurrencyRateProvider.repository';
 export * from './PaymentProvider.repository';
 export * from './ProviderCurrency.repository';
 export * from './ProviderRouting.repository';

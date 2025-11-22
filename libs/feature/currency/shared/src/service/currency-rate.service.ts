@@ -2,10 +2,13 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
+import { MikroORM, RequestContext } from '@mikro-orm/core';
 import {
   CurrencyCode,
   CurrencyRatesHistoryRepository,
   CurrencyRepository,
+  CurrencyRateProviderRepository,
+  CurrencyRateProviderEntity,
   CurrencyType,
   RateProvider,
 } from '@app/database';
@@ -48,26 +51,9 @@ export class CurrencyRateService implements OnModuleInit {
   private readonly circuitBreakers = new Map<RateProvider, CircuitBreakerState>();
   private readonly requestCounts = new Map<RateProvider, { count: number; resetAt: Date }>();
 
-  // Provider configurations with free tier limits
-  private readonly providerConfigs: ProviderConfig[] = [
-    // Crypto providers - minimum 2 required
-    { name: RateProvider.CoinGecko, reliability: 95, enabled: true, quotaPerMinute: 50, requiresAuth: false },
-    { name: RateProvider.Binance, reliability: 90, enabled: true, quotaPerMinute: 2400, requiresAuth: false },
-    { name: RateProvider.CryptoCompare, reliability: 85, enabled: true, quotaPerMonth: 100000, requiresAuth: true },
-    { name: RateProvider.CoinCap, reliability: 80, enabled: true, requiresAuth: false }, // Unlimited free
-    { name: RateProvider.Kraken, reliability: 90, enabled: true, requiresAuth: false }, // Public API
-
-    // Fiat providers - minimum 2 required
-    {
-      name: RateProvider.ExchangeRateApi,
-      reliability: 100,
-      enabled: true,
-      quotaPerMonth: 1500,
-      requiresAuth: false,
-    },
-    { name: RateProvider.Frankfurter, reliability: 95, enabled: true, requiresAuth: false }, // Unlimited free
-    { name: RateProvider.FreeCurrencyApi, reliability: 85, enabled: true, quotaPerMonth: 5000, requiresAuth: true },
-  ];
+  // Provider configurations loaded from database (cached)
+  private providerConfigs: ProviderConfig[] = [];
+  private providerConfigsLoaded = false;
 
   // Stablecoin tolerance (3% deviation)
   private readonly stablecoinTolerance = 0.03;
@@ -83,12 +69,66 @@ export class CurrencyRateService implements OnModuleInit {
   private readonly initialRetryDelay = 2000; // 2 seconds
 
   constructor(
+    private readonly orm: MikroORM,
     private readonly em: EntityManager,
     private readonly currencyRepository: CurrencyRepository,
     private readonly currencyRatesHistoryRepository: CurrencyRatesHistoryRepository,
+    private readonly currencyRateProviderRepository: CurrencyRateProviderRepository,
     private readonly configService: ConfigService,
-  ) {
+  ) {}
+
+  /**
+   * Load provider configurations from database
+   */
+  private async loadProviderConfigs(): Promise<void> {
+    if (this.providerConfigsLoaded) {
+      return;
+    }
+
+    try {
+      const providers = await this.currencyRateProviderRepository.findAllEnabled();
+
+      this.providerConfigs = providers.map((p) => ({
+        name: p.name,
+        reliability: p.reliability,
+        enabled: p.isEnabled,
+        quotaPerMinute: p.quotaPerMinute ?? undefined,
+        quotaPerMonth: p.quotaPerMonth ?? undefined,
+        requiresAuth: p.requiresAuth,
+      }));
+
+      this.initializeCircuitBreakers();
+      this.providerConfigsLoaded = true;
+      this.logger.log(`Loaded ${this.providerConfigs.length} provider configurations from database`);
+    } catch (error) {
+      this.logger.error(`Failed to load provider configs from database: ${error}`);
+      // Use fallback defaults if DB load fails
+      this.useFallbackConfigs();
+    }
+  }
+
+  /**
+   * Fallback provider configs if database is unavailable
+   */
+  private useFallbackConfigs(): void {
+    this.providerConfigs = [
+      { name: RateProvider.CoinGecko, reliability: 95, enabled: true, quotaPerMinute: 50, requiresAuth: false },
+      { name: RateProvider.Binance, reliability: 90, enabled: true, quotaPerMinute: 2400, requiresAuth: false },
+      { name: RateProvider.CoinCap, reliability: 80, enabled: true, requiresAuth: false },
+      { name: RateProvider.Kraken, reliability: 90, enabled: true, requiresAuth: false },
+      { name: RateProvider.ExchangeRateApi, reliability: 100, enabled: true, quotaPerMonth: 1500, requiresAuth: false },
+      { name: RateProvider.Frankfurter, reliability: 95, enabled: true, requiresAuth: false },
+    ];
     this.initializeCircuitBreakers();
+    this.logger.warn('Using fallback provider configurations');
+  }
+
+  /**
+   * Execute a function within a request context (required for background tasks)
+   * This ensures EntityManager operations have proper context
+   */
+  private async executeInContext<T>(fn: () => Promise<T>): Promise<T> {
+    return RequestContext.create(this.orm.em, fn);
   }
 
   /**
@@ -141,33 +181,38 @@ export class CurrencyRateService implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async updateAllRates(): Promise<void> {
-    this.logger.log('🔄 Starting rate update from all providers');
+    await this.executeInContext(async () => {
+      // Ensure provider configs are loaded
+      await this.loadProviderConfigs();
 
-    const startTime = Date.now();
-    const results = await Promise.allSettled([
-      // Crypto providers (minimum 2)
-      this.fetchCoinGeckoRates(),
-      this.fetchBinanceRates(),
-      this.fetchCryptoCompareRates(),
-      this.fetchCoinCapRates(),
-      this.fetchKrakenRates(),
+      this.logger.log('🔄 Starting rate update from all providers');
 
-      // Fiat providers (minimum 2)
-      this.fetchExchangeRateAPI(),
-      this.fetchFrankfurterRates(),
-      this.fetchFreeCurrencyRates(),
-    ]);
+      const startTime = Date.now();
+      const results = await Promise.allSettled([
+        // Crypto providers (minimum 2)
+        this.fetchCoinGeckoRates(),
+        this.fetchBinanceRates(),
+        this.fetchCryptoCompareRates(),
+        this.fetchCoinCapRates(),
+        this.fetchKrakenRates(),
 
-    const duration = Date.now() - startTime;
-    const successful = results.filter((r) => r.status === 'fulfilled').length;
-    const failed = results.filter((r) => r.status === 'rejected').length;
+        // Fiat providers (minimum 2)
+        this.fetchExchangeRateAPI(),
+        this.fetchFrankfurterRates(),
+        this.fetchFreeCurrencyRates(),
+      ]);
 
-    this.logger.log(
-      `✅ Rate update completed in ${duration}ms - Success: ${successful}, Failed: ${failed}, Total: ${results.length}`,
-    );
+      const duration = Date.now() - startTime;
+      const successful = results.filter((r) => r.status === 'fulfilled').length;
+      const failed = results.filter((r) => r.status === 'rejected').length;
 
-    // Check if we have minimum providers
-    await this.verifyMinimumProviders();
+      this.logger.log(
+        `✅ Rate update completed in ${duration}ms - Success: ${successful}, Failed: ${failed}, Total: ${results.length}`,
+      );
+
+      // Check if we have minimum providers
+      await this.verifyMinimumProviders();
+    });
   }
 
   /**
@@ -205,14 +250,16 @@ export class CurrencyRateService implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupOldRates(): Promise<void> {
-    this.logger.log('🧹 Cleaning up old rates');
+    await this.executeInContext(async () => {
+      this.logger.log('🧹 Cleaning up old rates');
 
-    try {
-      const deletedCount = await this.currencyRatesHistoryRepository.cleanupOldRates(7);
-      this.logger.log(`✅ Cleaned up ${deletedCount} old rate entries`);
-    } catch (error) {
-      this.logger.error(`Error cleaning up rates: ${error}`);
-    }
+      try {
+        const deletedCount = await this.currencyRatesHistoryRepository.cleanupOldRates(7);
+        this.logger.log(`✅ Cleaned up ${deletedCount} old rate entries`);
+      } catch (error) {
+        this.logger.error(`Error cleaning up rates: ${error}`);
+      }
+    });
   }
 
   /**
@@ -232,16 +279,26 @@ export class CurrencyRateService implements OnModuleInit {
   }
 
   /**
-   * Perform deferred initialization (currencies + initial rates)
+   * Perform deferred initialization (provider configs + currencies + initial rates)
    */
   private async performInitialization(): Promise<void> {
-    try {
-      await this.initializeCurrencies();
-      await this.updateAllRates();
-      this.logger.log('✅ Currency rate service fully initialized');
-    } catch (error) {
-      this.logger.error(`Error in deferred currency initialization: ${error}`);
-    }
+    await this.executeInContext(async () => {
+      try {
+        // Load provider configs from database first
+        await this.loadProviderConfigs();
+        this.logger.log('✅ Provider configs loaded from database');
+
+        // Initialize currencies
+        await this.initializeCurrencies();
+        this.logger.log('✅ Currencies initialized, starting rate update...');
+      } catch (error) {
+        this.logger.error(`Error in deferred initialization: ${error}`);
+      }
+    });
+
+    // Rate update is already wrapped in executeInContext
+    await this.updateAllRates();
+    this.logger.log('✅ Currency rate service fully initialized');
   }
 
   /**
