@@ -29,6 +29,23 @@
     "traffic_order_deleted": "✅ Traffic order deleted",
     "invalid_source": "❌ Invalid traffic source",
     "source_not_found": "❌ Traffic source not found",
-    "order_not_found": "❌ Traffic order not found"
+    "order_not_found": "❌ Traffic order not found",
+    "target_not_found": "❌ Traffic target not found",
+    "sources_list_title": "<b>📊 Traffic Sources</b>\n\n",
+    "targets_list_title": "<b>🎯 Traffic Targets</b>\n\n",
+    "no_sources": "<i>No traffic sources yet. Click \"Add New Source\" to create one!</i>",
+    "no_targets": "<i>No traffic targets yet. Click \"Add New Target\" to create one!</i>",
+    "sources_count": "Total: {{count}} source(s)\n\n",
+    "targets_count": "Total: {{count}} target(s)\n\n",
+    "add_source_title": "<b>➕ Add Traffic Source</b>\n\n",
+    "add_target_title": "<b>➕ Add Traffic Target</b>\n\n",
+    "add_source_instructions": "Please enter the name for your new traffic source:\n\n<i>Use /cancel to abort.</i>",
+    "add_target_instructions": "Please enter the name for your new traffic target:\n\n<i>Use /cancel to abort.</i>",
+    "edit_source": "<b>✏️ Edit Traffic Source</b>\n\nEnter the new name for this source:\n\n<i>Use /cancel to abort.</i>",
+    "edit_target": "<b>✏️ Edit Traffic Target</b>\n\nEnter the new name for this target:\n\n<i>Use /cancel to abort.</i>",
+    "source_status_toggled": "Status changed successfully",
+    "target_status_toggled": "Status changed successfully",
+    "delete_source_confirm": "<b>⚠️ Delete Traffic Source</b>\n\nAre you sure you want to delete this traffic source?\n\n<b>This action cannot be undone!</b>",
+    "delete_target_confirm": "<b>⚠️ Delete Traffic Target</b>\n\nAre you sure you want to delete this traffic target?\n\n<b>This action cannot be undone!</b>"
   }
 }

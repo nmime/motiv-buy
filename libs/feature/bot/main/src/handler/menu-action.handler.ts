@@ -190,13 +190,77 @@ export class MenuActionHandler {
    */
   createTrafficMenuKeyboard(): InlineKeyboard {
     return new InlineKeyboard()
-      .text('📊 Live Stats', 'traffic:live')
-      .text('🎯 Sources', 'traffic:sources')
+      .text('📊 Traffic Sources', 'traffic:sources')
+      .text('🎯 Traffic Targets', 'traffic:targets')
+      .row()
+      .text('➕ Add Source', 'traffic:sources:add')
+      .text('➕ Add Target', 'traffic:targets:add')
       .row()
       .text('📈 Analytics', 'traffic:analytics')
-      .text('⚙️ Optimize', 'traffic:optimize')
       .row()
       .text('« Back to Menu', 'menu:main');
+  }
+
+  /**
+   * Create traffic sources list keyboard
+   */
+  createTrafficSourcesKeyboard(sources: Array<{ id: string; name: string; status: string }>): InlineKeyboard {
+    const keyboard = new InlineKeyboard();
+
+    sources.forEach((source) => {
+      const statusEmoji = source.status === 'active' ? '✅' : '❌';
+      keyboard.text(`${statusEmoji} ${source.name}`, `traffic:source:view:${source.id}`).row();
+    });
+
+    keyboard.text('➕ Add New Source', 'traffic:sources:add').row();
+    keyboard.text('« Back', 'menu:traffic');
+
+    return keyboard;
+  }
+
+  /**
+   * Create traffic targets list keyboard
+   */
+  createTrafficTargetsKeyboard(targets: Array<{ id: string; name: string; status: string }>): InlineKeyboard {
+    const keyboard = new InlineKeyboard();
+
+    targets.forEach((target) => {
+      const statusEmoji = target.status === 'active' ? '✅' : '❌';
+      keyboard.text(`${statusEmoji} ${target.name}`, `traffic:target:view:${target.id}`).row();
+    });
+
+    keyboard.text('➕ Add New Target', 'traffic:targets:add').row();
+    keyboard.text('« Back', 'menu:traffic');
+
+    return keyboard;
+  }
+
+  /**
+   * Create traffic source detail keyboard
+   */
+  createTrafficSourceDetailKeyboard(sourceId: string): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('✏️ Edit', `traffic:source:edit:${sourceId}`)
+      .text('🔄 Toggle Status', `traffic:source:toggle:${sourceId}`)
+      .row()
+      .text('📊 Statistics', `traffic:source:stats:${sourceId}`)
+      .text('🗑 Delete', `traffic:source:delete:${sourceId}`)
+      .row()
+      .text('« Back to Sources', 'traffic:sources');
+  }
+
+  /**
+   * Create traffic target detail keyboard
+   */
+  createTrafficTargetDetailKeyboard(targetId: string): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('✏️ Edit', `traffic:target:edit:${targetId}`)
+      .text('🔄 Toggle Status', `traffic:target:toggle:${targetId}`)
+      .row()
+      .text('📊 Statistics', `traffic:target:stats:${targetId}`)
+      .text('🗑 Delete', `traffic:target:delete:${targetId}`)
+      .row()
+      .text('« Back to Targets', 'traffic:targets');
   }
 
   /**
