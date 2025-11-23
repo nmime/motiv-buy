@@ -1,5 +1,16 @@
 {
   "orders": {
+    "title": "My Orders",
+    "stats_title": "Order Statistics",
+    "active_count": "Active",
+    "completed_count": "Completed",
+    "total_count": "Total",
+    "active": "Active Orders",
+    "total": "Total Orders",
+    "btn_new": "🆕 New Order",
+    "btn_active": "📋 Active Orders",
+    "btn_completed": "✅ Completed",
+    "btn_search": "🔍 Search Orders",
     "stats_refreshed": "Statistics refreshed",
     "stopped": "Order stopped",
     "deleted_list": "Deleted Orders\n\nNo deleted orders found.",

@@ -356,14 +356,16 @@ export class CallbackRouterHandler {
         return;
       }
 
-      // Parse callback data
-      const menuAction = this.menuHandler.parseCallbackData(data);
-      const [primaryAction, secondaryAction, ...params] = menuAction.action.split(':');
+      // Parse callback data - split directly by ':' to get all parts
+      // Format: primaryAction:secondaryAction:param1:param2:...
+      const [primaryAction, secondaryAction, ...params] = data.split(':');
 
       this.logger.debug('Routing callback', {
         userId: ctx.from?.id,
-        action: menuAction.action,
-        params: menuAction.params,
+        data,
+        primaryAction,
+        secondaryAction,
+        params,
       });
 
       // Route to appropriate handler based on primary action using map

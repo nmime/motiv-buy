@@ -1,6 +1,8 @@
 {
   "traffic": {
     "title": "🎯 Traffic",
+    "management_title": "🎯 Traffic Management",
+    "your_sources": "Your Sources",
     "sources": "📊 Traffic Sources",
     "orders": "📋 Traffic Orders",
     "purchases": "🛍 Traffic Purchases",

@@ -7,6 +7,7 @@
     "success": "✅ Success",
     "not_found": "❌ Not found",
     "back": "◀️ Back",
+    "back_to_menu": "« Back to Menu",
     "yes": "✅ Yes",
     "no": "❌ No",
     "close": "❌ Close",
@@ -18,7 +19,17 @@
     "unknown": "Unknown",
     "unknown_error": "❌ Unknown error occurred",
     "server_error": "❌ Server error. Please try again later.",
-    "page": "Page {{page}} of {{total}}"
+    "page": "Page {{page}} of {{total}}",
+    "select_action": "Select an action below",
+    "overview": "📊 Overview",
+    "statistics": "📊 Statistics",
+    "completed": "Completed",
+    "total": "Total",
+    "progress": "Progress",
+    "total_spent": "Total Spent",
+    "and_more": "and",
+    "more": "more",
+    "user": "User"
   },
   "buttons": {
     "back": "◀️ Back",
