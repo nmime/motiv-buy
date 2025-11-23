@@ -103,6 +103,8 @@ export class CallbackRouterHandler {
 
     this.menuActionHandlers = new Map([
       ['main', this.handleMainMenu.bind(this)],
+      ['buy_traffic', this.handleBuyTrafficMenu.bind(this)],
+      ['sell_traffic', this.handleSellTrafficMenu.bind(this)],
       ['profile', async (ctx) => this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext)],
       ['balance', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
       ['statistics', async (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx)],
@@ -715,38 +717,170 @@ export class CallbackRouterHandler {
   // Placeholder methods for additional features
 
   private async handleMainMenu(ctx: BotContext): Promise<void> {
-    const userName = ctx.from?.first_name || 'Пользователь';
-    const text = `<b>👋 Привет, ${userName}!</b>
+    const userName = ctx.from?.first_name || ctx.t('common.user', { default: 'User' });
 
-Добро пожаловать в <b>MotivBuy</b> — сервис для продвижения Telegram каналов и групп!
+    const text = ctx.t('main_menu.welcome', {
+      default: `<b>👋 ${ctx.t('main_menu.greeting', { default: 'Welcome' })}, ${userName}!</b>
 
-<b>🚀 Что можно сделать:</b>
-• Купить подписчиков для вашего канала
-• Продать трафик и заработать
-• Отслеживать статистику
+${ctx.t('main_menu.description', { default: '<b>MotivBuy</b> — Your Telegram growth platform' })}
 
-<i>Выберите нужный раздел ниже 👇</i>`;
+<b>🛒 ${ctx.t('main_menu.buy_title', { default: 'Buy Traffic' })}</b>
+${ctx.t('main_menu.buy_desc', { default: 'Get real subscribers for your channels and groups' })}
+
+<b>💰 ${ctx.t('main_menu.sell_title', { default: 'Sell Traffic' })}</b>
+${ctx.t('main_menu.sell_desc', { default: 'Monetize your bot or channel audience' })}
+
+<i>${ctx.t('main_menu.select_action', { default: 'Select an action below' })} 👇</i>`,
+      userName,
+    });
 
     const keyboard = new InlineKeyboard()
-      .text('👥 Купить подписчиков', 'order:list')
+      .text(ctx.t('main_menu.btn_buy_traffic', { default: '🛒 Buy Traffic' }), 'menu:buy_traffic')
+      .text(ctx.t('main_menu.btn_sell_traffic', { default: '💰 Sell Traffic' }), 'menu:sell_traffic')
       .row()
-      .text('🤖 Продажа трафика', 'traffic:manage')
-      .text('📋 Мои заказы', 'order:list')
+      .text(ctx.t('main_menu.btn_balance', { default: '💳 Balance' }), 'balance:view')
+      .text(ctx.t('main_menu.btn_profile', { default: '👤 Profile' }), 'profile:view')
       .row()
-      .text('👤 Профиль', 'profile:view')
-      .text('💰 Баланс', 'balance:view')
-      .row()
-      .text('📊 Статистика', 'stats:overview')
-      .text('⚙️ Настройки', 'settings')
-      .row()
-      .text('❓ Помощь', 'help')
-      .text('🏢 Поддержка', 'support');
+      .text(ctx.t('main_menu.btn_support', { default: '🆘 Support' }), 'menu:support');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
+  }
+
+  /**
+   * Handle Buy Traffic menu - for users who want to purchase subscribers
+   */
+  private async handleBuyTrafficMenu(ctx: BotContext): Promise<void> {
+    try {
+      if (!ctx.from) {
+        await ctx.reply(ctx.t('auth.authentication_required', { default: 'Please authenticate first' }));
+        return;
+      }
+
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      if (!user) {
+        await ctx.reply(ctx.t('common.errors.user_not_found', { default: 'User not found' }));
+        return;
+      }
+
+      const balance = await this.em.findOne(UserBalanceEntity, { user: user.id });
+      const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
+
+      // Get active orders count
+      const activeOrdersCount = await this.em.count(TrafficOrderEntity, {
+        creator: user.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      });
+
+      const text = ctx.t('buy_traffic.menu_title', {
+        default: `<b>🛒 ${ctx.t('buy_traffic.title', { default: 'Buy Traffic' })}</b>
+
+${ctx.t('buy_traffic.description', { default: 'Get real subscribers for your Telegram channels and groups.' })}
+
+<b>💰 ${ctx.t('buy_traffic.your_balance', { default: 'Your Balance' })}:</b> $${availableBalance}
+<b>📦 ${ctx.t('buy_traffic.active_orders', { default: 'Active Orders' })}:</b> ${activeOrdersCount}
+
+<b>📋 ${ctx.t('buy_traffic.how_it_works', { default: 'How it works' })}:</b>
+1. ${ctx.t('buy_traffic.step1', { default: 'Create a new order' })}
+2. ${ctx.t('buy_traffic.step2', { default: 'Enter your channel/group link' })}
+3. ${ctx.t('buy_traffic.step3', { default: 'Select package and quantity' })}
+4. ${ctx.t('buy_traffic.step4', { default: 'Confirm and pay' })}
+5. ${ctx.t('buy_traffic.step5', { default: 'Watch your subscribers grow!' })}
+
+<i>${ctx.t('buy_traffic.select_action', { default: 'Select an action' })} 👇</i>`,
+      });
+
+      const keyboard = new InlineKeyboard()
+        .text(ctx.t('buy_traffic.btn_new_order', { default: '➕ New Order' }), 'order:create:start')
+        .text(ctx.t('buy_traffic.btn_my_orders', { default: '📋 My Orders' }), 'orders:list')
+        .row()
+        .text(ctx.t('buy_traffic.btn_active', { default: '🔄 Active Orders' }), 'orders:active')
+        .text(ctx.t('buy_traffic.btn_completed', { default: '✅ Completed' }), 'orders:completed')
+        .row()
+        .text(ctx.t('buy_traffic.btn_deposit', { default: '💳 Top Up Balance' }), 'balance:deposit')
+        .row()
+        .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, error as Error);
+    }
+  }
+
+  /**
+   * Handle Sell Traffic menu - for users who want to monetize their bot/channel
+   */
+  private async handleSellTrafficMenu(ctx: BotContext): Promise<void> {
+    try {
+      if (!ctx.from) {
+        await ctx.reply(ctx.t('auth.authentication_required', { default: 'Please authenticate first' }));
+        return;
+      }
+
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      if (!user) {
+        await ctx.reply(ctx.t('common.errors.user_not_found', { default: 'User not found' }));
+        return;
+      }
+
+      // Get user's traffic sources count
+      const sourcesCount = await this.em.count(TrafficSourceEntity, { managedBy: user.id });
+      const activeSourcesCount = await this.em.count(TrafficSourceEntity, {
+        managedBy: user.id,
+        status: TrafficSourceStatus.Active,
+      });
+
+      // Get earnings data
+      const balance = await this.em.findOne(UserBalanceEntity, { user: user.id });
+      const pendingEarnings = balance ? toDisplayString(balance.lockedBalance, 2) : '0.00';
+      const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
+
+      const text = ctx.t('sell_traffic.menu_title', {
+        default: `<b>💰 ${ctx.t('sell_traffic.title', { default: 'Sell Traffic' })}</b>
+
+${ctx.t('sell_traffic.description', { default: 'Monetize your Telegram bot or channel by selling traffic to advertisers.' })}
+
+<b>📊 ${ctx.t('sell_traffic.your_stats', { default: 'Your Statistics' })}:</b>
+• ${ctx.t('sell_traffic.total_sources', { default: 'Traffic Sources' })}: ${sourcesCount}
+• ${ctx.t('sell_traffic.active_sources', { default: 'Active' })}: ${activeSourcesCount}
+• ${ctx.t('sell_traffic.pending_earnings', { default: 'Pending Earnings' })}: $${pendingEarnings}
+• ${ctx.t('sell_traffic.available_balance', { default: 'Available Balance' })}: $${availableBalance}
+
+<b>💡 ${ctx.t('sell_traffic.how_to_earn', { default: 'How to earn' })}:</b>
+1. ${ctx.t('sell_traffic.step1', { default: 'Add your bot as a traffic source' })}
+2. ${ctx.t('sell_traffic.step2', { default: 'Connect it to receive orders' })}
+3. ${ctx.t('sell_traffic.step3', { default: 'Your bot shows ads to users' })}
+4. ${ctx.t('sell_traffic.step4', { default: 'Get paid for each subscriber!' })}
+
+<i>${ctx.t('sell_traffic.select_action', { default: 'Select an action' })} 👇</i>`,
+      });
+
+      const keyboard = new InlineKeyboard()
+        .text(ctx.t('sell_traffic.btn_my_sources', { default: '📊 My Sources' }), 'traffic:sources')
+        .text(ctx.t('sell_traffic.btn_add_source', { default: '➕ Add Source' }), 'traffic:sources:add')
+        .row()
+        .text(ctx.t('sell_traffic.btn_analytics', { default: '📈 Analytics' }), 'traffic:analytics')
+        .text(ctx.t('sell_traffic.btn_earnings', { default: '💵 Earnings' }), 'balance:view')
+        .row()
+        .text(ctx.t('sell_traffic.btn_withdraw', { default: '💸 Withdraw' }), 'balance:withdraw')
+        .row()
+        .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, error as Error);
+    }
   }
 
   private async handleOrdersMenu(ctx: BotContext): Promise<void> {
