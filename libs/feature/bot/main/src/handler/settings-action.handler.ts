@@ -6,7 +6,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
 import { SettingType, UserEntity, UserSettingsEntity } from '@app/database';
@@ -44,234 +44,130 @@ export class SettingsActionHandler {
   /**
    * Handle settings view
    */
-  async handleSettingsView(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleSettingsView(ctx: AuthenticatedBotContext): Promise<void> {
+    const preferences = await this.getUserPreferences(ctx.user.id);
+    const settingsText = this.formatSettingsView(preferences, ctx);
+    const keyboard = this.menuHandler.createSettingsMenuKeyboard();
 
-        return;
-      }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: settingsText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const preferences = await this.getUserPreferences(user.id);
-      const settingsText = this.formatSettingsView(preferences);
-      const keyboard = this.menuHandler.createSettingsMenuKeyboard();
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text: settingsText,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-
-      this.logger.log('Settings viewed', { userId: user.id });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    this.logger.log('Settings viewed', { userId: ctx.user.id });
   }
 
   /**
    * Handle language settings
    */
-  async handleLanguageSettings(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleLanguageSettings(ctx: AuthenticatedBotContext): Promise<void> {
+    const currentLang = ctx.user.languageCode || 'en';
+    const languageText =
+      `🌐 <b>${ctx.t('settings.language_title', { default: 'Language Settings' })}</b>\n\n` +
+      `${ctx.t('settings.current_language', { default: 'Current language' })}: ${this.getLanguageName(currentLang)}\n\n` +
+      `${ctx.t('settings.select_language', { default: 'Select your preferred language:' })}`;
 
-        return;
-      }
+    const languageKeyboard = this.createLanguageKeyboard(currentLang, ctx);
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const currentLang = user.languageCode || 'en';
-      const languageText = `🌐 <b>Language Settings</b>\n\nCurrent language: ${this.getLanguageName(currentLang)}\n\nSelect your preferred language:`;
-
-      const languageKeyboard = this.createLanguageKeyboard(currentLang);
-
-      await ctx.replyWithHTML(languageText, { reply_markup: languageKeyboard });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: languageText,
+      parseMode: 'HTML',
+      replyMarkup: languageKeyboard,
+    });
   }
 
   /**
    * Handle language change
    */
-  async handleLanguageChange(ctx: BotContext, languageCode: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleLanguageChange(ctx: AuthenticatedBotContext, languageCode: string): Promise<void> {
+    const validation = BotValidationUtil.validateUserInput(languageCode, {
+      type: 'text',
+      maxLength: 10,
+      trim: true,
+      toLowerCase: true,
+    });
 
-        return;
-      }
+    if (!validation.isValid || !this.supportedLanguages.includes(validation.sanitized as string)) {
+      await ctx.reply(ctx.t('common.errors.invalid_input', { default: 'Invalid input.' }));
 
-      // Validate language code
-      const validation = BotValidationUtil.validateUserInput(languageCode, {
-        type: 'text',
-        maxLength: 10,
-        trim: true,
-        toLowerCase: true,
-      });
-
-      if (!validation.isValid || !this.supportedLanguages.includes(validation.sanitized as string)) {
-        await ctx.reply(ctx.t('common.errors.invalid_input'));
-
-        return;
-      }
-
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      user.languageCode = validation.sanitized as string;
-      await this.em.persistAndFlush(user);
-
-      await ctx.reply(`✅ Language changed to ${this.getLanguageName(validation.sanitized as string)}!`);
-
-      this.logger.log('Language changed', {
-        userId: user.id,
-        language: validation.sanitized,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      return;
     }
+
+    ctx.user.languageCode = validation.sanitized as string;
+    await this.em.persistAndFlush(ctx.user);
+
+    await ctx.reply(
+      ctx.t('settings.language_changed', {
+        default: `✅ Language changed to ${this.getLanguageName(validation.sanitized as string)}!`,
+        language: this.getLanguageName(validation.sanitized as string),
+      }),
+    );
+
+    this.logger.log('Language changed', { userId: ctx.user.id, language: validation.sanitized });
   }
 
   /**
    * Handle notification settings
    */
-  async handleNotificationSettings(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleNotificationSettings(ctx: AuthenticatedBotContext): Promise<void> {
+    const notificationPrefs = await this.getNotificationPreferences(ctx.user.id);
+    const notificationText = this.formatNotificationSettings(notificationPrefs, ctx);
+    const keyboard = this.createNotificationKeyboard(notificationPrefs, ctx);
 
-        return;
-      }
-
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const notificationPrefs = await this.getNotificationPreferences(user.id);
-      const notificationText = this.formatNotificationSettings(notificationPrefs);
-      const keyboard = this.createNotificationKeyboard(notificationPrefs);
-
-      await ctx.replyWithHTML(notificationText, { reply_markup: keyboard });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: notificationText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   /**
    * Handle notification toggle
    */
-  async handleNotificationToggle(ctx: BotContext, notificationType: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleNotificationToggle(ctx: AuthenticatedBotContext, notificationType: string): Promise<void> {
+    await this.toggleNotification(ctx.user.id, notificationType);
+    await ctx.answerCallbackQuery(ctx.t('common.success.updated', { default: 'Updated!' }));
+    await this.handleNotificationSettings(ctx);
 
-        return;
-      }
-
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      await this.toggleNotification(user.id, notificationType);
-
-      await ctx.answerCallbackQuery(ctx.t('common.success.updated'));
-
-      // Refresh notification settings view
-      await this.handleNotificationSettings(ctx);
-
-      this.logger.log('Notification toggled', {
-        userId: user.id,
-        type: notificationType,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    this.logger.log('Notification toggled', { userId: ctx.user.id, type: notificationType });
   }
 
   /**
    * Handle preferences settings
    */
-  async handlePreferencesSettings(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handlePreferencesSettings(ctx: AuthenticatedBotContext): Promise<void> {
+    const preferencesText =
+      `🎨 <b>${ctx.t('settings.preferences_title', { default: 'Preferences' })}</b>\n\n` +
+      `${ctx.t('settings.preferences_description', { default: 'Customize your bot experience:' })}\n\n` +
+      `• ${ctx.t('settings.display_mode', { default: 'Display Mode' })}: Compact / Detailed\n` +
+      `• ${ctx.t('settings.currency_format', { default: 'Currency Format' })}: USD / EUR / RUB\n` +
+      `• ${ctx.t('settings.timezone', { default: 'Timezone' })}: Auto / Custom\n` +
+      `• ${ctx.t('settings.date_format', { default: 'Date Format' })}: DD/MM/YYYY / MM/DD/YYYY\n\n` +
+      `<i>${ctx.t('settings.coming_soon', { default: 'More preferences coming soon!' })}</i>`;
 
-        return;
-      }
+    const keyboard = this.menuHandler.createBackButton('menu:settings');
 
-      const preferencesText =
-        '🎨 <b>Preferences</b>\n\n' +
-        'Customize your bot experience:\n\n' +
-        '• Display Mode: Compact / Detailed\n' +
-        '• Currency Format: USD / EUR / RUB\n' +
-        '• Timezone: Auto / Custom\n' +
-        '• Date Format: DD/MM/YYYY / MM/DD/YYYY\n\n' +
-        '<i>More preferences coming soon!</i>';
-
-      const keyboard = this.menuHandler.createBackButton('menu:settings');
-
-      await ctx.replyWithHTML(preferencesText, { reply_markup: keyboard });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: preferencesText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   /**
    * Handle privacy settings
    */
-  async handlePrivacySettings(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handlePrivacySettings(ctx: AuthenticatedBotContext): Promise<void> {
+    const privacyPrefs = await this.getPrivacyPreferences(ctx.user.id);
+    const privacyText = this.formatPrivacySettings(privacyPrefs, ctx);
+    const keyboard = this.createPrivacyKeyboard(privacyPrefs, ctx);
 
-        return;
-      }
-
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const privacyPrefs = await this.getPrivacyPreferences(user.id);
-      const privacyText = this.formatPrivacySettings(privacyPrefs);
-      const keyboard = this.createPrivacyKeyboard(privacyPrefs);
-
-      await ctx.replyWithHTML(privacyText, { reply_markup: keyboard });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: privacyText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   /**
@@ -371,13 +267,6 @@ export class SettingsActionHandler {
   }
 
   /**
-   * Find user by Telegram ID
-   */
-  private async findUserByTelegramId(telegramId: string): Promise<UserEntity | null> {
-    return await this.em.findOne(UserEntity, { telegramId });
-  }
-
-  /**
    * Get language name
    */
   private getLanguageName(code: string): string {
@@ -397,55 +286,54 @@ export class SettingsActionHandler {
   /**
    * Format settings view
    */
-  private formatSettingsView(preferences: UserPreferences): string {
+  private formatSettingsView(preferences: UserPreferences, ctx: AuthenticatedBotContext): string {
     return (
-      '<b>⚙️ Settings</b>\n\n' +
-      `<b>🌐 Language:</b> ${this.getLanguageName(preferences.language)}\n\n` +
-      `<b>🔔 Notifications:</b>\n` +
-      `• Balance: ${preferences.notifications.balance ? '✅' : '❌'}\n` +
-      `• Trade: ${preferences.notifications.trade ? '✅' : '❌'}\n` +
-      `• Referral: ${preferences.notifications.referral ? '✅' : '❌'}\n` +
-      `• System: ${preferences.notifications.system ? '✅' : '❌'}\n` +
-      `• Marketing: ${preferences.notifications.marketing ? '✅' : '❌'}\n\n` +
-      `<b>🔒 Privacy:</b>\n` +
-      `• Show Profile: ${preferences.privacy.showProfile ? '✅' : '❌'}\n` +
-      `• Show Stats: ${preferences.privacy.showStats ? '✅' : '❌'}\n\n` +
-      `<i>Use the buttons below to manage your settings.</i>`
+      `<b>⚙️ ${ctx.t('settings.title', { default: 'Settings' })}</b>\n\n` +
+      `<b>🌐 ${ctx.t('settings.language', { default: 'Language' })}:</b> ${this.getLanguageName(preferences.language)}\n\n` +
+      `<b>🔔 ${ctx.t('settings.notifications', { default: 'Notifications' })}:</b>\n` +
+      `• ${ctx.t('settings.balance', { default: 'Balance' })}: ${preferences.notifications.balance ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.trade', { default: 'Trade' })}: ${preferences.notifications.trade ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.referral', { default: 'Referral' })}: ${preferences.notifications.referral ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.system', { default: 'System' })}: ${preferences.notifications.system ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.marketing', { default: 'Marketing' })}: ${preferences.notifications.marketing ? '✅' : '❌'}\n\n` +
+      `<b>🔒 ${ctx.t('settings.privacy', { default: 'Privacy' })}:</b>\n` +
+      `• ${ctx.t('settings.show_profile', { default: 'Show Profile' })}: ${preferences.privacy.showProfile ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.show_stats', { default: 'Show Stats' })}: ${preferences.privacy.showStats ? '✅' : '❌'}\n\n` +
+      `<i>${ctx.t('settings.use_buttons', { default: 'Use the buttons below to manage your settings.' })}</i>`
     );
   }
 
   /**
    * Format notification settings
    */
-  private formatNotificationSettings(prefs: UserPreferences['notifications']): string {
+  private formatNotificationSettings(prefs: UserPreferences['notifications'], ctx: AuthenticatedBotContext): string {
     return (
-      '<b>🔔 Notification Settings</b>\n\n' +
-      `Balance Changes: ${prefs.balance ? '✅ Enabled' : '❌ Disabled'}\n` +
-      `Trade Notifications: ${prefs.trade ? '✅ Enabled' : '❌ Disabled'}\n` +
-      `Referral Updates: ${prefs.referral ? '✅ Enabled' : '❌ Disabled'}\n` +
-      `System Messages: ${prefs.system ? '✅ Enabled' : '❌ Disabled'}\n` +
-      `Marketing: ${prefs.marketing ? '✅ Enabled' : '❌ Disabled'}\n\n` +
-      `<i>Tap on an option to toggle it.</i>`
+      `<b>🔔 ${ctx.t('settings.notification_title', { default: 'Notification Settings' })}</b>\n\n` +
+      `${ctx.t('settings.balance_changes', { default: 'Balance Changes' })}: ${prefs.balance ? '✅' : '❌'}\n` +
+      `${ctx.t('settings.trade_notifications', { default: 'Trade Notifications' })}: ${prefs.trade ? '✅' : '❌'}\n` +
+      `${ctx.t('settings.referral_updates', { default: 'Referral Updates' })}: ${prefs.referral ? '✅' : '❌'}\n` +
+      `${ctx.t('settings.system_messages', { default: 'System Messages' })}: ${prefs.system ? '✅' : '❌'}\n` +
+      `${ctx.t('settings.marketing', { default: 'Marketing' })}: ${prefs.marketing ? '✅' : '❌'}\n\n` +
+      `<i>${ctx.t('settings.tap_to_toggle', { default: 'Tap on an option to toggle it.' })}</i>`
     );
   }
 
   /**
    * Format privacy settings
    */
-  private formatPrivacySettings(prefs: UserPreferences['privacy']): string {
+  private formatPrivacySettings(prefs: UserPreferences['privacy'], ctx: AuthenticatedBotContext): string {
     return (
-      '<b>🔒 Privacy Settings</b>\n\n' +
-      `Show Profile: ${prefs.showProfile ? '✅ Public' : '❌ Private'}\n` +
-      `Show Statistics: ${prefs.showStats ? '✅ Public' : '❌ Private'}\n\n` +
-      `<i>Control who can see your information.</i>`
+      `<b>🔒 ${ctx.t('settings.privacy_title', { default: 'Privacy Settings' })}</b>\n\n` +
+      `${ctx.t('settings.show_profile', { default: 'Show Profile' })}: ${prefs.showProfile ? '✅ Public' : '❌ Private'}\n` +
+      `${ctx.t('settings.show_statistics', { default: 'Show Statistics' })}: ${prefs.showStats ? '✅ Public' : '❌ Private'}\n\n` +
+      `<i>${ctx.t('settings.control_visibility', { default: 'Control who can see your information.' })}</i>`
     );
   }
 
   /**
    * Create language keyboard
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
    */
-  private createLanguageKeyboard(currentLang: string) {
+  private createLanguageKeyboard(currentLang: string, ctx: AuthenticatedBotContext) {
     const keyboard = new InlineKeyboard();
 
     const languages = [
@@ -462,36 +350,53 @@ export class SettingsActionHandler {
       keyboard.text(`${marker}${lang.name}`, `settings:lang:${lang.code}`).row();
     });
 
-    keyboard.text('« Back', 'menu:settings');
+    keyboard.text(ctx.t('common.back', { default: '« Back' }), 'menu:settings');
 
     return keyboard;
   }
 
   /**
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
    * Create notification keyboard
    */
-  private createNotificationKeyboard(prefs: UserPreferences['notifications']) {
+  private createNotificationKeyboard(prefs: UserPreferences['notifications'], ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text(`${prefs.balance ? '✅' : '❌'} Balance`, 'settings:notify:balance')
-      .text(`${prefs.trade ? '✅' : '❌'} Trade`, 'settings:notify:trade')
+      .text(
+        `${prefs.balance ? '✅' : '❌'} ${ctx.t('settings.balance', { default: 'Balance' })}`,
+        'settings:notify:balance',
+      )
+      .text(`${prefs.trade ? '✅' : '❌'} ${ctx.t('settings.trade', { default: 'Trade' })}`, 'settings:notify:trade')
       .row()
-      .text(`${prefs.referral ? '✅' : '❌'} Referral`, 'settings:notify:referral')
-      .text(`${prefs.system ? '✅' : '❌'} System`, 'settings:notify:system')
+      .text(
+        `${prefs.referral ? '✅' : '❌'} ${ctx.t('settings.referral', { default: 'Referral' })}`,
+        'settings:notify:referral',
+      )
+      .text(
+        `${prefs.system ? '✅' : '❌'} ${ctx.t('settings.system', { default: 'System' })}`,
+        'settings:notify:system',
+      )
       .row()
-      .text(`${prefs.marketing ? '✅' : '❌'} Marketing`, 'settings:notify:marketing')
+      .text(
+        `${prefs.marketing ? '✅' : '❌'} ${ctx.t('settings.marketing', { default: 'Marketing' })}`,
+        'settings:notify:marketing',
+      )
       .row()
-      .text('« Back', 'menu:settings');
+      .text(ctx.t('common.back', { default: '« Back' }), 'menu:settings');
   }
 
   /**
    * Create privacy keyboard
    */
-  private createPrivacyKeyboard(prefs: UserPreferences['privacy']) {
+  private createPrivacyKeyboard(prefs: UserPreferences['privacy'], ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text(`${prefs.showProfile ? '✅' : '❌'} Profile`, 'settings:privacy:profile')
-      .text(`${prefs.showStats ? '✅' : '❌'} Stats`, 'settings:privacy:stats')
+      .text(
+        `${prefs.showProfile ? '✅' : '❌'} ${ctx.t('settings.profile', { default: 'Profile' })}`,
+        'settings:privacy:profile',
+      )
+      .text(
+        `${prefs.showStats ? '✅' : '❌'} ${ctx.t('settings.stats', { default: 'Stats' })}`,
+        'settings:privacy:stats',
+      )
       .row()
-      .text('« Back', 'menu:settings');
+      .text(ctx.t('common.back', { default: '« Back' }), 'menu:settings');
   }
 }

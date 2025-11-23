@@ -10,7 +10,6 @@ import {
   CurrencyRateProviderRepository,
   RateProviderCurrencyRepository,
   ProviderCurrencyMapping,
-  CurrencyRateProviderEntity,
   CurrencyType,
   RateProvider,
 } from '@app/database';
@@ -126,6 +125,7 @@ export class CurrencyRateService implements OnModuleInit {
       { name: RateProvider.ExchangeRateApi, reliability: 100, enabled: true, quotaPerMonth: 1500, requiresAuth: false },
       { name: RateProvider.Frankfurter, reliability: 95, enabled: true, requiresAuth: false },
     ];
+
     this.initializeCircuitBreakers();
     this.logger.warn('Using fallback provider configurations');
   }
@@ -654,6 +654,7 @@ export class CurrencyRateService implements OnModuleInit {
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
       this.logger.warn(`No currency mappings found for ${provider}`);
+
       return;
     }
 
@@ -678,6 +679,7 @@ export class CurrencyRateService implements OnModuleInit {
           // Validate stablecoin rates
           if (!this.validateStablecoinRate(mapping.currencyCode, rate)) {
             this.logger.warn(`Skipping suspicious ${mapping.currencyCode} rate from ${provider}: ${rate}`);
+
             return;
           }
 
@@ -714,6 +716,7 @@ export class CurrencyRateService implements OnModuleInit {
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
       this.logger.warn(`No currency mappings found for ${provider}`);
+
       return;
     }
 
@@ -762,12 +765,14 @@ export class CurrencyRateService implements OnModuleInit {
     const apiKey = this.configService.get<string>('CRYPTOCOMPARE_API_KEY');
     if (!apiKey) {
       this.logger.warn(`${provider} API key not configured, skipping`);
+
       return;
     }
 
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
       this.logger.warn(`No currency mappings found for ${provider}`);
+
       return;
     }
 
@@ -824,6 +829,7 @@ export class CurrencyRateService implements OnModuleInit {
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
       this.logger.warn(`No currency mappings found for ${provider}`);
+
       return;
     }
 
@@ -874,6 +880,7 @@ export class CurrencyRateService implements OnModuleInit {
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
       this.logger.warn(`No currency mappings found for ${provider}`);
+
       return;
     }
 
@@ -924,6 +931,7 @@ export class CurrencyRateService implements OnModuleInit {
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
       this.logger.warn(`No currency mappings found for ${provider}`);
+
       return;
     }
 
@@ -976,6 +984,7 @@ export class CurrencyRateService implements OnModuleInit {
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
       this.logger.warn(`No currency mappings found for ${provider}`);
+
       return;
     }
 
@@ -1029,12 +1038,14 @@ export class CurrencyRateService implements OnModuleInit {
     const apiKey = this.configService.get<string>('FREECURRENCY_API_KEY');
     if (!apiKey) {
       this.logger.warn(`${provider} API key not configured, skipping`);
+
       return;
     }
 
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
       this.logger.warn(`No currency mappings found for ${provider}`);
+
       return;
     }
 

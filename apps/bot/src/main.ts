@@ -6,6 +6,8 @@ process.on('warning', (warning) => {
   if (warning.name === 'DeprecationWarning' && warning.message.includes('url.parse()')) {
     return;
   }
+
+  // eslint-disable-next-line no-console -- Early boot-time handler before NestJS Logger is available
   console.warn(warning.name, warning.message);
 });
 

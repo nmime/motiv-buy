@@ -77,6 +77,24 @@ export interface AuthenticatedBotContext extends BotContext {
 }
 
 /**
+ * Type guard to check if a BotContext is authenticated
+ *
+ * @param ctx - The bot context to check
+ * @returns True if the context is authenticated with a valid user
+ *
+ * @example
+ * ```typescript
+ * if (isAuthenticated(ctx)) {
+ *   // ctx.user is guaranteed to exist here
+ *   console.log(ctx.user.id);
+ * }
+ * ```
+ */
+export function isAuthenticated(ctx: BotContext): ctx is AuthenticatedBotContext {
+  return ctx.isAuthenticated === true && ctx.user !== undefined && ctx.sessionId !== undefined;
+}
+
+/**
  * Bot User Interface
  *
  * Represents a Telegram user in bot context with comprehensive user information.

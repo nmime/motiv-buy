@@ -10,41 +10,119 @@
     "back_to_menu": "В меню",
     "balance": {
       "title": "Баланс",
-      "history_coming_soon": "История транзакций скоро!",
-      "analytics_coming_soon": "Аналитика баланса скоро!"
+      "history": "📊 История транзакций",
+      "analytics": "📈 Аналитика баланса",
+      "deposit": "💳 Пополнить",
+      "withdraw": "💸 Вывод"
     },
     "profile": {
       "title": "Профиль",
-      "edit_coming_soon": "Редактирование профиля скоро!",
-      "stats_coming_soon": "Статистика профиля скоро!",
-      "security_coming_soon": "Параметры безопасности скоро!"
+      "edit": "✏️ Редактировать профиль",
+      "stats": "📊 Ваша статистика",
+      "security": "🔒 Настройки безопасности",
+      "details": "📋 Подробная информация"
     },
     "settings": {
       "title": "Настройки",
-      "notifications_coming_soon": "Уведомления скоро!",
-      "language_coming_soon": "Язык скоро!",
-      "theme_coming_soon": "Тема скоро!",
-      "export_coming_soon": "Экспорт данных скоро!",
-      "reset_coming_soon": "Сброс скоро!"
+      "notifications": "🔔 Настройки уведомлений",
+      "language": "🌐 Настройки языка",
+      "theme": "🎨 Настройки темы",
+      "preferences": "⚙️ Предпочтения",
+      "privacy": "🔒 Настройки приватности",
+      "export": "📥 Экспорт данных",
+      "reset": "🔄 Сброс настроек"
     },
     "stats": {
       "title": "Статистика",
-      "overview_coming_soon": "Обзор статистики скоро!",
-      "daily_coming_soon": "Дневная статистика скоро!",
-      "weekly_coming_soon": "Недельная статистика скоро!",
-      "monthly_coming_soon": "Месячная статистика скоро!"
+      "overview": "📊 Обзор",
+      "detailed": "📈 Детальная статистика",
+      "traffic": "🎯 Статистика трафика",
+      "earnings": "💰 Статистика заработка"
     },
     "traffic": {
       "title": "Трафик",
-      "live_coming_soon": "Статистика трафика в реальном времени скоро!",
-      "sources_coming_soon": "Источники трафика скоро!",
-      "analytics_coming_soon": "Аналитика трафика скоро!",
-      "optimize_coming_soon": "Оптимизация трафика скоро!"
+      "live": "📡 Статистика в реальном времени",
+      "sources": "🎯 Источники трафика",
+      "analytics": "📊 Аналитика трафика",
+      "optimize": "⚡ Оптимизация"
     },
     "help": {
       "title": "Справка",
-      "faq_coming_soon": "Раздел FAQ скоро!",
-      "tutorials_coming_soon": "Уроки скоро!"
+      "faq": "❓ FAQ",
+      "tutorials": "📚 Уроки",
+      "contact": "📞 Связаться с поддержкой"
     }
+  },
+  "main_menu": {
+    "greeting": "Привет",
+    "description": "<b>MotivBuy</b> — Платформа для роста вашего Telegram",
+    "buy_title": "Купить трафик",
+    "buy_desc": "Получите реальных подписчиков для ваших каналов и групп",
+    "sell_title": "Продать трафик",
+    "sell_desc": "Монетизируйте аудиторию вашего бота или канала",
+    "select_action": "Выберите действие",
+    "btn_buy_traffic": "🛒 Купить трафик",
+    "btn_sell_traffic": "💰 Продать трафик",
+    "btn_balance": "💳 Баланс",
+    "btn_profile": "👤 Профиль",
+    "btn_support": "🆘 Поддержка"
+  },
+  "buy_traffic": {
+    "title": "Купить трафик",
+    "description": "Получите реальных подписчиков для ваших Telegram каналов и групп.",
+    "your_balance": "Ваш баланс",
+    "active_orders": "Активные заказы",
+    "how_it_works": "Как это работает",
+    "step1": "Создайте новый заказ",
+    "step2": "Укажите ссылку на канал/группу",
+    "step3": "Выберите пакет и количество",
+    "step4": "Подтвердите и оплатите",
+    "step5": "Следите за ростом подписчиков!",
+    "select_action": "Выберите действие",
+    "btn_new_order": "➕ Новый заказ",
+    "btn_my_orders": "📋 Мои заказы",
+    "btn_active": "🔄 Активные",
+    "btn_completed": "✅ Завершённые",
+    "btn_deposit": "💳 Пополнить баланс"
+  },
+  "sell_traffic": {
+    "title": "Продать трафик",
+    "description": "Монетизируйте ваш Telegram бот или канал, продавая трафик рекламодателям.",
+    "your_stats": "Ваша статистика",
+    "total_sources": "Источники трафика",
+    "active_sources": "Активные",
+    "pending_earnings": "Ожидаемый доход",
+    "available_balance": "Доступный баланс",
+    "how_to_earn": "Как заработать",
+    "step1": "Добавьте вашего бота как источник трафика",
+    "step2": "Подключите его для получения заказов",
+    "step3": "Ваш бот показывает рекламу пользователям",
+    "step4": "Получайте оплату за каждого подписчика!",
+    "select_action": "Выберите действие",
+    "btn_my_sources": "📊 Мои источники",
+    "btn_add_source": "➕ Добавить источник",
+    "btn_analytics": "📈 Аналитика",
+    "btn_earnings": "💵 Доходы",
+    "btn_withdraw": "💸 Вывести"
+  },
+  "support": {
+    "title": "Поддержка",
+    "description": "Мы всегда рады помочь!",
+    "contact_methods": "Способы связи",
+    "telegram": "Телеграм",
+    "email": "Email",
+    "working_hours": "Время работы",
+    "weekdays": "Пн-Пт: 9:00 - 21:00 (МСК)",
+    "weekends": "Сб-Вс: 10:00 - 18:00 (МСК)",
+    "faq_title": "Частые вопросы",
+    "select_action": "Выберите действие или напишите нам напрямую",
+    "btn_contact": "💬 Написать в поддержку",
+    "btn_faq": "❓ FAQ",
+    "btn_report": "📝 Сообщить о проблеме",
+    "btn_suggest": "💡 Предложить идею"
+  },
+  "common": {
+    "back_to_menu": "« Назад в меню",
+    "user": "Пользователь"
   }
 }

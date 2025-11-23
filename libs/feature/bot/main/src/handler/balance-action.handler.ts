@@ -10,7 +10,7 @@ import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { UserBalanceEntity, UserBalanceHistoryEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, lessThan, toDisplayString } from '@app/common-shared';
+import { decimal, lessThan, toDisplayString, toError } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
 import { InlineKeyboard } from 'grammy';
 
@@ -42,7 +42,7 @@ export class BalanceActionHandler {
 
       this.logger.log('Balance viewed', { userId: ctx.user.id });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -95,7 +95,7 @@ export class BalanceActionHandler {
 
       this.logger.log('Transaction history viewed', { userId: ctx.user.id, page, total });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -127,7 +127,7 @@ export class BalanceActionHandler {
         reply_markup: currencyKeyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -155,7 +155,7 @@ export class BalanceActionHandler {
 
       this.logger.log('Deposit info viewed', { userId: ctx.user.id });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 

@@ -1,4 +1,4 @@
-import { Bot, Context, SessionFlavor } from 'grammy';
+import { Context, SessionFlavor } from 'grammy';
 
 /**
  * Bot Instance Options

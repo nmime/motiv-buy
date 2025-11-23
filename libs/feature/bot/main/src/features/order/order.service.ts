@@ -6,7 +6,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { BotContext, ChannelService, ChannelInfo as ChannelServiceInfo } from '@app/feature-bot-shared';
+import { BotContext, ChannelService } from '@app/feature-bot-shared';
 import {
   ChannelInfo,
   defaultOrderConfig,

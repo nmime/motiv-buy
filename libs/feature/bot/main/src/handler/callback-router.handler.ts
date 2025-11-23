@@ -8,7 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MikroORM } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, AuthenticatedBotContext } from '@app/feature-bot-shared';
+import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/feature-bot-shared';
 import {
   UserEntity,
   UserLastAuthEntity,
@@ -18,10 +18,15 @@ import {
   UserStatus,
   TrafficSourceEntity,
   TrafficSourceStatus,
+  TrafficSourceType,
+  TrafficTargetEntity,
+  TrafficTargetStatus,
+  TrafficTargetType,
   TrafficOrderEntity,
   TrafficOrderStatus,
+  TransactionType,
 } from '@app/database';
-import { decimal, add, subtract, sum, multiply, divide, toDisplayString } from '@app/common-shared';
+import { decimal, add, subtract, sum, multiply, divide, toDisplayString, toError } from '@app/common-shared';
 import { MenuActionHandler } from './menu-action.handler';
 import { ProfileActionHandler } from './profile-action.handler';
 import { BalanceActionHandler } from './balance-action.handler';
@@ -65,6 +70,38 @@ export class CallbackRouterHandler {
     return this.orm.em.fork();
   }
 
+  /**
+   * Wraps an authenticated handler, checking the type guard before calling
+   */
+  private withAuth(handler: (ctx: AuthenticatedBotContext) => Promise<void>): (ctx: BotContext) => Promise<void> {
+    return async (ctx: BotContext) => {
+      if (!isAuthenticated(ctx)) {
+        await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+        return;
+      }
+
+      await handler(ctx);
+    };
+  }
+
+  /**
+   * Wraps an authenticated handler with params, checking the type guard before calling
+   */
+  private withAuthParams(
+    handler: (ctx: AuthenticatedBotContext, params: string[]) => Promise<void>,
+  ): (ctx: BotContext, params: string[]) => Promise<void> {
+    return async (ctx: BotContext, params: string[]) => {
+      if (!isAuthenticated(ctx)) {
+        await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+        return;
+      }
+
+      await handler(ctx, params);
+    };
+  }
+
   private initializeHandlerMaps(): void {
     this.primaryActionHandlers = new Map([
       ['menu', this.routeMenuAction.bind(this)],
@@ -98,27 +135,29 @@ export class CallbackRouterHandler {
 
     this.menuActionHandlers = new Map([
       ['main', this.handleMainMenu.bind(this)],
-      ['profile', async (ctx) => this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext)],
-      ['balance', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
-      ['statistics', async (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx)],
-      ['orders', this.handleOrdersMenu.bind(this)],
-      ['settings', async (ctx) => this.settingsHandler.handleSettingsView(ctx)],
-      ['referrals', this.handleReferralsMenu.bind(this)],
-      ['referral', this.handleReferralsMenu.bind(this)],
-      ['payments', this.handlePaymentsMenu.bind(this)],
+      ['buy_traffic', this.handleBuyTrafficMenu.bind(this)],
+      ['sell_traffic', this.handleSellTrafficMenu.bind(this)],
+      ['profile', this.withAuth((ctx) => this.profileHandler.handleProfileView(ctx))],
+      ['balance', this.withAuth((ctx) => this.balanceHandler.handleBalanceView(ctx))],
+      ['statistics', this.withAuth((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
+      ['orders', this.withAuth((ctx) => this.handleOrdersMenu(ctx))],
+      ['settings', this.withAuth((ctx) => this.settingsHandler.handleSettingsView(ctx))],
+      ['referrals', this.withAuth((ctx) => this.handleReferralsMenu(ctx))],
+      ['referral', this.withAuth((ctx) => this.handleReferralsMenu(ctx))],
+      ['payments', this.withAuth((ctx) => this.handlePaymentsMenu(ctx))],
       ['support', this.handleSupportMenu.bind(this)],
       ['help', this.handleHelpMenu.bind(this)],
-      ['traffic', this.handleTrafficMenu.bind(this)],
-      ['campaign', this.handleCampaignMenu.bind(this)],
-      ['withdrawal', async (ctx) => this.balanceHandler.handleWithdrawalStart(ctx as AuthenticatedBotContext)],
-      ['notifications', async (ctx) => this.settingsHandler.handleNotificationSettings(ctx)],
+      ['traffic', this.withAuth((ctx) => this.handleTrafficMenu(ctx))],
+      ['campaign', this.withAuth((ctx) => this.handleCampaignMenu(ctx))],
+      ['withdrawal', this.withAuth((ctx) => this.balanceHandler.handleWithdrawalStart(ctx))],
+      ['notifications', this.withAuth((ctx) => this.settingsHandler.handleNotificationSettings(ctx))],
     ]);
 
     this.profileActionHandlers = new Map([
-      ['view', async (ctx) => this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext)],
+      ['view', this.withAuthParams((ctx) => this.profileHandler.handleProfileView(ctx))],
       [
         'edit',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0) {
             await ctx.reply(ctx.t('profile.enter_new_field', { field: params[0] }));
             if (ctx.session) {
@@ -126,65 +165,65 @@ export class CallbackRouterHandler {
               ctx.session.formData = { field: params[0] };
             }
           } else {
-            await this.profileHandler.handleProfileEditStart(ctx as AuthenticatedBotContext);
+            await this.profileHandler.handleProfileEditStart(ctx);
           }
-        },
+        }),
       ],
-      ['details', async (ctx) => this.profileHandler.handleProfileDetails(ctx as AuthenticatedBotContext)],
-      ['verify', async (ctx) => this.profileHandler.handleVerification(ctx as AuthenticatedBotContext)],
-      ['stats', this.handleProfileStatsMenu.bind(this)],
-      ['stats:overview', async (ctx, _params) => this.statisticsHandler.handleStatisticsOverview(ctx)],
-      ['stats:activity', async (ctx, _params) => this.statisticsHandler.handleDetailedStatistics(ctx)],
-      ['stats:earnings', async (ctx, _params) => this.statisticsHandler.handleEarningsStatistics(ctx)],
-      ['stats:performance', async (ctx, _params) => this.statisticsHandler.handleTrafficStatistics(ctx)],
+      ['details', this.withAuthParams((ctx) => this.profileHandler.handleProfileDetails(ctx))],
+      ['verify', this.withAuthParams((ctx) => this.profileHandler.handleVerification(ctx))],
+      ['stats', this.withAuthParams((ctx, params) => this.handleProfileStatsMenu(ctx, params))],
+      ['stats:overview', this.withAuthParams((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
+      ['stats:activity', this.withAuthParams((ctx) => this.statisticsHandler.handleDetailedStatistics(ctx))],
+      ['stats:earnings', this.withAuthParams((ctx) => this.statisticsHandler.handleEarningsStatistics(ctx))],
+      ['stats:performance', this.withAuthParams((ctx) => this.statisticsHandler.handleTrafficStatistics(ctx))],
       ['security', this.handleProfileSecurityMenu.bind(this)],
       ['password', this.handlePasswordChange.bind(this)],
       ['email_security', this.handleEmailSecurity.bind(this)],
-      ['login_history', this.handleLoginHistory.bind(this)],
+      ['login_history', this.withAuthParams((ctx) => this.handleLoginHistory(ctx))],
     ]);
 
     this.balanceActionHandlers = new Map([
-      ['view', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
-      ['current', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
+      ['view', this.withAuthParams((ctx) => this.balanceHandler.handleBalanceView(ctx))],
+      ['current', this.withAuthParams((ctx) => this.balanceHandler.handleBalanceView(ctx))],
       [
         'history',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           const page = params.length > 0 && params[0] === 'page' ? parseInt(params[1]) : 1;
-          await this.balanceHandler.handleTransactionHistory(ctx as AuthenticatedBotContext, page);
-        },
+          await this.balanceHandler.handleTransactionHistory(ctx, page);
+        }),
       ],
-      ['analytics', this.handleBalanceAnalytics.bind(this)],
-      ['withdraw', async (ctx) => this.balanceHandler.handleWithdrawalStart(ctx as AuthenticatedBotContext)],
-      ['deposit', async (ctx) => this.balanceHandler.handleDepositStart(ctx as AuthenticatedBotContext)],
-      ['topup', async (ctx) => this.balanceHandler.handleDepositStart(ctx as AuthenticatedBotContext)],
+      ['analytics', this.withAuthParams((ctx) => this.handleBalanceAnalytics(ctx))],
+      ['withdraw', this.withAuthParams((ctx) => this.balanceHandler.handleWithdrawalStart(ctx))],
+      ['deposit', this.withAuthParams((ctx) => this.balanceHandler.handleDepositStart(ctx))],
+      ['topup', this.withAuthParams((ctx) => this.balanceHandler.handleDepositStart(ctx))],
     ]);
 
     this.statsActionHandlers = new Map([
-      ['overview', async (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx)],
-      ['detailed', async (ctx) => this.statisticsHandler.handleDetailedStatistics(ctx)],
-      ['traffic', async (ctx) => this.statisticsHandler.handleTrafficStatistics(ctx)],
-      ['earnings', async (ctx) => this.statisticsHandler.handleEarningsStatistics(ctx)],
+      ['overview', this.withAuth((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
+      ['detailed', this.withAuth((ctx) => this.statisticsHandler.handleDetailedStatistics(ctx))],
+      ['traffic', this.withAuth((ctx) => this.statisticsHandler.handleTrafficStatistics(ctx))],
+      ['earnings', this.withAuth((ctx) => this.statisticsHandler.handleEarningsStatistics(ctx))],
     ]);
 
     this.orderActionHandlers = new Map([
-      ['list', this.handleOrdersMenu.bind(this)],
+      ['list', this.withAuthParams((ctx) => this.handleOrdersMenu(ctx))],
       [
         'active',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           const page = params.length > 0 && params[0] === 'page' ? parseInt(params[1]) : 1;
           await this.orderHandler.handleActiveOrders(ctx, page);
-        },
+        }),
       ],
       [
         'completed',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           const page = params.length > 0 && params[0] === 'page' ? parseInt(params[1]) : 1;
           await this.orderHandler.handleCompletedOrders(ctx, page);
-        },
+        }),
       ],
       [
         'create',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0 && params[0] === 'start') {
             await this.orderHandler.handleCreateOrderStart(ctx);
           } else if (params.length > 0 && params[0] === 'back') {
@@ -192,27 +231,27 @@ export class CallbackRouterHandler {
           } else {
             await this.orderHandler.handleCreateOrderStart(ctx);
           }
-        },
+        }),
       ],
-      ['search', async (ctx) => this.orderHandler.handleOrderSearch(ctx)],
+      ['search', this.withAuthParams((ctx) => this.orderHandler.handleOrderSearch(ctx))],
       [
         'details',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0) {
             await this.orderHandler.handleOrderDetails(ctx, params[0]);
           }
-        },
+        }),
       ],
       [
         'view',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0) {
             await this.orderHandler.handleOrderDetails(ctx, params[0]);
           }
-        },
+        }),
       ],
       ['deleted', this.handleDeletedOrders.bind(this)],
-      ['config', this.handleOrderConfig.bind(this)],
+      ['config', this.withAuthParams((ctx, params) => this.handleOrderConfig(ctx, params))],
       ['edit', this.handleOrderEdit.bind(this)],
       ['toggle', this.handleOrderToggle.bind(this)],
       ['delete', this.handleOrderDelete.bind(this)],
@@ -236,7 +275,7 @@ export class CallbackRouterHandler {
           });
         },
       ],
-      ['stats', this.handleOrderStats.bind(this)],
+      ['stats', this.withAuthParams((ctx, params) => this.handleOrderStats(ctx, params))],
       ['duplicate', this.handleOrderDuplicate.bind(this)],
       ['integration', this.handleOrderIntegration.bind(this)],
       ['transfer', this.handleOrderTransfer.bind(this)],
@@ -255,45 +294,45 @@ export class CallbackRouterHandler {
     this.settingsActionHandlers = new Map([
       [
         'language',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0) {
             await this.settingsHandler.handleLanguageChange(ctx, params[0]);
           } else {
             await this.settingsHandler.handleLanguageSettings(ctx);
           }
-        },
+        }),
       ],
       [
         'lang',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0) {
             await this.settingsHandler.handleLanguageChange(ctx, params[0]);
           }
-        },
+        }),
       ],
-      ['notifications', async (ctx) => this.settingsHandler.handleNotificationSettings(ctx)],
+      ['notifications', this.withAuthParams((ctx) => this.settingsHandler.handleNotificationSettings(ctx))],
       [
         'notify',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0) {
             await this.settingsHandler.handleNotificationToggle(ctx, params[0]);
           }
-        },
+        }),
       ],
-      ['preferences', async (ctx) => this.settingsHandler.handlePreferencesSettings(ctx)],
+      ['preferences', this.withAuthParams((ctx) => this.settingsHandler.handlePreferencesSettings(ctx))],
       [
         'privacy',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0 && params[0]) {
             await this.handlePrivacyToggle(ctx, params[0]);
           } else {
             await this.settingsHandler.handlePrivacySettings(ctx);
           }
-        },
+        }),
       ],
       ['theme', this.handleThemeSettings.bind(this)],
-      ['export', this.handleExportMenu.bind(this)],
-      ['reset', this.handleResetMenu.bind(this)],
+      ['export', this.withAuthParams((ctx) => this.handleExportMenu(ctx))],
+      ['reset', this.withAuthParams((ctx) => this.handleResetMenu(ctx))],
     ]);
   }
 
@@ -348,7 +387,7 @@ export class CallbackRouterHandler {
       });
 
       await ctx.answerCallbackQuery(ctx.t('common.error'));
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -377,8 +416,10 @@ export class CallbackRouterHandler {
 
     if (handler) {
       await handler(ctx, params);
+    } else if (isAuthenticated(ctx)) {
+      await this.profileHandler.handleProfileView(ctx);
     } else {
-      await this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext);
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
     }
   }
 
@@ -390,8 +431,10 @@ export class CallbackRouterHandler {
 
     if (handler) {
       await handler(ctx, params);
+    } else if (isAuthenticated(ctx)) {
+      await this.balanceHandler.handleBalanceView(ctx);
     } else {
-      await this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext);
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
     }
   }
 
@@ -403,8 +446,10 @@ export class CallbackRouterHandler {
 
     if (handler) {
       await handler(ctx);
-    } else {
+    } else if (isAuthenticated(ctx)) {
       await this.statisticsHandler.handleStatisticsOverview(ctx);
+    } else {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
     }
   }
 
@@ -416,8 +461,10 @@ export class CallbackRouterHandler {
 
     if (handler) {
       await handler(ctx, params);
-    } else {
+    } else if (isAuthenticated(ctx)) {
       await this.handleOrdersMenu(ctx);
+    } else {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
     }
   }
 
@@ -429,8 +476,10 @@ export class CallbackRouterHandler {
 
     if (handler) {
       await handler(ctx, params);
-    } else {
+    } else if (isAuthenticated(ctx)) {
       await this.settingsHandler.handleSettingsView(ctx);
+    } else {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
     }
   }
 
@@ -484,35 +533,182 @@ export class CallbackRouterHandler {
    * Route referral actions
    */
   private async routeReferralAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleReferralsMenu(ctx);
+    if (isAuthenticated(ctx)) {
+      await this.handleReferralsMenu(ctx);
+    } else {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+    }
   }
 
   /**
    * Route payment actions
    */
   private async routePaymentAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handlePaymentsMenu(ctx);
+    if (isAuthenticated(ctx)) {
+      await this.handlePaymentsMenu(ctx);
+    } else {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+    }
   }
 
   /**
    * Route deposit actions
    */
-  private async routeDepositAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleDepositMenu(ctx);
+  private async routeDepositAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+    if (!isAuthenticated(ctx)) {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+      return;
+    }
+
+    const depositActionHandlers: Record<string, (ctx: AuthenticatedBotContext, params: string[]) => Promise<void>> = {
+      card: async (ctx) => this.handleDepositCard(ctx),
+      crypto: async (ctx) => this.handleDepositCrypto(ctx),
+      bank: async (ctx) => this.handleDepositBank(ctx),
+      amount: async (ctx, params) => this.handleDepositAmount(ctx, params[0]),
+      confirm: async (ctx, params) => this.handleDepositConfirm(ctx, params),
+      cancel: async (ctx) => this.handleDepositMenu(ctx),
+      history: async (ctx) => this.handleDepositHistory(ctx),
+      methods: async (ctx) => this.handleDepositMenu(ctx),
+      bonuses: async (ctx) => this.handleDepositBonuses(ctx),
+      create: async (ctx) => this.handleDepositMenu(ctx),
+    };
+
+    const handler = depositActionHandlers[action];
+
+    if (handler) {
+      await handler(ctx, params);
+    } else {
+      await this.handleDepositMenu(ctx);
+    }
   }
 
   /**
    * Route withdrawal actions
    */
-  private async routeWithdrawalAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleWithdrawalMenu(ctx);
+  private async routeWithdrawalAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+    if (!isAuthenticated(ctx)) {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+      return;
+    }
+
+    const withdrawalActionHandlers: Record<string, (ctx: AuthenticatedBotContext, params: string[]) => Promise<void>> =
+      {
+        currency: async (ctx, params) => this.handleWithdrawalCurrency(ctx, params[0]),
+        amount: async (ctx, params) => this.handleWithdrawalAmount(ctx, params[0]),
+        confirm: async (ctx, params) => this.handleWithdrawalConfirm(ctx, params),
+        cancel: async (ctx) => this.handleWithdrawalMenu(ctx),
+        history: async (ctx) => this.handleWithdrawalHistory(ctx),
+        methods: async (ctx) => this.handleWithdrawalMethods(ctx),
+        limits: async (ctx) => this.handleWithdrawalLimits(ctx),
+        create: async (ctx) => this.handleWithdrawalMenu(ctx),
+      };
+
+    const handler = withdrawalActionHandlers[action];
+
+    if (handler) {
+      await handler(ctx, params);
+    } else {
+      await this.handleWithdrawalMenu(ctx);
+    }
   }
 
   /**
    * Route traffic actions
    */
-  private async routeTrafficAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleTrafficMenu(ctx);
+  private async routeTrafficAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+    const trafficActionHandlers: Record<string, (ctx: BotContext, params: string[]) => Promise<void>> = {
+      sources: async (ctx, params) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
+        if (params.length > 0 && params[0] === 'add') {
+          await this.handleTrafficSourceAdd(ctx);
+        } else {
+          await this.handleTrafficSourcesList(ctx);
+        }
+      },
+      targets: async (ctx, params) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
+        if (params.length > 0 && params[0] === 'add') {
+          await this.handleTrafficTargetAdd(ctx);
+        } else {
+          await this.handleTrafficTargetsList(ctx);
+        }
+      },
+      source: async (ctx, params) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
+        const [subAction, sourceId] = params;
+        if (subAction === 'view' && sourceId) {
+          await this.handleTrafficSourceView(ctx, sourceId);
+        } else if (subAction === 'edit' && sourceId) {
+          await this.handleTrafficSourceEdit(ctx, sourceId);
+        } else if (subAction === 'toggle' && sourceId) {
+          await this.handleTrafficSourceToggle(ctx, sourceId);
+        } else if (subAction === 'delete' && sourceId) {
+          await this.handleTrafficSourceDelete(ctx, sourceId);
+        } else if (subAction === 'stats' && sourceId) {
+          await this.handleTrafficSourceStats(ctx, sourceId);
+        }
+      },
+      target: async (ctx, params) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
+        const [subAction, targetId] = params;
+        if (subAction === 'view' && targetId) {
+          await this.handleTrafficTargetView(ctx, targetId);
+        } else if (subAction === 'edit' && targetId) {
+          await this.handleTrafficTargetEdit(ctx, targetId);
+        } else if (subAction === 'toggle' && targetId) {
+          await this.handleTrafficTargetToggle(ctx, targetId);
+        } else if (subAction === 'delete' && targetId) {
+          await this.handleTrafficTargetDelete(ctx, targetId);
+        } else if (subAction === 'stats' && targetId) {
+          await this.handleTrafficTargetStats(ctx, targetId);
+        }
+      },
+      analytics: async (ctx) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
+        await this.handleTrafficAnalytics(ctx);
+      },
+    };
+
+    const handler = trafficActionHandlers[action];
+
+    if (handler) {
+      await handler(ctx, params);
+    } else {
+      if (!isAuthenticated(ctx)) {
+        await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+        return;
+      }
+
+      await this.handleTrafficMenu(ctx);
+    }
   }
 
   /**
@@ -546,7 +742,7 @@ export class CallbackRouterHandler {
   private async routeHelpAction(ctx: BotContext, action: string, _params: string[]): Promise<void> {
     const helpHandlers: Record<string, (ctx: BotContext) => Promise<void>> = {
       faq: (ctx) => this.handleHelpFAQ(ctx),
-      create_order: (ctx) => this.handleHelpCreateOrder(ctx),
+      createOrder: (ctx) => this.handleHelpCreateOrder(ctx),
       topup: (ctx) => this.handleHelpTopup(ctx),
       withdraw: (ctx) => this.handleHelpWithdraw(ctx),
       stats: (ctx) => this.handleHelpStats(ctx),
@@ -565,6 +761,12 @@ export class CallbackRouterHandler {
    * Route campaign actions
    */
   private async routeCampaignAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+    if (!isAuthenticated(ctx)) {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+      return;
+    }
+
     await this.handleCampaignMenu(ctx);
   }
 
@@ -572,6 +774,12 @@ export class CallbackRouterHandler {
    * Route admin actions
    */
   private async routeAdminAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+    if (!isAuthenticated(ctx)) {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+      return;
+    }
+
     await this.handleAdminMenu(ctx);
   }
 
@@ -588,13 +796,23 @@ export class CallbackRouterHandler {
    * Route verify actions
    */
   private async routeVerifyAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.profileHandler.handleVerification(ctx as AuthenticatedBotContext);
+    if (isAuthenticated(ctx)) {
+      await this.profileHandler.handleVerification(ctx);
+    } else {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+    }
   }
 
   /**
    * Route export actions
    */
   private async routeExportAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+    if (!isAuthenticated(ctx)) {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+      return;
+    }
+
     await this.handleExportMenu(ctx);
   }
 
@@ -602,6 +820,12 @@ export class CallbackRouterHandler {
    * Route reset actions
    */
   private async routeResetAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
+    if (!isAuthenticated(ctx)) {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+      return;
+    }
+
     await this.handleResetMenu(ctx);
   }
 
@@ -622,32 +846,31 @@ export class CallbackRouterHandler {
   // Placeholder methods for additional features
 
   private async handleMainMenu(ctx: BotContext): Promise<void> {
-    const userName = ctx.from?.first_name || 'Пользователь';
-    const text = `<b>👋 Привет, ${userName}!</b>
+    const userName = ctx.from?.first_name || ctx.t('common.user', { default: 'User' });
 
-Добро пожаловать в <b>MotivBuy</b> — сервис для продвижения Telegram каналов и групп!
+    const text = ctx.t('main_menu.welcome', {
+      default: `<b>👋 ${ctx.t('main_menu.greeting', { default: 'Welcome' })}, ${userName}!</b>
 
-<b>🚀 Что можно сделать:</b>
-• Купить подписчиков для вашего канала
-• Продать трафик и заработать
-• Отслеживать статистику
+${ctx.t('main_menu.description', { default: '<b>MotivBuy</b> — Your Telegram growth platform' })}
 
-<i>Выберите нужный раздел ниже 👇</i>`;
+<b>🛒 ${ctx.t('main_menu.buy_title', { default: 'Buy Traffic' })}</b>
+${ctx.t('main_menu.buy_desc', { default: 'Get real subscribers for your channels and groups' })}
+
+<b>💰 ${ctx.t('main_menu.sell_title', { default: 'Sell Traffic' })}</b>
+${ctx.t('main_menu.sell_desc', { default: 'Monetize your bot or channel audience' })}
+
+<i>${ctx.t('main_menu.select_action', { default: 'Select an action below' })} 👇</i>`,
+      userName,
+    });
 
     const keyboard = new InlineKeyboard()
-      .text('👥 Купить подписчиков', 'order:list')
+      .text(ctx.t('main_menu.btn_buy_traffic', { default: '🛒 Buy Traffic' }), 'menu:buy_traffic')
+      .text(ctx.t('main_menu.btn_sell_traffic', { default: '💰 Sell Traffic' }), 'menu:sell_traffic')
       .row()
-      .text('🤖 Продажа трафика', 'traffic:manage')
-      .text('📋 Мои заказы', 'order:list')
+      .text(ctx.t('main_menu.btn_balance', { default: '💳 Balance' }), 'balance:view')
+      .text(ctx.t('main_menu.btn_profile', { default: '👤 Profile' }), 'profile:view')
       .row()
-      .text('👤 Профиль', 'profile:view')
-      .text('💰 Баланс', 'balance:view')
-      .row()
-      .text('📊 Статистика', 'stats:overview')
-      .text('⚙️ Настройки', 'settings')
-      .row()
-      .text('❓ Помощь', 'help')
-      .text('🏢 Поддержка', 'support');
+      .text(ctx.t('main_menu.btn_support', { default: '🆘 Support' }), 'menu:support');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -656,170 +879,219 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrdersMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply('Требуется авторизация. Используйте /start');
-        return;
-      }
+  /**
+   * Handle Buy Traffic menu - for users who want to purchase subscribers
+   */
+  private async handleBuyTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const [balance, activeOrdersCount] = await Promise.all([
+      this.em.findOne(UserBalanceEntity, { user: ctx.user.id }),
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+    ]);
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-      if (!user) {
-        await ctx.reply('Пользователь не найден');
-        return;
-      }
+    const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
 
-      // Get order counts
-      const [activeCount, completedCount, totalCount] = await Promise.all([
-        this.em.count(TrafficOrderEntity, {
-          creator: user.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-        }),
-        this.em.count(TrafficOrderEntity, {
-          creator: user.id,
-          status: TrafficOrderStatus.Completed,
-        }),
-        this.em.count(TrafficOrderEntity, { creator: user.id }),
-      ]);
+    const text = `<b>🛒 ${ctx.t('buy_traffic.title', { default: 'Buy Traffic' })}</b>
 
-      const text = `<b>📦 Мои заказы</b>
+${ctx.t('buy_traffic.description', { default: 'Get real subscribers for your Telegram channels and groups.' })}
 
-<b>📊 Статистика заказов:</b>
-• Активных: ${activeCount}
-• Завершенных: ${completedCount}
-• Всего: ${totalCount}
+<b>💰 ${ctx.t('buy_traffic.your_balance', { default: 'Your Balance' })}:</b> $${availableBalance}
+<b>📦 ${ctx.t('buy_traffic.active_orders', { default: 'Active Orders' })}:</b> ${activeOrdersCount}
 
-<i>Выберите действие ниже:</i>`;
+<b>📋 ${ctx.t('buy_traffic.how_it_works', { default: 'How it works' })}:</b>
+1. ${ctx.t('buy_traffic.step1', { default: 'Create a new order' })}
+2. ${ctx.t('buy_traffic.step2', { default: 'Enter your channel/group link' })}
+3. ${ctx.t('buy_traffic.step3', { default: 'Select package and quantity' })}
+4. ${ctx.t('buy_traffic.step4', { default: 'Confirm and pay' })}
+5. ${ctx.t('buy_traffic.step5', { default: 'Watch your subscribers grow!' })}
 
-      const keyboard = new InlineKeyboard()
-        .text('🆕 Новый заказ', 'order:create:start')
-        .row()
-        .text('📋 Активные заказы', 'orders:active')
-        .text('✅ Завершенные', 'orders:completed')
-        .row()
-        .text('🔍 Поиск заказов', 'orders:search')
-        .row()
-        .text('« Назад в меню', 'menu:main');
+<i>${ctx.t('buy_traffic.select_action', { default: 'Select an action' })} 👇</i>`;
 
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('buy_traffic.btn_new_order', { default: '➕ New Order' }), 'order:create:start')
+      .text(ctx.t('buy_traffic.btn_my_orders', { default: '📋 My Orders' }), 'orders:list')
+      .row()
+      .text(ctx.t('buy_traffic.btn_active', { default: '🔄 Active Orders' }), 'orders:active')
+      .text(ctx.t('buy_traffic.btn_completed', { default: '✅ Completed' }), 'orders:completed')
+      .row()
+      .text(ctx.t('buy_traffic.btn_deposit', { default: '💳 Top Up Balance' }), 'balance:deposit')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handleReferralsMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply('Требуется авторизация. Используйте /start');
-        return;
-      }
+  /**
+   * Handle Sell Traffic menu - for users who want to monetize their bot/channel
+   */
+  private async handleSellTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const [sourcesCount, activeSourcesCount, balance] = await Promise.all([
+      this.em.count(TrafficSourceEntity, { managedBy: ctx.user.id }),
+      this.em.count(TrafficSourceEntity, { managedBy: ctx.user.id, status: TrafficSourceStatus.Active }),
+      this.em.findOne(UserBalanceEntity, { user: ctx.user.id }),
+    ]);
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-      if (!user) {
-        await ctx.reply('Пользователь не найден');
-        return;
-      }
+    const pendingEarnings = balance ? toDisplayString(balance.lockedBalance, 2) : '0.00';
+    const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
 
-      // Generate referral link
-      const botUsername = 'motivbuy_bot'; // TODO: Get from config
-      const referralCode = user.id.substring(0, 8);
-      const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
+    const text = `<b>💰 ${ctx.t('sell_traffic.title', { default: 'Sell Traffic' })}</b>
 
-      const text = `<b>🎁 Реферальная программа</b>
+${ctx.t('sell_traffic.description', { default: 'Monetize your Telegram bot or channel by selling traffic to advertisers.' })}
 
-Приглашайте друзей и получайте бонусы!
+<b>📊 ${ctx.t('sell_traffic.your_stats', { default: 'Your Statistics' })}:</b>
+• ${ctx.t('sell_traffic.total_sources', { default: 'Traffic Sources' })}: ${sourcesCount}
+• ${ctx.t('sell_traffic.active_sources', { default: 'Active' })}: ${activeSourcesCount}
+• ${ctx.t('sell_traffic.pending_earnings', { default: 'Pending Earnings' })}: $${pendingEarnings}
+• ${ctx.t('sell_traffic.available_balance', { default: 'Available Balance' })}: $${availableBalance}
 
-<b>💰 Ваши вознаграждения:</b>
-• 10% от каждой покупки реферала
-• Бессрочное начисление
-• Без ограничений по количеству
+<b>💡 ${ctx.t('sell_traffic.how_to_earn', { default: 'How to earn' })}:</b>
+1. ${ctx.t('sell_traffic.step1', { default: 'Add your bot as a traffic source' })}
+2. ${ctx.t('sell_traffic.step2', { default: 'Connect it to receive orders' })}
+3. ${ctx.t('sell_traffic.step3', { default: 'Your bot shows ads to users' })}
+4. ${ctx.t('sell_traffic.step4', { default: 'Get paid for each subscriber!' })}
 
-<b>🔗 Ваша реферальная ссылка:</b>
+<i>${ctx.t('sell_traffic.select_action', { default: 'Select an action' })} 👇</i>`;
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('sell_traffic.btn_my_sources', { default: '📊 My Sources' }), 'traffic:sources')
+      .text(ctx.t('sell_traffic.btn_add_source', { default: '➕ Add Source' }), 'traffic:sources:add')
+      .row()
+      .text(ctx.t('sell_traffic.btn_analytics', { default: '📈 Analytics' }), 'traffic:analytics')
+      .text(ctx.t('sell_traffic.btn_earnings', { default: '💵 Earnings' }), 'balance:view')
+      .row()
+      .text(ctx.t('sell_traffic.btn_withdraw', { default: '💸 Withdraw' }), 'balance:withdraw')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleOrdersMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const [activeCount, completedCount, totalCount] = await Promise.all([
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: TrafficOrderStatus.Completed,
+      }),
+      this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
+    ]);
+
+    const text = `<b>📦 ${ctx.t('orders.title', { default: 'My Orders' })}</b>
+
+<b>📊 ${ctx.t('orders.stats_title', { default: 'Order Statistics' })}:</b>
+• ${ctx.t('orders.active_count', { default: 'Active' })}: ${activeCount}
+• ${ctx.t('orders.completed_count', { default: 'Completed' })}: ${completedCount}
+• ${ctx.t('orders.total_count', { default: 'Total' })}: ${totalCount}
+
+<i>${ctx.t('common.select_action', { default: 'Select an action below' })}:</i>`;
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('orders.btn_new', { default: '🆕 New Order' }), 'order:create:start')
+      .row()
+      .text(ctx.t('orders.btn_active', { default: '📋 Active Orders' }), 'orders:active')
+      .text(ctx.t('orders.btn_completed', { default: '✅ Completed' }), 'orders:completed')
+      .row()
+      .text(ctx.t('orders.btn_search', { default: '🔍 Search Orders' }), 'orders:search')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleReferralsMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const botUsername = ctx.me.username;
+    const referralCode = ctx.user.id.substring(0, 8);
+    const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
+
+    const text = `<b>🎁 ${ctx.t('referrals.title', { default: 'Referral Program' })}</b>
+
+${ctx.t('referrals.description', { default: 'Invite friends and earn bonuses!' })}
+
+<b>💰 ${ctx.t('referrals.rewards_title', { default: 'Your Rewards' })}:</b>
+• ${ctx.t('referrals.reward_percent', { default: '10% from every purchase' })}
+• ${ctx.t('referrals.reward_lifetime', { default: 'Lifetime earnings' })}
+• ${ctx.t('referrals.reward_unlimited', { default: 'Unlimited referrals' })}
+
+<b>🔗 ${ctx.t('referrals.link_title', { default: 'Your Referral Link' })}:</b>
 <code>${referralLink}</code>
 
-<b>📊 Статистика:</b>
-• Приглашено: 0 пользователей
-• Заработано: $0.00
+<b>📊 ${ctx.t('referrals.stats_title', { default: 'Statistics' })}:</b>
+• ${ctx.t('referrals.invited', { default: 'Invited' })}: 0
+• ${ctx.t('referrals.earned', { default: 'Earned' })}: $0.00
 
-<i>Поделитесь ссылкой с друзьями!</i>`;
+<i>${ctx.t('referrals.share_hint', { default: 'Share your link with friends!' })}</i>`;
 
-      const keyboard = new InlineKeyboard()
-        .text('📋 Скопировать ссылку', 'referral:copy')
-        .row()
-        .text('📊 Мои рефералы', 'referral:list')
-        .text('💰 Статистика', 'referral:stats')
-        .row()
-        .text('📤 Поделиться', 'referral:share')
-        .row()
-        .text('« Назад в меню', 'menu:main');
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('referrals.btn_copy', { default: '📋 Copy Link' }), 'referral:copy')
+      .row()
+      .text(ctx.t('referrals.btn_list', { default: '📊 My Referrals' }), 'referral:list')
+      .text(ctx.t('referrals.btn_stats', { default: '💰 Statistics' }), 'referral:stats')
+      .row()
+      .text(ctx.t('referrals.btn_share', { default: '📤 Share' }), 'referral:share')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
 
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handlePaymentsMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply('Требуется авторизация. Используйте /start');
-        return;
-      }
+  private async handlePaymentsMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const transactionCount = await this.em.count(UserBalanceHistoryEntity, { user: ctx.user.id });
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-      if (!user) {
-        await ctx.reply('Пользователь не найден');
-        return;
-      }
+    const text = `<b>💳 ${ctx.t('payments.title', { default: 'Payments' })}</b>
 
-      // Get recent transactions count
-      const transactionCount = await this.em.count(UserBalanceHistoryEntity, { user: user.id });
+${ctx.t('payments.description', { default: 'Manage your finances in one place.' })}
 
-      const text = `<b>💳 Платежи</b>
+<b>📊 ${ctx.t('payments.stats_title', { default: 'Statistics' })}:</b>
+• ${ctx.t('payments.total_transactions', { default: 'Total transactions' })}: ${transactionCount}
 
-Управляйте своими финансами в одном месте.
+<b>💰 ${ctx.t('payments.deposit_methods', { default: 'Payment Methods' })}:</b>
+• ${ctx.t('payments.method_cards', { default: 'Bank cards (Visa, MC, MIR)' })}
+• ${ctx.t('payments.method_crypto', { default: 'Cryptocurrencies (BTC, ETH, USDT)' })}
+• ${ctx.t('payments.method_wallets', { default: 'E-wallets' })}
 
-<b>📊 Статистика:</b>
-• Всего операций: ${transactionCount}
+<b>💸 ${ctx.t('payments.withdraw_methods', { default: 'Withdrawal Methods' })}:</b>
+• ${ctx.t('payments.withdraw_crypto', { default: 'Cryptocurrencies' })}
+• ${ctx.t('payments.withdraw_wallets', { default: 'E-wallets' })}
+• ${ctx.t('payments.withdraw_min', { default: 'Minimum: $10' })}
 
-<b>💰 Способы оплаты:</b>
-• Банковские карты (Visa, MC, МИР)
-• Криптовалюты (BTC, ETH, USDT)
-• Электронные кошельки
+<i>${ctx.t('common.select_action', { default: 'Select an action below' })}:</i>`;
 
-<b>💸 Способы вывода:</b>
-• Криптовалюты
-• Электронные кошельки
-• Минимум: $10
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('payments.btn_deposit', { default: '💰 Top Up Balance' }), 'balance:deposit')
+      .text(ctx.t('payments.btn_withdraw', { default: '💸 Withdraw' }), 'balance:withdraw')
+      .row()
+      .text(ctx.t('payments.btn_history', { default: '📜 Payment History' }), 'payment:history')
+      .row()
+      .text(ctx.t('payments.btn_methods', { default: '💳 Payment Methods' }), 'payment:methods')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
 
-<i>Выберите действие ниже:</i>`;
-
-      const keyboard = new InlineKeyboard()
-        .text('💰 Пополнить баланс', 'balance:deposit')
-        .text('💸 Вывести', 'balance:withdraw')
-        .row()
-        .text('📜 История платежей', 'payment:history')
-        .row()
-        .text('💳 Способы оплаты', 'payment:methods')
-        .row()
-        .text('« Назад в меню', 'menu:main');
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   private async handleSupportMenu(ctx: BotContext): Promise<void> {
@@ -888,7 +1160,7 @@ export class CallbackRouterHandler {
 <i>Если у вас остались вопросы, обратитесь в поддержку.</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text('📖 Как создать заказ', 'help:create_order')
+      .text('📖 Как создать заказ', 'help:createOrder')
       .row()
       .text('💰 Пополнение баланса', 'help:topup')
       .text('💸 Вывод средств', 'help:withdraw')
@@ -907,143 +1179,107 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleTrafficMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    // Get traffic sources managed by user
+    const sources = await this.em.find(TrafficSourceEntity, { managedBy: ctx.user.id }, { populate: ['orders'] });
 
-        return;
+    // Get active traffic orders
+    const activeOrders = await this.em.count(TrafficOrderEntity, {
+      creator: ctx.user.id,
+      status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+    });
+
+    const totalOrders = await this.em.count(TrafficOrderEntity, { creator: ctx.user.id });
+
+    let text = `<b>${ctx.t('traffic.management_title', { default: '🎯 Traffic Management' })}</b>\n\n`;
+    text += `<b>${ctx.t('common.overview', { default: '📊 Overview' })}:</b>\n`;
+    text += `• ${ctx.t('traffic.sources', { default: 'Traffic Sources' })}: ${sources.length}\n`;
+    text += `• ${ctx.t('orders.active', { default: 'Active Orders' })}: ${activeOrders}\n`;
+    text += `• ${ctx.t('orders.total', { default: 'Total Orders' })}: ${totalOrders}\n\n`;
+
+    if (sources.length > 0) {
+      text += `<b>${ctx.t('traffic.your_sources', { default: 'Your Sources' })}:</b>\n`;
+      sources.slice(0, 5).forEach((source) => {
+        const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
+        text += `${statusEmoji} ${source.name} (${source.type})\n`;
+      });
+
+      if (sources.length > 5) {
+        text += `... ${ctx.t('common.and_more', { default: 'and', count: sources.length - 5 })} ${sources.length - 5} ${ctx.t('common.more', { default: 'more' })}\n`;
       }
+    } else {
+      text += `<i>${ctx.t('traffic.no_sources', { default: 'No traffic sources yet. Create one to get started!' })}</i>`;
+    }
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+    const keyboard = this.menuHandler.createTrafficMenuKeyboard();
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
 
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Get traffic sources managed by user
-      const sources = await this.em.find(TrafficSourceEntity, { managedBy: user.id }, { populate: ['orders'] });
-
-      // Get active traffic orders
-      const activeOrders = await this.em.count(TrafficOrderEntity, {
-        creator: user.id,
+  private async handleCampaignMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    // Get campaign statistics (campaigns are TrafficOrders)
+    const [active, completed, total] = await Promise.all([
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
         status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-      });
+      }),
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: TrafficOrderStatus.Completed,
+      }),
+      this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
+    ]);
 
-      const totalOrders = await this.em.count(TrafficOrderEntity, { creator: user.id });
+    // Get recent campaigns
+    const recentCampaigns = await this.em.find(
+      TrafficOrderEntity,
+      { creator: ctx.user.id },
+      { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['trafficTarget'] },
+    );
 
-      let text = '<b>🎯 Traffic Management</b>\n\n';
-      text += `<b>📊 Overview:</b>\n`;
-      text += `• Traffic Sources: ${sources.length}\n`;
-      text += `• Active Orders: ${activeOrders}\n`;
-      text += `• Total Orders: ${totalOrders}\n\n`;
+    const totalSpent = recentCampaigns.reduce((acc, order) => {
+      return acc.plus(decimal(order.spentAmount || '0'));
+    }, decimal(0));
 
-      if (sources.length > 0) {
-        text += '<b>Your Sources:</b>\n';
-        sources.slice(0, 5).forEach((source) => {
-          const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
-          text += `${statusEmoji} ${source.name} (${source.type})\n`;
-        });
+    let text = `<b>${ctx.t('campaign.management_title', { default: '📋 Campaign Management' })}</b>\n\n`;
+    text += `<b>${ctx.t('common.statistics', { default: '📊 Statistics' })}:</b>\n`;
+    text += `• ${ctx.t('campaign.active', { default: 'Active Campaigns' })}: ${active}\n`;
+    text += `• ${ctx.t('common.completed', { default: 'Completed' })}: ${completed}\n`;
+    text += `• ${ctx.t('common.total', { default: 'Total' })}: ${total}\n`;
+    text += `• ${ctx.t('common.total_spent', { default: 'Total Spent' })}: $${toDisplayString(totalSpent, 2)}\n\n`;
 
-        if (sources.length > 5) {
-          text += `... and ${sources.length - 5} more\n`;
-        }
-      } else {
-        text += '<i>No traffic sources yet. Create one to get started!</i>';
+    if (recentCampaigns.length > 0) {
+      text += `<b>${ctx.t('campaign.recent', { default: 'Recent Campaigns' })}:</b>\n`;
+      for (const campaign of recentCampaigns) {
+        const statusEmoji =
+          {
+            [TrafficOrderStatus.Active]: '✅',
+            [TrafficOrderStatus.InProgress]: '🔄',
+            [TrafficOrderStatus.Completed]: '✔️',
+            [TrafficOrderStatus.Pending]: '⏳',
+            [TrafficOrderStatus.Cancelled]: '❌',
+            [TrafficOrderStatus.Failed]: '⚠️',
+          }[campaign.status] || '❓';
+
+        text += `${statusEmoji} ${campaign.orderId.substring(0, 8)}... (${campaign.type})\n`;
+        text += `   ${ctx.t('common.progress', { default: 'Progress' })}: ${campaign.currentCount}/${campaign.targetCount}\n`;
       }
-
-      const keyboard = this.menuHandler.createTrafficMenuKeyboard();
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+    } else {
+      text += `<i>${ctx.t('campaign.no_campaigns', { default: 'No campaigns yet. Click "Create Campaign" to get started!' })}</i>`;
     }
+
+    const keyboard = this.menuHandler.createCampaignMenuKeyboard();
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handleCampaignMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Get campaign statistics (campaigns are TrafficOrders)
-      const [active, completed, total] = await Promise.all([
-        this.em.count(TrafficOrderEntity, {
-          creator: user.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-        }),
-        this.em.count(TrafficOrderEntity, {
-          creator: user.id,
-          status: TrafficOrderStatus.Completed,
-        }),
-        this.em.count(TrafficOrderEntity, { creator: user.id }),
-      ]);
-
-      // Get recent campaigns
-      const recentCampaigns = await this.em.find(
-        TrafficOrderEntity,
-        { creator: user.id },
-        { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['trafficTarget'] },
-      );
-
-      const totalSpent = recentCampaigns.reduce((sum, order) => {
-        return sum.plus(decimal(order.spentAmount || '0'));
-      }, decimal(0));
-
-      let text = '<b>📋 Campaign Management</b>\n\n';
-      text += '<b>📊 Statistics:</b>\n';
-      text += `• Active Campaigns: ${active}\n`;
-      text += `• Completed: ${completed}\n`;
-      text += `• Total: ${total}\n`;
-      text += `• Total Spent: $${toDisplayString(totalSpent, 2)}\n\n`;
-
-      if (recentCampaigns.length > 0) {
-        text += '<b>Recent Campaigns:</b>\n';
-        for (const campaign of recentCampaigns) {
-          const statusEmoji =
-            {
-              [TrafficOrderStatus.Active]: '✅',
-              [TrafficOrderStatus.InProgress]: '🔄',
-              [TrafficOrderStatus.Completed]: '✔️',
-              [TrafficOrderStatus.Pending]: '⏳',
-              [TrafficOrderStatus.Cancelled]: '❌',
-              [TrafficOrderStatus.Failed]: '⚠️',
-            }[campaign.status] || '❓';
-
-          text += `${statusEmoji} ${campaign.orderId.substring(0, 8)}... (${campaign.type})\n`;
-          text += `   Progress: ${campaign.currentCount}/${campaign.targetCount}\n`;
-        }
-      } else {
-        text += '<i>No campaigns yet. Click "Create Campaign" to get started!</i>';
-      }
-
-      const keyboard = this.menuHandler.createCampaignMenuKeyboard();
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
-  }
-
-  private async handleProfileStatsMenu(ctx: BotContext, _params: string[]): Promise<void> {
+  private async handleProfileStatsMenu(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
     // If no specific stat requested, show overview using StatisticsActionHandler
     if (!_params || _params.length === 0) {
       await this.statisticsHandler.handleStatisticsOverview(ctx);
@@ -1052,7 +1288,7 @@ export class CallbackRouterHandler {
     }
 
     // Route to specific stat views using Map pattern
-    const statsHandlers: Record<string, (ctx: BotContext) => Promise<void>> = {
+    const statsHandlers: Record<string, (ctx: AuthenticatedBotContext) => Promise<void>> = {
       overview: (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx),
       activity: (ctx) => this.statisticsHandler.handleDetailedStatistics(ctx),
       earnings: (ctx) => this.statisticsHandler.handleEarningsStatistics(ctx),
@@ -1099,405 +1335,278 @@ export class CallbackRouterHandler {
     });
   }
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity
-  private async handleLoginHistory(ctx: BotContext, _params: string[]): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleLoginHistory(ctx: AuthenticatedBotContext): Promise<void> {
+    const lastAuth = await this.em.findOne(UserLastAuthEntity, { user: ctx.user.id });
 
-        return;
+    let text = '<b>🔐 Login History</b>\n\n';
+
+    if (lastAuth) {
+      const timeDiff = Date.now() - lastAuth.updatedAt.getTime();
+      const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+      const minutesAgo = Math.floor(timeDiff / (1000 * 60));
+
+      let timeText = 'just now';
+      if (hoursAgo > 24) {
+        timeText = `${Math.floor(hoursAgo / 24)} day(s) ago`;
+      } else if (hoursAgo > 0) {
+        timeText = `${hoursAgo} hour(s) ago`;
+      } else if (minutesAgo > 0) {
+        timeText = `${minutesAgo} minute(s) ago`;
       }
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      text += `<b>Last Login:</b>\n`;
+      text += `📅 Time: ${timeText}\n`;
+      text += `🕐 Date: ${lastAuth.updatedAt.toLocaleString()}\n`;
+      text += `📍 IP: ${lastAuth.ip || 'Unknown'}\n`;
 
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
+      if (lastAuth.city || lastAuth.country) {
+        text += `🌍 Location: ${lastAuth.city || ''}${lastAuth.city && lastAuth.country ? ', ' : ''}${lastAuth.country || ''}\n`;
       }
 
-      const lastAuth = await this.em.findOne(UserLastAuthEntity, { user: user.id });
-
-      let text = '<b>🔐 Login History</b>\n\n';
-
-      if (lastAuth) {
-        const timeDiff = Date.now() - lastAuth.updatedAt.getTime();
-        const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
-        const minutesAgo = Math.floor(timeDiff / (1000 * 60));
-
-        let timeText = 'just now';
-        if (hoursAgo > 24) {
-          timeText = `${Math.floor(hoursAgo / 24)} day(s) ago`;
-        } else if (hoursAgo > 0) {
-          timeText = `${hoursAgo} hour(s) ago`;
-        } else if (minutesAgo > 0) {
-          timeText = `${minutesAgo} minute(s) ago`;
-        }
-
-        text += `<b>Last Login:</b>\n`;
-        text += `📅 Time: ${timeText}\n`;
-        text += `🕐 Date: ${lastAuth.updatedAt.toLocaleString()}\n`;
-        text += `📍 IP: ${lastAuth.ip || 'Unknown'}\n`;
-
-        if (lastAuth.city || lastAuth.country) {
-          text += `🌍 Location: ${lastAuth.city || ''}${lastAuth.city && lastAuth.country ? ', ' : ''}${lastAuth.country || ''}\n`;
-        }
-
-        if (lastAuth.continent) {
-          text += `🗺 Continent: ${lastAuth.continent}\n`;
-        }
-
-        text += '\n✅ No suspicious activity detected.';
-      } else {
-        text += '📱 No login history available yet.\n';
-        text += 'Login history will be tracked starting from your next login.';
+      if (lastAuth.continent) {
+        text += `🗺 Continent: ${lastAuth.continent}\n`;
       }
 
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('profile:security'),
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      text += '\n✅ No suspicious activity detected.';
+    } else {
+      text += '📱 No login history available yet.\n';
+      text += 'Login history will be tracked starting from your next login.';
     }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('profile:security'),
+    });
   }
 
-  private async handleBalanceAnalytics(ctx: BotContext, _params: string[]): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleBalanceAnalytics(ctx: AuthenticatedBotContext): Promise<void> {
+    // Get all balance history for analytics
+    const history = await this.em.find(
+      UserBalanceHistoryEntity,
+      { user: ctx.user.id },
+      { orderBy: { createdAt: 'DESC' }, limit: 100 },
+    );
 
-        return;
-      }
-
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Get all balance history for analytics
-      const history = await this.em.find(
-        UserBalanceHistoryEntity,
-        { user: user.id },
-        { orderBy: { createdAt: 'DESC' }, limit: 100 },
-      );
-
-      if (history.length === 0) {
-        await this.messageService.sendOrEditMessage(ctx, {
-          text: '📊 <b>Balance Analytics</b>\n\nNo transaction history available yet.\nStart using the platform to see your analytics!',
-          parseMode: 'HTML',
-          replyMarkup: this.menuHandler.createBackButton('menu:balance'),
-        });
-
-        return;
-      }
-
-      // Calculate analytics
-
-      let totalIncome = decimal(0);
-      let totalExpense = decimal(0);
-      const last30Days = history.filter((tx) => {
-        const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
-
-        return daysDiff <= 30;
-      });
-
-      const last7Days = history.filter((tx) => {
-        const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
-
-        return daysDiff <= 7;
-      });
-
-      history.forEach((tx) => {
-        const amount = decimal(tx.amount);
-        if (amount.greaterThan(0)) {
-          totalIncome = add(totalIncome, amount);
-        } else {
-          totalExpense = add(totalExpense, amount.abs());
-        }
-      });
-
-      const income30Days = last30Days
-        .filter((tx) => decimal(tx.amount).greaterThan(0))
-        .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
-
-      const income7Days = last7Days
-        .filter((tx) => decimal(tx.amount).greaterThan(0))
-        .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
-
-      const netBalance = subtract(totalIncome, totalExpense);
-      const avgTransaction = history.length > 0 ? totalIncome.div(history.length) : decimal(0);
-
-      let text = '<b>📊 Balance Analytics</b>\n\n';
-      text += '<b>💰 All Time:</b>\n';
-      text += `• Total Income: $${toDisplayString(totalIncome, 2)}\n`;
-      text += `• Total Expenses: $${toDisplayString(totalExpense, 2)}\n`;
-      text += `• Net Balance: $${toDisplayString(netBalance, 2)}\n\n`;
-
-      text += '<b>📈 Last 30 Days:</b>\n';
-      text += `• Income: $${toDisplayString(income30Days, 2)}\n`;
-      text += `• Transactions: ${last30Days.length}\n\n`;
-
-      text += '<b>📅 Last 7 Days:</b>\n';
-      text += `• Income: $${toDisplayString(income7Days, 2)}\n`;
-      text += `• Transactions: ${last7Days.length}\n\n`;
-
-      text += '<b>📊 Averages:</b>\n';
-      text += `• Avg Transaction: $${toDisplayString(avgTransaction, 2)}\n`;
-      text += `• Total Transactions: ${history.length}`;
-
+    if (history.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
-        text,
+        text: '📊 <b>Balance Analytics</b>\n\nNo transaction history available yet.\nStart using the platform to see your analytics!',
         parseMode: 'HTML',
         replyMarkup: this.menuHandler.createBackButton('menu:balance'),
       });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+
+      return;
     }
-  }
 
-  private async handleWithdrawalMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+    // Calculate analytics
 
-        return;
-      }
+    let totalIncome = decimal(0);
+    let totalExpense = decimal(0);
+    const last30Days = history.filter((tx) => {
+      const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      return daysDiff <= 30;
+    });
 
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
+    const last7Days = history.filter((tx) => {
+      const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
 
-        return;
-      }
+      return daysDiff <= 7;
+    });
 
-      // Get user balances
-      const balances = await this.em.find(UserBalanceEntity, { user: user.id }, { populate: ['currency'] });
-
-      let text = '<b>💸 Withdrawal</b>\n\n';
-      text += '<b>Available Balances:</b>\n';
-
-      let hasAvailableBalance = false;
-      for (const balance of balances) {
-        // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
-        const currency = await balance.currency.load();
-        if (!currency) {
-          continue;
-        }
-
-        const available = balance.getAvailableBalance();
-        if (decimal(available).greaterThan(0)) {
-          hasAvailableBalance = true;
-          text += `• ${currency.code}: ${toDisplayString(available, 8)} ${currency.symbol || currency.code}\n`;
-        }
-      }
-
-      if (!hasAvailableBalance) {
-        text += '\n<i>No available balance for withdrawal.</i>\n\n';
-        text += 'Minimum withdrawal: $10.00';
+    history.forEach((tx) => {
+      const amount = decimal(tx.amount);
+      if (amount.greaterThan(0)) {
+        totalIncome = add(totalIncome, amount);
       } else {
-        text += '\n✅ You can withdraw your funds';
+        totalExpense = add(totalExpense, amount.abs());
       }
+    });
 
-      const keyboard = this.menuHandler.createWithdrawalMenuKeyboard();
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    const income30Days = last30Days
+      .filter((tx) => decimal(tx.amount).greaterThan(0))
+      .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
+
+    const income7Days = last7Days
+      .filter((tx) => decimal(tx.amount).greaterThan(0))
+      .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
+
+    const netBalance = subtract(totalIncome, totalExpense);
+    const avgTransaction = history.length > 0 ? totalIncome.div(history.length) : decimal(0);
+
+    let text = '<b>📊 Balance Analytics</b>\n\n';
+    text += '<b>💰 All Time:</b>\n';
+    text += `• Total Income: $${toDisplayString(totalIncome, 2)}\n`;
+    text += `• Total Expenses: $${toDisplayString(totalExpense, 2)}\n`;
+    text += `• Net Balance: $${toDisplayString(netBalance, 2)}\n\n`;
+
+    text += '<b>📈 Last 30 Days:</b>\n';
+    text += `• Income: $${toDisplayString(income30Days, 2)}\n`;
+    text += `• Transactions: ${last30Days.length}\n\n`;
+
+    text += '<b>📅 Last 7 Days:</b>\n';
+    text += `• Income: $${toDisplayString(income7Days, 2)}\n`;
+    text += `• Transactions: ${last7Days.length}\n\n`;
+
+    text += '<b>📊 Averages:</b>\n';
+    text += `• Avg Transaction: $${toDisplayString(avgTransaction, 2)}\n`;
+    text += `• Total Transactions: ${history.length}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+    });
   }
 
-  private async handleDepositMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleWithdrawalMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    // Get user balances
+    const balances = await this.em.find(UserBalanceEntity, { user: ctx.user.id }, { populate: ['currency'] });
 
-        return;
+    let text = '<b>💸 Withdrawal</b>\n\n';
+    text += '<b>Available Balances:</b>\n';
+
+    let hasAvailableBalance = false;
+    for (const balance of balances) {
+      // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
+      const currency = await balance.currency.load();
+      if (!currency) {
+        continue;
       }
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
+      const available = balance.getAvailableBalance();
+      if (decimal(available).greaterThan(0)) {
+        hasAvailableBalance = true;
+        text += `• ${currency.code}: ${toDisplayString(available, 8)} ${currency.symbol || currency.code}\n`;
       }
-
-      let text = '<b>💰 Deposit Funds</b>\n\n';
-      text += '<b>Available Methods:</b>\n';
-      text += '• 💳 Credit/Debit Card\n';
-      text += '• 🪙 Cryptocurrency (BTC, ETH, USDT)\n';
-      text += '• 🏦 Bank Transfer\n\n';
-      text += '<b>Important:</b>\n';
-      text += '• Minimum deposit: $10.00\n';
-      text += '• Instant processing for crypto & cards\n';
-      text += '• Bank transfers: 1-3 business days\n\n';
-      text += '<i>Select a payment method below to continue.</i>';
-
-      const keyboard = this.menuHandler.createDepositMenuKeyboard();
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
     }
+
+    if (!hasAvailableBalance) {
+      text += '\n<i>No available balance for withdrawal.</i>\n\n';
+      text += 'Minimum withdrawal: $10.00';
+    } else {
+      text += '\n✅ You can withdraw your funds';
+    }
+
+    const keyboard = this.menuHandler.createWithdrawalMenuKeyboard();
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handleAdminMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleDepositMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    let text = '<b>💰 Deposit Funds</b>\n\n';
+    text += '<b>Available Methods:</b>\n';
+    text += '• 💳 Credit/Debit Card\n';
+    text += '• 🪙 Cryptocurrency (BTC, ETH, USDT)\n';
+    text += '• 🏦 Bank Transfer\n\n';
+    text += '<b>Important:</b>\n';
+    text += '• Minimum deposit: $10.00\n';
+    text += '• Instant processing for crypto & cards\n';
+    text += '• Bank transfers: 1-3 business days\n\n';
+    text += '<i>Select a payment method below to continue.</i>';
 
-        return;
-      }
-
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Check if user has admin or super admin role
-      if (user.role !== UserRole.Admin && user.role !== UserRole.SuperAdmin) {
-        await ctx.reply('⛔️ Access denied. Admin privileges required.');
-
-        return;
-      }
-
-      // Get admin statistics
-      const [totalUsers, activeUsers] = await Promise.all([
-        this.em.count(UserEntity),
-        this.em.count(UserEntity, { status: UserStatus.Active }),
-      ]);
-
-      const [totalOrders, activeOrders] = await Promise.all([
-        this.em.count(TrafficOrderEntity),
-        this.em.count(TrafficOrderEntity, {
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-        }),
-      ]);
-
-      const totalSources = await this.em.count(TrafficSourceEntity);
-
-      let text = '<b>🔧 Admin Panel</b>\n\n';
-      text += '<b>👥 Users:</b>\n';
-      text += `• Total: ${totalUsers}\n`;
-      text += `• Active: ${activeUsers}\n\n`;
-      text += '<b>📋 Orders:</b>\n';
-      text += `• Total: ${totalOrders}\n`;
-      text += `• Active: ${activeOrders}\n\n`;
-      text += '<b>🎯 Traffic Sources:</b>\n';
-      text += `• Total: ${totalSources}\n\n`;
-      text += '<i>Select an action below to manage the system.</i>';
-
-      const keyboard = this.menuHandler.createAdminMenuKeyboard();
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    const keyboard = this.menuHandler.createDepositMenuKeyboard();
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handleExportMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleAdminMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    // Check if user has admin or super admin role
+    if (ctx.user.role !== UserRole.Admin && ctx.user.role !== UserRole.SuperAdmin) {
+      await ctx.reply('⛔️ Access denied. Admin privileges required.');
 
-        return;
-      }
-
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Get data counts for export preview
-      const [ordersCount, transactionsCount] = await Promise.all([
-        this.em.count(TrafficOrderEntity, { creator: user.id }),
-        this.em.count(UserBalanceHistoryEntity, { user: user.id }),
-      ]);
-
-      let text = '<b>📥 Data Export</b>\n\n';
-      text += '<b>Available Data:</b>\n';
-      text += `• Profile Information\n`;
-      text += `• Orders: ${ordersCount} records\n`;
-      text += `• Transactions: ${transactionsCount} records\n`;
-      text += `• Statistics & Analytics\n\n`;
-      text += '<b>Export Formats:</b>\n';
-      text += '• JSON (raw data)\n';
-      text += '• CSV (spreadsheet)\n';
-      text += '• PDF (formatted report)\n\n';
-      text += '<i>Select what you want to export below.</i>\n\n';
-      text += '⚠️ Export may take a few moments for large datasets.';
-
-      const keyboard = this.menuHandler.createExportMenuKeyboard();
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      return;
     }
+
+    // Get admin statistics
+    const [totalUsers, activeUsers] = await Promise.all([
+      this.em.count(UserEntity),
+      this.em.count(UserEntity, { status: UserStatus.Active }),
+    ]);
+
+    const [totalOrders, activeOrders] = await Promise.all([
+      this.em.count(TrafficOrderEntity),
+      this.em.count(TrafficOrderEntity, {
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+    ]);
+
+    const totalSources = await this.em.count(TrafficSourceEntity);
+
+    let text = '<b>🔧 Admin Panel</b>\n\n';
+    text += '<b>👥 Users:</b>\n';
+    text += `• Total: ${totalUsers}\n`;
+    text += `• Active: ${activeUsers}\n\n`;
+    text += '<b>📋 Orders:</b>\n';
+    text += `• Total: ${totalOrders}\n`;
+    text += `• Active: ${activeOrders}\n\n`;
+    text += '<b>🎯 Traffic Sources:</b>\n';
+    text += `• Total: ${totalSources}\n\n`;
+    text += '<i>Select an action below to manage the system.</i>';
+
+    const keyboard = this.menuHandler.createAdminMenuKeyboard();
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handleResetMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleExportMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    // Get data counts for export preview
+    const [ordersCount, transactionsCount] = await Promise.all([
+      this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
+      this.em.count(UserBalanceHistoryEntity, { user: ctx.user.id }),
+    ]);
 
-        return;
-      }
+    let text = '<b>📥 Data Export</b>\n\n';
+    text += '<b>Available Data:</b>\n';
+    text += `• Profile Information\n`;
+    text += `• Orders: ${ordersCount} records\n`;
+    text += `• Transactions: ${transactionsCount} records\n`;
+    text += `• Statistics & Analytics\n\n`;
+    text += '<b>Export Formats:</b>\n';
+    text += '• JSON (raw data)\n';
+    text += '• CSV (spreadsheet)\n';
+    text += '• PDF (formatted report)\n\n';
+    text += '<i>Select what you want to export below.</i>\n\n';
+    text += '⚠️ Export may take a few moments for large datasets.';
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+    const keyboard = this.menuHandler.createExportMenuKeyboard();
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
 
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
+  private async handleResetMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    let text = '<b>🔄 Reset Account</b>\n\n';
+    text += '⚠️ <b>WARNING:</b> This action will reset:\n\n';
+    text += '❌ All settings to default\n';
+    text += '❌ Notification preferences\n';
+    text += '❌ Display preferences\n';
+    text += '❌ Language settings\n\n';
+    text += '✅ <b>Will NOT affect:</b>\n';
+    text += '• Your balance\n';
+    text += '• Order history\n';
+    text += '• Transaction history\n';
+    text += '• Profile verification\n\n';
+    text += '⚡️ <b>This action is IRREVERSIBLE!</b>\n\n';
+    text += 'Are you absolutely sure you want to continue?';
 
-        return;
-      }
-
-      let text = '<b>🔄 Reset Account</b>\n\n';
-      text += '⚠️ <b>WARNING:</b> This action will reset:\n\n';
-      text += '❌ All settings to default\n';
-      text += '❌ Notification preferences\n';
-      text += '❌ Display preferences\n';
-      text += '❌ Language settings\n\n';
-      text += '✅ <b>Will NOT affect:</b>\n';
-      text += '• Your balance\n';
-      text += '• Order history\n';
-      text += '• Transaction history\n';
-      text += '• Profile verification\n\n';
-      text += '⚡️ <b>This action is IRREVERSIBLE!</b>\n\n';
-      text += 'Are you absolutely sure you want to continue?';
-
-      const keyboard = this.menuHandler.createConfirmationKeyboard('reset');
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    const keyboard = this.menuHandler.createConfirmationKeyboard('reset');
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   private async handleThemeSettings(ctx: BotContext): Promise<void> {
@@ -1552,10 +1661,10 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderConfig(ctx: BotContext, _params: string[]): Promise<void> {
+  private async handleOrderConfig(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
     if (!_params || _params.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
-        text: '⚙️ Please select an order to configure.',
+        text: ctx.t('orders.select_to_configure', { default: '⚙️ Please select an order to configure.' }),
         parseMode: 'HTML',
         replyMarkup: this.menuHandler.createBackButton('menu:orders'),
       });
@@ -1651,73 +1760,55 @@ export class CallbackRouterHandler {
     });
   }
 
-  private async handleOrderStats(ctx: BotContext, params: string[]): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleOrderStats(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const { em } = this;
 
-        return;
-      }
+    if (!params || params.length === 0) {
+      // Show overall order statistics
+      const [totalOrders, activeOrders, completedOrders] = await Promise.all([
+        em.count(TrafficOrderEntity, { creator: ctx.user.id }),
+        em.count(TrafficOrderEntity, {
+          creator: ctx.user.id,
+          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        }),
+        em.count(TrafficOrderEntity, {
+          creator: ctx.user.id,
+          status: TrafficOrderStatus.Completed,
+        }),
+      ]);
 
-      const em = this.em;
-      const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+      const orders = await em.find(TrafficOrderEntity, { creator: ctx.user.id });
 
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
+      const totalSpent = sum(orders.map((o) => decimal(o.spentAmount || '0')));
+      const totalBudget = sum(orders.map((o) => decimal(o.totalBudget || '0')));
+      const totalActions = orders.reduce((acc, o) => acc + o.currentCount, 0);
+      const targetActions = orders.reduce((acc, o) => acc + o.targetCount, 0);
 
-        return;
-      }
+      const completionRate =
+        targetActions > 0 ? toDisplayString(multiply(divide(totalActions, targetActions), 100), 1) : '0.0';
 
-      if (!params || params.length === 0) {
-        // Show overall order statistics
-        const [totalOrders, activeOrders, completedOrders] = await Promise.all([
-          em.count(TrafficOrderEntity, { creator: user.id }),
-          em.count(TrafficOrderEntity, {
-            creator: user.id,
-            status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-          }),
-          em.count(TrafficOrderEntity, {
-            creator: user.id,
-            status: TrafficOrderStatus.Completed,
-          }),
-        ]);
+      let text = `<b>${ctx.t('orders.statistics_title', { default: '📊 Order Statistics' })}</b>\n\n`;
+      text += `<b>${ctx.t('common.overview', { default: 'Overview' })}:</b>\n`;
+      text += `• ${ctx.t('orders.total_orders', { default: 'Total Orders' })}: ${totalOrders}\n`;
+      text += `• ${ctx.t('orders.active', { default: 'Active' })}: ${activeOrders}\n`;
+      text += `• ${ctx.t('orders.completed', { default: 'Completed' })}: ${completedOrders}\n\n`;
+      text += `<b>${ctx.t('common.financial', { default: 'Financial' })}:</b>\n`;
+      text += `• ${ctx.t('orders.total_budget', { default: 'Total Budget' })}: $${toDisplayString(totalBudget, 2)}\n`;
+      text += `• ${ctx.t('orders.total_spent', { default: 'Total Spent' })}: $${toDisplayString(totalSpent, 2)}\n\n`;
+      text += `<b>${ctx.t('common.performance', { default: 'Performance' })}:</b>\n`;
+      text += `• ${ctx.t('orders.actions_completed', { default: 'Actions Completed' })}: ${totalActions}\n`;
+      text += `• ${ctx.t('orders.target_actions', { default: 'Target Actions' })}: ${targetActions}\n`;
+      text += `• ${ctx.t('orders.completion_rate', { default: 'Completion Rate' })}: ${completionRate}%`;
 
-        const orders = await em.find(TrafficOrderEntity, { creator: user.id });
-
-        const totalSpent = sum(orders.map((o) => decimal(o.spentAmount || '0')));
-        const totalBudget = sum(orders.map((o) => decimal(o.totalBudget || '0')));
-        const totalActions = orders.reduce((sum, o) => sum + o.currentCount, 0);
-        const targetActions = orders.reduce((sum, o) => sum + o.targetCount, 0);
-
-        const completionRate =
-          targetActions > 0 ? toDisplayString(multiply(divide(totalActions, targetActions), 100), 1) : '0.0';
-
-        let text = '<b>📊 Order Statistics</b>\n\n';
-        text += '<b>Overview:</b>\n';
-        text += `• Total Orders: ${totalOrders}\n`;
-        text += `• Active: ${activeOrders}\n`;
-        text += `• Completed: ${completedOrders}\n\n`;
-        text += '<b>Financial:</b>\n';
-        text += `• Total Budget: $${toDisplayString(totalBudget, 2)}\n`;
-        text += `• Total Spent: $${toDisplayString(totalSpent, 2)}\n\n`;
-        text += '<b>Performance:</b>\n';
-        text += `• Actions Completed: ${totalActions}\n`;
-        text += `• Target Actions: ${targetActions}\n`;
-        text += `• Completion Rate: ${completionRate}%`;
-
-        await this.messageService.sendOrEditMessage(ctx, {
-          text,
-
-          parseMode: 'HTML',
-          replyMarkup: this.menuHandler.createBackButton('menu:orders'),
-        });
-      } else {
-        // Show specific order stats
-        const [orderId] = params;
-        await this.orderHandler.handleOrderDetails(ctx, orderId);
-      }
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      });
+    } else {
+      // Show specific order stats
+      const [orderId] = params;
+      await this.orderHandler.handleOrderDetails(ctx, orderId);
     }
   }
 
@@ -1831,6 +1922,155 @@ support@motivbuy.com
     });
   }
 
+  // Traffic Source Handlers
+
+  private async handleTrafficSourcesList(ctx: AuthenticatedBotContext): Promise<void> {
+    const sources = await this.em.find(
+      TrafficSourceEntity,
+      { managedBy: ctx.user.id },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
+
+    let text = ctx.t('traffic.sources_list_title', { default: '<b>📊 Traffic Sources</b>\n\n' });
+
+    if (sources.length === 0) {
+      text += ctx.t('traffic.no_sources', {
+        default: '<i>No traffic sources yet. Click "Add New Source" to create one!</i>',
+      });
+    } else {
+      text += ctx.t('traffic.sources_count', {
+        default: `Total: ${sources.length} source(s)\n\n`,
+        count: sources.length,
+      });
+
+      sources.forEach((source) => {
+        const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
+        const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
+        text += `${statusEmoji} <b>${source.name}</b>\n`;
+        text += `   Type: ${typeLabel}\n`;
+        text += `   Status: ${source.status}\n\n`;
+      });
+    }
+
+    const sourcesList = sources.map((s) => ({ id: s.id, name: s.name, status: s.status }));
+    const keyboard = this.menuHandler.createTrafficSourcesKeyboard(sourcesList);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleTrafficSourceAdd(ctx: AuthenticatedBotContext): Promise<void> {
+    // Set session state for source creation
+    if (ctx.session) {
+      ctx.session.conversationState = 'traffic_source_create';
+      ctx.session.formData = { step: 'enter_name' };
+    }
+
+    let text = ctx.t('traffic.add_source_title', { default: '<b>➕ Add Traffic Source</b>\n\n' });
+    text += ctx.t('traffic.add_source_instructions', {
+      default: 'Please enter the name for your new traffic source:\n\n<i>Use /cancel to abort.</i>',
+    });
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('traffic:sources'),
+    });
+  }
+
+  private async handleTrafficSourceView(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
+
+    if (!source) {
+      await ctx.reply(ctx.t('traffic.source_not_found', { default: 'Traffic source not found' }));
+
+      return;
+    }
+
+    const ordersCount = await this.em.count(TrafficOrderEntity, { trafficSource: source.id });
+    const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
+    const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
+
+    let text = ctx.t('traffic.source_details_title', { default: '<b>📊 Traffic Source Details</b>\n\n' });
+    text += `<b>Name:</b> ${source.name}\n`;
+    text += `<b>Type:</b> ${typeLabel}\n`;
+    text += `<b>Status:</b> ${statusEmoji} ${source.status}\n`;
+
+    if (source.botUsername) {
+      text += `<b>Bot Username:</b> @${source.botUsername}\n`;
+    }
+
+    if (source.description) {
+      text += `<b>Description:</b> ${source.description}\n`;
+    }
+
+    text += `\n<b>Statistics:</b>\n`;
+    text += `• Total Orders: ${ordersCount}\n`;
+    text += `• Created: ${source.createdAt.toLocaleDateString()}\n`;
+
+    const keyboard = this.menuHandler.createTrafficSourceDetailKeyboard(sourceId);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleTrafficSourceEdit(ctx: BotContext, sourceId: string): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'traffic_source_edit';
+      ctx.session.formData = { sourceId, step: 'select_field' };
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.edit_source', {
+        default: '<b>✏️ Edit Traffic Source</b>\n\nEnter the new name for this source:\n\n<i>Use /cancel to abort.</i>',
+      }),
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton(`traffic:source:view:${sourceId}`),
+    });
+  }
+
+  private async handleTrafficSourceToggle(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
+
+    if (!source) {
+      await ctx.reply(ctx.t('traffic.source_not_found', { default: 'Traffic source not found' }));
+
+      return;
+    }
+
+    // Toggle status
+    source.status =
+      source.status === TrafficSourceStatus.Active ? TrafficSourceStatus.Inactive : TrafficSourceStatus.Active;
+
+    await this.em.flush();
+
+    const newStatusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
+    await ctx.answerCallbackQuery(
+      ctx.t('traffic.source_status_toggled', { default: `Status changed to ${newStatusEmoji} ${source.status}` }),
+    );
+
+    // Refresh the view
+    await this.handleTrafficSourceView(ctx, sourceId);
+  }
+
+  private async handleTrafficSourceDelete(ctx: BotContext, sourceId: string): Promise<void> {
+    const keyboard = this.menuHandler.createConfirmationKeyboard(`traffic:source:delete:confirm`, { id: sourceId });
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.delete_source_confirm', {
+        default:
+          '<b>⚠️ Delete Traffic Source</b>\n\nAre you sure you want to delete this traffic source?\n\n<b>This action cannot be undone!</b>',
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
   private async handleSupportSuggest(ctx: BotContext): Promise<void> {
     const text = `<b>💡 Предложить идею</b>
 
@@ -1886,7 +2126,7 @@ A: Баланс → Вывод. Минимальная сумма: $10.
 A: Да, все подписчики - реальные пользователи Telegram.`;
 
     const keyboard = new InlineKeyboard()
-      .text('📖 Подробнее о заказах', 'help:create_order')
+      .text('📖 Подробнее о заказах', 'help:createOrder')
       .row()
       .text('💰 Вопросы по балансу', 'help:topup')
       .row()
@@ -1894,6 +2134,211 @@ A: Да, все подписчики - реальные пользователи
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleTrafficSourceStats(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
+
+    if (!source) {
+      await ctx.reply(ctx.t('traffic.source_not_found', { default: 'Traffic source not found' }));
+
+      return;
+    }
+
+    const [totalOrders, activeOrders, completedOrders] = await Promise.all([
+      this.em.count(TrafficOrderEntity, { trafficSource: source.id }),
+      this.em.count(TrafficOrderEntity, {
+        trafficSource: source.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+      this.em.count(TrafficOrderEntity, { trafficSource: source.id, status: TrafficOrderStatus.Completed }),
+    ]);
+
+    let text = ctx.t('traffic.source_stats_title', {
+      default: `<b>📊 Source Statistics: ${source.name}</b>\n\n`,
+      name: source.name,
+    });
+
+    text += `<b>Orders:</b>\n`;
+    text += `• Total: ${totalOrders}\n`;
+    text += `• Active: ${activeOrders}\n`;
+    text += `• Completed: ${completedOrders}\n\n`;
+    text += `<b>Created:</b> ${source.createdAt.toLocaleDateString()}\n`;
+    text += `<b>Last Updated:</b> ${source.updatedAt.toLocaleDateString()}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton(`traffic:source:view:${sourceId}`),
+    });
+  }
+
+  // Traffic Target Handlers
+
+  private async handleTrafficTargetsList(ctx: AuthenticatedBotContext): Promise<void> {
+    const targets = await this.em.find(
+      TrafficTargetEntity,
+      { managedBy: ctx.user.id },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
+
+    let text = ctx.t('traffic.targets_list_title', { default: '<b>🎯 Traffic Targets</b>\n\n' });
+
+    if (targets.length === 0) {
+      text += ctx.t('traffic.no_targets', {
+        default: '<i>No traffic targets yet. Click "Add New Target" to create one!</i>',
+      });
+    } else {
+      text += ctx.t('traffic.targets_count', {
+        default: `Total: ${targets.length} target(s)\n\n`,
+        count: targets.length,
+      });
+
+      targets.forEach((target) => {
+        const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
+        const typeLabel = this.getTargetTypeLabel(target.type);
+        text += `${statusEmoji} <b>${target.name}</b>\n`;
+        text += `   Type: ${typeLabel}\n`;
+        text += `   Status: ${target.status}\n\n`;
+      });
+    }
+
+    const targetsList = targets.map((t) => ({ id: t.id, name: t.name, status: t.status }));
+    const keyboard = this.menuHandler.createTrafficTargetsKeyboard(targetsList);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private getTargetTypeLabel(type: TrafficTargetType): string {
+    const typeLabels: Record<TrafficTargetType, string> = {
+      [TrafficTargetType.Channel]: '📢 Channel',
+      [TrafficTargetType.Group]: '👥 Group',
+      [TrafficTargetType.Bot]: '🤖 Bot',
+      [TrafficTargetType.WithChecking]: '✅ With Checking',
+    };
+
+    return typeLabels[type] || type;
+  }
+
+  private async handleTrafficTargetAdd(ctx: AuthenticatedBotContext): Promise<void> {
+    // Set session state for target creation
+    if (ctx.session) {
+      ctx.session.conversationState = 'traffic_target_create';
+      ctx.session.formData = { step: 'enter_name' };
+    }
+
+    let text = ctx.t('traffic.add_target_title', { default: '<b>➕ Add Traffic Target</b>\n\n' });
+    text += ctx.t('traffic.add_target_instructions', {
+      default: 'Please enter the name for your new traffic target:\n\n<i>Use /cancel to abort.</i>',
+    });
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('traffic:targets'),
+    });
+  }
+
+  private async handleTrafficTargetView(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
+
+    if (!target) {
+      await ctx.reply(ctx.t('traffic.target_not_found', { default: 'Traffic target not found' }));
+
+      return;
+    }
+
+    const ordersCount = await this.em.count(TrafficOrderEntity, { trafficTarget: target.id });
+    const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
+    const typeLabel = this.getTargetTypeLabel(target.type);
+
+    let text = ctx.t('traffic.target_details_title', { default: '<b>🎯 Traffic Target Details</b>\n\n' });
+    text += `<b>Name:</b> ${target.name}\n`;
+    text += `<b>Type:</b> ${typeLabel}\n`;
+    text += `<b>Status:</b> ${statusEmoji} ${target.status}\n`;
+
+    if (target.username) {
+      text += `<b>Username:</b> @${target.username}\n`;
+    }
+
+    if (target.inviteLink) {
+      text += `<b>Invite Link:</b> ${target.inviteLink}\n`;
+    }
+
+    if (target.description) {
+      text += `<b>Description:</b> ${target.description}\n`;
+    }
+
+    if (target.pricePerMember) {
+      text += `<b>Price per Member:</b> $${toDisplayString(target.pricePerMember, 2)}\n`;
+    }
+
+    text += `\n<b>Statistics:</b>\n`;
+    text += `• Total Orders: ${ordersCount}\n`;
+    text += `• Created: ${target.createdAt.toLocaleDateString()}\n`;
+
+    const keyboard = this.menuHandler.createTrafficTargetDetailKeyboard(targetId);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleTrafficTargetEdit(ctx: BotContext, targetId: string): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'traffic_target_edit';
+      ctx.session.formData = { targetId, step: 'select_field' };
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.edit_target', {
+        default: '<b>✏️ Edit Traffic Target</b>\n\nEnter the new name for this target:\n\n<i>Use /cancel to abort.</i>',
+      }),
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton(`traffic:target:view:${targetId}`),
+    });
+  }
+
+  private async handleTrafficTargetToggle(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
+
+    if (!target) {
+      await ctx.reply(ctx.t('traffic.target_not_found', { default: 'Traffic target not found' }));
+
+      return;
+    }
+
+    // Toggle status
+    target.status =
+      target.status === TrafficTargetStatus.Active ? TrafficTargetStatus.Inactive : TrafficTargetStatus.Active;
+
+    await this.em.flush();
+
+    const newStatusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
+    await ctx.answerCallbackQuery(
+      ctx.t('traffic.target_status_toggled', { default: `Status changed to ${newStatusEmoji} ${target.status}` }),
+    );
+
+    // Refresh the view
+    await this.handleTrafficTargetView(ctx, targetId);
+  }
+
+  private async handleTrafficTargetDelete(ctx: BotContext, targetId: string): Promise<void> {
+    const keyboard = this.menuHandler.createConfirmationKeyboard(`traffic:target:delete:confirm`, { id: targetId });
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.delete_target_confirm', {
+        default:
+          '<b>⚠️ Delete Traffic Target</b>\n\nAre you sure you want to delete this traffic target?\n\n<b>This action cannot be undone!</b>',
+      }),
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
@@ -2093,6 +2538,436 @@ A: Да, все подписчики - реальные пользователи
       text,
       parseMode: 'HTML',
       replyMarkup: keyboard,
+    });
+  }
+
+  private async handleTrafficTargetStats(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
+
+    if (!target) {
+      await ctx.reply(ctx.t('traffic.target_not_found', { default: 'Traffic target not found' }));
+
+      return;
+    }
+
+    const [totalOrders, activeOrders, completedOrders] = await Promise.all([
+      this.em.count(TrafficOrderEntity, { trafficTarget: target.id }),
+      this.em.count(TrafficOrderEntity, {
+        trafficTarget: target.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+      this.em.count(TrafficOrderEntity, { trafficTarget: target.id, status: TrafficOrderStatus.Completed }),
+    ]);
+
+    let text = ctx.t('traffic.target_stats_title', {
+      default: `<b>📊 Target Statistics: ${target.name}</b>\n\n`,
+      name: target.name,
+    });
+
+    text += `<b>Orders:</b>\n`;
+    text += `• Total: ${totalOrders}\n`;
+    text += `• Active: ${activeOrders}\n`;
+    text += `• Completed: ${completedOrders}\n\n`;
+    text += `<b>Created:</b> ${target.createdAt.toLocaleDateString()}\n`;
+    text += `<b>Last Updated:</b> ${target.updatedAt.toLocaleDateString()}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton(`traffic:target:view:${targetId}`),
+    });
+  }
+
+  private async handleTrafficAnalytics(ctx: AuthenticatedBotContext): Promise<void> {
+    const [sourcesCount, targetsCount, totalOrders, activeOrders, completedOrders] = await Promise.all([
+      this.em.count(TrafficSourceEntity, { managedBy: ctx.user.id }),
+      this.em.count(TrafficTargetEntity, { managedBy: ctx.user.id }),
+      this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+      this.em.count(TrafficOrderEntity, { creator: ctx.user.id, status: TrafficOrderStatus.Completed }),
+    ]);
+
+    const orders = await this.em.find(TrafficOrderEntity, { creator: ctx.user.id });
+    const totalSpent = sum(orders.map((o) => decimal(o.spentAmount || '0')));
+    const totalBudget = sum(orders.map((o) => decimal(o.totalBudget || '0')));
+
+    let text = ctx.t('traffic.analytics_title', { default: '<b>📈 Traffic Analytics</b>\n\n' });
+    text += `<b>Resources:</b>\n`;
+    text += `• Traffic Sources: ${sourcesCount}\n`;
+    text += `• Traffic Targets: ${targetsCount}\n\n`;
+    text += `<b>Orders:</b>\n`;
+    text += `• Total: ${totalOrders}\n`;
+    text += `• Active: ${activeOrders}\n`;
+    text += `• Completed: ${completedOrders}\n\n`;
+    text += `<b>Financial:</b>\n`;
+    text += `• Total Budget: $${toDisplayString(totalBudget, 2)}\n`;
+    text += `• Total Spent: $${toDisplayString(totalSpent, 2)}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:traffic'),
+    });
+  }
+
+  // Deposit Handlers
+
+  private async handleDepositCard(ctx: BotContext): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'deposit_card';
+      ctx.session.formData = { method: 'card', step: 'enter_amount' };
+    }
+
+    const keyboard = new InlineKeyboard()
+      .text('$10', 'deposit:amount:10')
+      .text('$25', 'deposit:amount:25')
+      .text('$50', 'deposit:amount:50')
+      .row()
+      .text('$100', 'deposit:amount:100')
+      .text('$250', 'deposit:amount:250')
+      .text('$500', 'deposit:amount:500')
+      .row()
+      .text(ctx.t('common.custom_amount', { default: '💲 Custom Amount' }), 'deposit:amount:custom')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.deposit_card_title', {
+        default:
+          '<b>💳 Card Deposit</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $10.00 | Maximum: $10,000.00</i>',
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleDepositCrypto(ctx: BotContext): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'deposit_crypto';
+      ctx.session.formData = { method: 'crypto', step: 'select_currency' };
+    }
+
+    const keyboard = new InlineKeyboard()
+      .text('₿ BTC', 'deposit:crypto:btc')
+      .text('Ξ ETH', 'deposit:crypto:eth')
+      .row()
+      .text('₮ USDT (TRC20)', 'deposit:crypto:usdt_trc20')
+      .text('₮ USDT (ERC20)', 'deposit:crypto:usdt_erc20')
+      .row()
+      .text('◎ TON', 'deposit:crypto:ton')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.deposit_crypto_title', {
+        default:
+          '<b>🪙 Crypto Deposit</b>\n\nSelect the cryptocurrency you want to use:\n\n<i>Deposits are processed automatically after network confirmation.</i>',
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleDepositBank(ctx: BotContext): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'deposit_bank';
+      ctx.session.formData = { method: 'bank', step: 'enter_amount' };
+    }
+
+    const keyboard = new InlineKeyboard()
+      .text('$100', 'deposit:amount:100')
+      .text('$500', 'deposit:amount:500')
+      .text('$1000', 'deposit:amount:1000')
+      .row()
+      .text(ctx.t('common.custom_amount', { default: '💲 Custom Amount' }), 'deposit:amount:custom')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.deposit_bank_title', {
+        default:
+          '<b>🏦 Bank Transfer</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $100.00 | Processing time: 1-3 business days</i>',
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleDepositAmount(ctx: BotContext, amount: string): Promise<void> {
+    if (amount === 'custom') {
+      if (ctx.session) {
+        ctx.session.conversationState = 'deposit_custom_amount';
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('balance.enter_deposit_amount', {
+          default:
+            '<b>💰 Enter Deposit Amount</b>\n\nPlease enter the amount you want to deposit:\n\n<i>Example: 100.00</i>',
+        }),
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+      });
+
+      return;
+    }
+
+    const method = String(ctx.session?.formData?.method || 'card');
+    const keyboard = this.menuHandler.createConfirmationKeyboard(`deposit:confirm`, { amount, method });
+    const methodLabel = method.charAt(0).toUpperCase() + method.slice(1);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.deposit_confirm_prompt', {
+        default: `<b>💰 Confirm Deposit</b>\n\n<b>Amount:</b> $${amount}.00\n<b>Method:</b> ${methodLabel}\n<b>Fee:</b> $0.00\n<b>Total:</b> $${amount}.00\n\nAre you sure you want to proceed?`,
+        amount,
+        method: methodLabel,
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleDepositConfirm(ctx: BotContext, params: string[]): Promise<void> {
+    const amount = String(ctx.session?.formData?.amount || params[0] || '0');
+    const method = String(ctx.session?.formData?.method || 'card');
+
+    // Reset session
+    if (ctx.session) {
+      ctx.session.conversationState = undefined;
+      ctx.session.formData = undefined;
+    }
+
+    let text = ctx.t('balance.deposit_initiated', {
+      default: `<b>✅ Deposit Initiated</b>\n\n<b>Amount:</b> $${amount}\n<b>Method:</b> ${method}\n\n`,
+      amount,
+      method,
+    });
+
+    if (method === 'card') {
+      text += ctx.t('balance.deposit_card_instructions', {
+        default:
+          '📝 <b>Next Steps:</b>\n1. You will receive a payment link shortly\n2. Complete the payment on the secure payment page\n3. Funds will be credited instantly after confirmation',
+      });
+    } else if (method === 'crypto') {
+      text += ctx.t('balance.deposit_crypto_instructions', {
+        default:
+          '📝 <b>Next Steps:</b>\n1. Send the exact amount to the wallet address below\n2. Wait for network confirmation\n3. Funds will be credited automatically\n\n<code>wallet_address_placeholder</code>',
+      });
+    } else {
+      text += ctx.t('balance.deposit_bank_instructions', {
+        default:
+          '📝 <b>Next Steps:</b>\n1. Transfer funds to the bank account details below\n2. Include your user ID in the reference\n3. Funds will be credited within 1-3 business days\n\n<b>Bank:</b> Example Bank\n<b>Account:</b> XXXX-XXXX-XXXX\n<b>Reference:</b> Your User ID',
+      });
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+    });
+  }
+
+  private async handleDepositHistory(ctx: AuthenticatedBotContext): Promise<void> {
+    const deposits = await this.em.find(
+      UserBalanceHistoryEntity,
+      { user: ctx.user.id, type: TransactionType.Deposit },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
+
+    let text = ctx.t('balance.deposit_history_title', { default: '<b>📥 Deposit History</b>\n\n' });
+
+    if (deposits.length === 0) {
+      text += ctx.t('balance.no_deposits', { default: '<i>No deposits yet.</i>' });
+    } else {
+      deposits.forEach((deposit) => {
+        const amount = decimal(deposit.amount);
+        text += `📅 ${deposit.createdAt.toLocaleDateString()}\n`;
+        text += `   Amount: +$${toDisplayString(amount, 2)}\n`;
+        text += `   Status: ✅ Completed\n\n`;
+      });
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+    });
+  }
+
+  private async handleDepositBonuses(ctx: BotContext): Promise<void> {
+    let text = '<b>🎁 Deposit Bonuses</b>\n\n';
+    text += '<b>Current Offers:</b>\n\n';
+    text += '🎉 <b>First Deposit Bonus:</b> +10%\n';
+    text += '   Deposit $100+, get extra $10\n\n';
+    text += '💎 <b>VIP Bonus:</b> +15%\n';
+    text += '   For deposits $500+\n\n';
+    text += '🔥 <b>Weekend Special:</b> +5%\n';
+    text += '   Valid Saturday-Sunday only\n\n';
+    text += '<i>Bonuses are applied automatically to eligible deposits.</i>';
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+    });
+  }
+
+  // Withdrawal Handlers
+
+  private async handleWithdrawalCurrency(ctx: BotContext, currencyId: string): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'withdrawal_amount';
+      ctx.session.formData = { currencyId, step: 'enter_amount' };
+    }
+
+    const keyboard = new InlineKeyboard()
+      .text('$10', 'withdrawal:amount:10')
+      .text('$25', 'withdrawal:amount:25')
+      .text('$50', 'withdrawal:amount:50')
+      .row()
+      .text('$100', 'withdrawal:amount:100')
+      .text('$250', 'withdrawal:amount:250')
+      .text('All', 'withdrawal:amount:all')
+      .row()
+      .text(ctx.t('common.custom_amount', { default: '💲 Custom Amount' }), 'withdrawal:amount:custom')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'menu:balance');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_amount_prompt', {
+        default:
+          '<b>💸 Withdrawal Amount</b>\n\nSelect or enter the amount you want to withdraw:\n\n<i>Minimum: $10.00 | Fee: 2%</i>',
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleWithdrawalAmount(ctx: BotContext, amount: string): Promise<void> {
+    if (amount === 'custom') {
+      if (ctx.session) {
+        ctx.session.conversationState = 'withdrawal_custom_amount';
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('balance.enter_withdrawal_amount', {
+          default:
+            '<b>💸 Enter Withdrawal Amount</b>\n\nPlease enter the amount you want to withdraw:\n\n<i>Example: 100.00</i>',
+        }),
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('balance:withdraw'),
+      });
+
+      return;
+    }
+
+    const fee = multiply(decimal(amount), '0.02');
+    const total = subtract(decimal(amount), fee);
+
+    const keyboard = this.menuHandler.createConfirmationKeyboard(`withdrawal:confirm`, { amount });
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_confirm_prompt', {
+        default: `<b>💸 Confirm Withdrawal</b>\n\n<b>Amount:</b> $${amount}\n<b>Fee (2%):</b> $${toDisplayString(fee, 2)}\n<b>You receive:</b> $${toDisplayString(total, 2)}\n\nAre you sure you want to proceed?`,
+        amount,
+        fee: toDisplayString(fee, 2),
+        total: toDisplayString(total, 2),
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleWithdrawalConfirm(ctx: BotContext, _params: string[]): Promise<void> {
+    const amount = String(ctx.session?.formData?.amount || '0');
+
+    // Reset session
+    if (ctx.session) {
+      ctx.session.conversationState = undefined;
+      ctx.session.formData = undefined;
+    }
+
+    const text = ctx.t('balance.withdrawal_initiated', {
+      default: `<b>✅ Withdrawal Initiated</b>\n\n<b>Amount:</b> $${amount}\n<b>Status:</b> Processing\n\n📝 <b>What happens next:</b>\n1. Your withdrawal is being reviewed\n2. Funds will be sent within 24 hours\n3. You'll receive a confirmation notification\n\n<i>You can track your withdrawal status in the withdrawal history.</i>`,
+      amount,
+    });
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+    });
+  }
+
+  private async handleWithdrawalHistory(ctx: AuthenticatedBotContext): Promise<void> {
+    const withdrawals = await this.em.find(
+      UserBalanceHistoryEntity,
+      { user: ctx.user.id, type: TransactionType.Withdrawal },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
+
+    let text = ctx.t('balance.withdrawal_history_title', { default: '<b>📤 Withdrawal History</b>\n\n' });
+
+    if (withdrawals.length === 0) {
+      text += ctx.t('balance.no_withdrawals', { default: '<i>No withdrawals yet.</i>' });
+    } else {
+      withdrawals.forEach((withdrawal) => {
+        const amount = decimal(withdrawal.amount);
+        const statusEmoji = '✅';
+        text += `📅 ${withdrawal.createdAt.toLocaleDateString()}\n`;
+        text += `   Amount: -$${toDisplayString(amount.abs(), 2)}\n`;
+        text += `   Status: ${statusEmoji} Completed\n\n`;
+      });
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+    });
+  }
+
+  private async handleWithdrawalMethods(ctx: BotContext): Promise<void> {
+    const keyboard = new InlineKeyboard()
+      .text('💳 Card', 'withdrawal:method:card')
+      .text('🪙 Crypto', 'withdrawal:method:crypto')
+      .row()
+      .text('🏦 Bank', 'withdrawal:method:bank')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'menu:balance');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_methods', {
+        default:
+          '<b>💸 Withdrawal Methods</b>\n\n<b>Available Methods:</b>\n\n💳 <b>Card:</b> 1-3 business days\n🪙 <b>Crypto:</b> 1-24 hours\n🏦 <b>Bank:</b> 3-5 business days\n\n<i>Select your preferred withdrawal method:</i>',
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleWithdrawalLimits(ctx: BotContext): Promise<void> {
+    let text = '<b>📊 Withdrawal Limits</b>\n\n';
+    text += '<b>Standard Account:</b>\n';
+    text += '• Minimum: $10.00\n';
+    text += '• Daily limit: $1,000.00\n';
+    text += '• Monthly limit: $10,000.00\n\n';
+    text += '<b>Verified Account:</b>\n';
+    text += '• Minimum: $10.00\n';
+    text += '• Daily limit: $5,000.00\n';
+    text += '• Monthly limit: $50,000.00\n\n';
+    text += '<b>VIP Account:</b>\n';
+    text += '• Minimum: $10.00\n';
+    text += '• Daily limit: $25,000.00\n';
+    text += '• Monthly limit: Unlimited\n\n';
+    text += '<i>Upgrade your account for higher limits.</i>';
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
     });
   }
 }

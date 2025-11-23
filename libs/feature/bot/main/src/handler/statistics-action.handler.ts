@@ -6,7 +6,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { TrafficOrderEntity, TrafficOrderStatus, UserBalanceHistoryEntity, UserEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
@@ -58,129 +58,69 @@ export class StatisticsActionHandler {
   /**
    * Handle statistics overview
    */
-  async handleStatisticsOverview(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleStatisticsOverview(ctx: AuthenticatedBotContext): Promise<void> {
+    const stats = await this.calculateUserStatistics(ctx.user.id);
+    const statsText = this.formatStatisticsOverview(stats, ctx.user, ctx);
+    const keyboard = this.menuHandler.createStatisticsMenuKeyboard();
 
-        return;
-      }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: statsText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const stats = await this.calculateUserStatistics(user.id);
-      const statsText = this.formatStatisticsOverview(stats, user);
-      const keyboard = this.menuHandler.createStatisticsMenuKeyboard();
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text: statsText,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-
-      this.logger.log('Statistics overview viewed', { userId: user.id });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    this.logger.log('Statistics overview viewed', { userId: ctx.user.id });
   }
 
   /**
    * Handle detailed statistics
    */
-  async handleDetailedStatistics(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleDetailedStatistics(ctx: AuthenticatedBotContext): Promise<void> {
+    const stats = await this.calculateDetailedStatistics(ctx.user.id);
+    const statsText = this.formatDetailedStatistics(stats, ctx);
+    const keyboard = this.menuHandler.createBackButton('menu:statistics');
 
-        return;
-      }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: statsText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const stats = await this.calculateDetailedStatistics(user.id);
-      const statsText = this.formatDetailedStatistics(stats);
-      const keyboard = this.menuHandler.createBackButton('menu:statistics');
-
-      await ctx.replyWithHTML(statsText, { reply_markup: keyboard });
-
-      this.logger.log('Detailed statistics viewed', { userId: user.id });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    this.logger.log('Detailed statistics viewed', { userId: ctx.user.id });
   }
 
   /**
    * Handle traffic statistics
    */
-  async handleTrafficStatistics(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleTrafficStatistics(ctx: AuthenticatedBotContext): Promise<void> {
+    const trafficStats = await this.calculateTrafficStatistics(ctx.user.id);
+    const statsText = this.formatTrafficStatistics(trafficStats, ctx);
+    const keyboard = this.menuHandler.createBackButton('menu:statistics');
 
-        return;
-      }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: statsText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const trafficStats = await this.calculateTrafficStatistics(user.id);
-      const statsText = this.formatTrafficStatistics(trafficStats);
-      const keyboard = this.menuHandler.createBackButton('menu:statistics');
-
-      await ctx.replyWithHTML(statsText, { reply_markup: keyboard });
-
-      this.logger.log('Traffic statistics viewed', { userId: user.id });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    this.logger.log('Traffic statistics viewed', { userId: ctx.user.id });
   }
 
   /**
    * Handle earnings statistics
    */
-  async handleEarningsStatistics(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleEarningsStatistics(ctx: AuthenticatedBotContext): Promise<void> {
+    const earningsStats = await this.calculateEarningsStatistics(ctx.user.id);
+    const statsText = this.formatEarningsStatistics(earningsStats, ctx);
+    const keyboard = this.menuHandler.createBackButton('menu:statistics');
 
-        return;
-      }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: statsText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const earningsStats = await this.calculateEarningsStatistics(user.id);
-      const statsText = this.formatEarningsStatistics(earningsStats);
-      const keyboard = this.menuHandler.createBackButton('menu:statistics');
-
-      await ctx.replyWithHTML(statsText, { reply_markup: keyboard });
-
-      this.logger.log('Earnings statistics viewed', { userId: user.id });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    this.logger.log('Earnings statistics viewed', { userId: ctx.user.id });
   }
 
   /**
@@ -196,18 +136,14 @@ export class StatisticsActionHandler {
       this.em.count(TrafficOrderEntity, { creator: userId, status: TrafficOrderStatus.Completed }),
     ]);
 
-    // Calculate total earnings from balance history
     const earnings = await this.em.find(UserBalanceHistoryEntity, {
       user: userId,
       amount: { $gt: '0' },
     });
 
     const totalEarnings = toNumber(sum(earnings.map((e) => e.amount)));
-
     const avgOrderValue = totalOrders > 0 ? toNumber(decimal(totalEarnings).div(totalOrders)) : 0;
     const successRate = totalOrders > 0 ? toNumber(decimal(completedOrders).div(totalOrders).mul(100)) : 0;
-
-    // Calculate referral earnings
     const referralEarnings = toNumber(sum(earnings.filter((e) => e.type === 'referral_bonus').map((e) => e.amount)));
 
     return {
@@ -224,7 +160,7 @@ export class StatisticsActionHandler {
   /**
    * Calculate detailed statistics
    */
-  private async calculateDetailedStatistics(userId: string) {
+  private async calculateDetailedStatistics(userId: string): Promise<DetailedStatistics> {
     const orders = await this.em.find(TrafficOrderEntity, { creator: userId });
 
     const ordersByStatus = orders.reduce(
@@ -256,7 +192,7 @@ export class StatisticsActionHandler {
   /**
    * Calculate traffic statistics
    */
-  private async calculateTrafficStatistics(userId: string) {
+  private async calculateTrafficStatistics(userId: string): Promise<TrafficStatistics> {
     const orders = await this.em.find(
       TrafficOrderEntity,
       { creator: userId },
@@ -265,7 +201,6 @@ export class StatisticsActionHandler {
 
     const totalActions = orders.reduce((sum, order) => sum + order.currentCount, 0);
     const totalTargetActions = orders.reduce((sum, order) => sum + order.targetCount, 0);
-
     const completionRate =
       totalTargetActions > 0 ? toNumber(decimal(totalActions).div(totalTargetActions).mul(100)) : 0;
 
@@ -280,7 +215,7 @@ export class StatisticsActionHandler {
   /**
    * Calculate earnings statistics
    */
-  private async calculateEarningsStatistics(userId: string) {
+  private async calculateEarningsStatistics(userId: string): Promise<EarningsStatistics> {
     const history = await this.em.find(
       UserBalanceHistoryEntity,
       { user: userId },
@@ -319,51 +254,44 @@ export class StatisticsActionHandler {
   }
 
   /**
-   * Find user by Telegram ID
-   */
-  private async findUserByTelegramId(telegramId: string): Promise<UserEntity | null> {
-    return await this.em.findOne(UserEntity, { telegramId });
-  }
-
-  /**
    * Format statistics overview
    */
-  private formatStatisticsOverview(stats: UserStatistics, user: UserEntity): string {
+  private formatStatisticsOverview(stats: UserStatistics, user: UserEntity, ctx: AuthenticatedBotContext): string {
     return (
-      '<b>📊 Statistics Overview</b>\n\n' +
-      `<b>📦 Orders:</b>\n` +
-      `• Total: ${stats.totalOrders}\n` +
-      `• Active: ${stats.activeOrders}\n` +
-      `• Completed: ${stats.completedOrders}\n\n` +
-      `<b>💰 Earnings:</b>\n` +
-      `• Total: $${toDisplayString(stats.totalEarnings, 2)}\n` +
-      `• Avg per Order: $${toDisplayString(stats.avgOrderValue, 2)}\n` +
-      `• Referral Earnings: $${toDisplayString(stats.referralEarnings, 2)}\n\n` +
-      `<b>📈 Performance:</b>\n` +
-      `• Success Rate: ${toDisplayString(stats.successRate, 1)}%\n` +
-      `• Total Referrals: ${user.referralCount}\n\n` +
-      `<i>Select an option below for detailed statistics.</i>`
+      `<b>📊 ${ctx.t('statistics.overview_title', { default: 'Statistics Overview' })}</b>\n\n` +
+      `<b>📦 ${ctx.t('statistics.orders', { default: 'Orders' })}:</b>\n` +
+      `• ${ctx.t('statistics.total', { default: 'Total' })}: ${stats.totalOrders}\n` +
+      `• ${ctx.t('statistics.active', { default: 'Active' })}: ${stats.activeOrders}\n` +
+      `• ${ctx.t('statistics.completed', { default: 'Completed' })}: ${stats.completedOrders}\n\n` +
+      `<b>💰 ${ctx.t('statistics.earnings', { default: 'Earnings' })}:</b>\n` +
+      `• ${ctx.t('statistics.total', { default: 'Total' })}: $${toDisplayString(stats.totalEarnings, 2)}\n` +
+      `• ${ctx.t('statistics.avg_per_order', { default: 'Avg per Order' })}: $${toDisplayString(stats.avgOrderValue, 2)}\n` +
+      `• ${ctx.t('statistics.referral_earnings', { default: 'Referral Earnings' })}: $${toDisplayString(stats.referralEarnings, 2)}\n\n` +
+      `<b>📈 ${ctx.t('statistics.performance', { default: 'Performance' })}:</b>\n` +
+      `• ${ctx.t('statistics.success_rate', { default: 'Success Rate' })}: ${toDisplayString(stats.successRate, 1)}%\n` +
+      `• ${ctx.t('statistics.total_referrals', { default: 'Total Referrals' })}: ${user.referralCount}\n\n` +
+      `<i>${ctx.t('statistics.select_option', { default: 'Select an option below for detailed statistics.' })}</i>`
     );
   }
 
   /**
    * Format detailed statistics
    */
-  private formatDetailedStatistics(stats: DetailedStatistics): string {
-    let text = '<b>📊 Detailed Statistics</b>\n\n';
+  private formatDetailedStatistics(stats: DetailedStatistics, ctx: AuthenticatedBotContext): string {
+    let text = `<b>📊 ${ctx.t('statistics.detailed_title', { default: 'Detailed Statistics' })}</b>\n\n`;
 
-    text += '<b>Orders by Status:</b>\n';
+    text += `<b>${ctx.t('statistics.orders_by_status', { default: 'Orders by Status' })}:</b>\n`;
     for (const [status, count] of Object.entries(stats.ordersByStatus)) {
       text += `• ${status}: ${count}\n`;
     }
 
-    text += '\n<b>Orders by Type:</b>\n';
+    text += `\n<b>${ctx.t('statistics.orders_by_type', { default: 'Orders by Type' })}:</b>\n`;
     for (const [type, count] of Object.entries(stats.ordersByType)) {
       text += `• ${type}: ${count}\n`;
     }
 
-    text += `\n<b>Total Spent:</b> $${toDisplayString(stats.totalSpent, 2)}\n`;
-    text += `<b>Total Orders:</b> ${stats.totalOrders}`;
+    text += `\n<b>${ctx.t('statistics.total_spent', { default: 'Total Spent' })}:</b> $${toDisplayString(stats.totalSpent, 2)}\n`;
+    text += `<b>${ctx.t('statistics.total_orders', { default: 'Total Orders' })}:</b> ${stats.totalOrders}`;
 
     return text;
   }
@@ -371,39 +299,39 @@ export class StatisticsActionHandler {
   /**
    * Format traffic statistics
    */
-  private formatTrafficStatistics(stats: TrafficStatistics): string {
+  private formatTrafficStatistics(stats: TrafficStatistics, ctx: AuthenticatedBotContext): string {
     return (
-      '<b>🎯 Traffic Statistics</b>\n\n' +
-      `<b>Total Actions Completed:</b> ${stats.totalActions}\n` +
-      `<b>Target Actions:</b> ${stats.totalTargetActions}\n` +
-      `<b>Completion Rate:</b> ${toDisplayString(stats.completionRate, 1)}%\n` +
-      `<b>Total Orders:</b> ${stats.totalOrders}\n\n` +
-      `<i>Keep completing orders to improve your statistics!</i>`
+      `<b>🎯 ${ctx.t('statistics.traffic_title', { default: 'Traffic Statistics' })}</b>\n\n` +
+      `<b>${ctx.t('statistics.total_actions', { default: 'Total Actions Completed' })}:</b> ${stats.totalActions}\n` +
+      `<b>${ctx.t('statistics.target_actions', { default: 'Target Actions' })}:</b> ${stats.totalTargetActions}\n` +
+      `<b>${ctx.t('statistics.completion_rate', { default: 'Completion Rate' })}:</b> ${toDisplayString(stats.completionRate, 1)}%\n` +
+      `<b>${ctx.t('statistics.total_orders', { default: 'Total Orders' })}:</b> ${stats.totalOrders}\n\n` +
+      `<i>${ctx.t('statistics.keep_completing', { default: 'Keep completing orders to improve your statistics!' })}</i>`
     );
   }
 
   /**
    * Format earnings statistics
    */
-  private formatEarningsStatistics(stats: EarningsStatistics): string {
-    let text = '<b>💎 Earnings Statistics</b>\n\n';
+  private formatEarningsStatistics(stats: EarningsStatistics, ctx: AuthenticatedBotContext): string {
+    let text = `<b>💎 ${ctx.t('statistics.earnings_title', { default: 'Earnings Statistics' })}</b>\n\n`;
 
-    text += '<b>Earnings by Type:</b>\n';
+    text += `<b>${ctx.t('statistics.earnings_by_type', { default: 'Earnings by Type' })}:</b>\n`;
     for (const [type, amount] of Object.entries(stats.earningsByType)) {
       text += `• ${type}: $${toDisplayString(amount as number, 2)}\n`;
     }
 
-    text += `\n<b>Last 7 Days:</b> $${toDisplayString(stats.earningsLast7Days, 2)}\n`;
+    text += `\n<b>${ctx.t('statistics.last_7_days', { default: 'Last 7 Days' })}:</b> $${toDisplayString(stats.earningsLast7Days, 2)}\n`;
     if (stats.earningsLast30Days !== undefined) {
-      text += `<b>Last 30 Days:</b> $${toDisplayString(stats.earningsLast30Days, 2)}\n`;
+      text += `<b>${ctx.t('statistics.last_30_days', { default: 'Last 30 Days' })}:</b> $${toDisplayString(stats.earningsLast30Days, 2)}\n`;
     }
 
     if (stats.totalEarnings !== undefined) {
-      text += `<b>Total Earnings:</b> $${toDisplayString(stats.totalEarnings, 2)}\n`;
+      text += `<b>${ctx.t('statistics.total_earnings', { default: 'Total Earnings' })}:</b> $${toDisplayString(stats.totalEarnings, 2)}\n`;
     }
 
     if (stats.totalTransactions !== undefined) {
-      text += `<b>Total Transactions:</b> ${stats.totalTransactions}`;
+      text += `<b>${ctx.t('statistics.total_transactions', { default: 'Total Transactions' })}:</b> ${stats.totalTransactions}`;
     }
 
     return text;

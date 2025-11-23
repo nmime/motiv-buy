@@ -4,36 +4,27 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { OrderService } from '../order.service';
 import { defaultOrderConfig, OrderFlowStep, OrderStatus } from '../order.types';
-import { BotSubscriptionService } from '@app/feature-bot-shared';
+import { ChannelService } from '@app/feature-bot-shared';
 
 describe('OrderService', () => {
   let service: OrderService;
-  let mockBotSubscriptionService: jest.Mocked<BotSubscriptionService>;
-  let mockConfigService: jest.Mocked<ConfigService>;
+  let mockChannelService: jest.Mocked<ChannelService>;
 
   beforeEach(async () => {
     // Create mock services
-    mockBotSubscriptionService = {
-      checkSubscription: jest.fn(),
-    } as any;
-
-    mockConfigService = {
-      get: jest.fn().mockReturnValue('en'),
+    mockChannelService = {
+      getChannelInfoFromLink: jest.fn(),
+      checkBotIsAdmin: jest.fn(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrderService,
         {
-          provide: BotSubscriptionService,
-          useValue: mockBotSubscriptionService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
+          provide: ChannelService,
+          useValue: mockChannelService,
         },
       ],
     }).compile();

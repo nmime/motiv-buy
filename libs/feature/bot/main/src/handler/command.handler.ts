@@ -7,7 +7,7 @@ import { UserService } from '@app/feature-user-main';
 import { UserRole, UserStatus } from '@app/database';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
-import { unknownToError } from '@app/common-shared';
+import { unknownToError, toError } from '@app/common-shared';
 
 /**
  * Command Handler
@@ -18,9 +18,12 @@ import { unknownToError } from '@app/common-shared';
  *
  * @class CommandHandler
  */
+type CommandHandlerFn = (ctx: BotContext) => Promise<void>;
+
 @Injectable()
 export class CommandHandler {
   private readonly logger = new Logger(CommandHandler.name);
+  private commandHandlers!: Map<BotCommand, CommandHandlerFn>;
 
   constructor(
     private readonly authService: AuthService,
@@ -29,7 +32,33 @@ export class CommandHandler {
     private readonly userService: UserService,
     private readonly sessionService: SessionService,
     private readonly menuService: MenuService,
-  ) {}
+  ) {
+    this.initializeCommandHandlers();
+  }
+
+  private initializeCommandHandlers(): void {
+    this.commandHandlers = new Map<BotCommand, CommandHandlerFn>([
+      [BotCommand.Start, this.handleStartCommand.bind(this)],
+      [BotCommand.Help, this.handleHelpCommand.bind(this)],
+      [BotCommand.Profile, this.handleProfileCommand.bind(this)],
+      [BotCommand.Settings, this.handleSettingsCommand.bind(this)],
+      [BotCommand.Balance, this.handleBalanceCommand.bind(this)],
+      [BotCommand.Stats, this.handleStatsCommand.bind(this)],
+      [BotCommand.Campaign, this.handleCampaignCommand.bind(this)],
+      [BotCommand.Withdraw, this.handleWithdrawCommand.bind(this)],
+      [BotCommand.Referral, this.handleReferralCommand.bind(this)],
+      [BotCommand.Traffic, this.handleTrafficCommand.bind(this)],
+      [BotCommand.Admin, this.handleAdminCommand.bind(this)],
+      [BotCommand.Cancel, this.handleCancelCommand.bind(this)],
+      [BotCommand.Menu, this.handleMenuCommand.bind(this)],
+      [BotCommand.Support, this.handleSupportCommand.bind(this)],
+      [BotCommand.Language, this.handleLanguageCommand.bind(this)],
+      [BotCommand.Verify, this.handleVerifyCommand.bind(this)],
+      [BotCommand.Export, this.handleExportCommand.bind(this)],
+      [BotCommand.Reset, this.handleResetCommand.bind(this)],
+      [BotCommand.Status, this.handleStatusCommand.bind(this)],
+    ]);
+  }
 
   /**
    * Process incoming bot command
@@ -60,67 +89,12 @@ export class CommandHandler {
         await this.updateUserActivity(userId, command);
       }
 
-      // Route command to appropriate handler
-      switch (command) {
-        case BotCommand.Start:
-          await this.handleStartCommand(ctx);
-          break;
-        case BotCommand.Help:
-          await this.handleHelpCommand(ctx);
-          break;
-        case BotCommand.Profile:
-          await this.handleProfileCommand(ctx);
-          break;
-        case BotCommand.Settings:
-          await this.handleSettingsCommand(ctx);
-          break;
-        case BotCommand.Balance:
-          await this.handleBalanceCommand(ctx);
-          break;
-        case BotCommand.Stats:
-          await this.handleStatsCommand(ctx);
-          break;
-        case BotCommand.Campaign:
-          await this.handleCampaignCommand(ctx);
-          break;
-        case BotCommand.Withdraw:
-          await this.handleWithdrawCommand(ctx);
-          break;
-        case BotCommand.Referral:
-          await this.handleReferralCommand(ctx);
-          break;
-        case BotCommand.Traffic:
-          await this.handleTrafficCommand(ctx);
-          break;
-        case BotCommand.Admin:
-          await this.handleAdminCommand(ctx);
-          break;
-        case BotCommand.Cancel:
-          await this.handleCancelCommand(ctx);
-          break;
-        case BotCommand.Menu:
-          await this.handleMenuCommand(ctx);
-          break;
-        case BotCommand.Support:
-          await this.handleSupportCommand(ctx);
-          break;
-        case BotCommand.Language:
-          await this.handleLanguageCommand(ctx);
-          break;
-        case BotCommand.Verify:
-          await this.handleVerifyCommand(ctx);
-          break;
-        case BotCommand.Export:
-          await this.handleExportCommand(ctx);
-          break;
-        case BotCommand.Reset:
-          await this.handleResetCommand(ctx);
-          break;
-        case BotCommand.Status:
-          await this.handleStatusCommand(ctx);
-          break;
-        default:
-          await this.handleUnknownCommand(ctx, command);
+      // Route command to appropriate handler using Map lookup
+      const handler = this.commandHandlers.get(command);
+      if (handler) {
+        await handler(ctx);
+      } else {
+        await this.handleUnknownCommand(ctx, command);
       }
     } catch (err: unknown) {
       this.logger.error('Error processing command', {
@@ -130,7 +104,7 @@ export class CommandHandler {
         stack: err instanceof Error ? err.stack : undefined,
       });
 
-      await this.handleCommandError(err as Error, ctx, command);
+      await this.handleCommandError(toError(err), ctx, command);
     }
   }
 
