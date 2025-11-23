@@ -1016,7 +1016,7 @@ ${ctx.t('sell_traffic.description', { default: 'Monetize your Telegram bot or ch
   }
 
   private async handleReferralsMenu(ctx: AuthenticatedBotContext): Promise<void> {
-    const botUsername = 'motivbuy_bot'; // TODO: Get from config
+    const botUsername = ctx.me.username;
     const referralCode = ctx.user.id.substring(0, 8);
     const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
 
