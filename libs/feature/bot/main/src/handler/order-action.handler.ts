@@ -6,12 +6,12 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
-import { TrafficOrderEntity, TrafficOrderStatus, UserEntity } from '@app/database';
+import { TrafficOrderEntity, TrafficOrderStatus } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, toDisplayString, toError } from '@app/common-shared';
+import { decimal, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
 
 @Injectable()
@@ -27,234 +27,154 @@ export class OrderActionHandler {
   /**
    * Handle active orders view
    */
-  async handleActiveOrders(ctx: BotContext, page = 1): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleActiveOrders(ctx: AuthenticatedBotContext, page = 1): Promise<void> {
+    const limit = 5;
+    const offset = (page - 1) * limit;
 
-        return;
-      }
+    const [orders, total] = await this.em.findAndCount(
+      TrafficOrderEntity,
+      {
+        creator: ctx.user.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      },
+      {
+        orderBy: { createdAt: 'DESC' },
+        limit,
+        offset,
+        populate: ['trafficSource', 'trafficTarget'],
+      },
+    );
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const limit = 5;
-      const offset = (page - 1) * limit;
-
-      const [orders, total] = await this.em.findAndCount(
-        TrafficOrderEntity,
-        {
-          creator: user.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-        },
-        {
-          orderBy: { createdAt: 'DESC' },
-          limit,
-          offset,
-          populate: ['trafficSource', 'trafficTarget'],
-        },
-      );
-
-      if (orders.length === 0) {
-        await ctx.reply(ctx.t('bot.order.no_active_orders'));
-
-        return;
-      }
-
-      const totalPages = Math.ceil(total / limit);
-      const ordersText = this.formatOrdersList(orders, 'Active Orders', page, totalPages);
-
-      let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:active');
-
-      if (totalPages > 1) {
-        keyboard = keyboard.row();
-      }
-
-      keyboard = keyboard.text('« Back', 'menu:orders');
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text: ordersText,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-
-      this.logger.log('Active orders viewed', { userId: user.id, page });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+    if (orders.length === 0) {
+      await ctx.reply(ctx.t('bot.order.no_active_orders', { default: 'You have no active orders.' }));
+      return;
     }
+
+    const totalPages = Math.ceil(total / limit);
+    const ordersText = this.formatOrdersList(orders, ctx.t('orders.active_title', { default: 'Active Orders' }), page, totalPages);
+
+    let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:active');
+    if (totalPages > 1) {
+      keyboard = keyboard.row();
+    }
+    keyboard = keyboard.text(ctx.t('common.back', { default: '« Back' }), 'menu:orders');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ordersText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+
+    this.logger.log('Active orders viewed', { userId: ctx.user.id, page });
   }
 
   /**
    * Handle completed orders view
    */
-  async handleCompletedOrders(ctx: BotContext, page = 1): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleCompletedOrders(ctx: AuthenticatedBotContext, page = 1): Promise<void> {
+    const limit = 5;
+    const offset = (page - 1) * limit;
 
-        return;
-      }
+    const [orders, total] = await this.em.findAndCount(
+      TrafficOrderEntity,
+      {
+        creator: ctx.user.id,
+        status: TrafficOrderStatus.Completed,
+      },
+      {
+        orderBy: { completedAt: 'DESC' },
+        limit,
+        offset,
+        populate: ['trafficSource', 'trafficTarget'],
+      },
+    );
 
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const limit = 5;
-      const offset = (page - 1) * limit;
-
-      const [orders, total] = await this.em.findAndCount(
-        TrafficOrderEntity,
-        {
-          creator: user.id,
-          status: TrafficOrderStatus.Completed,
-        },
-        {
-          orderBy: { completedAt: 'DESC' },
-          limit,
-          offset,
-          populate: ['trafficSource', 'trafficTarget'],
-        },
-      );
-
-      if (orders.length === 0) {
-        await ctx.reply('You have no completed orders yet.');
-
-        return;
-      }
-
-      const totalPages = Math.ceil(total / limit);
-      const ordersText = this.formatOrdersList(orders, 'Completed Orders', page, totalPages);
-
-      let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:completed');
-
-      if (totalPages > 1) {
-        keyboard = keyboard.row();
-      }
-
-      keyboard = keyboard.text('« Back', 'menu:orders');
-
-      await ctx.replyWithHTML(ordersText, { reply_markup: keyboard });
-
-      this.logger.log('Completed orders viewed', { userId: user.id, page });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+    if (orders.length === 0) {
+      await ctx.reply(ctx.t('orders.no_completed', { default: 'You have no completed orders yet.' }));
+      return;
     }
+
+    const totalPages = Math.ceil(total / limit);
+    const ordersText = this.formatOrdersList(orders, ctx.t('orders.completed_title', { default: 'Completed Orders' }), page, totalPages);
+
+    let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:completed');
+    if (totalPages > 1) {
+      keyboard = keyboard.row();
+    }
+    keyboard = keyboard.text(ctx.t('common.back', { default: '« Back' }), 'menu:orders');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ordersText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+
+    this.logger.log('Completed orders viewed', { userId: ctx.user.id, page });
   }
 
   /**
    * Handle order creation start
    */
-  async handleCreateOrderStart(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await this.findUserByTelegramId(ctx.from.id.toString());
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Store order creation state in session
-      if (ctx.session) {
-        ctx.session.conversationState = 'order_create';
-        ctx.session.formData = { step: 'select_type' };
-      }
-
-      const typeKeyboard = this.createOrderTypeKeyboard();
-
-      await ctx.reply('➕ <b>Create New Order</b>\n\nPlease select the order type:', {
-        parse_mode: 'HTML',
-        reply_markup: typeKeyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+  async handleCreateOrderStart(ctx: AuthenticatedBotContext): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'order_create';
+      ctx.session.formData = { step: 'select_type' };
     }
+
+    const typeKeyboard = this.createOrderTypeKeyboard(ctx);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: `➕ <b>${ctx.t('orders.create_title', { default: 'Create New Order' })}</b>\n\n${ctx.t('orders.select_type', { default: 'Please select the order type:' })}`,
+      parseMode: 'HTML',
+      replyMarkup: typeKeyboard,
+    });
   }
 
   /**
    * Handle order details view
    */
-  async handleOrderDetails(ctx: BotContext, orderId: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  async handleOrderDetails(ctx: AuthenticatedBotContext, orderId: string): Promise<void> {
+    const order = await this.em.findOne(
+      TrafficOrderEntity,
+      { orderId },
+      {
+        populate: ['trafficSource', 'trafficTarget', 'creator'],
+      },
+    );
 
-        return;
-      }
-
-      const order = await this.em.findOne(
-        TrafficOrderEntity,
-        { orderId },
-        {
-          populate: ['trafficSource', 'trafficTarget', 'creator'],
-        },
-      );
-
-      if (!order) {
-        await ctx.reply('Order not found.');
-
-        return;
-      }
-
-      const detailsText = await this.formatOrderDetails(order);
-      const keyboard = this.createOrderDetailsKeyboard(orderId);
-
-      await ctx.replyWithHTML(detailsText, { reply_markup: keyboard });
-
-      this.logger.log('Order details viewed', { orderId });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+    if (!order) {
+      await ctx.reply(ctx.t('orders.not_found', { default: 'Order not found.' }));
+      return;
     }
+
+    const detailsText = await this.formatOrderDetails(order, ctx);
+    const keyboard = this.createOrderDetailsKeyboard(orderId, ctx);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: detailsText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+
+    this.logger.log('Order details viewed', { orderId });
   }
 
   /**
    * Handle order search
    */
-  async handleOrderSearch(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      // Store search state in session
-      if (ctx.session) {
-        ctx.session.conversationState = 'order_search';
-        ctx.session.formData = { step: 'enter_query' };
-      }
-
-      await ctx.reply(
-        '🔍 <b>Search Orders</b>\n\n' +
-          'Please enter the order ID or keywords to search:\n\n' +
-          '<i>Use /cancel to abort search.</i>',
-        { parse_mode: 'HTML' },
-      );
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+  async handleOrderSearch(ctx: AuthenticatedBotContext): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'order_search';
+      ctx.session.formData = { step: 'enter_query' };
     }
-  }
 
-  /**
-   * Find user by Telegram ID
-   */
-  private async findUserByTelegramId(telegramId: string): Promise<UserEntity | null> {
-    return await this.em.findOne(UserEntity, { telegramId });
+    await this.messageService.sendOrEditMessage(ctx, {
+      text:
+        `🔍 <b>${ctx.t('orders.search_title', { default: 'Search Orders' })}</b>\n\n` +
+        `${ctx.t('orders.search_prompt', { default: 'Please enter the order ID or keywords to search:' })}\n\n` +
+        `<i>${ctx.t('common.cancel_hint', { default: 'Use /cancel to abort.' })}</i>`,
+      parseMode: 'HTML',
+    });
   }
 
   /**
@@ -284,7 +204,7 @@ export class OrderActionHandler {
   /**
    * Format order details
    */
-  private async formatOrderDetails(order: TrafficOrderEntity): Promise<string> {
+  private async formatOrderDetails(order: TrafficOrderEntity, ctx: AuthenticatedBotContext): Promise<string> {
     const progress = decimal(order.currentCount).div(order.targetCount).mul(100);
     const progressDisplay = toDisplayString(progress, 1);
     const statusEmoji = this.getStatusEmoji(order.status);
@@ -292,7 +212,7 @@ export class OrderActionHandler {
     const target = await order.trafficTarget.load();
 
     if (!source || !target) {
-      return 'Order details not found';
+      return ctx.t('orders.details_not_found', { default: 'Order details not found' });
     }
 
     const totalBudgetDisplay = toDisplayString(order.totalBudget, 2);
@@ -300,23 +220,23 @@ export class OrderActionHandler {
     const pricePerActionDisplay = toDisplayString(order.pricePerAction, 4);
 
     return (
-      `${statusEmoji} <b>Order Details</b>\n\n` +
-      `<b>Order ID:</b> <code>${order.orderId}</code>\n` +
-      `<b>Type:</b> ${order.type}\n` +
-      `<b>Status:</b> ${order.status}\n\n` +
-      `<b>Progress:</b>\n` +
-      `• Current: ${order.currentCount}\n` +
-      `• Target: ${order.targetCount}\n` +
-      `• Completion: ${progressDisplay}%\n\n` +
-      `<b>Budget:</b>\n` +
-      `• Total: $${totalBudgetDisplay}\n` +
-      `• Spent: $${spentAmountDisplay}\n` +
-      `• Price per Action: $${pricePerActionDisplay}\n\n` +
-      `<b>Source:</b> ${source.name}\n` +
-      `<b>Target:</b> ${target.name}\n\n` +
-      (order.description ? `<b>Description:</b>\n${order.description}\n\n` : '') +
-      `<b>Created:</b> ${order.createdAt.toLocaleString()}\n` +
-      (order.completedAt ? `<b>Completed:</b> ${order.completedAt.toLocaleString()}` : '')
+      `${statusEmoji} <b>${ctx.t('orders.details_title', { default: 'Order Details' })}</b>\n\n` +
+      `<b>${ctx.t('orders.order_id', { default: 'Order ID' })}:</b> <code>${order.orderId}</code>\n` +
+      `<b>${ctx.t('orders.type', { default: 'Type' })}:</b> ${order.type}\n` +
+      `<b>${ctx.t('orders.status', { default: 'Status' })}:</b> ${order.status}\n\n` +
+      `<b>${ctx.t('orders.progress', { default: 'Progress' })}:</b>\n` +
+      `• ${ctx.t('orders.current', { default: 'Current' })}: ${order.currentCount}\n` +
+      `• ${ctx.t('orders.target', { default: 'Target' })}: ${order.targetCount}\n` +
+      `• ${ctx.t('orders.completion', { default: 'Completion' })}: ${progressDisplay}%\n\n` +
+      `<b>${ctx.t('orders.budget', { default: 'Budget' })}:</b>\n` +
+      `• ${ctx.t('orders.total', { default: 'Total' })}: $${totalBudgetDisplay}\n` +
+      `• ${ctx.t('orders.spent', { default: 'Spent' })}: $${spentAmountDisplay}\n` +
+      `• ${ctx.t('orders.price_per_action', { default: 'Price per Action' })}: $${pricePerActionDisplay}\n\n` +
+      `<b>${ctx.t('orders.source', { default: 'Source' })}:</b> ${source.name}\n` +
+      `<b>${ctx.t('orders.target_label', { default: 'Target' })}:</b> ${target.name}\n\n` +
+      (order.description ? `<b>${ctx.t('orders.description', { default: 'Description' })}:</b>\n${order.description}\n\n` : '') +
+      `<b>${ctx.t('orders.created', { default: 'Created' })}:</b> ${order.createdAt.toLocaleString()}\n` +
+      (order.completedAt ? `<b>${ctx.t('orders.completed', { default: 'Completed' })}:</b> ${order.completedAt.toLocaleString()}` : '')
     );
   }
 
@@ -339,28 +259,26 @@ export class OrderActionHandler {
   /**
    * Create order type keyboard
    */
-
-  private createOrderTypeKeyboard() {
+  private createOrderTypeKeyboard(ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text('👥 Join', 'order:type:join')
-      .text('👀 View', 'order:type:view')
+      .text(ctx.t('orders.type_join', { default: '👥 Join' }), 'order:type:join')
+      .text(ctx.t('orders.type_view', { default: '👀 View' }), 'order:type:view')
       .row()
-      .text('👍 Subscribe', 'order:type:subscribe')
-      .text('❤️ React', 'order:type:react')
+      .text(ctx.t('orders.type_subscribe', { default: '👍 Subscribe' }), 'order:type:subscribe')
+      .text(ctx.t('orders.type_react', { default: '❤️ React' }), 'order:type:react')
       .row()
-      .text('💬 Comment', 'order:type:comment')
+      .text(ctx.t('orders.type_comment', { default: '💬 Comment' }), 'order:type:comment')
       .row()
-      .text('« Cancel', 'menu:orders');
+      .text(ctx.t('common.cancel', { default: '« Cancel' }), 'menu:orders');
   }
 
   /**
    * Create order details keyboard
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
    */
-  private createOrderDetailsKeyboard(orderId: string) {
+  private createOrderDetailsKeyboard(orderId: string, ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text('🔄 Refresh', `order:details:${orderId}`)
+      .text(ctx.t('common.refresh', { default: '🔄 Refresh' }), `order:details:${orderId}`)
       .row()
-      .text('« Back to Orders', 'menu:orders');
+      .text(ctx.t('orders.back_to_orders', { default: '« Back to Orders' }), 'menu:orders');
   }
 }

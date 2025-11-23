@@ -139,9 +139,9 @@ export class CallbackRouterHandler {
       ['sell_traffic', this.handleSellTrafficMenu.bind(this)],
       ['profile', this.withAuth((ctx) => this.profileHandler.handleProfileView(ctx))],
       ['balance', this.withAuth((ctx) => this.balanceHandler.handleBalanceView(ctx))],
-      ['statistics', async (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx)],
+      ['statistics', this.withAuth((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
       ['orders', this.withAuth((ctx) => this.handleOrdersMenu(ctx))],
-      ['settings', async (ctx) => this.settingsHandler.handleSettingsView(ctx)],
+      ['settings', this.withAuth((ctx) => this.settingsHandler.handleSettingsView(ctx))],
       ['referrals', this.withAuth((ctx) => this.handleReferralsMenu(ctx))],
       ['referral', this.withAuth((ctx) => this.handleReferralsMenu(ctx))],
       ['payments', this.withAuth((ctx) => this.handlePaymentsMenu(ctx))],
@@ -150,7 +150,7 @@ export class CallbackRouterHandler {
       ['traffic', this.handleTrafficMenu.bind(this)],
       ['campaign', this.handleCampaignMenu.bind(this)],
       ['withdrawal', this.withAuth((ctx) => this.balanceHandler.handleWithdrawalStart(ctx))],
-      ['notifications', async (ctx) => this.settingsHandler.handleNotificationSettings(ctx)],
+      ['notifications', this.withAuth((ctx) => this.settingsHandler.handleNotificationSettings(ctx))],
     ]);
 
     this.profileActionHandlers = new Map([
@@ -172,10 +172,10 @@ export class CallbackRouterHandler {
       ['details', this.withAuthParams((ctx) => this.profileHandler.handleProfileDetails(ctx))],
       ['verify', this.withAuthParams((ctx) => this.profileHandler.handleVerification(ctx))],
       ['stats', this.handleProfileStatsMenu.bind(this)],
-      ['stats:overview', async (ctx, _params) => this.statisticsHandler.handleStatisticsOverview(ctx)],
-      ['stats:activity', async (ctx, _params) => this.statisticsHandler.handleDetailedStatistics(ctx)],
-      ['stats:earnings', async (ctx, _params) => this.statisticsHandler.handleEarningsStatistics(ctx)],
-      ['stats:performance', async (ctx, _params) => this.statisticsHandler.handleTrafficStatistics(ctx)],
+      ['stats:overview', this.withAuthParams((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
+      ['stats:activity', this.withAuthParams((ctx) => this.statisticsHandler.handleDetailedStatistics(ctx))],
+      ['stats:earnings', this.withAuthParams((ctx) => this.statisticsHandler.handleEarningsStatistics(ctx))],
+      ['stats:performance', this.withAuthParams((ctx) => this.statisticsHandler.handleTrafficStatistics(ctx))],
       ['security', this.handleProfileSecurityMenu.bind(this)],
       ['password', this.handlePasswordChange.bind(this)],
       ['email_security', this.handleEmailSecurity.bind(this)],
@@ -199,27 +199,27 @@ export class CallbackRouterHandler {
     ]);
 
     this.statsActionHandlers = new Map([
-      ['overview', async (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx)],
-      ['detailed', async (ctx) => this.statisticsHandler.handleDetailedStatistics(ctx)],
-      ['traffic', async (ctx) => this.statisticsHandler.handleTrafficStatistics(ctx)],
-      ['earnings', async (ctx) => this.statisticsHandler.handleEarningsStatistics(ctx)],
+      ['overview', this.withAuth((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
+      ['detailed', this.withAuth((ctx) => this.statisticsHandler.handleDetailedStatistics(ctx))],
+      ['traffic', this.withAuth((ctx) => this.statisticsHandler.handleTrafficStatistics(ctx))],
+      ['earnings', this.withAuth((ctx) => this.statisticsHandler.handleEarningsStatistics(ctx))],
     ]);
 
     this.orderActionHandlers = new Map([
       ['list', this.withAuthParams((ctx) => this.handleOrdersMenu(ctx))],
       [
         'active',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           const page = params.length > 0 && params[0] === 'page' ? parseInt(params[1]) : 1;
           await this.orderHandler.handleActiveOrders(ctx, page);
-        },
+        }),
       ],
       [
         'completed',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           const page = params.length > 0 && params[0] === 'page' ? parseInt(params[1]) : 1;
           await this.orderHandler.handleCompletedOrders(ctx, page);
-        },
+        }),
       ],
       [
         'create',
@@ -233,22 +233,22 @@ export class CallbackRouterHandler {
           }
         }),
       ],
-      ['search', async (ctx) => this.orderHandler.handleOrderSearch(ctx)],
+      ['search', this.withAuthParams((ctx) => this.orderHandler.handleOrderSearch(ctx))],
       [
         'details',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0) {
             await this.orderHandler.handleOrderDetails(ctx, params[0]);
           }
-        },
+        }),
       ],
       [
         'view',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0) {
             await this.orderHandler.handleOrderDetails(ctx, params[0]);
           }
-        },
+        }),
       ],
       ['deleted', this.handleDeletedOrders.bind(this)],
       ['config', this.handleOrderConfig.bind(this)],
