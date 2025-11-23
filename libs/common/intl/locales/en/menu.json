@@ -54,6 +54,7 @@
     }
   },
   "main_menu": {
+    "welcome": "<b>👋 Welcome, {{userName}}!</b>\n\n<b>MotivBuy</b> — Your Telegram growth platform\n\n<b>🛒 Buy Traffic</b>\nGet real subscribers for your channels and groups\n\n<b>💰 Sell Traffic</b>\nMonetize your bot or channel audience\n\n<i>Select an action below 👇</i>",
     "greeting": "Welcome",
     "description": "<b>MotivBuy</b> — Your Telegram growth platform",
     "buy_title": "Buy Traffic",

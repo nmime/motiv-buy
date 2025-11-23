@@ -848,31 +848,21 @@ export class CallbackRouterHandler {
   // Placeholder methods for additional features
 
   private async handleMainMenu(ctx: BotContext): Promise<void> {
-    const userName = ctx.from?.first_name || ctx.t('common.user', { default: 'User' });
+    const userName = ctx.from?.first_name || 'User';
 
-    const text = ctx.t('main_menu.welcome', {
-      default: `<b>👋 ${ctx.t('main_menu.greeting', { default: 'Welcome' })}, ${userName}!</b>
-
-${ctx.t('main_menu.description', { default: '<b>MotivBuy</b> — Your Telegram growth platform' })}
-
-<b>🛒 ${ctx.t('main_menu.buy_title', { default: 'Buy Traffic' })}</b>
-${ctx.t('main_menu.buy_desc', { default: 'Get real subscribers for your channels and groups' })}
-
-<b>💰 ${ctx.t('main_menu.sell_title', { default: 'Sell Traffic' })}</b>
-${ctx.t('main_menu.sell_desc', { default: 'Monetize your bot or channel audience' })}
-
-<i>${ctx.t('main_menu.select_action', { default: 'Select an action below' })} 👇</i>`,
-      userName,
-    });
+    // Build welcome text from translation - pass userName for {{userName}} placeholder
+    const text =
+      ctx.t('main_menu.welcome', { userName }) ||
+      `<b>👋 Welcome, ${userName}!</b>\n\n<b>MotivBuy</b> — Your Telegram growth platform\n\n<b>🛒 Buy Traffic</b>\nGet real subscribers for your channels and groups\n\n<b>💰 Sell Traffic</b>\nMonetize your bot or channel audience\n\n<i>Select an action below 👇</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('main_menu.btn_buy_traffic', { default: '🛒 Buy Traffic' }), 'menu:buy_traffic')
-      .text(ctx.t('main_menu.btn_sell_traffic', { default: '💰 Sell Traffic' }), 'menu:sell_traffic')
+      .text(ctx.t('main_menu.btn_buy_traffic') || '🛒 Buy Traffic', 'menu:buy_traffic')
+      .text(ctx.t('main_menu.btn_sell_traffic') || '💰 Sell Traffic', 'menu:sell_traffic')
       .row()
-      .text(ctx.t('main_menu.btn_balance', { default: '💳 Balance' }), 'balance:view')
-      .text(ctx.t('main_menu.btn_profile', { default: '👤 Profile' }), 'profile:view')
+      .text(ctx.t('main_menu.btn_balance') || '💳 Balance', 'balance:view')
+      .text(ctx.t('main_menu.btn_profile') || '👤 Profile', 'profile:view')
       .row()
-      .text(ctx.t('main_menu.btn_support', { default: '🆘 Support' }), 'menu:support');
+      .text(ctx.t('main_menu.btn_support') || '🆘 Support', 'menu:support');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,

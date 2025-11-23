@@ -69,23 +69,17 @@ export class MenuActionHandler {
   }
 
   /**
-   * Create main menu keyboard
+   * Create main menu keyboard - 5 buttons matching callback-router.handler.ts
    */
   createMainMenuKeyboard(): InlineKeyboard {
-    const keyboard = new InlineKeyboard()
-      .text('👤 Profile', 'menu:profile')
-      .text('💰 Balance', 'menu:balance')
+    return new InlineKeyboard()
+      .text('🛒 Buy Traffic', 'menu:buy_traffic')
+      .text('💰 Sell Traffic', 'menu:sell_traffic')
       .row()
-      .text('📊 Statistics', 'menu:statistics')
-      .text('📦 Orders', 'menu:orders')
+      .text('💳 Balance', 'balance:view')
+      .text('👤 Profile', 'profile:view')
       .row()
-      .text('⚙️ Settings', 'menu:settings')
-      .text('🎁 Referrals', 'menu:referrals')
-      .row()
-      .text('💳 Payments', 'menu:payments')
-      .text('📞 Support', 'menu:support');
-
-    return keyboard;
+      .text('🆘 Support', 'menu:support');
   }
 
   /**
