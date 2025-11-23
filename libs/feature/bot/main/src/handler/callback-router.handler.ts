@@ -742,7 +742,7 @@ export class CallbackRouterHandler {
   private async routeHelpAction(ctx: BotContext, action: string, _params: string[]): Promise<void> {
     const helpHandlers: Record<string, (ctx: BotContext) => Promise<void>> = {
       faq: (ctx) => this.handleHelpFAQ(ctx),
-      create_order: (ctx) => this.handleHelpCreateOrder(ctx),
+      createOrder: (ctx) => this.handleHelpCreateOrder(ctx),
       topup: (ctx) => this.handleHelpTopup(ctx),
       withdraw: (ctx) => this.handleHelpWithdraw(ctx),
       stats: (ctx) => this.handleHelpStats(ctx),
@@ -1160,7 +1160,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
 <i>Если у вас остались вопросы, обратитесь в поддержку.</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text('📖 Как создать заказ', 'help:create_order')
+      .text('📖 Как создать заказ', 'help:createOrder')
       .row()
       .text('💰 Пополнение баланса', 'help:topup')
       .text('💸 Вывод средств', 'help:withdraw')
@@ -2126,7 +2126,7 @@ A: Баланс → Вывод. Минимальная сумма: $10.
 A: Да, все подписчики - реальные пользователи Telegram.`;
 
     const keyboard = new InlineKeyboard()
-      .text('📖 Подробнее о заказах', 'help:create_order')
+      .text('📖 Подробнее о заказах', 'help:createOrder')
       .row()
       .text('💰 Вопросы по балансу', 'help:topup')
       .row()

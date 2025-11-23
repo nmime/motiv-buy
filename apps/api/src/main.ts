@@ -7,6 +7,7 @@ process.on('warning', (warning) => {
     return;
   }
 
+  // eslint-disable-next-line no-console -- Early boot-time handler before NestJS Logger is available
   console.warn(warning.name, warning.message);
 });
 

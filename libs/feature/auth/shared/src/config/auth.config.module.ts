@@ -1,5 +1,4 @@
 import { Global, Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { AuthConfigService } from './auth.config.service';
 
 @Global()

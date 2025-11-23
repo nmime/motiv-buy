@@ -10,7 +10,6 @@ import {
   CurrencyRateProviderRepository,
   RateProviderCurrencyRepository,
   ProviderCurrencyMapping,
-  CurrencyRateProviderEntity,
   CurrencyType,
   RateProvider,
 } from '@app/database';

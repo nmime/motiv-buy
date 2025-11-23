@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TrafficSourceEntity, TrafficOrderEntity, ModerationRequestEntity, ModerationEntityType } from '@app/database';
-import { InlineKeyboard, Bot } from 'grammy';
+import { InlineKeyboard, Bot, Context } from 'grammy';
 import { getErrorMessage } from '@app/common-shared';
 
 /**
@@ -17,7 +17,7 @@ import { getErrorMessage } from '@app/common-shared';
 export class TelegramModerationNotifier {
   private readonly logger = new Logger(TelegramModerationNotifier.name);
   private readonly moderationChannelId: string;
-  private bot: Bot<any> | null = null;
+  private bot: Bot<Context> | null = null;
 
   constructor(private readonly configService: ConfigService) {
     this.moderationChannelId = this.configService.get<string>('TELEGRAM_MODERATION_CHANNEL_ID') ?? '';
@@ -31,8 +31,9 @@ export class TelegramModerationNotifier {
    * Set bot instance (called by BotService after initialization)
    * Accepts any Bot type to allow flexibility with different context types
    */
-  setBot(bot: Bot<any>): void {
-    this.bot = bot;
+  setBot<C extends Context>(bot: Bot<C>): void {
+    // Cast to base Context type for internal storage since we only use bot.api methods
+    this.bot = bot as unknown as Bot<Context>;
   }
 
   /**
@@ -148,7 +149,7 @@ export class TelegramModerationNotifier {
       const statusMessage = `\n\n✅ <b>Approved</b> by @${reviewerUsername}`;
       const entityName = entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order';
 
-      await this.bot!.api.editMessageText(chatId, messageId, `${entityName} approved${statusMessage}`, {
+      await this.bot.api.editMessageText(chatId, messageId, `${entityName} approved${statusMessage}`, {
         parse_mode: 'HTML',
       });
 
@@ -179,7 +180,7 @@ export class TelegramModerationNotifier {
       const statusMessage = `\n\n❌ <b>Declined</b> by @${reviewerUsername}${note}`;
       const entityName = entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order';
 
-      await this.bot!.api.editMessageText(chatId, messageId, `${entityName} declined${statusMessage}`, {
+      await this.bot.api.editMessageText(chatId, messageId, `${entityName} declined${statusMessage}`, {
         parse_mode: 'HTML',
       });
 
