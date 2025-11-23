@@ -147,8 +147,8 @@ export class CallbackRouterHandler {
       ['payments', this.withAuth((ctx) => this.handlePaymentsMenu(ctx))],
       ['support', this.handleSupportMenu.bind(this)],
       ['help', this.handleHelpMenu.bind(this)],
-      ['traffic', this.handleTrafficMenu.bind(this)],
-      ['campaign', this.handleCampaignMenu.bind(this)],
+      ['traffic', this.withAuth((ctx) => this.handleTrafficMenu(ctx))],
+      ['campaign', this.withAuth((ctx) => this.handleCampaignMenu(ctx))],
       ['withdrawal', this.withAuth((ctx) => this.balanceHandler.handleWithdrawalStart(ctx))],
       ['notifications', this.withAuth((ctx) => this.settingsHandler.handleNotificationSettings(ctx))],
     ]);
@@ -619,6 +619,12 @@ export class CallbackRouterHandler {
   private async routeTrafficAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     const trafficActionHandlers: Record<string, (ctx: BotContext, params: string[]) => Promise<void>> = {
       sources: async (ctx, params) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
         if (params.length > 0 && params[0] === 'add') {
           await this.handleTrafficSourceAdd(ctx);
         } else {
@@ -626,6 +632,12 @@ export class CallbackRouterHandler {
         }
       },
       targets: async (ctx, params) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
         if (params.length > 0 && params[0] === 'add') {
           await this.handleTrafficTargetAdd(ctx);
         } else {
@@ -633,6 +645,12 @@ export class CallbackRouterHandler {
         }
       },
       source: async (ctx, params) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
         const [subAction, sourceId] = params;
         if (subAction === 'view' && sourceId) {
           await this.handleTrafficSourceView(ctx, sourceId);
@@ -647,6 +665,12 @@ export class CallbackRouterHandler {
         }
       },
       target: async (ctx, params) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
         const [subAction, targetId] = params;
         if (subAction === 'view' && targetId) {
           await this.handleTrafficTargetView(ctx, targetId);
@@ -660,7 +684,15 @@ export class CallbackRouterHandler {
           await this.handleTrafficTargetStats(ctx, targetId);
         }
       },
-      analytics: async (ctx) => this.handleTrafficAnalytics(ctx),
+      analytics: async (ctx) => {
+        if (!isAuthenticated(ctx)) {
+          await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+          return;
+        }
+
+        await this.handleTrafficAnalytics(ctx);
+      },
     };
 
     const handler = trafficActionHandlers[action];
@@ -668,6 +700,12 @@ export class CallbackRouterHandler {
     if (handler) {
       await handler(ctx, params);
     } else {
+      if (!isAuthenticated(ctx)) {
+        await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
+        return;
+      }
+
       await this.handleTrafficMenu(ctx);
     }
   }
@@ -1140,140 +1178,104 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     });
   }
 
-  private async handleTrafficMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    // Get traffic sources managed by user
+    const sources = await this.em.find(TrafficSourceEntity, { managedBy: ctx.user.id }, { populate: ['orders'] });
 
-        return;
-      }
+    // Get active traffic orders
+    const activeOrders = await this.em.count(TrafficOrderEntity, {
+      creator: ctx.user.id,
+      status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+    });
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+    const totalOrders = await this.em.count(TrafficOrderEntity, { creator: ctx.user.id });
 
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
+    let text = `<b>${ctx.t('traffic.management_title', { default: '🎯 Traffic Management' })}</b>\n\n`;
+    text += `<b>${ctx.t('common.overview', { default: '📊 Overview' })}:</b>\n`;
+    text += `• ${ctx.t('traffic.sources', { default: 'Traffic Sources' })}: ${sources.length}\n`;
+    text += `• ${ctx.t('orders.active', { default: 'Active Orders' })}: ${activeOrders}\n`;
+    text += `• ${ctx.t('orders.total', { default: 'Total Orders' })}: ${totalOrders}\n\n`;
 
-        return;
-      }
-
-      // Get traffic sources managed by user
-      const sources = await this.em.find(TrafficSourceEntity, { managedBy: user.id }, { populate: ['orders'] });
-
-      // Get active traffic orders
-      const activeOrders = await this.em.count(TrafficOrderEntity, {
-        creator: user.id,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+    if (sources.length > 0) {
+      text += `<b>${ctx.t('traffic.your_sources', { default: 'Your Sources' })}:</b>\n`;
+      sources.slice(0, 5).forEach((source) => {
+        const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
+        text += `${statusEmoji} ${source.name} (${source.type})\n`;
       });
 
-      const totalOrders = await this.em.count(TrafficOrderEntity, { creator: user.id });
-
-      let text = '<b>🎯 Traffic Management</b>\n\n';
-      text += `<b>📊 Overview:</b>\n`;
-      text += `• Traffic Sources: ${sources.length}\n`;
-      text += `• Active Orders: ${activeOrders}\n`;
-      text += `• Total Orders: ${totalOrders}\n\n`;
-
-      if (sources.length > 0) {
-        text += '<b>Your Sources:</b>\n';
-        sources.slice(0, 5).forEach((source) => {
-          const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
-          text += `${statusEmoji} ${source.name} (${source.type})\n`;
-        });
-
-        if (sources.length > 5) {
-          text += `... and ${sources.length - 5} more\n`;
-        }
-      } else {
-        text += '<i>No traffic sources yet. Create one to get started!</i>';
+      if (sources.length > 5) {
+        text += `... ${ctx.t('common.and_more', { default: 'and', count: sources.length - 5 })} ${sources.length - 5} ${ctx.t('common.more', { default: 'more' })}\n`;
       }
-
-      const keyboard = this.menuHandler.createTrafficMenuKeyboard();
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+    } else {
+      text += `<i>${ctx.t('traffic.no_sources', { default: 'No traffic sources yet. Create one to get started!' })}</i>`;
     }
+
+    const keyboard = this.menuHandler.createTrafficMenuKeyboard();
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handleCampaignMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleCampaignMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    // Get campaign statistics (campaigns are TrafficOrders)
+    const [active, completed, total] = await Promise.all([
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: TrafficOrderStatus.Completed,
+      }),
+      this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
+    ]);
 
-        return;
+    // Get recent campaigns
+    const recentCampaigns = await this.em.find(
+      TrafficOrderEntity,
+      { creator: ctx.user.id },
+      { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['trafficTarget'] },
+    );
+
+    const totalSpent = recentCampaigns.reduce((acc, order) => {
+      return acc.plus(decimal(order.spentAmount || '0'));
+    }, decimal(0));
+
+    let text = `<b>${ctx.t('campaign.management_title', { default: '📋 Campaign Management' })}</b>\n\n`;
+    text += `<b>${ctx.t('common.statistics', { default: '📊 Statistics' })}:</b>\n`;
+    text += `• ${ctx.t('campaign.active', { default: 'Active Campaigns' })}: ${active}\n`;
+    text += `• ${ctx.t('common.completed', { default: 'Completed' })}: ${completed}\n`;
+    text += `• ${ctx.t('common.total', { default: 'Total' })}: ${total}\n`;
+    text += `• ${ctx.t('common.total_spent', { default: 'Total Spent' })}: $${toDisplayString(totalSpent, 2)}\n\n`;
+
+    if (recentCampaigns.length > 0) {
+      text += `<b>${ctx.t('campaign.recent', { default: 'Recent Campaigns' })}:</b>\n`;
+      for (const campaign of recentCampaigns) {
+        const statusEmoji =
+          {
+            [TrafficOrderStatus.Active]: '✅',
+            [TrafficOrderStatus.InProgress]: '🔄',
+            [TrafficOrderStatus.Completed]: '✔️',
+            [TrafficOrderStatus.Pending]: '⏳',
+            [TrafficOrderStatus.Cancelled]: '❌',
+            [TrafficOrderStatus.Failed]: '⚠️',
+          }[campaign.status] || '❓';
+
+        text += `${statusEmoji} ${campaign.orderId.substring(0, 8)}... (${campaign.type})\n`;
+        text += `   ${ctx.t('common.progress', { default: 'Progress' })}: ${campaign.currentCount}/${campaign.targetCount}\n`;
       }
-
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Get campaign statistics (campaigns are TrafficOrders)
-      const [active, completed, total] = await Promise.all([
-        this.em.count(TrafficOrderEntity, {
-          creator: user.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-        }),
-        this.em.count(TrafficOrderEntity, {
-          creator: user.id,
-          status: TrafficOrderStatus.Completed,
-        }),
-        this.em.count(TrafficOrderEntity, { creator: user.id }),
-      ]);
-
-      // Get recent campaigns
-      const recentCampaigns = await this.em.find(
-        TrafficOrderEntity,
-        { creator: user.id },
-        { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['trafficTarget'] },
-      );
-
-      const totalSpent = recentCampaigns.reduce((sum, order) => {
-        return sum.plus(decimal(order.spentAmount || '0'));
-      }, decimal(0));
-
-      let text = '<b>📋 Campaign Management</b>\n\n';
-      text += '<b>📊 Statistics:</b>\n';
-      text += `• Active Campaigns: ${active}\n`;
-      text += `• Completed: ${completed}\n`;
-      text += `• Total: ${total}\n`;
-      text += `• Total Spent: $${toDisplayString(totalSpent, 2)}\n\n`;
-
-      if (recentCampaigns.length > 0) {
-        text += '<b>Recent Campaigns:</b>\n';
-        for (const campaign of recentCampaigns) {
-          const statusEmoji =
-            {
-              [TrafficOrderStatus.Active]: '✅',
-              [TrafficOrderStatus.InProgress]: '🔄',
-              [TrafficOrderStatus.Completed]: '✔️',
-              [TrafficOrderStatus.Pending]: '⏳',
-              [TrafficOrderStatus.Cancelled]: '❌',
-              [TrafficOrderStatus.Failed]: '⚠️',
-            }[campaign.status] || '❓';
-
-          text += `${statusEmoji} ${campaign.orderId.substring(0, 8)}... (${campaign.type})\n`;
-          text += `   Progress: ${campaign.currentCount}/${campaign.targetCount}\n`;
-        }
-      } else {
-        text += '<i>No campaigns yet. Click "Create Campaign" to get started!</i>';
-      }
-
-      const keyboard = this.menuHandler.createCampaignMenuKeyboard();
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+    } else {
+      text += `<i>${ctx.t('campaign.no_campaigns', { default: 'No campaigns yet. Click "Create Campaign" to get started!' })}</i>`;
     }
+
+    const keyboard = this.menuHandler.createCampaignMenuKeyboard();
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   private async handleProfileStatsMenu(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
@@ -1921,154 +1923,100 @@ support@motivbuy.com
 
   // Traffic Source Handlers
 
-  private async handleTrafficSourcesList(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficSourcesList(ctx: AuthenticatedBotContext): Promise<void> {
+    const sources = await this.em.find(
+      TrafficSourceEntity,
+      { managedBy: ctx.user.id },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
 
-        return;
-      }
+    let text = ctx.t('traffic.sources_list_title', { default: '<b>📊 Traffic Sources</b>\n\n' });
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const sources = await this.em.find(
-        TrafficSourceEntity,
-        { managedBy: user.id },
-        { orderBy: { createdAt: 'DESC' }, limit: 10 },
-      );
-
-      let text = ctx.t('traffic.sources_list_title', { default: '<b>📊 Traffic Sources</b>\n\n' });
-
-      if (sources.length === 0) {
-        text += ctx.t('traffic.no_sources', {
-          default: '<i>No traffic sources yet. Click "Add New Source" to create one!</i>',
-        });
-      } else {
-        text += ctx.t('traffic.sources_count', {
-          default: `Total: ${sources.length} source(s)\n\n`,
-          count: sources.length,
-        });
-
-        sources.forEach((source) => {
-          const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
-          const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
-          text += `${statusEmoji} <b>${source.name}</b>\n`;
-          text += `   Type: ${typeLabel}\n`;
-          text += `   Status: ${source.status}\n\n`;
-        });
-      }
-
-      const sourcesList = sources.map((s) => ({ id: s.id, name: s.name, status: s.status }));
-      const keyboard = this.menuHandler.createTrafficSourcesKeyboard(sourcesList);
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
+    if (sources.length === 0) {
+      text += ctx.t('traffic.no_sources', {
+        default: '<i>No traffic sources yet. Click "Add New Source" to create one!</i>',
       });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+    } else {
+      text += ctx.t('traffic.sources_count', {
+        default: `Total: ${sources.length} source(s)\n\n`,
+        count: sources.length,
+      });
+
+      sources.forEach((source) => {
+        const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
+        const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
+        text += `${statusEmoji} <b>${source.name}</b>\n`;
+        text += `   Type: ${typeLabel}\n`;
+        text += `   Status: ${source.status}\n\n`;
+      });
     }
+
+    const sourcesList = sources.map((s) => ({ id: s.id, name: s.name, status: s.status }));
+    const keyboard = this.menuHandler.createTrafficSourcesKeyboard(sourcesList);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handleTrafficSourceAdd(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Set session state for source creation
-      if (ctx.session) {
-        ctx.session.conversationState = 'traffic_source_create';
-        ctx.session.formData = { step: 'enter_name' };
-      }
-
-      let text = ctx.t('traffic.add_source_title', { default: '<b>➕ Add Traffic Source</b>\n\n' });
-      text += ctx.t('traffic.add_source_instructions', {
-        default: 'Please enter the name for your new traffic source:\n\n<i>Use /cancel to abort.</i>',
-      });
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('traffic:sources'),
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+  private async handleTrafficSourceAdd(ctx: AuthenticatedBotContext): Promise<void> {
+    // Set session state for source creation
+    if (ctx.session) {
+      ctx.session.conversationState = 'traffic_source_create';
+      ctx.session.formData = { step: 'enter_name' };
     }
+
+    let text = ctx.t('traffic.add_source_title', { default: '<b>➕ Add Traffic Source</b>\n\n' });
+    text += ctx.t('traffic.add_source_instructions', {
+      default: 'Please enter the name for your new traffic source:\n\n<i>Use /cancel to abort.</i>',
+    });
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('traffic:sources'),
+    });
   }
 
-  private async handleTrafficSourceView(ctx: BotContext, sourceId: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficSourceView(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
 
-        return;
-      }
+    if (!source) {
+      await ctx.reply(ctx.t('traffic.source_not_found', { default: 'Traffic source not found' }));
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: user.id });
-
-      if (!source) {
-        await ctx.reply(ctx.t('traffic.source_not_found'));
-
-        return;
-      }
-
-      const ordersCount = await this.em.count(TrafficOrderEntity, { trafficSource: source.id });
-      const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
-      const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
-
-      let text = `<b>📊 Traffic Source Details</b>\n\n`;
-      text += `<b>Name:</b> ${source.name}\n`;
-      text += `<b>Type:</b> ${typeLabel}\n`;
-      text += `<b>Status:</b> ${statusEmoji} ${source.status}\n`;
-
-      if (source.botUsername) {
-        text += `<b>Bot Username:</b> @${source.botUsername}\n`;
-      }
-
-      if (source.description) {
-        text += `<b>Description:</b> ${source.description}\n`;
-      }
-
-      text += `\n<b>Statistics:</b>\n`;
-      text += `• Total Orders: ${ordersCount}\n`;
-      text += `• Created: ${source.createdAt.toLocaleDateString()}\n`;
-
-      const keyboard = this.menuHandler.createTrafficSourceDetailKeyboard(sourceId);
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+      return;
     }
+
+    const ordersCount = await this.em.count(TrafficOrderEntity, { trafficSource: source.id });
+    const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
+    const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
+
+    let text = ctx.t('traffic.source_details_title', { default: '<b>📊 Traffic Source Details</b>\n\n' });
+    text += `<b>Name:</b> ${source.name}\n`;
+    text += `<b>Type:</b> ${typeLabel}\n`;
+    text += `<b>Status:</b> ${statusEmoji} ${source.status}\n`;
+
+    if (source.botUsername) {
+      text += `<b>Bot Username:</b> @${source.botUsername}\n`;
+    }
+
+    if (source.description) {
+      text += `<b>Description:</b> ${source.description}\n`;
+    }
+
+    text += `\n<b>Statistics:</b>\n`;
+    text += `• Total Orders: ${ordersCount}\n`;
+    text += `• Created: ${source.createdAt.toLocaleDateString()}\n`;
+
+    const keyboard = this.menuHandler.createTrafficSourceDetailKeyboard(sourceId);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   private async handleTrafficSourceEdit(ctx: BotContext, sourceId: string): Promise<void> {
@@ -2086,46 +2034,28 @@ support@motivbuy.com
     });
   }
 
-  private async handleTrafficSourceToggle(ctx: BotContext, sourceId: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficSourceToggle(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
 
-        return;
-      }
+    if (!source) {
+      await ctx.reply(ctx.t('traffic.source_not_found', { default: 'Traffic source not found' }));
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: user.id });
-
-      if (!source) {
-        await ctx.reply(ctx.t('traffic.source_not_found'));
-
-        return;
-      }
-
-      // Toggle status
-      source.status =
-        source.status === TrafficSourceStatus.Active ? TrafficSourceStatus.Inactive : TrafficSourceStatus.Active;
-
-      await this.em.flush();
-
-      const newStatusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
-      await ctx.answerCallbackQuery(
-        ctx.t('traffic.source_status_toggled', { default: `Status changed to ${newStatusEmoji} ${source.status}` }),
-      );
-
-      // Refresh the view
-      await this.handleTrafficSourceView(ctx, sourceId);
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+      return;
     }
+
+    // Toggle status
+    source.status =
+      source.status === TrafficSourceStatus.Active ? TrafficSourceStatus.Inactive : TrafficSourceStatus.Active;
+
+    await this.em.flush();
+
+    const newStatusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
+    await ctx.answerCallbackQuery(
+      ctx.t('traffic.source_status_toggled', { default: `Status changed to ${newStatusEmoji} ${source.status}` }),
+    );
+
+    // Refresh the view
+    await this.handleTrafficSourceView(ctx, sourceId);
   }
 
   private async handleTrafficSourceDelete(ctx: BotContext, sourceId: string): Promise<void> {
@@ -2208,113 +2138,80 @@ A: Да, все подписчики - реальные пользователи
     });
   }
 
-  private async handleTrafficSourceStats(ctx: BotContext, sourceId: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficSourceStats(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
 
-        return;
-      }
+    if (!source) {
+      await ctx.reply(ctx.t('traffic.source_not_found', { default: 'Traffic source not found' }));
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: user.id });
-
-      if (!source) {
-        await ctx.reply(ctx.t('traffic.source_not_found'));
-
-        return;
-      }
-
-      const [totalOrders, activeOrders, completedOrders] = await Promise.all([
-        this.em.count(TrafficOrderEntity, { trafficSource: source.id }),
-        this.em.count(TrafficOrderEntity, {
-          trafficSource: source.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-        }),
-        this.em.count(TrafficOrderEntity, { trafficSource: source.id, status: TrafficOrderStatus.Completed }),
-      ]);
-
-      let text = `<b>📊 Source Statistics: ${source.name}</b>\n\n`;
-      text += `<b>Orders:</b>\n`;
-      text += `• Total: ${totalOrders}\n`;
-      text += `• Active: ${activeOrders}\n`;
-      text += `• Completed: ${completedOrders}\n\n`;
-      text += `<b>Created:</b> ${source.createdAt.toLocaleDateString()}\n`;
-      text += `<b>Last Updated:</b> ${source.updatedAt.toLocaleDateString()}`;
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton(`traffic:source:view:${sourceId}`),
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+      return;
     }
+
+    const [totalOrders, activeOrders, completedOrders] = await Promise.all([
+      this.em.count(TrafficOrderEntity, { trafficSource: source.id }),
+      this.em.count(TrafficOrderEntity, {
+        trafficSource: source.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+      this.em.count(TrafficOrderEntity, { trafficSource: source.id, status: TrafficOrderStatus.Completed }),
+    ]);
+
+    let text = ctx.t('traffic.source_stats_title', {
+      default: `<b>📊 Source Statistics: ${source.name}</b>\n\n`,
+      name: source.name,
+    });
+    text += `<b>Orders:</b>\n`;
+    text += `• Total: ${totalOrders}\n`;
+    text += `• Active: ${activeOrders}\n`;
+    text += `• Completed: ${completedOrders}\n\n`;
+    text += `<b>Created:</b> ${source.createdAt.toLocaleDateString()}\n`;
+    text += `<b>Last Updated:</b> ${source.updatedAt.toLocaleDateString()}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton(`traffic:source:view:${sourceId}`),
+    });
   }
 
   // Traffic Target Handlers
 
-  private async handleTrafficTargetsList(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficTargetsList(ctx: AuthenticatedBotContext): Promise<void> {
+    const targets = await this.em.find(
+      TrafficTargetEntity,
+      { managedBy: ctx.user.id },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
 
-        return;
-      }
+    let text = ctx.t('traffic.targets_list_title', { default: '<b>🎯 Traffic Targets</b>\n\n' });
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const targets = await this.em.find(
-        TrafficTargetEntity,
-        { managedBy: user.id },
-        { orderBy: { createdAt: 'DESC' }, limit: 10 },
-      );
-
-      let text = ctx.t('traffic.targets_list_title', { default: '<b>🎯 Traffic Targets</b>\n\n' });
-
-      if (targets.length === 0) {
-        text += ctx.t('traffic.no_targets', {
-          default: '<i>No traffic targets yet. Click "Add New Target" to create one!</i>',
-        });
-      } else {
-        text += ctx.t('traffic.targets_count', {
-          default: `Total: ${targets.length} target(s)\n\n`,
-          count: targets.length,
-        });
-
-        targets.forEach((target) => {
-          const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
-          const typeLabel = this.getTargetTypeLabel(target.type);
-          text += `${statusEmoji} <b>${target.name}</b>\n`;
-          text += `   Type: ${typeLabel}\n`;
-          text += `   Status: ${target.status}\n\n`;
-        });
-      }
-
-      const targetsList = targets.map((t) => ({ id: t.id, name: t.name, status: t.status }));
-      const keyboard = this.menuHandler.createTrafficTargetsKeyboard(targetsList);
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
+    if (targets.length === 0) {
+      text += ctx.t('traffic.no_targets', {
+        default: '<i>No traffic targets yet. Click "Add New Target" to create one!</i>',
       });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+    } else {
+      text += ctx.t('traffic.targets_count', {
+        default: `Total: ${targets.length} target(s)\n\n`,
+        count: targets.length,
+      });
+
+      targets.forEach((target) => {
+        const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
+        const typeLabel = this.getTargetTypeLabel(target.type);
+        text += `${statusEmoji} <b>${target.name}</b>\n`;
+        text += `   Type: ${typeLabel}\n`;
+        text += `   Status: ${target.status}\n\n`;
+      });
     }
+
+    const targetsList = targets.map((t) => ({ id: t.id, name: t.name, status: t.status }));
+    const keyboard = this.menuHandler.createTrafficTargetsKeyboard(targetsList);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   private getTargetTypeLabel(type: TrafficTargetType): string {
@@ -2328,106 +2225,70 @@ A: Да, все подписчики - реальные пользователи
     return typeLabels[type] || type;
   }
 
-  private async handleTrafficTargetAdd(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
-
-        return;
-      }
-
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      // Set session state for target creation
-      if (ctx.session) {
-        ctx.session.conversationState = 'traffic_target_create';
-        ctx.session.formData = { step: 'enter_name' };
-      }
-
-      let text = ctx.t('traffic.add_target_title', { default: '<b>➕ Add Traffic Target</b>\n\n' });
-      text += ctx.t('traffic.add_target_instructions', {
-        default: 'Please enter the name for your new traffic target:\n\n<i>Use /cancel to abort.</i>',
-      });
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('traffic:targets'),
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+  private async handleTrafficTargetAdd(ctx: AuthenticatedBotContext): Promise<void> {
+    // Set session state for target creation
+    if (ctx.session) {
+      ctx.session.conversationState = 'traffic_target_create';
+      ctx.session.formData = { step: 'enter_name' };
     }
+
+    let text = ctx.t('traffic.add_target_title', { default: '<b>➕ Add Traffic Target</b>\n\n' });
+    text += ctx.t('traffic.add_target_instructions', {
+      default: 'Please enter the name for your new traffic target:\n\n<i>Use /cancel to abort.</i>',
+    });
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('traffic:targets'),
+    });
   }
 
-  private async handleTrafficTargetView(ctx: BotContext, targetId: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficTargetView(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
 
-        return;
-      }
+    if (!target) {
+      await ctx.reply(ctx.t('traffic.target_not_found', { default: 'Traffic target not found' }));
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: user.id });
-
-      if (!target) {
-        await ctx.reply(ctx.t('traffic.target_not_found', { default: '❌ Traffic target not found' }));
-
-        return;
-      }
-
-      const ordersCount = await this.em.count(TrafficOrderEntity, { trafficTarget: target.id });
-      const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
-      const typeLabel = this.getTargetTypeLabel(target.type);
-
-      let text = `<b>🎯 Traffic Target Details</b>\n\n`;
-      text += `<b>Name:</b> ${target.name}\n`;
-      text += `<b>Type:</b> ${typeLabel}\n`;
-      text += `<b>Status:</b> ${statusEmoji} ${target.status}\n`;
-
-      if (target.username) {
-        text += `<b>Username:</b> @${target.username}\n`;
-      }
-
-      if (target.inviteLink) {
-        text += `<b>Invite Link:</b> ${target.inviteLink}\n`;
-      }
-
-      if (target.description) {
-        text += `<b>Description:</b> ${target.description}\n`;
-      }
-
-      if (target.pricePerMember) {
-        text += `<b>Price per Member:</b> $${toDisplayString(target.pricePerMember, 2)}\n`;
-      }
-
-      text += `\n<b>Statistics:</b>\n`;
-      text += `• Total Orders: ${ordersCount}\n`;
-      text += `• Created: ${target.createdAt.toLocaleDateString()}\n`;
-
-      const keyboard = this.menuHandler.createTrafficTargetDetailKeyboard(targetId);
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+      return;
     }
+
+    const ordersCount = await this.em.count(TrafficOrderEntity, { trafficTarget: target.id });
+    const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
+    const typeLabel = this.getTargetTypeLabel(target.type);
+
+    let text = ctx.t('traffic.target_details_title', { default: '<b>🎯 Traffic Target Details</b>\n\n' });
+    text += `<b>Name:</b> ${target.name}\n`;
+    text += `<b>Type:</b> ${typeLabel}\n`;
+    text += `<b>Status:</b> ${statusEmoji} ${target.status}\n`;
+
+    if (target.username) {
+      text += `<b>Username:</b> @${target.username}\n`;
+    }
+
+    if (target.inviteLink) {
+      text += `<b>Invite Link:</b> ${target.inviteLink}\n`;
+    }
+
+    if (target.description) {
+      text += `<b>Description:</b> ${target.description}\n`;
+    }
+
+    if (target.pricePerMember) {
+      text += `<b>Price per Member:</b> $${toDisplayString(target.pricePerMember, 2)}\n`;
+    }
+
+    text += `\n<b>Statistics:</b>\n`;
+    text += `• Total Orders: ${ordersCount}\n`;
+    text += `• Created: ${target.createdAt.toLocaleDateString()}\n`;
+
+    const keyboard = this.menuHandler.createTrafficTargetDetailKeyboard(targetId);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   private async handleTrafficTargetEdit(ctx: BotContext, targetId: string): Promise<void> {
@@ -2445,46 +2306,28 @@ A: Да, все подписчики - реальные пользователи
     });
   }
 
-  private async handleTrafficTargetToggle(ctx: BotContext, targetId: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficTargetToggle(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
 
-        return;
-      }
+    if (!target) {
+      await ctx.reply(ctx.t('traffic.target_not_found', { default: 'Traffic target not found' }));
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: user.id });
-
-      if (!target) {
-        await ctx.reply(ctx.t('traffic.target_not_found', { default: '❌ Traffic target not found' }));
-
-        return;
-      }
-
-      // Toggle status
-      target.status =
-        target.status === TrafficTargetStatus.Active ? TrafficTargetStatus.Inactive : TrafficTargetStatus.Active;
-
-      await this.em.flush();
-
-      const newStatusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
-      await ctx.answerCallbackQuery(
-        ctx.t('traffic.target_status_toggled', { default: `Status changed to ${newStatusEmoji} ${target.status}` }),
-      );
-
-      // Refresh the view
-      await this.handleTrafficTargetView(ctx, targetId);
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+      return;
     }
+
+    // Toggle status
+    target.status =
+      target.status === TrafficTargetStatus.Active ? TrafficTargetStatus.Inactive : TrafficTargetStatus.Active;
+
+    await this.em.flush();
+
+    const newStatusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
+    await ctx.answerCallbackQuery(
+      ctx.t('traffic.target_status_toggled', { default: `Status changed to ${newStatusEmoji} ${target.status}` }),
+    );
+
+    // Refresh the view
+    await this.handleTrafficTargetView(ctx, targetId);
   }
 
   private async handleTrafficTargetDelete(ctx: BotContext, targetId: string): Promise<void> {
@@ -2696,108 +2539,75 @@ A: Да, все подписчики - реальные пользователи
     });
   }
 
-  private async handleTrafficTargetStats(ctx: BotContext, targetId: string): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficTargetStats(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
 
-        return;
-      }
+    if (!target) {
+      await ctx.reply(ctx.t('traffic.target_not_found', { default: 'Traffic target not found' }));
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: user.id });
-
-      if (!target) {
-        await ctx.reply(ctx.t('traffic.target_not_found', { default: '❌ Traffic target not found' }));
-
-        return;
-      }
-
-      const [totalOrders, activeOrders, completedOrders] = await Promise.all([
-        this.em.count(TrafficOrderEntity, { trafficTarget: target.id }),
-        this.em.count(TrafficOrderEntity, {
-          trafficTarget: target.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-        }),
-        this.em.count(TrafficOrderEntity, { trafficTarget: target.id, status: TrafficOrderStatus.Completed }),
-      ]);
-
-      let text = `<b>📊 Target Statistics: ${target.name}</b>\n\n`;
-      text += `<b>Orders:</b>\n`;
-      text += `• Total: ${totalOrders}\n`;
-      text += `• Active: ${activeOrders}\n`;
-      text += `• Completed: ${completedOrders}\n\n`;
-      text += `<b>Created:</b> ${target.createdAt.toLocaleDateString()}\n`;
-      text += `<b>Last Updated:</b> ${target.updatedAt.toLocaleDateString()}`;
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton(`traffic:target:view:${targetId}`),
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
+      return;
     }
+
+    const [totalOrders, activeOrders, completedOrders] = await Promise.all([
+      this.em.count(TrafficOrderEntity, { trafficTarget: target.id }),
+      this.em.count(TrafficOrderEntity, {
+        trafficTarget: target.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+      this.em.count(TrafficOrderEntity, { trafficTarget: target.id, status: TrafficOrderStatus.Completed }),
+    ]);
+
+    let text = ctx.t('traffic.target_stats_title', {
+      default: `<b>📊 Target Statistics: ${target.name}</b>\n\n`,
+      name: target.name,
+    });
+    text += `<b>Orders:</b>\n`;
+    text += `• Total: ${totalOrders}\n`;
+    text += `• Active: ${activeOrders}\n`;
+    text += `• Completed: ${completedOrders}\n\n`;
+    text += `<b>Created:</b> ${target.createdAt.toLocaleDateString()}\n`;
+    text += `<b>Last Updated:</b> ${target.updatedAt.toLocaleDateString()}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton(`traffic:target:view:${targetId}`),
+    });
   }
 
-  private async handleTrafficAnalytics(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleTrafficAnalytics(ctx: AuthenticatedBotContext): Promise<void> {
+    const [sourcesCount, targetsCount, totalOrders, activeOrders, completedOrders] = await Promise.all([
+      this.em.count(TrafficSourceEntity, { managedBy: ctx.user.id }),
+      this.em.count(TrafficTargetEntity, { managedBy: ctx.user.id }),
+      this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+      this.em.count(TrafficOrderEntity, { creator: ctx.user.id, status: TrafficOrderStatus.Completed }),
+    ]);
 
-        return;
-      }
+    const orders = await this.em.find(TrafficOrderEntity, { creator: ctx.user.id });
+    const totalSpent = sum(orders.map((o) => decimal(o.spentAmount || '0')));
+    const totalBudget = sum(orders.map((o) => decimal(o.totalBudget || '0')));
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+    let text = ctx.t('traffic.analytics_title', { default: '<b>📈 Traffic Analytics</b>\n\n' });
+    text += `<b>Resources:</b>\n`;
+    text += `• Traffic Sources: ${sourcesCount}\n`;
+    text += `• Traffic Targets: ${targetsCount}\n\n`;
+    text += `<b>Orders:</b>\n`;
+    text += `• Total: ${totalOrders}\n`;
+    text += `• Active: ${activeOrders}\n`;
+    text += `• Completed: ${completedOrders}\n\n`;
+    text += `<b>Financial:</b>\n`;
+    text += `• Total Budget: $${toDisplayString(totalBudget, 2)}\n`;
+    text += `• Total Spent: $${toDisplayString(totalSpent, 2)}`;
 
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const [sourcesCount, targetsCount, totalOrders, activeOrders, completedOrders] = await Promise.all([
-        this.em.count(TrafficSourceEntity, { managedBy: user.id }),
-        this.em.count(TrafficTargetEntity, { managedBy: user.id }),
-        this.em.count(TrafficOrderEntity, { creator: user.id }),
-        this.em.count(TrafficOrderEntity, {
-          creator: user.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-        }),
-        this.em.count(TrafficOrderEntity, { creator: user.id, status: TrafficOrderStatus.Completed }),
-      ]);
-
-      const orders = await this.em.find(TrafficOrderEntity, { creator: user.id });
-      const totalSpent = sum(orders.map((o) => decimal(o.spentAmount || '0')));
-      const totalBudget = sum(orders.map((o) => decimal(o.totalBudget || '0')));
-
-      let text = `<b>📈 Traffic Analytics</b>\n\n`;
-      text += `<b>Resources:</b>\n`;
-      text += `• Traffic Sources: ${sourcesCount}\n`;
-      text += `• Traffic Targets: ${targetsCount}\n\n`;
-      text += `<b>Orders:</b>\n`;
-      text += `• Total: ${totalOrders}\n`;
-      text += `• Active: ${activeOrders}\n`;
-      text += `• Completed: ${completedOrders}\n\n`;
-      text += `<b>Financial:</b>\n`;
-      text += `• Total Budget: $${toDisplayString(totalBudget, 2)}\n`;
-      text += `• Total Spent: $${toDisplayString(totalSpent, 2)}`;
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('menu:traffic'),
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:traffic'),
+    });
   }
 
   // Deposit Handlers
@@ -2956,49 +2766,31 @@ A: Да, все подписчики - реальные пользователи
     });
   }
 
-  private async handleDepositHistory(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleDepositHistory(ctx: AuthenticatedBotContext): Promise<void> {
+    const deposits = await this.em.find(
+      UserBalanceHistoryEntity,
+      { user: ctx.user.id, type: TransactionType.Deposit },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
 
-        return;
-      }
+    let text = ctx.t('balance.deposit_history_title', { default: '<b>📥 Deposit History</b>\n\n' });
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const deposits = await this.em.find(
-        UserBalanceHistoryEntity,
-        { user: user.id, type: TransactionType.Deposit },
-        { orderBy: { createdAt: 'DESC' }, limit: 10 },
-      );
-
-      let text = '<b>📥 Deposit History</b>\n\n';
-
-      if (deposits.length === 0) {
-        text += '<i>No deposits yet.</i>';
-      } else {
-        deposits.forEach((deposit) => {
-          const amount = decimal(deposit.amount);
-          text += `📅 ${deposit.createdAt.toLocaleDateString()}\n`;
-          text += `   Amount: +$${toDisplayString(amount, 2)}\n`;
-          text += `   Status: ✅ Completed\n\n`;
-        });
-      }
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+    if (deposits.length === 0) {
+      text += ctx.t('balance.no_deposits', { default: '<i>No deposits yet.</i>' });
+    } else {
+      deposits.forEach((deposit) => {
+        const amount = decimal(deposit.amount);
+        text += `📅 ${deposit.createdAt.toLocaleDateString()}\n`;
+        text += `   Amount: +$${toDisplayString(amount, 2)}\n`;
+        text += `   Status: ✅ Completed\n\n`;
       });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+    });
   }
 
   private async handleDepositBonuses(ctx: BotContext): Promise<void> {
@@ -3106,50 +2898,32 @@ A: Да, все подписчики - реальные пользователи
     });
   }
 
-  private async handleWithdrawalHistory(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+  private async handleWithdrawalHistory(ctx: AuthenticatedBotContext): Promise<void> {
+    const withdrawals = await this.em.find(
+      UserBalanceHistoryEntity,
+      { user: ctx.user.id, type: TransactionType.Withdrawal },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
 
-        return;
-      }
+    let text = ctx.t('balance.withdrawal_history_title', { default: '<b>📤 Withdrawal History</b>\n\n' });
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
-
-        return;
-      }
-
-      const withdrawals = await this.em.find(
-        UserBalanceHistoryEntity,
-        { user: user.id, type: TransactionType.Withdrawal },
-        { orderBy: { createdAt: 'DESC' }, limit: 10 },
-      );
-
-      let text = '<b>📤 Withdrawal History</b>\n\n';
-
-      if (withdrawals.length === 0) {
-        text += '<i>No withdrawals yet.</i>';
-      } else {
-        withdrawals.forEach((withdrawal) => {
-          const amount = decimal(withdrawal.amount);
-          const statusEmoji = '✅';
-          text += `📅 ${withdrawal.createdAt.toLocaleDateString()}\n`;
-          text += `   Amount: -$${toDisplayString(amount.abs(), 2)}\n`;
-          text += `   Status: ${statusEmoji} Completed\n\n`;
-        });
-      }
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+    if (withdrawals.length === 0) {
+      text += ctx.t('balance.no_withdrawals', { default: '<i>No withdrawals yet.</i>' });
+    } else {
+      withdrawals.forEach((withdrawal) => {
+        const amount = decimal(withdrawal.amount);
+        const statusEmoji = '✅';
+        text += `📅 ${withdrawal.createdAt.toLocaleDateString()}\n`;
+        text += `   Amount: -$${toDisplayString(amount.abs(), 2)}\n`;
+        text += `   Status: ${statusEmoji} Completed\n\n`;
       });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+    });
   }
 
   private async handleWithdrawalMethods(ctx: BotContext): Promise<void> {

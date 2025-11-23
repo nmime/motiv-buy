@@ -6,7 +6,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { BotContext } from '@app/feature-bot-shared';
+import { BotContext, isAuthenticated } from '@app/feature-bot-shared';
 import { InlineKeyboard } from 'grammy';
 import { BotValidationUtil } from '../util/bot-validation.util';
 
@@ -418,8 +418,8 @@ export class MenuActionHandler {
    * Validate menu access for user
    */
   async validateMenuAccess(ctx: BotContext, requiredRole?: string): Promise<boolean> {
-    if (!ctx.from) {
-      await ctx.reply('Authentication required. Please use /start to begin.');
+    if (!isAuthenticated(ctx)) {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Please use /start to begin.' }));
 
       return false;
     }
@@ -429,26 +429,17 @@ export class MenuActionHandler {
       return true;
     }
 
-    // Check user role from context if available
-    // Context augmented with user data by authentication middleware
-    const { user } = ctx as { user?: { role?: string; isAdmin?: boolean } };
-
-    if (!user) {
-      await ctx.reply('Please authenticate first using /start');
-
-      return false;
-    }
-
     // Admin users have access to all menus
-    if (user.isAdmin) {
+    const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin';
+    if (isAdmin) {
       return true;
     }
 
     // Check if user has the required role
-    const hasRequiredRole = user.role === requiredRole;
+    const hasRequiredRole = ctx.user.role === requiredRole;
 
     if (!hasRequiredRole) {
-      await ctx.reply('You do not have permission to access this menu.');
+      await ctx.reply(ctx.t('common.errors.no_permission', { default: 'You do not have permission to access this menu.' }));
     }
 
     return hasRequiredRole;
