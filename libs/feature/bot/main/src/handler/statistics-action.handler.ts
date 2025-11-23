@@ -10,7 +10,7 @@ import { BotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { TrafficOrderEntity, TrafficOrderStatus, UserBalanceHistoryEntity, UserEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, sum, toDisplayString, toNumber } from '@app/common-shared';
+import { decimal, sum, toDisplayString, toNumber, toError } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
 
 interface UserStatistics {
@@ -86,7 +86,7 @@ export class StatisticsActionHandler {
 
       this.logger.log('Statistics overview viewed', { userId: user.id });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -117,7 +117,7 @@ export class StatisticsActionHandler {
 
       this.logger.log('Detailed statistics viewed', { userId: user.id });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -148,7 +148,7 @@ export class StatisticsActionHandler {
 
       this.logger.log('Traffic statistics viewed', { userId: user.id });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -179,7 +179,7 @@ export class StatisticsActionHandler {
 
       this.logger.log('Earnings statistics viewed', { userId: user.id });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 

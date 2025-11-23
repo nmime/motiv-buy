@@ -26,7 +26,7 @@ import {
   TrafficOrderStatus,
   TransactionType,
 } from '@app/database';
-import { decimal, add, subtract, sum, multiply, divide, toDisplayString } from '@app/common-shared';
+import { decimal, add, subtract, sum, multiply, divide, toDisplayString, toError } from '@app/common-shared';
 import { MenuActionHandler } from './menu-action.handler';
 import { ProfileActionHandler } from './profile-action.handler';
 import { BalanceActionHandler } from './balance-action.handler';
@@ -77,8 +77,10 @@ export class CallbackRouterHandler {
     return async (ctx: BotContext) => {
       if (!isAuthenticated(ctx)) {
         await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
         return;
       }
+
       await handler(ctx);
     };
   }
@@ -92,8 +94,10 @@ export class CallbackRouterHandler {
     return async (ctx: BotContext, params: string[]) => {
       if (!isAuthenticated(ctx)) {
         await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+
         return;
       }
+
       await handler(ctx, params);
     };
   }
@@ -383,7 +387,7 @@ export class CallbackRouterHandler {
       });
 
       await ctx.answerCallbackQuery(ctx.t('common.error'));
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1150,7 +1154,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1228,7 +1232,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1348,7 +1352,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         replyMarkup: this.menuHandler.createBackButton('profile:security'),
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1445,7 +1449,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         replyMarkup: this.menuHandler.createBackButton('menu:balance'),
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1500,7 +1504,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1538,7 +1542,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1598,7 +1602,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1644,7 +1648,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1685,7 +1689,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1848,7 +1852,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         return;
       }
 
-      const em = this.em;
+      const { em } = this;
       const user = await em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
 
       if (!user) {
@@ -1906,7 +1910,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         await this.orderHandler.handleOrderDetails(ctx, orderId);
       }
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -1955,7 +1959,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     });
   }
 
-// Support action handlers
+  // Support action handlers
   private async handleSupportContact(ctx: BotContext): Promise<void> {
     const text = `<b>💬 Связаться с поддержкой</b>
 
@@ -2047,9 +2051,15 @@ support@motivbuy.com
       let text = ctx.t('traffic.sources_list_title', { default: '<b>📊 Traffic Sources</b>\n\n' });
 
       if (sources.length === 0) {
-        text += ctx.t('traffic.no_sources', { default: '<i>No traffic sources yet. Click "Add New Source" to create one!</i>' });
+        text += ctx.t('traffic.no_sources', {
+          default: '<i>No traffic sources yet. Click "Add New Source" to create one!</i>',
+        });
       } else {
-        text += ctx.t('traffic.sources_count', { default: `Total: ${sources.length} source(s)\n\n`, count: sources.length });
+        text += ctx.t('traffic.sources_count', {
+          default: `Total: ${sources.length} source(s)\n\n`,
+          count: sources.length,
+        });
+
         sources.forEach((source) => {
           const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
           const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
@@ -2068,7 +2078,7 @@ support@motivbuy.com
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2105,7 +2115,7 @@ support@motivbuy.com
         replyMarkup: this.menuHandler.createBackButton('traffic:sources'),
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2162,7 +2172,7 @@ support@motivbuy.com
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2173,7 +2183,9 @@ support@motivbuy.com
     }
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('traffic.edit_source', { default: '<b>✏️ Edit Traffic Source</b>\n\nEnter the new name for this source:\n\n<i>Use /cancel to abort.</i>' }),
+      text: ctx.t('traffic.edit_source', {
+        default: '<b>✏️ Edit Traffic Source</b>\n\nEnter the new name for this source:\n\n<i>Use /cancel to abort.</i>',
+      }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton(`traffic:source:view:${sourceId}`),
     });
@@ -2204,16 +2216,20 @@ support@motivbuy.com
       }
 
       // Toggle status
-      source.status = source.status === TrafficSourceStatus.Active ? TrafficSourceStatus.Inactive : TrafficSourceStatus.Active;
+      source.status =
+        source.status === TrafficSourceStatus.Active ? TrafficSourceStatus.Inactive : TrafficSourceStatus.Active;
+
       await this.em.flush();
 
       const newStatusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
-      await ctx.answerCallbackQuery(ctx.t('traffic.source_status_toggled', { default: `Status changed to ${newStatusEmoji} ${source.status}` }));
+      await ctx.answerCallbackQuery(
+        ctx.t('traffic.source_status_toggled', { default: `Status changed to ${newStatusEmoji} ${source.status}` }),
+      );
 
       // Refresh the view
       await this.handleTrafficSourceView(ctx, sourceId);
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2221,14 +2237,15 @@ support@motivbuy.com
     const keyboard = this.menuHandler.createConfirmationKeyboard(`traffic:source:delete:confirm`, { id: sourceId });
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('traffic.delete_source_confirm', {
-        default: '<b>⚠️ Delete Traffic Source</b>\n\nAre you sure you want to delete this traffic source?\n\n<b>This action cannot be undone!</b>',
+        default:
+          '<b>⚠️ Delete Traffic Source</b>\n\nAre you sure you want to delete this traffic source?\n\n<b>This action cannot be undone!</b>',
       }),
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
 
-private async handleSupportSuggest(ctx: BotContext): Promise<void> {
+  private async handleSupportSuggest(ctx: BotContext): Promise<void> {
     const text = `<b>💡 Предложить идею</b>
 
 Мы всегда рады вашим идеям и предложениям!
@@ -2322,7 +2339,10 @@ A: Да, все подписчики - реальные пользователи
 
       const [totalOrders, activeOrders, completedOrders] = await Promise.all([
         this.em.count(TrafficOrderEntity, { trafficSource: source.id }),
-        this.em.count(TrafficOrderEntity, { trafficSource: source.id, status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] } }),
+        this.em.count(TrafficOrderEntity, {
+          trafficSource: source.id,
+          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        }),
         this.em.count(TrafficOrderEntity, { trafficSource: source.id, status: TrafficOrderStatus.Completed }),
       ]);
 
@@ -2340,7 +2360,7 @@ A: Да, все подписчики - реальные пользователи
         replyMarkup: this.menuHandler.createBackButton(`traffic:source:view:${sourceId}`),
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2371,9 +2391,15 @@ A: Да, все подписчики - реальные пользователи
       let text = ctx.t('traffic.targets_list_title', { default: '<b>🎯 Traffic Targets</b>\n\n' });
 
       if (targets.length === 0) {
-        text += ctx.t('traffic.no_targets', { default: '<i>No traffic targets yet. Click "Add New Target" to create one!</i>' });
+        text += ctx.t('traffic.no_targets', {
+          default: '<i>No traffic targets yet. Click "Add New Target" to create one!</i>',
+        });
       } else {
-        text += ctx.t('traffic.targets_count', { default: `Total: ${targets.length} target(s)\n\n`, count: targets.length });
+        text += ctx.t('traffic.targets_count', {
+          default: `Total: ${targets.length} target(s)\n\n`,
+          count: targets.length,
+        });
+
         targets.forEach((target) => {
           const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
           const typeLabel = this.getTargetTypeLabel(target.type);
@@ -2392,7 +2418,7 @@ A: Да, все подписчики - реальные пользователи
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2440,7 +2466,7 @@ A: Да, все подписчики - реальные пользователи
         replyMarkup: this.menuHandler.createBackButton('traffic:targets'),
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2505,7 +2531,7 @@ A: Да, все подписчики - реальные пользователи
         replyMarkup: keyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2516,7 +2542,9 @@ A: Да, все подписчики - реальные пользователи
     }
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('traffic.edit_target', { default: '<b>✏️ Edit Traffic Target</b>\n\nEnter the new name for this target:\n\n<i>Use /cancel to abort.</i>' }),
+      text: ctx.t('traffic.edit_target', {
+        default: '<b>✏️ Edit Traffic Target</b>\n\nEnter the new name for this target:\n\n<i>Use /cancel to abort.</i>',
+      }),
       parseMode: 'HTML',
       replyMarkup: this.menuHandler.createBackButton(`traffic:target:view:${targetId}`),
     });
@@ -2547,16 +2575,20 @@ A: Да, все подписчики - реальные пользователи
       }
 
       // Toggle status
-      target.status = target.status === TrafficTargetStatus.Active ? TrafficTargetStatus.Inactive : TrafficTargetStatus.Active;
+      target.status =
+        target.status === TrafficTargetStatus.Active ? TrafficTargetStatus.Inactive : TrafficTargetStatus.Active;
+
       await this.em.flush();
 
       const newStatusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
-      await ctx.answerCallbackQuery(ctx.t('traffic.target_status_toggled', { default: `Status changed to ${newStatusEmoji} ${target.status}` }));
+      await ctx.answerCallbackQuery(
+        ctx.t('traffic.target_status_toggled', { default: `Status changed to ${newStatusEmoji} ${target.status}` }),
+      );
 
       // Refresh the view
       await this.handleTrafficTargetView(ctx, targetId);
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2564,14 +2596,15 @@ A: Да, все подписчики - реальные пользователи
     const keyboard = this.menuHandler.createConfirmationKeyboard(`traffic:target:delete:confirm`, { id: targetId });
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('traffic.delete_target_confirm', {
-        default: '<b>⚠️ Delete Traffic Target</b>\n\nAre you sure you want to delete this traffic target?\n\n<b>This action cannot be undone!</b>',
+        default:
+          '<b>⚠️ Delete Traffic Target</b>\n\nAre you sure you want to delete this traffic target?\n\n<b>This action cannot be undone!</b>',
       }),
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
 
-private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
+  private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
     const text = `<b>📖 Как создать заказ</b>
 
 <b>Шаг 1: Начало</b>
@@ -2794,7 +2827,10 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
 
       const [totalOrders, activeOrders, completedOrders] = await Promise.all([
         this.em.count(TrafficOrderEntity, { trafficTarget: target.id }),
-        this.em.count(TrafficOrderEntity, { trafficTarget: target.id, status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] } }),
+        this.em.count(TrafficOrderEntity, {
+          trafficTarget: target.id,
+          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        }),
         this.em.count(TrafficOrderEntity, { trafficTarget: target.id, status: TrafficOrderStatus.Completed }),
       ]);
 
@@ -2812,7 +2848,7 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
         replyMarkup: this.menuHandler.createBackButton(`traffic:target:view:${targetId}`),
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2836,7 +2872,10 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
         this.em.count(TrafficSourceEntity, { managedBy: user.id }),
         this.em.count(TrafficTargetEntity, { managedBy: user.id }),
         this.em.count(TrafficOrderEntity, { creator: user.id }),
-        this.em.count(TrafficOrderEntity, { creator: user.id, status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] } }),
+        this.em.count(TrafficOrderEntity, {
+          creator: user.id,
+          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        }),
         this.em.count(TrafficOrderEntity, { creator: user.id, status: TrafficOrderStatus.Completed }),
       ]);
 
@@ -2862,7 +2901,7 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
         replyMarkup: this.menuHandler.createBackButton('menu:traffic'),
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -2888,7 +2927,10 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
       .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('balance.deposit_card_title', { default: '<b>💳 Card Deposit</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $10.00 | Maximum: $10,000.00</i>' }),
+      text: ctx.t('balance.deposit_card_title', {
+        default:
+          '<b>💳 Card Deposit</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $10.00 | Maximum: $10,000.00</i>',
+      }),
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
@@ -2912,7 +2954,10 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
       .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('balance.deposit_crypto_title', { default: '<b>🪙 Crypto Deposit</b>\n\nSelect the cryptocurrency you want to use:\n\n<i>Deposits are processed automatically after network confirmation.</i>' }),
+      text: ctx.t('balance.deposit_crypto_title', {
+        default:
+          '<b>🪙 Crypto Deposit</b>\n\nSelect the cryptocurrency you want to use:\n\n<i>Deposits are processed automatically after network confirmation.</i>',
+      }),
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
@@ -2934,7 +2979,10 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
       .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('balance.deposit_bank_title', { default: '<b>🏦 Bank Transfer</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $100.00 | Processing time: 1-3 business days</i>' }),
+      text: ctx.t('balance.deposit_bank_title', {
+        default:
+          '<b>🏦 Bank Transfer</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $100.00 | Processing time: 1-3 business days</i>',
+      }),
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
@@ -2947,7 +2995,10 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
       }
 
       await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('balance.enter_deposit_amount', { default: '<b>💰 Enter Deposit Amount</b>\n\nPlease enter the amount you want to deposit:\n\n<i>Example: 100.00</i>' }),
+        text: ctx.t('balance.enter_deposit_amount', {
+          default:
+            '<b>💰 Enter Deposit Amount</b>\n\nPlease enter the amount you want to deposit:\n\n<i>Example: 100.00</i>',
+        }),
         parseMode: 'HTML',
         replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
       });
@@ -2962,7 +3013,7 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('balance.deposit_confirm_prompt', {
         default: `<b>💰 Confirm Deposit</b>\n\n<b>Amount:</b> $${amount}.00\n<b>Method:</b> ${methodLabel}\n<b>Fee:</b> $0.00\n<b>Total:</b> $${amount}.00\n\nAre you sure you want to proceed?`,
-        amount: amount,
+        amount,
         method: methodLabel,
       }),
       parseMode: 'HTML',
@@ -2982,16 +3033,25 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
 
     let text = ctx.t('balance.deposit_initiated', {
       default: `<b>✅ Deposit Initiated</b>\n\n<b>Amount:</b> $${amount}\n<b>Method:</b> ${method}\n\n`,
-      amount: amount,
-      method: method,
+      amount,
+      method,
     });
 
     if (method === 'card') {
-      text += ctx.t('balance.deposit_card_instructions', { default: '📝 <b>Next Steps:</b>\n1. You will receive a payment link shortly\n2. Complete the payment on the secure payment page\n3. Funds will be credited instantly after confirmation' });
+      text += ctx.t('balance.deposit_card_instructions', {
+        default:
+          '📝 <b>Next Steps:</b>\n1. You will receive a payment link shortly\n2. Complete the payment on the secure payment page\n3. Funds will be credited instantly after confirmation',
+      });
     } else if (method === 'crypto') {
-      text += ctx.t('balance.deposit_crypto_instructions', { default: '📝 <b>Next Steps:</b>\n1. Send the exact amount to the wallet address below\n2. Wait for network confirmation\n3. Funds will be credited automatically\n\n<code>wallet_address_placeholder</code>' });
+      text += ctx.t('balance.deposit_crypto_instructions', {
+        default:
+          '📝 <b>Next Steps:</b>\n1. Send the exact amount to the wallet address below\n2. Wait for network confirmation\n3. Funds will be credited automatically\n\n<code>wallet_address_placeholder</code>',
+      });
     } else {
-      text += ctx.t('balance.deposit_bank_instructions', { default: '📝 <b>Next Steps:</b>\n1. Transfer funds to the bank account details below\n2. Include your user ID in the reference\n3. Funds will be credited within 1-3 business days\n\n<b>Bank:</b> Example Bank\n<b>Account:</b> XXXX-XXXX-XXXX\n<b>Reference:</b> Your User ID' });
+      text += ctx.t('balance.deposit_bank_instructions', {
+        default:
+          '📝 <b>Next Steps:</b>\n1. Transfer funds to the bank account details below\n2. Include your user ID in the reference\n3. Funds will be credited within 1-3 business days\n\n<b>Bank:</b> Example Bank\n<b>Account:</b> XXXX-XXXX-XXXX\n<b>Reference:</b> Your User ID',
+      });
     }
 
     await this.messageService.sendOrEditMessage(ctx, {
@@ -3042,7 +3102,7 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
         replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -3086,7 +3146,10 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
       .text(ctx.t('common.back', { default: '« Back' }), 'menu:balance');
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('balance.withdrawal_amount_prompt', { default: '<b>💸 Withdrawal Amount</b>\n\nSelect or enter the amount you want to withdraw:\n\n<i>Minimum: $10.00 | Fee: 2%</i>' }),
+      text: ctx.t('balance.withdrawal_amount_prompt', {
+        default:
+          '<b>💸 Withdrawal Amount</b>\n\nSelect or enter the amount you want to withdraw:\n\n<i>Minimum: $10.00 | Fee: 2%</i>',
+      }),
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
@@ -3099,7 +3162,10 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
       }
 
       await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('balance.enter_withdrawal_amount', { default: '<b>💸 Enter Withdrawal Amount</b>\n\nPlease enter the amount you want to withdraw:\n\n<i>Example: 100.00</i>' }),
+        text: ctx.t('balance.enter_withdrawal_amount', {
+          default:
+            '<b>💸 Enter Withdrawal Amount</b>\n\nPlease enter the amount you want to withdraw:\n\n<i>Example: 100.00</i>',
+        }),
         parseMode: 'HTML',
         replyMarkup: this.menuHandler.createBackButton('balance:withdraw'),
       });
@@ -3135,7 +3201,7 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
 
     const text = ctx.t('balance.withdrawal_initiated', {
       default: `<b>✅ Withdrawal Initiated</b>\n\n<b>Amount:</b> $${amount}\n<b>Status:</b> Processing\n\n📝 <b>What happens next:</b>\n1. Your withdrawal is being reviewed\n2. Funds will be sent within 24 hours\n3. You'll receive a confirmation notification\n\n<i>You can track your withdrawal status in the withdrawal history.</i>`,
-      amount: amount,
+      amount,
     });
 
     await this.messageService.sendOrEditMessage(ctx, {
@@ -3187,7 +3253,7 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
         replyMarkup: this.menuHandler.createBackButton('menu:balance'),
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -3201,7 +3267,10 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
       .text(ctx.t('common.back', { default: '« Back' }), 'menu:balance');
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('balance.withdrawal_methods', { default: '<b>💸 Withdrawal Methods</b>\n\n<b>Available Methods:</b>\n\n💳 <b>Card:</b> 1-3 business days\n🪙 <b>Crypto:</b> 1-24 hours\n🏦 <b>Bank:</b> 3-5 business days\n\n<i>Select your preferred withdrawal method:</i>' }),
+      text: ctx.t('balance.withdrawal_methods', {
+        default:
+          '<b>💸 Withdrawal Methods</b>\n\n<b>Available Methods:</b>\n\n💳 <b>Card:</b> 1-3 business days\n🪙 <b>Crypto:</b> 1-24 hours\n🏦 <b>Bank:</b> 3-5 business days\n\n<i>Select your preferred withdrawal method:</i>',
+      }),
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });

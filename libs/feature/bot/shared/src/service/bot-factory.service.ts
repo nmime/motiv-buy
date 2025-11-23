@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Bot } from 'grammy';
 import { BotInstanceInfo, BotInstanceOptions, BotSessionContext, BotValidationResult } from './bot-factory.types';
+import { toError } from '@app/common-shared';
 
 /**
  * Bot Factory Service
@@ -197,7 +198,7 @@ export class BotFactoryService {
 
     // Add basic error handling
     bot.catch((err) => {
-      const error = err.error as Error;
+      const error = toError(err.error);
       this.logger.error('Bot error occurred:', {
         error: error.message,
         stack: error.stack,

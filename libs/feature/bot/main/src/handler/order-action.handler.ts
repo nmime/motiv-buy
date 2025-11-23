@@ -11,7 +11,7 @@ import { EntityManager } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
 import { TrafficOrderEntity, TrafficOrderStatus, UserEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, toDisplayString } from '@app/common-shared';
+import { decimal, toDisplayString, toError } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
 
 @Injectable()
@@ -85,7 +85,7 @@ export class OrderActionHandler {
 
       this.logger.log('Active orders viewed', { userId: user.id, page });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -146,7 +146,7 @@ export class OrderActionHandler {
 
       this.logger.log('Completed orders viewed', { userId: user.id, page });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -182,7 +182,7 @@ export class OrderActionHandler {
         reply_markup: typeKeyboard,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -218,7 +218,7 @@ export class OrderActionHandler {
 
       this.logger.log('Order details viewed', { orderId });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -246,7 +246,7 @@ export class OrderActionHandler {
         { parse_mode: 'HTML' },
       );
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 

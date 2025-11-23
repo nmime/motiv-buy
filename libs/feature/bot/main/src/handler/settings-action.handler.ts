@@ -13,6 +13,7 @@ import { SettingType, UserEntity, UserSettingsEntity } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { BotValidationUtil } from '../util/bot-validation.util';
 import { MessageService } from '../service/message.service';
+import { toError } from '@app/common-shared';
 
 interface UserPreferences {
   language: string;
@@ -72,7 +73,7 @@ export class SettingsActionHandler {
 
       this.logger.log('Settings viewed', { userId: user.id });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -102,7 +103,7 @@ export class SettingsActionHandler {
 
       await ctx.replyWithHTML(languageText, { reply_markup: languageKeyboard });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -149,7 +150,7 @@ export class SettingsActionHandler {
         language: validation.sanitized,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -178,7 +179,7 @@ export class SettingsActionHandler {
 
       await ctx.replyWithHTML(notificationText, { reply_markup: keyboard });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -213,7 +214,7 @@ export class SettingsActionHandler {
         type: notificationType,
       });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -241,7 +242,7 @@ export class SettingsActionHandler {
 
       await ctx.replyWithHTML(preferencesText, { reply_markup: keyboard });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
@@ -270,7 +271,7 @@ export class SettingsActionHandler {
 
       await ctx.replyWithHTML(privacyText, { reply_markup: keyboard });
     } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
+      await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
 
