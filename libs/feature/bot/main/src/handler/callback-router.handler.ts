@@ -174,7 +174,7 @@ export class CallbackRouterHandler {
     ]);
 
     this.orderActionHandlers = new Map([
-      ['list', this.handleOrdersMenu.bind(this)],
+      ['list', async (ctx) => this.handleOrdersMenu(ctx as AuthenticatedBotContext)],
       [
         'active',
         async (ctx, params) => {
@@ -195,7 +195,7 @@ export class CallbackRouterHandler {
           if (params.length > 0 && params[0] === 'start') {
             await this.orderHandler.handleCreateOrderStart(ctx);
           } else if (params.length > 0 && params[0] === 'back') {
-            await this.handleOrdersMenu(ctx);
+            await this.handleOrdersMenu(ctx as AuthenticatedBotContext);
           } else {
             await this.orderHandler.handleCreateOrderStart(ctx);
           }
@@ -424,7 +424,7 @@ export class CallbackRouterHandler {
     if (handler) {
       await handler(ctx, params);
     } else {
-      await this.handleOrdersMenu(ctx);
+      await this.handleOrdersMenu(ctx as AuthenticatedBotContext);
     }
   }
 
@@ -491,14 +491,14 @@ export class CallbackRouterHandler {
    * Route referral actions
    */
   private async routeReferralAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleReferralsMenu(ctx);
+    await this.handleReferralsMenu(ctx as AuthenticatedBotContext);
   }
 
   /**
    * Route payment actions
    */
   private async routePaymentAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handlePaymentsMenu(ctx);
+    await this.handlePaymentsMenu(ctx as AuthenticatedBotContext);
   }
 
   /**
@@ -753,30 +753,18 @@ ${ctx.t('main_menu.sell_desc', { default: 'Monetize your bot or channel audience
   /**
    * Handle Buy Traffic menu - for users who want to purchase subscribers
    */
-  private async handleBuyTrafficMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required', { default: 'Please authenticate first' }));
-        return;
-      }
-
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found', { default: 'User not found' }));
-        return;
-      }
-
-      const balance = await this.em.findOne(UserBalanceEntity, { user: user.id });
-      const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
-
-      // Get active orders count
-      const activeOrdersCount = await this.em.count(TrafficOrderEntity, {
-        creator: user.id,
+  private async handleBuyTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const [balance, activeOrdersCount] = await Promise.all([
+      this.em.findOne(UserBalanceEntity, { user: ctx.user.id }),
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
         status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-      });
+      }),
+    ]);
 
-      const text = ctx.t('buy_traffic.menu_title', {
-        default: `<b>🛒 ${ctx.t('buy_traffic.title', { default: 'Buy Traffic' })}</b>
+    const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
+
+    const text = `<b>🛒 ${ctx.t('buy_traffic.title', { default: 'Buy Traffic' })}</b>
 
 ${ctx.t('buy_traffic.description', { default: 'Get real subscribers for your Telegram channels and groups.' })}
 
@@ -790,60 +778,40 @@ ${ctx.t('buy_traffic.description', { default: 'Get real subscribers for your Tel
 4. ${ctx.t('buy_traffic.step4', { default: 'Confirm and pay' })}
 5. ${ctx.t('buy_traffic.step5', { default: 'Watch your subscribers grow!' })}
 
-<i>${ctx.t('buy_traffic.select_action', { default: 'Select an action' })} 👇</i>`,
-      });
+<i>${ctx.t('buy_traffic.select_action', { default: 'Select an action' })} 👇</i>`;
 
-      const keyboard = new InlineKeyboard()
-        .text(ctx.t('buy_traffic.btn_new_order', { default: '➕ New Order' }), 'order:create:start')
-        .text(ctx.t('buy_traffic.btn_my_orders', { default: '📋 My Orders' }), 'orders:list')
-        .row()
-        .text(ctx.t('buy_traffic.btn_active', { default: '🔄 Active Orders' }), 'orders:active')
-        .text(ctx.t('buy_traffic.btn_completed', { default: '✅ Completed' }), 'orders:completed')
-        .row()
-        .text(ctx.t('buy_traffic.btn_deposit', { default: '💳 Top Up Balance' }), 'balance:deposit')
-        .row()
-        .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('buy_traffic.btn_new_order', { default: '➕ New Order' }), 'order:create:start')
+      .text(ctx.t('buy_traffic.btn_my_orders', { default: '📋 My Orders' }), 'orders:list')
+      .row()
+      .text(ctx.t('buy_traffic.btn_active', { default: '🔄 Active Orders' }), 'orders:active')
+      .text(ctx.t('buy_traffic.btn_completed', { default: '✅ Completed' }), 'orders:completed')
+      .row()
+      .text(ctx.t('buy_traffic.btn_deposit', { default: '💳 Top Up Balance' }), 'balance:deposit')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
 
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   /**
    * Handle Sell Traffic menu - for users who want to monetize their bot/channel
    */
-  private async handleSellTrafficMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply(ctx.t('auth.authentication_required', { default: 'Please authenticate first' }));
-        return;
-      }
+  private async handleSellTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const [sourcesCount, activeSourcesCount, balance] = await Promise.all([
+      this.em.count(TrafficSourceEntity, { managedBy: ctx.user.id }),
+      this.em.count(TrafficSourceEntity, { managedBy: ctx.user.id, status: TrafficSourceStatus.Active }),
+      this.em.findOne(UserBalanceEntity, { user: ctx.user.id }),
+    ]);
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-      if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found', { default: 'User not found' }));
-        return;
-      }
+    const pendingEarnings = balance ? toDisplayString(balance.lockedBalance, 2) : '0.00';
+    const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
 
-      // Get user's traffic sources count
-      const sourcesCount = await this.em.count(TrafficSourceEntity, { managedBy: user.id });
-      const activeSourcesCount = await this.em.count(TrafficSourceEntity, {
-        managedBy: user.id,
-        status: TrafficSourceStatus.Active,
-      });
-
-      // Get earnings data
-      const balance = await this.em.findOne(UserBalanceEntity, { user: user.id });
-      const pendingEarnings = balance ? toDisplayString(balance.lockedBalance, 2) : '0.00';
-      const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
-
-      const text = ctx.t('sell_traffic.menu_title', {
-        default: `<b>💰 ${ctx.t('sell_traffic.title', { default: 'Sell Traffic' })}</b>
+    const text = `<b>💰 ${ctx.t('sell_traffic.title', { default: 'Sell Traffic' })}</b>
 
 ${ctx.t('sell_traffic.description', { default: 'Monetize your Telegram bot or channel by selling traffic to advertisers.' })}
 
@@ -859,194 +827,142 @@ ${ctx.t('sell_traffic.description', { default: 'Monetize your Telegram bot or ch
 3. ${ctx.t('sell_traffic.step3', { default: 'Your bot shows ads to users' })}
 4. ${ctx.t('sell_traffic.step4', { default: 'Get paid for each subscriber!' })}
 
-<i>${ctx.t('sell_traffic.select_action', { default: 'Select an action' })} 👇</i>`,
-      });
+<i>${ctx.t('sell_traffic.select_action', { default: 'Select an action' })} 👇</i>`;
 
-      const keyboard = new InlineKeyboard()
-        .text(ctx.t('sell_traffic.btn_my_sources', { default: '📊 My Sources' }), 'traffic:sources')
-        .text(ctx.t('sell_traffic.btn_add_source', { default: '➕ Add Source' }), 'traffic:sources:add')
-        .row()
-        .text(ctx.t('sell_traffic.btn_analytics', { default: '📈 Analytics' }), 'traffic:analytics')
-        .text(ctx.t('sell_traffic.btn_earnings', { default: '💵 Earnings' }), 'balance:view')
-        .row()
-        .text(ctx.t('sell_traffic.btn_withdraw', { default: '💸 Withdraw' }), 'balance:withdraw')
-        .row()
-        .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('sell_traffic.btn_my_sources', { default: '📊 My Sources' }), 'traffic:sources')
+      .text(ctx.t('sell_traffic.btn_add_source', { default: '➕ Add Source' }), 'traffic:sources:add')
+      .row()
+      .text(ctx.t('sell_traffic.btn_analytics', { default: '📈 Analytics' }), 'traffic:analytics')
+      .text(ctx.t('sell_traffic.btn_earnings', { default: '💵 Earnings' }), 'balance:view')
+      .row()
+      .text(ctx.t('sell_traffic.btn_withdraw', { default: '💸 Withdraw' }), 'balance:withdraw')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
 
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handleOrdersMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply('Требуется авторизация. Используйте /start');
-        return;
-      }
+  private async handleOrdersMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const [activeCount, completedCount, totalCount] = await Promise.all([
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      }),
+      this.em.count(TrafficOrderEntity, {
+        creator: ctx.user.id,
+        status: TrafficOrderStatus.Completed,
+      }),
+      this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
+    ]);
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-      if (!user) {
-        await ctx.reply('Пользователь не найден');
-        return;
-      }
+    const text = `<b>📦 ${ctx.t('orders.title', { default: 'My Orders' })}</b>
 
-      // Get order counts
-      const [activeCount, completedCount, totalCount] = await Promise.all([
-        this.em.count(TrafficOrderEntity, {
-          creator: user.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-        }),
-        this.em.count(TrafficOrderEntity, {
-          creator: user.id,
-          status: TrafficOrderStatus.Completed,
-        }),
-        this.em.count(TrafficOrderEntity, { creator: user.id }),
-      ]);
+<b>📊 ${ctx.t('orders.stats_title', { default: 'Order Statistics' })}:</b>
+• ${ctx.t('orders.active_count', { default: 'Active' })}: ${activeCount}
+• ${ctx.t('orders.completed_count', { default: 'Completed' })}: ${completedCount}
+• ${ctx.t('orders.total_count', { default: 'Total' })}: ${totalCount}
 
-      const text = `<b>📦 Мои заказы</b>
+<i>${ctx.t('common.select_action', { default: 'Select an action below' })}:</i>`;
 
-<b>📊 Статистика заказов:</b>
-• Активных: ${activeCount}
-• Завершенных: ${completedCount}
-• Всего: ${totalCount}
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('orders.btn_new', { default: '🆕 New Order' }), 'order:create:start')
+      .row()
+      .text(ctx.t('orders.btn_active', { default: '📋 Active Orders' }), 'orders:active')
+      .text(ctx.t('orders.btn_completed', { default: '✅ Completed' }), 'orders:completed')
+      .row()
+      .text(ctx.t('orders.btn_search', { default: '🔍 Search Orders' }), 'orders:search')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
 
-<i>Выберите действие ниже:</i>`;
-
-      const keyboard = new InlineKeyboard()
-        .text('🆕 Новый заказ', 'order:create:start')
-        .row()
-        .text('📋 Активные заказы', 'orders:active')
-        .text('✅ Завершенные', 'orders:completed')
-        .row()
-        .text('🔍 Поиск заказов', 'orders:search')
-        .row()
-        .text('« Назад в меню', 'menu:main');
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handleReferralsMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply('Требуется авторизация. Используйте /start');
-        return;
-      }
+  private async handleReferralsMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const botUsername = 'motivbuy_bot'; // TODO: Get from config
+    const referralCode = ctx.user.id.substring(0, 8);
+    const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-      if (!user) {
-        await ctx.reply('Пользователь не найден');
-        return;
-      }
+    const text = `<b>🎁 ${ctx.t('referrals.title', { default: 'Referral Program' })}</b>
 
-      // Generate referral link
-      const botUsername = 'motivbuy_bot'; // TODO: Get from config
-      const referralCode = user.id.substring(0, 8);
-      const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
+${ctx.t('referrals.description', { default: 'Invite friends and earn bonuses!' })}
 
-      const text = `<b>🎁 Реферальная программа</b>
+<b>💰 ${ctx.t('referrals.rewards_title', { default: 'Your Rewards' })}:</b>
+• ${ctx.t('referrals.reward_percent', { default: '10% from every purchase' })}
+• ${ctx.t('referrals.reward_lifetime', { default: 'Lifetime earnings' })}
+• ${ctx.t('referrals.reward_unlimited', { default: 'Unlimited referrals' })}
 
-Приглашайте друзей и получайте бонусы!
-
-<b>💰 Ваши вознаграждения:</b>
-• 10% от каждой покупки реферала
-• Бессрочное начисление
-• Без ограничений по количеству
-
-<b>🔗 Ваша реферальная ссылка:</b>
+<b>🔗 ${ctx.t('referrals.link_title', { default: 'Your Referral Link' })}:</b>
 <code>${referralLink}</code>
 
-<b>📊 Статистика:</b>
-• Приглашено: 0 пользователей
-• Заработано: $0.00
+<b>📊 ${ctx.t('referrals.stats_title', { default: 'Statistics' })}:</b>
+• ${ctx.t('referrals.invited', { default: 'Invited' })}: 0
+• ${ctx.t('referrals.earned', { default: 'Earned' })}: $0.00
 
-<i>Поделитесь ссылкой с друзьями!</i>`;
+<i>${ctx.t('referrals.share_hint', { default: 'Share your link with friends!' })}</i>`;
 
-      const keyboard = new InlineKeyboard()
-        .text('📋 Скопировать ссылку', 'referral:copy')
-        .row()
-        .text('📊 Мои рефералы', 'referral:list')
-        .text('💰 Статистика', 'referral:stats')
-        .row()
-        .text('📤 Поделиться', 'referral:share')
-        .row()
-        .text('« Назад в меню', 'menu:main');
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('referrals.btn_copy', { default: '📋 Copy Link' }), 'referral:copy')
+      .row()
+      .text(ctx.t('referrals.btn_list', { default: '📊 My Referrals' }), 'referral:list')
+      .text(ctx.t('referrals.btn_stats', { default: '💰 Statistics' }), 'referral:stats')
+      .row()
+      .text(ctx.t('referrals.btn_share', { default: '📤 Share' }), 'referral:share')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
 
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
-  private async handlePaymentsMenu(ctx: BotContext): Promise<void> {
-    try {
-      if (!ctx.from) {
-        await ctx.reply('Требуется авторизация. Используйте /start');
-        return;
-      }
+  private async handlePaymentsMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const transactionCount = await this.em.count(UserBalanceHistoryEntity, { user: ctx.user.id });
 
-      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
-      if (!user) {
-        await ctx.reply('Пользователь не найден');
-        return;
-      }
+    const text = `<b>💳 ${ctx.t('payments.title', { default: 'Payments' })}</b>
 
-      // Get recent transactions count
-      const transactionCount = await this.em.count(UserBalanceHistoryEntity, { user: user.id });
+${ctx.t('payments.description', { default: 'Manage your finances in one place.' })}
 
-      const text = `<b>💳 Платежи</b>
+<b>📊 ${ctx.t('payments.stats_title', { default: 'Statistics' })}:</b>
+• ${ctx.t('payments.total_transactions', { default: 'Total transactions' })}: ${transactionCount}
 
-Управляйте своими финансами в одном месте.
+<b>💰 ${ctx.t('payments.deposit_methods', { default: 'Payment Methods' })}:</b>
+• ${ctx.t('payments.method_cards', { default: 'Bank cards (Visa, MC, MIR)' })}
+• ${ctx.t('payments.method_crypto', { default: 'Cryptocurrencies (BTC, ETH, USDT)' })}
+• ${ctx.t('payments.method_wallets', { default: 'E-wallets' })}
 
-<b>📊 Статистика:</b>
-• Всего операций: ${transactionCount}
+<b>💸 ${ctx.t('payments.withdraw_methods', { default: 'Withdrawal Methods' })}:</b>
+• ${ctx.t('payments.withdraw_crypto', { default: 'Cryptocurrencies' })}
+• ${ctx.t('payments.withdraw_wallets', { default: 'E-wallets' })}
+• ${ctx.t('payments.withdraw_min', { default: 'Minimum: $10' })}
 
-<b>💰 Способы оплаты:</b>
-• Банковские карты (Visa, MC, МИР)
-• Криптовалюты (BTC, ETH, USDT)
-• Электронные кошельки
+<i>${ctx.t('common.select_action', { default: 'Select an action below' })}:</i>`;
 
-<b>💸 Способы вывода:</b>
-• Криптовалюты
-• Электронные кошельки
-• Минимум: $10
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('payments.btn_deposit', { default: '💰 Top Up Balance' }), 'balance:deposit')
+      .text(ctx.t('payments.btn_withdraw', { default: '💸 Withdraw' }), 'balance:withdraw')
+      .row()
+      .text(ctx.t('payments.btn_history', { default: '📜 Payment History' }), 'payment:history')
+      .row()
+      .text(ctx.t('payments.btn_methods', { default: '💳 Payment Methods' }), 'payment:methods')
+      .row()
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
 
-<i>Выберите действие ниже:</i>`;
-
-      const keyboard = new InlineKeyboard()
-        .text('💰 Пополнить баланс', 'balance:deposit')
-        .text('💸 Вывести', 'balance:withdraw')
-        .row()
-        .text('📜 История платежей', 'payment:history')
-        .row()
-        .text('💳 Способы оплаты', 'payment:methods')
-        .row()
-        .text('« Назад в меню', 'menu:main');
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        parseMode: 'HTML',
-        replyMarkup: keyboard,
-      });
-    } catch (error) {
-      await this.menuHandler.handleMenuError(ctx, error as Error);
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   private async handleSupportMenu(ctx: BotContext): Promise<void> {
