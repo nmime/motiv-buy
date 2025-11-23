@@ -24,6 +24,7 @@ import {
   TrafficTargetType,
   TrafficOrderEntity,
   TrafficOrderStatus,
+  TransactionType,
 } from '@app/database';
 import { decimal, add, subtract, sum, multiply, divide, toDisplayString } from '@app/common-shared';
 import { MenuActionHandler } from './menu-action.handler';
@@ -501,15 +502,51 @@ export class CallbackRouterHandler {
   /**
    * Route deposit actions
    */
-  private async routeDepositAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleDepositMenu(ctx);
+  private async routeDepositAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+    const depositActionHandlers: Record<string, (ctx: BotContext, params: string[]) => Promise<void>> = {
+      card: async (ctx) => this.handleDepositCard(ctx),
+      crypto: async (ctx) => this.handleDepositCrypto(ctx),
+      bank: async (ctx) => this.handleDepositBank(ctx),
+      amount: async (ctx, params) => this.handleDepositAmount(ctx, params[0]),
+      confirm: async (ctx, params) => this.handleDepositConfirm(ctx, params),
+      cancel: async (ctx) => this.handleDepositMenu(ctx),
+      history: async (ctx) => this.handleDepositHistory(ctx),
+      methods: async (ctx) => this.handleDepositMenu(ctx),
+      bonuses: async (ctx) => this.handleDepositBonuses(ctx),
+      create: async (ctx) => this.handleDepositMenu(ctx),
+    };
+
+    const handler = depositActionHandlers[action];
+
+    if (handler) {
+      await handler(ctx, params);
+    } else {
+      await this.handleDepositMenu(ctx);
+    }
   }
 
   /**
    * Route withdrawal actions
    */
-  private async routeWithdrawalAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleWithdrawalMenu(ctx);
+  private async routeWithdrawalAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+    const withdrawalActionHandlers: Record<string, (ctx: BotContext, params: string[]) => Promise<void>> = {
+      currency: async (ctx, params) => this.handleWithdrawalCurrency(ctx, params[0]),
+      amount: async (ctx, params) => this.handleWithdrawalAmount(ctx, params[0]),
+      confirm: async (ctx, params) => this.handleWithdrawalConfirm(ctx, params),
+      cancel: async (ctx) => this.handleWithdrawalMenu(ctx),
+      history: async (ctx) => this.handleWithdrawalHistory(ctx),
+      methods: async (ctx) => this.handleWithdrawalMethods(ctx),
+      limits: async (ctx) => this.handleWithdrawalLimits(ctx),
+      create: async (ctx) => this.handleWithdrawalMenu(ctx),
+    };
+
+    const handler = withdrawalActionHandlers[action];
+
+    if (handler) {
+      await handler(ctx, params);
+    } else {
+      await this.handleWithdrawalMenu(ctx);
+    }
   }
 
   /**
@@ -2731,5 +2768,369 @@ private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
     } catch (error) {
       await this.menuHandler.handleMenuError(ctx, error as Error);
     }
+  }
+
+  // Deposit Handlers
+
+  private async handleDepositCard(ctx: BotContext): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'deposit_card';
+      ctx.session.formData = { method: 'card', step: 'enter_amount' };
+    }
+
+    const keyboard = new InlineKeyboard()
+      .text('$10', 'deposit:amount:10')
+      .text('$25', 'deposit:amount:25')
+      .text('$50', 'deposit:amount:50')
+      .row()
+      .text('$100', 'deposit:amount:100')
+      .text('$250', 'deposit:amount:250')
+      .text('$500', 'deposit:amount:500')
+      .row()
+      .text(ctx.t('common.custom_amount', { default: '💲 Custom Amount' }), 'deposit:amount:custom')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.deposit_card_title', { default: '<b>💳 Card Deposit</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $10.00 | Maximum: $10,000.00</i>' }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleDepositCrypto(ctx: BotContext): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'deposit_crypto';
+      ctx.session.formData = { method: 'crypto', step: 'select_currency' };
+    }
+
+    const keyboard = new InlineKeyboard()
+      .text('₿ BTC', 'deposit:crypto:btc')
+      .text('Ξ ETH', 'deposit:crypto:eth')
+      .row()
+      .text('₮ USDT (TRC20)', 'deposit:crypto:usdt_trc20')
+      .text('₮ USDT (ERC20)', 'deposit:crypto:usdt_erc20')
+      .row()
+      .text('◎ TON', 'deposit:crypto:ton')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.deposit_crypto_title', { default: '<b>🪙 Crypto Deposit</b>\n\nSelect the cryptocurrency you want to use:\n\n<i>Deposits are processed automatically after network confirmation.</i>' }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleDepositBank(ctx: BotContext): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'deposit_bank';
+      ctx.session.formData = { method: 'bank', step: 'enter_amount' };
+    }
+
+    const keyboard = new InlineKeyboard()
+      .text('$100', 'deposit:amount:100')
+      .text('$500', 'deposit:amount:500')
+      .text('$1000', 'deposit:amount:1000')
+      .row()
+      .text(ctx.t('common.custom_amount', { default: '💲 Custom Amount' }), 'deposit:amount:custom')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.deposit_bank_title', { default: '<b>🏦 Bank Transfer</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $100.00 | Processing time: 1-3 business days</i>' }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleDepositAmount(ctx: BotContext, amount: string): Promise<void> {
+    if (amount === 'custom') {
+      if (ctx.session) {
+        ctx.session.conversationState = 'deposit_custom_amount';
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('balance.enter_deposit_amount', { default: '<b>💰 Enter Deposit Amount</b>\n\nPlease enter the amount you want to deposit:\n\n<i>Example: 100.00</i>' }),
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+      });
+
+      return;
+    }
+
+    const method = String(ctx.session?.formData?.method || 'card');
+    const keyboard = this.menuHandler.createConfirmationKeyboard(`deposit:confirm`, { amount, method });
+    const methodLabel = method.charAt(0).toUpperCase() + method.slice(1);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.deposit_confirm_prompt', {
+        default: `<b>💰 Confirm Deposit</b>\n\n<b>Amount:</b> $${amount}.00\n<b>Method:</b> ${methodLabel}\n<b>Fee:</b> $0.00\n<b>Total:</b> $${amount}.00\n\nAre you sure you want to proceed?`,
+        amount: amount,
+        method: methodLabel,
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleDepositConfirm(ctx: BotContext, params: string[]): Promise<void> {
+    const amount = String(ctx.session?.formData?.amount || params[0] || '0');
+    const method = String(ctx.session?.formData?.method || 'card');
+
+    // Reset session
+    if (ctx.session) {
+      ctx.session.conversationState = undefined;
+      ctx.session.formData = undefined;
+    }
+
+    let text = ctx.t('balance.deposit_initiated', {
+      default: `<b>✅ Deposit Initiated</b>\n\n<b>Amount:</b> $${amount}\n<b>Method:</b> ${method}\n\n`,
+      amount: amount,
+      method: method,
+    });
+
+    if (method === 'card') {
+      text += ctx.t('balance.deposit_card_instructions', { default: '📝 <b>Next Steps:</b>\n1. You will receive a payment link shortly\n2. Complete the payment on the secure payment page\n3. Funds will be credited instantly after confirmation' });
+    } else if (method === 'crypto') {
+      text += ctx.t('balance.deposit_crypto_instructions', { default: '📝 <b>Next Steps:</b>\n1. Send the exact amount to the wallet address below\n2. Wait for network confirmation\n3. Funds will be credited automatically\n\n<code>wallet_address_placeholder</code>' });
+    } else {
+      text += ctx.t('balance.deposit_bank_instructions', { default: '📝 <b>Next Steps:</b>\n1. Transfer funds to the bank account details below\n2. Include your user ID in the reference\n3. Funds will be credited within 1-3 business days\n\n<b>Bank:</b> Example Bank\n<b>Account:</b> XXXX-XXXX-XXXX\n<b>Reference:</b> Your User ID' });
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+    });
+  }
+
+  private async handleDepositHistory(ctx: BotContext): Promise<void> {
+    try {
+      if (!ctx.from) {
+        await ctx.reply(ctx.t('auth.authentication_required'));
+
+        return;
+      }
+
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+
+      if (!user) {
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
+
+        return;
+      }
+
+      const deposits = await this.em.find(
+        UserBalanceHistoryEntity,
+        { user: user.id, type: TransactionType.Deposit },
+        { orderBy: { createdAt: 'DESC' }, limit: 10 },
+      );
+
+      let text = '<b>📥 Deposit History</b>\n\n';
+
+      if (deposits.length === 0) {
+        text += '<i>No deposits yet.</i>';
+      } else {
+        deposits.forEach((deposit) => {
+          const amount = decimal(deposit.amount);
+          text += `📅 ${deposit.createdAt.toLocaleDateString()}\n`;
+          text += `   Amount: +$${toDisplayString(amount, 2)}\n`;
+          text += `   Status: ✅ Completed\n\n`;
+        });
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+      });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, error as Error);
+    }
+  }
+
+  private async handleDepositBonuses(ctx: BotContext): Promise<void> {
+    let text = '<b>🎁 Deposit Bonuses</b>\n\n';
+    text += '<b>Current Offers:</b>\n\n';
+    text += '🎉 <b>First Deposit Bonus:</b> +10%\n';
+    text += '   Deposit $100+, get extra $10\n\n';
+    text += '💎 <b>VIP Bonus:</b> +15%\n';
+    text += '   For deposits $500+\n\n';
+    text += '🔥 <b>Weekend Special:</b> +5%\n';
+    text += '   Valid Saturday-Sunday only\n\n';
+    text += '<i>Bonuses are applied automatically to eligible deposits.</i>';
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+    });
+  }
+
+  // Withdrawal Handlers
+
+  private async handleWithdrawalCurrency(ctx: BotContext, currencyId: string): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'withdrawal_amount';
+      ctx.session.formData = { currencyId, step: 'enter_amount' };
+    }
+
+    const keyboard = new InlineKeyboard()
+      .text('$10', 'withdrawal:amount:10')
+      .text('$25', 'withdrawal:amount:25')
+      .text('$50', 'withdrawal:amount:50')
+      .row()
+      .text('$100', 'withdrawal:amount:100')
+      .text('$250', 'withdrawal:amount:250')
+      .text('All', 'withdrawal:amount:all')
+      .row()
+      .text(ctx.t('common.custom_amount', { default: '💲 Custom Amount' }), 'withdrawal:amount:custom')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'menu:balance');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_amount_prompt', { default: '<b>💸 Withdrawal Amount</b>\n\nSelect or enter the amount you want to withdraw:\n\n<i>Minimum: $10.00 | Fee: 2%</i>' }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleWithdrawalAmount(ctx: BotContext, amount: string): Promise<void> {
+    if (amount === 'custom') {
+      if (ctx.session) {
+        ctx.session.conversationState = 'withdrawal_custom_amount';
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('balance.enter_withdrawal_amount', { default: '<b>💸 Enter Withdrawal Amount</b>\n\nPlease enter the amount you want to withdraw:\n\n<i>Example: 100.00</i>' }),
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('balance:withdraw'),
+      });
+
+      return;
+    }
+
+    const fee = multiply(decimal(amount), '0.02');
+    const total = subtract(decimal(amount), fee);
+
+    const keyboard = this.menuHandler.createConfirmationKeyboard(`withdrawal:confirm`, { amount });
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_confirm_prompt', {
+        default: `<b>💸 Confirm Withdrawal</b>\n\n<b>Amount:</b> $${amount}\n<b>Fee (2%):</b> $${toDisplayString(fee, 2)}\n<b>You receive:</b> $${toDisplayString(total, 2)}\n\nAre you sure you want to proceed?`,
+        amount,
+        fee: toDisplayString(fee, 2),
+        total: toDisplayString(total, 2),
+      }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleWithdrawalConfirm(ctx: BotContext, _params: string[]): Promise<void> {
+    const amount = String(ctx.session?.formData?.amount || '0');
+
+    // Reset session
+    if (ctx.session) {
+      ctx.session.conversationState = undefined;
+      ctx.session.formData = undefined;
+    }
+
+    const text = ctx.t('balance.withdrawal_initiated', {
+      default: `<b>✅ Withdrawal Initiated</b>\n\n<b>Amount:</b> $${amount}\n<b>Status:</b> Processing\n\n📝 <b>What happens next:</b>\n1. Your withdrawal is being reviewed\n2. Funds will be sent within 24 hours\n3. You'll receive a confirmation notification\n\n<i>You can track your withdrawal status in the withdrawal history.</i>`,
+      amount: amount,
+    });
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+    });
+  }
+
+  private async handleWithdrawalHistory(ctx: BotContext): Promise<void> {
+    try {
+      if (!ctx.from) {
+        await ctx.reply(ctx.t('auth.authentication_required'));
+
+        return;
+      }
+
+      const user = await this.em.findOne(UserEntity, { telegramId: ctx.from.id.toString() });
+
+      if (!user) {
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
+
+        return;
+      }
+
+      const withdrawals = await this.em.find(
+        UserBalanceHistoryEntity,
+        { user: user.id, type: TransactionType.Withdrawal },
+        { orderBy: { createdAt: 'DESC' }, limit: 10 },
+      );
+
+      let text = '<b>📤 Withdrawal History</b>\n\n';
+
+      if (withdrawals.length === 0) {
+        text += '<i>No withdrawals yet.</i>';
+      } else {
+        withdrawals.forEach((withdrawal) => {
+          const amount = decimal(withdrawal.amount);
+          const statusEmoji = '✅';
+          text += `📅 ${withdrawal.createdAt.toLocaleDateString()}\n`;
+          text += `   Amount: -$${toDisplayString(amount.abs(), 2)}\n`;
+          text += `   Status: ${statusEmoji} Completed\n\n`;
+        });
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+      });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, error as Error);
+    }
+  }
+
+  private async handleWithdrawalMethods(ctx: BotContext): Promise<void> {
+    const keyboard = new InlineKeyboard()
+      .text('💳 Card', 'withdrawal:method:card')
+      .text('🪙 Crypto', 'withdrawal:method:crypto')
+      .row()
+      .text('🏦 Bank', 'withdrawal:method:bank')
+      .row()
+      .text(ctx.t('common.back', { default: '« Back' }), 'menu:balance');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_methods', { default: '<b>💸 Withdrawal Methods</b>\n\n<b>Available Methods:</b>\n\n💳 <b>Card:</b> 1-3 business days\n🪙 <b>Crypto:</b> 1-24 hours\n🏦 <b>Bank:</b> 3-5 business days\n\n<i>Select your preferred withdrawal method:</i>' }),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+  }
+
+  private async handleWithdrawalLimits(ctx: BotContext): Promise<void> {
+    let text = '<b>📊 Withdrawal Limits</b>\n\n';
+    text += '<b>Standard Account:</b>\n';
+    text += '• Minimum: $10.00\n';
+    text += '• Daily limit: $1,000.00\n';
+    text += '• Monthly limit: $10,000.00\n\n';
+    text += '<b>Verified Account:</b>\n';
+    text += '• Minimum: $10.00\n';
+    text += '• Daily limit: $5,000.00\n';
+    text += '• Monthly limit: $50,000.00\n\n';
+    text += '<b>VIP Account:</b>\n';
+    text += '• Minimum: $10.00\n';
+    text += '• Daily limit: $25,000.00\n';
+    text += '• Monthly limit: Unlimited\n\n';
+    text += '<i>Upgrade your account for higher limits.</i>';
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+    });
   }
 }
