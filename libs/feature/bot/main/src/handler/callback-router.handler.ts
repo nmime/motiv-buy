@@ -8,7 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MikroORM } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, AuthenticatedBotContext } from '@app/feature-bot-shared';
+import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/feature-bot-shared';
 import {
   UserEntity,
   UserLastAuthEntity,
@@ -70,6 +70,34 @@ export class CallbackRouterHandler {
     return this.orm.em.fork();
   }
 
+  /**
+   * Wraps an authenticated handler, checking the type guard before calling
+   */
+  private withAuth(handler: (ctx: AuthenticatedBotContext) => Promise<void>): (ctx: BotContext) => Promise<void> {
+    return async (ctx: BotContext) => {
+      if (!isAuthenticated(ctx)) {
+        await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+        return;
+      }
+      await handler(ctx);
+    };
+  }
+
+  /**
+   * Wraps an authenticated handler with params, checking the type guard before calling
+   */
+  private withAuthParams(
+    handler: (ctx: AuthenticatedBotContext, params: string[]) => Promise<void>,
+  ): (ctx: BotContext, params: string[]) => Promise<void> {
+    return async (ctx: BotContext, params: string[]) => {
+      if (!isAuthenticated(ctx)) {
+        await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+        return;
+      }
+      await handler(ctx, params);
+    };
+  }
+
   private initializeHandlerMaps(): void {
     this.primaryActionHandlers = new Map([
       ['menu', this.routeMenuAction.bind(this)],
@@ -105,27 +133,27 @@ export class CallbackRouterHandler {
       ['main', this.handleMainMenu.bind(this)],
       ['buy_traffic', this.handleBuyTrafficMenu.bind(this)],
       ['sell_traffic', this.handleSellTrafficMenu.bind(this)],
-      ['profile', async (ctx) => this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext)],
-      ['balance', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
+      ['profile', this.withAuth((ctx) => this.profileHandler.handleProfileView(ctx))],
+      ['balance', this.withAuth((ctx) => this.balanceHandler.handleBalanceView(ctx))],
       ['statistics', async (ctx) => this.statisticsHandler.handleStatisticsOverview(ctx)],
-      ['orders', this.handleOrdersMenu.bind(this)],
+      ['orders', this.withAuth((ctx) => this.handleOrdersMenu(ctx))],
       ['settings', async (ctx) => this.settingsHandler.handleSettingsView(ctx)],
-      ['referrals', this.handleReferralsMenu.bind(this)],
-      ['referral', this.handleReferralsMenu.bind(this)],
-      ['payments', this.handlePaymentsMenu.bind(this)],
+      ['referrals', this.withAuth((ctx) => this.handleReferralsMenu(ctx))],
+      ['referral', this.withAuth((ctx) => this.handleReferralsMenu(ctx))],
+      ['payments', this.withAuth((ctx) => this.handlePaymentsMenu(ctx))],
       ['support', this.handleSupportMenu.bind(this)],
       ['help', this.handleHelpMenu.bind(this)],
       ['traffic', this.handleTrafficMenu.bind(this)],
       ['campaign', this.handleCampaignMenu.bind(this)],
-      ['withdrawal', async (ctx) => this.balanceHandler.handleWithdrawalStart(ctx as AuthenticatedBotContext)],
+      ['withdrawal', this.withAuth((ctx) => this.balanceHandler.handleWithdrawalStart(ctx))],
       ['notifications', async (ctx) => this.settingsHandler.handleNotificationSettings(ctx)],
     ]);
 
     this.profileActionHandlers = new Map([
-      ['view', async (ctx) => this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext)],
+      ['view', this.withAuthParams((ctx) => this.profileHandler.handleProfileView(ctx))],
       [
         'edit',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0) {
             await ctx.reply(ctx.t('profile.enter_new_field', { field: params[0] }));
             if (ctx.session) {
@@ -133,12 +161,12 @@ export class CallbackRouterHandler {
               ctx.session.formData = { field: params[0] };
             }
           } else {
-            await this.profileHandler.handleProfileEditStart(ctx as AuthenticatedBotContext);
+            await this.profileHandler.handleProfileEditStart(ctx);
           }
-        },
+        }),
       ],
-      ['details', async (ctx) => this.profileHandler.handleProfileDetails(ctx as AuthenticatedBotContext)],
-      ['verify', async (ctx) => this.profileHandler.handleVerification(ctx as AuthenticatedBotContext)],
+      ['details', this.withAuthParams((ctx) => this.profileHandler.handleProfileDetails(ctx))],
+      ['verify', this.withAuthParams((ctx) => this.profileHandler.handleVerification(ctx))],
       ['stats', this.handleProfileStatsMenu.bind(this)],
       ['stats:overview', async (ctx, _params) => this.statisticsHandler.handleStatisticsOverview(ctx)],
       ['stats:activity', async (ctx, _params) => this.statisticsHandler.handleDetailedStatistics(ctx)],
@@ -151,19 +179,19 @@ export class CallbackRouterHandler {
     ]);
 
     this.balanceActionHandlers = new Map([
-      ['view', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
-      ['current', async (ctx) => this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext)],
+      ['view', this.withAuthParams((ctx) => this.balanceHandler.handleBalanceView(ctx))],
+      ['current', this.withAuthParams((ctx) => this.balanceHandler.handleBalanceView(ctx))],
       [
         'history',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           const page = params.length > 0 && params[0] === 'page' ? parseInt(params[1]) : 1;
-          await this.balanceHandler.handleTransactionHistory(ctx as AuthenticatedBotContext, page);
-        },
+          await this.balanceHandler.handleTransactionHistory(ctx, page);
+        }),
       ],
       ['analytics', this.handleBalanceAnalytics.bind(this)],
-      ['withdraw', async (ctx) => this.balanceHandler.handleWithdrawalStart(ctx as AuthenticatedBotContext)],
-      ['deposit', async (ctx) => this.balanceHandler.handleDepositStart(ctx as AuthenticatedBotContext)],
-      ['topup', async (ctx) => this.balanceHandler.handleDepositStart(ctx as AuthenticatedBotContext)],
+      ['withdraw', this.withAuthParams((ctx) => this.balanceHandler.handleWithdrawalStart(ctx))],
+      ['deposit', this.withAuthParams((ctx) => this.balanceHandler.handleDepositStart(ctx))],
+      ['topup', this.withAuthParams((ctx) => this.balanceHandler.handleDepositStart(ctx))],
     ]);
 
     this.statsActionHandlers = new Map([
@@ -174,7 +202,7 @@ export class CallbackRouterHandler {
     ]);
 
     this.orderActionHandlers = new Map([
-      ['list', async (ctx) => this.handleOrdersMenu(ctx as AuthenticatedBotContext)],
+      ['list', this.withAuthParams((ctx) => this.handleOrdersMenu(ctx))],
       [
         'active',
         async (ctx, params) => {
@@ -191,15 +219,15 @@ export class CallbackRouterHandler {
       ],
       [
         'create',
-        async (ctx, params) => {
+        this.withAuthParams(async (ctx, params) => {
           if (params.length > 0 && params[0] === 'start') {
             await this.orderHandler.handleCreateOrderStart(ctx);
           } else if (params.length > 0 && params[0] === 'back') {
-            await this.handleOrdersMenu(ctx as AuthenticatedBotContext);
+            await this.handleOrdersMenu(ctx);
           } else {
             await this.orderHandler.handleCreateOrderStart(ctx);
           }
-        },
+        }),
       ],
       ['search', async (ctx) => this.orderHandler.handleOrderSearch(ctx)],
       [
@@ -384,8 +412,10 @@ export class CallbackRouterHandler {
 
     if (handler) {
       await handler(ctx, params);
+    } else if (isAuthenticated(ctx)) {
+      await this.profileHandler.handleProfileView(ctx);
     } else {
-      await this.profileHandler.handleProfileView(ctx as AuthenticatedBotContext);
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
     }
   }
 
@@ -397,8 +427,10 @@ export class CallbackRouterHandler {
 
     if (handler) {
       await handler(ctx, params);
+    } else if (isAuthenticated(ctx)) {
+      await this.balanceHandler.handleBalanceView(ctx);
     } else {
-      await this.balanceHandler.handleBalanceView(ctx as AuthenticatedBotContext);
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
     }
   }
 
@@ -423,8 +455,10 @@ export class CallbackRouterHandler {
 
     if (handler) {
       await handler(ctx, params);
+    } else if (isAuthenticated(ctx)) {
+      await this.handleOrdersMenu(ctx);
     } else {
-      await this.handleOrdersMenu(ctx as AuthenticatedBotContext);
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
     }
   }
 
@@ -491,14 +525,22 @@ export class CallbackRouterHandler {
    * Route referral actions
    */
   private async routeReferralAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handleReferralsMenu(ctx as AuthenticatedBotContext);
+    if (isAuthenticated(ctx)) {
+      await this.handleReferralsMenu(ctx);
+    } else {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+    }
   }
 
   /**
    * Route payment actions
    */
   private async routePaymentAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.handlePaymentsMenu(ctx as AuthenticatedBotContext);
+    if (isAuthenticated(ctx)) {
+      await this.handlePaymentsMenu(ctx);
+    } else {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+    }
   }
 
   /**
@@ -683,7 +725,11 @@ export class CallbackRouterHandler {
    * Route verify actions
    */
   private async routeVerifyAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await this.profileHandler.handleVerification(ctx as AuthenticatedBotContext);
+    if (isAuthenticated(ctx)) {
+      await this.profileHandler.handleVerification(ctx);
+    } else {
+      await ctx.reply(ctx.t('common.errors.auth_required', { default: 'Authentication required. Use /start' }));
+    }
   }
 
   /**
