@@ -309,7 +309,9 @@ export class BotTokenValidationService {
   /**
    * Validate token format and extract bot ID
    */
-  private validateTokenFormatAndExtractBotId(dto: BotTokenValidationDto): Result<string, TelegramBotTokenInvalidException> {
+  private validateTokenFormatAndExtractBotId(
+    dto: BotTokenValidationDto,
+  ): Result<string, TelegramBotTokenInvalidException> {
     const formatValidation = this.validateTokenFormat(dto.token);
     if (!formatValidation) {
       this.logger.warn('Invalid token format', {

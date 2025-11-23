@@ -21,18 +21,18 @@ Complete reference for all environment variables used in the motiv-buy project.
 
 These **MUST** be configured for the application to run:
 
-| Variable      | Description                       | Example                          | Required |
-| ------------- | --------------------------------- | -------------------------------- | -------- |
-| `NODE_ENV`    | Application environment           | `development`, `production`      | ✅ Yes   |
-| `DB_HOST`     | PostgreSQL hostname               | `postgres`, `localhost`          | ✅ Yes   |
-| `DB_PORT`     | PostgreSQL port                   | `5432`                           | ✅ Yes   |
-| `DB_NAME`     | Database name                     | `motiv_buy_dev`                  | ✅ Yes   |
-| `DB_USER`     | Database username                 | `postgres`                       | ✅ Yes   |
-| `DB_PASSWORD` | Database password                 | `strong_password_here`           | ✅ Yes   |
-| `JWT_SECRET`  | JWT signing key (64+ chars)       | `openssl rand -base64 64`        | ✅ Yes   |
-| `TELEGRAM_BOT_TOKEN`   | Telegram bot token                | `123456:ABC-DEF...`              | ✅ Yes   |
-| `REDIS_MODE`  | Redis mode                        | `default`, `cluster`, `sentinel` | ✅ Yes   |
-| `REDIS_HOSTS` | Redis host:port (comma-separated) | `redis:6379`                     | ✅ Yes   |
+| Variable             | Description                       | Example                          | Required |
+| -------------------- | --------------------------------- | -------------------------------- | -------- |
+| `NODE_ENV`           | Application environment           | `development`, `production`      | ✅ Yes   |
+| `DB_HOST`            | PostgreSQL hostname               | `postgres`, `localhost`          | ✅ Yes   |
+| `DB_PORT`            | PostgreSQL port                   | `5432`                           | ✅ Yes   |
+| `DB_NAME`            | Database name                     | `motiv_buy_dev`                  | ✅ Yes   |
+| `DB_USER`            | Database username                 | `postgres`                       | ✅ Yes   |
+| `DB_PASSWORD`        | Database password                 | `strong_password_here`           | ✅ Yes   |
+| `JWT_SECRET`         | JWT signing key (64+ chars)       | `openssl rand -base64 64`        | ✅ Yes   |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token                | `123456:ABC-DEF...`              | ✅ Yes   |
+| `REDIS_MODE`         | Redis mode                        | `default`, `cluster`, `sentinel` | ✅ Yes   |
+| `REDIS_HOSTS`        | Redis host:port (comma-separated) | `redis:6379`                     | ✅ Yes   |
 
 ---
 
@@ -125,15 +125,15 @@ openssl rand -base64 64
 
 ### Core Bot Settings
 
-| Variable           | Description                        | Default | Required |
-| ------------------ | ---------------------------------- | ------- | -------- |
-| `TELEGRAM_BOT_TOKEN`        | Telegram bot token from @BotFather | -       | ✅ Yes   |
-| `BOT_USERNAME`     | Bot username (without @)           | -       | ❌ No    |
-| `BOT_DISPLAY_NAME` | Bot display name                   | -       | ❌ No    |
-| `BOT_DESCRIPTION`  | Bot description                    | -       | ❌ No    |
-| `BOT_VERSION`      | Bot version                        | `1.0.0` | ❌ No    |
-| `BOT_DEBUG`        | Enable debug mode                  | `false` | ❌ No    |
-| `BOT_VERBOSE`      | Enable verbose logging             | `false` | ❌ No    |
+| Variable             | Description                        | Default | Required |
+| -------------------- | ---------------------------------- | ------- | -------- |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather | -       | ✅ Yes   |
+| `BOT_USERNAME`       | Bot username (without @)           | -       | ❌ No    |
+| `BOT_DISPLAY_NAME`   | Bot display name                   | -       | ❌ No    |
+| `BOT_DESCRIPTION`    | Bot description                    | -       | ❌ No    |
+| `BOT_VERSION`        | Bot version                        | `1.0.0` | ❌ No    |
+| `BOT_DEBUG`          | Enable debug mode                  | `false` | ❌ No    |
+| `BOT_VERBOSE`        | Enable verbose logging             | `false` | ❌ No    |
 
 ### Bot Admin Configuration
 

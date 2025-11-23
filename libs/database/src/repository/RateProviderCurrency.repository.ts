@@ -69,6 +69,7 @@ export class RateProviderCurrencyRepository extends EntityRepository<RateProvide
         isEnabled: mapping.isEnabled,
         priority: mapping.priority,
       });
+
       result.set(providerName, existing);
     }
 

@@ -211,7 +211,11 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
    * @param webhookConfig - Webhook configuration
    * @returns Promise<void>
    */
-  private async startWebhook(webhookConfig: { url: string; secretToken?: string; maxConnections?: number }): Promise<void> {
+  private async startWebhook(webhookConfig: {
+    url: string;
+    secretToken?: string;
+    maxConnections?: number;
+  }): Promise<void> {
     if (!this.bot) {
       throw new Error('Bot not initialized');
     }

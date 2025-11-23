@@ -33,6 +33,7 @@ export async function bootstrap(): Promise<void> {
     if (orm) {
       await orm.close(true);
     }
+
     process.exit(0);
   }
 }

@@ -6,6 +6,7 @@ process.on('warning', (warning) => {
   if (warning.name === 'DeprecationWarning' && warning.message.includes('url.parse()')) {
     return;
   }
+
   console.warn(warning.name, warning.message);
 });
 
