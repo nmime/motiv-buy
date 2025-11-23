@@ -47,16 +47,23 @@ export class OrderActionHandler {
 
     if (orders.length === 0) {
       await ctx.reply(ctx.t('bot.order.no_active_orders', { default: 'You have no active orders.' }));
+
       return;
     }
 
     const totalPages = Math.ceil(total / limit);
-    const ordersText = this.formatOrdersList(orders, ctx.t('orders.active_title', { default: 'Active Orders' }), page, totalPages);
+    const ordersText = this.formatOrdersList(
+      orders,
+      ctx.t('orders.active_title', { default: 'Active Orders' }),
+      page,
+      totalPages,
+    );
 
     let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:active');
     if (totalPages > 1) {
       keyboard = keyboard.row();
     }
+
     keyboard = keyboard.text(ctx.t('common.back', { default: '« Back' }), 'menu:orders');
 
     await this.messageService.sendOrEditMessage(ctx, {
@@ -91,16 +98,23 @@ export class OrderActionHandler {
 
     if (orders.length === 0) {
       await ctx.reply(ctx.t('orders.no_completed', { default: 'You have no completed orders yet.' }));
+
       return;
     }
 
     const totalPages = Math.ceil(total / limit);
-    const ordersText = this.formatOrdersList(orders, ctx.t('orders.completed_title', { default: 'Completed Orders' }), page, totalPages);
+    const ordersText = this.formatOrdersList(
+      orders,
+      ctx.t('orders.completed_title', { default: 'Completed Orders' }),
+      page,
+      totalPages,
+    );
 
     let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:completed');
     if (totalPages > 1) {
       keyboard = keyboard.row();
     }
+
     keyboard = keyboard.text(ctx.t('common.back', { default: '« Back' }), 'menu:orders');
 
     await this.messageService.sendOrEditMessage(ctx, {
@@ -144,6 +158,7 @@ export class OrderActionHandler {
 
     if (!order) {
       await ctx.reply(ctx.t('orders.not_found', { default: 'Order not found.' }));
+
       return;
     }
 
@@ -234,9 +249,13 @@ export class OrderActionHandler {
       `• ${ctx.t('orders.price_per_action', { default: 'Price per Action' })}: $${pricePerActionDisplay}\n\n` +
       `<b>${ctx.t('orders.source', { default: 'Source' })}:</b> ${source.name}\n` +
       `<b>${ctx.t('orders.target_label', { default: 'Target' })}:</b> ${target.name}\n\n` +
-      (order.description ? `<b>${ctx.t('orders.description', { default: 'Description' })}:</b>\n${order.description}\n\n` : '') +
+      (order.description
+        ? `<b>${ctx.t('orders.description', { default: 'Description' })}:</b>\n${order.description}\n\n`
+        : '') +
       `<b>${ctx.t('orders.created', { default: 'Created' })}:</b> ${order.createdAt.toLocaleString()}\n` +
-      (order.completedAt ? `<b>${ctx.t('orders.completed', { default: 'Completed' })}:</b> ${order.completedAt.toLocaleString()}` : '')
+      (order.completedAt
+        ? `<b>${ctx.t('orders.completed', { default: 'Completed' })}:</b> ${order.completedAt.toLocaleString()}`
+        : '')
     );
   }
 

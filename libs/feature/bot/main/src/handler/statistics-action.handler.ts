@@ -230,6 +230,7 @@ export class StatisticsActionHandler {
             [entry.type]: toNumber(decimal(acc[entry.type] || 0).plus(amount)),
           });
         }
+
         return acc;
       },
       {} as Record<string, number>,
@@ -237,6 +238,7 @@ export class StatisticsActionHandler {
 
     const last7Days = history.filter((entry) => {
       const daysDiff = (Date.now() - entry.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+
       return daysDiff <= 7;
     });
 

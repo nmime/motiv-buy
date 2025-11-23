@@ -593,16 +593,17 @@ export class CallbackRouterHandler {
       return;
     }
 
-    const withdrawalActionHandlers: Record<string, (ctx: AuthenticatedBotContext, params: string[]) => Promise<void>> = {
-      currency: async (ctx, params) => this.handleWithdrawalCurrency(ctx, params[0]),
-      amount: async (ctx, params) => this.handleWithdrawalAmount(ctx, params[0]),
-      confirm: async (ctx, params) => this.handleWithdrawalConfirm(ctx, params),
-      cancel: async (ctx) => this.handleWithdrawalMenu(ctx),
-      history: async (ctx) => this.handleWithdrawalHistory(ctx),
-      methods: async (ctx) => this.handleWithdrawalMethods(ctx),
-      limits: async (ctx) => this.handleWithdrawalLimits(ctx),
-      create: async (ctx) => this.handleWithdrawalMenu(ctx),
-    };
+    const withdrawalActionHandlers: Record<string, (ctx: AuthenticatedBotContext, params: string[]) => Promise<void>> =
+      {
+        currency: async (ctx, params) => this.handleWithdrawalCurrency(ctx, params[0]),
+        amount: async (ctx, params) => this.handleWithdrawalAmount(ctx, params[0]),
+        confirm: async (ctx, params) => this.handleWithdrawalConfirm(ctx, params),
+        cancel: async (ctx) => this.handleWithdrawalMenu(ctx),
+        history: async (ctx) => this.handleWithdrawalHistory(ctx),
+        methods: async (ctx) => this.handleWithdrawalMethods(ctx),
+        limits: async (ctx) => this.handleWithdrawalLimits(ctx),
+        create: async (ctx) => this.handleWithdrawalMenu(ctx),
+      };
 
     const handler = withdrawalActionHandlers[action];
 
@@ -1387,69 +1388,69 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
       { orderBy: { createdAt: 'DESC' }, limit: 100 },
     );
 
-      if (history.length === 0) {
-        await this.messageService.sendOrEditMessage(ctx, {
-          text: '📊 <b>Balance Analytics</b>\n\nNo transaction history available yet.\nStart using the platform to see your analytics!',
-          parseMode: 'HTML',
-          replyMarkup: this.menuHandler.createBackButton('menu:balance'),
-        });
+    if (history.length === 0) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: '📊 <b>Balance Analytics</b>\n\nNo transaction history available yet.\nStart using the platform to see your analytics!',
+        parseMode: 'HTML',
+        replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+      });
 
-        return;
+      return;
+    }
+
+    // Calculate analytics
+
+    let totalIncome = decimal(0);
+    let totalExpense = decimal(0);
+    const last30Days = history.filter((tx) => {
+      const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+
+      return daysDiff <= 30;
+    });
+
+    const last7Days = history.filter((tx) => {
+      const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+
+      return daysDiff <= 7;
+    });
+
+    history.forEach((tx) => {
+      const amount = decimal(tx.amount);
+      if (amount.greaterThan(0)) {
+        totalIncome = add(totalIncome, amount);
+      } else {
+        totalExpense = add(totalExpense, amount.abs());
       }
+    });
 
-      // Calculate analytics
+    const income30Days = last30Days
+      .filter((tx) => decimal(tx.amount).greaterThan(0))
+      .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
 
-      let totalIncome = decimal(0);
-      let totalExpense = decimal(0);
-      const last30Days = history.filter((tx) => {
-        const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+    const income7Days = last7Days
+      .filter((tx) => decimal(tx.amount).greaterThan(0))
+      .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
 
-        return daysDiff <= 30;
-      });
+    const netBalance = subtract(totalIncome, totalExpense);
+    const avgTransaction = history.length > 0 ? totalIncome.div(history.length) : decimal(0);
 
-      const last7Days = history.filter((tx) => {
-        const daysDiff = (Date.now() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+    let text = '<b>📊 Balance Analytics</b>\n\n';
+    text += '<b>💰 All Time:</b>\n';
+    text += `• Total Income: $${toDisplayString(totalIncome, 2)}\n`;
+    text += `• Total Expenses: $${toDisplayString(totalExpense, 2)}\n`;
+    text += `• Net Balance: $${toDisplayString(netBalance, 2)}\n\n`;
 
-        return daysDiff <= 7;
-      });
+    text += '<b>📈 Last 30 Days:</b>\n';
+    text += `• Income: $${toDisplayString(income30Days, 2)}\n`;
+    text += `• Transactions: ${last30Days.length}\n\n`;
 
-      history.forEach((tx) => {
-        const amount = decimal(tx.amount);
-        if (amount.greaterThan(0)) {
-          totalIncome = add(totalIncome, amount);
-        } else {
-          totalExpense = add(totalExpense, amount.abs());
-        }
-      });
+    text += '<b>📅 Last 7 Days:</b>\n';
+    text += `• Income: $${toDisplayString(income7Days, 2)}\n`;
+    text += `• Transactions: ${last7Days.length}\n\n`;
 
-      const income30Days = last30Days
-        .filter((tx) => decimal(tx.amount).greaterThan(0))
-        .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
-
-      const income7Days = last7Days
-        .filter((tx) => decimal(tx.amount).greaterThan(0))
-        .reduce((sum, tx) => add(sum, decimal(tx.amount)), decimal(0));
-
-      const netBalance = subtract(totalIncome, totalExpense);
-      const avgTransaction = history.length > 0 ? totalIncome.div(history.length) : decimal(0);
-
-      let text = '<b>📊 Balance Analytics</b>\n\n';
-      text += '<b>💰 All Time:</b>\n';
-      text += `• Total Income: $${toDisplayString(totalIncome, 2)}\n`;
-      text += `• Total Expenses: $${toDisplayString(totalExpense, 2)}\n`;
-      text += `• Net Balance: $${toDisplayString(netBalance, 2)}\n\n`;
-
-      text += '<b>📈 Last 30 Days:</b>\n';
-      text += `• Income: $${toDisplayString(income30Days, 2)}\n`;
-      text += `• Transactions: ${last30Days.length}\n\n`;
-
-      text += '<b>📅 Last 7 Days:</b>\n';
-      text += `• Income: $${toDisplayString(income7Days, 2)}\n`;
-      text += `• Transactions: ${last7Days.length}\n\n`;
-
-      text += '<b>📊 Averages:</b>\n';
-      text += `• Avg Transaction: $${toDisplayString(avgTransaction, 2)}\n`;
-      text += `• Total Transactions: ${history.length}`;
+    text += '<b>📊 Averages:</b>\n';
+    text += `• Avg Transaction: $${toDisplayString(avgTransaction, 2)}\n`;
+    text += `• Total Transactions: ${history.length}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2160,6 +2161,7 @@ A: Да, все подписчики - реальные пользователи
       default: `<b>📊 Source Statistics: ${source.name}</b>\n\n`,
       name: source.name,
     });
+
     text += `<b>Orders:</b>\n`;
     text += `• Total: ${totalOrders}\n`;
     text += `• Active: ${activeOrders}\n`;
@@ -2561,6 +2563,7 @@ A: Да, все подписчики - реальные пользователи
       default: `<b>📊 Target Statistics: ${target.name}</b>\n\n`,
       name: target.name,
     });
+
     text += `<b>Orders:</b>\n`;
     text += `• Total: ${totalOrders}\n`;
     text += `• Active: ${activeOrders}\n`;

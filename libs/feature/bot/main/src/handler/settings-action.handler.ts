@@ -90,6 +90,7 @@ export class SettingsActionHandler {
 
     if (!validation.isValid || !this.supportedLanguages.includes(validation.sanitized as string)) {
       await ctx.reply(ctx.t('common.errors.invalid_input', { default: 'Invalid input.' }));
+
       return;
     }
 
@@ -238,6 +239,7 @@ export class SettingsActionHandler {
    */
   private getSettingValue(settings: UserSettingsEntity[], key: string, defaultValue: boolean): boolean {
     const setting = settings.find((s) => s.key === key);
+
     return setting ? (setting.getValue() as boolean) : defaultValue;
   }
 
@@ -277,6 +279,7 @@ export class SettingsActionHandler {
       de: 'Deutsch',
       zh: '中文',
     };
+
     return languages[code] || code;
   }
 
@@ -357,13 +360,25 @@ export class SettingsActionHandler {
    */
   private createNotificationKeyboard(prefs: UserPreferences['notifications'], ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text(`${prefs.balance ? '✅' : '❌'} ${ctx.t('settings.balance', { default: 'Balance' })}`, 'settings:notify:balance')
+      .text(
+        `${prefs.balance ? '✅' : '❌'} ${ctx.t('settings.balance', { default: 'Balance' })}`,
+        'settings:notify:balance',
+      )
       .text(`${prefs.trade ? '✅' : '❌'} ${ctx.t('settings.trade', { default: 'Trade' })}`, 'settings:notify:trade')
       .row()
-      .text(`${prefs.referral ? '✅' : '❌'} ${ctx.t('settings.referral', { default: 'Referral' })}`, 'settings:notify:referral')
-      .text(`${prefs.system ? '✅' : '❌'} ${ctx.t('settings.system', { default: 'System' })}`, 'settings:notify:system')
+      .text(
+        `${prefs.referral ? '✅' : '❌'} ${ctx.t('settings.referral', { default: 'Referral' })}`,
+        'settings:notify:referral',
+      )
+      .text(
+        `${prefs.system ? '✅' : '❌'} ${ctx.t('settings.system', { default: 'System' })}`,
+        'settings:notify:system',
+      )
       .row()
-      .text(`${prefs.marketing ? '✅' : '❌'} ${ctx.t('settings.marketing', { default: 'Marketing' })}`, 'settings:notify:marketing')
+      .text(
+        `${prefs.marketing ? '✅' : '❌'} ${ctx.t('settings.marketing', { default: 'Marketing' })}`,
+        'settings:notify:marketing',
+      )
       .row()
       .text(ctx.t('common.back', { default: '« Back' }), 'menu:settings');
   }
@@ -373,8 +388,14 @@ export class SettingsActionHandler {
    */
   private createPrivacyKeyboard(prefs: UserPreferences['privacy'], ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text(`${prefs.showProfile ? '✅' : '❌'} ${ctx.t('settings.profile', { default: 'Profile' })}`, 'settings:privacy:profile')
-      .text(`${prefs.showStats ? '✅' : '❌'} ${ctx.t('settings.stats', { default: 'Stats' })}`, 'settings:privacy:stats')
+      .text(
+        `${prefs.showProfile ? '✅' : '❌'} ${ctx.t('settings.profile', { default: 'Profile' })}`,
+        'settings:privacy:profile',
+      )
+      .text(
+        `${prefs.showStats ? '✅' : '❌'} ${ctx.t('settings.stats', { default: 'Stats' })}`,
+        'settings:privacy:stats',
+      )
       .row()
       .text(ctx.t('common.back', { default: '« Back' }), 'menu:settings');
   }
