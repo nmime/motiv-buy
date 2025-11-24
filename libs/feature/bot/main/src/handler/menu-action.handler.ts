@@ -69,15 +69,18 @@ export class MenuActionHandler {
   }
 
   /**
-   * Create main menu keyboard - 5 buttons matching callback-router.handler.ts
+   * Create main menu keyboard - centralized layout
+   * Row 1: Sell Traffic | Buy Traffic
+   * Row 2: Profile | Balance
+   * Row 3: Support
    */
   createMainMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('menu.main_menu.btn_buy_subscribers'), 'menu:buy_traffic')
       .text(ctx.t('menu.main_menu.btn_sell_traffic'), 'menu:sell_traffic')
+      .text(ctx.t('menu.main_menu.btn_buy_traffic'), 'menu:buy_traffic')
       .row()
-      .text(ctx.t('menu.main_menu.btn_balance'), 'balance:view')
       .text(ctx.t('menu.main_menu.btn_profile'), 'profile:view')
+      .text(ctx.t('menu.main_menu.btn_balance'), 'balance:view')
       .row()
       .text(ctx.t('menu.main_menu.btn_support'), 'menu:support');
   }
@@ -198,7 +201,10 @@ export class MenuActionHandler {
   /**
    * Create traffic sources list keyboard
    */
-  createTrafficSourcesKeyboard(ctx: BotContext, sources: Array<{ id: string; name: string; status: string }>): InlineKeyboard {
+  createTrafficSourcesKeyboard(
+    ctx: BotContext,
+    sources: Array<{ id: string; name: string; status: string }>,
+  ): InlineKeyboard {
     const keyboard = new InlineKeyboard();
 
     sources.forEach((source) => {
@@ -215,7 +221,10 @@ export class MenuActionHandler {
   /**
    * Create traffic targets list keyboard
    */
-  createTrafficTargetsKeyboard(ctx: BotContext, targets: Array<{ id: string; name: string; status: string }>): InlineKeyboard {
+  createTrafficTargetsKeyboard(
+    ctx: BotContext,
+    targets: Array<{ id: string; name: string; status: string }>,
+  ): InlineKeyboard {
     const keyboard = new InlineKeyboard();
 
     targets.forEach((target) => {

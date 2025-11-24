@@ -55,11 +55,10 @@
   },
   "main_menu": {
     "select_action": "Выбери нужный пункт 👇",
-    "btn_buy_subscribers": "👥 Купить подписчиков",
-    "btn_sell_traffic": "🤖 Продажа трафика",
-    "btn_my_orders": "📋 Мои заказы",
+    "btn_sell_traffic": "💰 Продать трафик",
+    "btn_buy_traffic": "🛒 Купить трафик",
     "btn_profile": "👤 Профиль",
-    "btn_balance": "💰 Баланс",
+    "btn_balance": "💳 Баланс",
     "btn_support": "🏢 Тех. поддержка"
   },
   "buy_traffic": {

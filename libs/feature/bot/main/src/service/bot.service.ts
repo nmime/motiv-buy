@@ -642,19 +642,22 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   private async handleStartCommand(ctx: BotContext): Promise<void> {
     const message = ctx.t('menu.main_menu.select_action');
 
+    // Centralized menu layout:
+    // Row 1: Sell Traffic | Buy Traffic
+    // Row 2: Profile | Balance
+    // Row 3: Support
     await ctx.replyWithHTML(message, {
       reply_markup: {
         inline_keyboard: [
-          [{ text: ctx.t('menu.main_menu.btn_buy_subscribers'), callback_data: 'order:list' }],
           [
-            { text: ctx.t('menu.main_menu.btn_sell_traffic'), callback_data: 'traffic:manage' },
-            { text: ctx.t('menu.main_menu.btn_my_orders'), callback_data: 'order:list' },
+            { text: ctx.t('menu.main_menu.btn_sell_traffic'), callback_data: 'menu:sell_traffic' },
+            { text: ctx.t('menu.main_menu.btn_buy_traffic'), callback_data: 'menu:buy_traffic' },
           ],
           [
             { text: ctx.t('menu.main_menu.btn_profile'), callback_data: 'profile:view' },
             { text: ctx.t('menu.main_menu.btn_balance'), callback_data: 'balance:view' },
           ],
-          [{ text: ctx.t('menu.main_menu.btn_support'), callback_data: 'support:contact' }],
+          [{ text: ctx.t('menu.main_menu.btn_support'), callback_data: 'menu:support' }],
         ],
       },
     });

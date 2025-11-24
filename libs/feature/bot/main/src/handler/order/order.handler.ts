@@ -12,14 +12,13 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { Composer } from 'grammy';
+import { Composer, InlineKeyboard } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
 import { BotOrderService } from './bot-order.service';
 import { OrderCreationHandler } from './handlers/order.creation.handler';
 import { OrderManagementHandler } from './handlers/order.management.handler';
 import { OrderConfigHandler } from './handlers/order.config.handler';
 import { OrderEditHandler } from './handlers/order.edit.handler';
-import { createMainMenuKeyboard } from './order.keyboards';
 
 @Injectable()
 export class OrderHandler {
@@ -81,12 +80,22 @@ export class OrderHandler {
   }
 
   /**
-   * Handle main menu
+   * Handle main menu - uses centralized layout with translations
+   * Row 1: Sell Traffic | Buy Traffic
+   * Row 2: Profile | Balance
+   * Row 3: Support
    */
   private async handleMainMenu(ctx: BotContext): Promise<void> {
     try {
-      const message = 'Выбери нужный пункт 👇';
-      const keyboard = createMainMenuKeyboard();
+      const message = ctx.t('menu.main_menu.select_action');
+      const keyboard = new InlineKeyboard()
+        .text(ctx.t('menu.main_menu.btn_sell_traffic'), 'menu:sell_traffic')
+        .text(ctx.t('menu.main_menu.btn_buy_traffic'), 'menu:buy_traffic')
+        .row()
+        .text(ctx.t('menu.main_menu.btn_profile'), 'profile:view')
+        .text(ctx.t('menu.main_menu.btn_balance'), 'balance:view')
+        .row()
+        .text(ctx.t('menu.main_menu.btn_support'), 'menu:support');
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -96,7 +105,7 @@ export class OrderHandler {
       await ctx.answerCallbackQuery();
     } catch (error) {
       this.logger.error('Error handling main menu', error);
-      await ctx.answerCallbackQuery('❌ Ошибка загрузки меню');
+      await ctx.answerCallbackQuery(ctx.t('common.errors.menu_load', { default: '❌ Error loading menu' }));
     }
   }
 
@@ -109,13 +118,24 @@ export class OrderHandler {
     let helpMessage = '';
 
     if (callbackData.includes('invite_link')) {
-      helpMessage = `<b>Зачем нужна пригласительная ссылка?</b>\n\nПригласительная ссылка нужна для того, чтобы новые подписчики могли вступить в ваш канал/чат. Без неё показ рекламы невозможен.`;
+      helpMessage = ctx.t('help.invite_link_why', {
+        default:
+          '<b>Why do I need an invite link?</b>\n\nAn invite link is needed so that new subscribers can join your channel/chat. Without it, ad display is not possible.',
+      });
     } else if (callbackData.includes('create_invite')) {
-      helpMessage = `<b>Как создать пригласительную ссылку?</b>\n\n1. Откройте настройки вашего канала/чата\n2. Перейдите в раздел "Ссылки для приглашения"\n3. Создайте новую ссылку или скопируйте существующую\n4. Отправьте ссылку боту`;
+      helpMessage = ctx.t('help.invite_link_how', {
+        default:
+          '<b>How to create an invite link?</b>\n\n1. Open your channel/chat settings\n2. Go to "Invite links" section\n3. Create a new link or copy an existing one\n4. Send the link to the bot',
+      });
     } else if (callbackData.includes('troubleshoot')) {
-      helpMessage = `<b>Почему заказ не работает?</b>\n\nВозможные причины:\n\n• Заказ на модерации\n• Недостаточно средств на балансе\n• Канал заблокирован\n• Бот не является администратором\n• Низкая цена за подписчика\n\nПопробуйте:\n1. Проверить баланс\n2. Увеличить цену\n3. Добавить бота в админы\n4. Обратиться в поддержку`;
+      helpMessage = ctx.t('help.order_troubleshoot', {
+        default:
+          '<b>Why is my order not working?</b>\n\nPossible reasons:\n\n• Order is under moderation\n• Insufficient balance\n• Channel is blocked\n• Bot is not an admin\n• Price per subscriber is too low\n\nTry:\n1. Check your balance\n2. Increase the price\n3. Add the bot as admin\n4. Contact support',
+      });
     } else {
-      helpMessage = `<b>Помощь</b>\n\nДля получения помощи используйте раздел "Тех. поддержка" в главном меню.`;
+      helpMessage = ctx.t('help.general', {
+        default: '<b>Help</b>\n\nFor help, use the "Support" section in the main menu.',
+      });
     }
 
     await ctx.answerCallbackQuery({
@@ -128,14 +148,14 @@ export class OrderHandler {
    * Handle integration (API) placeholder
    */
   private async handleIntegration(ctx: BotContext): Promise<void> {
-    await ctx.answerCallbackQuery('💻 Интеграция API в разработке');
+    await ctx.answerCallbackQuery(ctx.t('orders.integration_coming', { default: '💻 API Integration coming soon' }));
   }
 
   /**
    * Handle bot transfer placeholder
    */
   private async handleTransfer(ctx: BotContext): Promise<void> {
-    await ctx.answerCallbackQuery('🔄 Передача бота в разработке');
+    await ctx.answerCallbackQuery(ctx.t('orders.transfer_coming', { default: '🔄 Bot transfer coming soon' }));
   }
 
   /**
@@ -145,13 +165,17 @@ export class OrderHandler {
     const callbackData = ctx.callbackQuery?.data || '';
 
     if (callbackData.includes('ids')) {
-      await ctx.answerCallbackQuery('💾 Скачивание ID участников в разработке');
+      await ctx.answerCallbackQuery(
+        ctx.t('orders.download_ids_coming', { default: '💾 Downloading member IDs coming soon' }),
+      );
     } else if (callbackData.includes('report')) {
-      await ctx.answerCallbackQuery('📄 Генерация PDF отчета в разработке');
+      await ctx.answerCallbackQuery(
+        ctx.t('orders.download_pdf_coming', { default: '📄 PDF report generation coming soon' }),
+      );
     } else if (callbackData.includes('excel')) {
-      await ctx.answerCallbackQuery('📥 Экспорт в Excel в разработке');
+      await ctx.answerCallbackQuery(ctx.t('orders.download_excel_coming', { default: '📥 Excel export coming soon' }));
     } else {
-      await ctx.answerCallbackQuery('📥 Функция в разработке');
+      await ctx.answerCallbackQuery(ctx.t('orders.feature_coming', { default: '📥 Feature coming soon' }));
     }
   }
 }

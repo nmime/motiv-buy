@@ -55,11 +55,10 @@
   },
   "main_menu": {
     "select_action": "Select an option 👇",
-    "btn_buy_subscribers": "👥 Buy Subscribers",
-    "btn_sell_traffic": "🤖 Sell Traffic",
-    "btn_my_orders": "📋 My Orders",
+    "btn_sell_traffic": "💰 Sell Traffic",
+    "btn_buy_traffic": "🛒 Buy Traffic",
     "btn_profile": "👤 Profile",
-    "btn_balance": "💰 Balance",
+    "btn_balance": "💳 Balance",
     "btn_support": "🏢 Support"
   },
   "buy_traffic": {

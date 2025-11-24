@@ -901,16 +901,18 @@ export class CallbackRouterHandler {
   private async handleMainMenu(ctx: BotContext): Promise<void> {
     const message = ctx.t('menu.main_menu.select_action');
 
+    // Centralized menu layout:
+    // Row 1: Sell Traffic | Buy Traffic
+    // Row 2: Profile | Balance
+    // Row 3: Support
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('menu.main_menu.btn_buy_subscribers'), 'order:list')
-      .row()
-      .text(ctx.t('menu.main_menu.btn_sell_traffic'), 'traffic:manage')
-      .text(ctx.t('menu.main_menu.btn_my_orders'), 'order:list')
+      .text(ctx.t('menu.main_menu.btn_sell_traffic'), 'menu:sell_traffic')
+      .text(ctx.t('menu.main_menu.btn_buy_traffic'), 'menu:buy_traffic')
       .row()
       .text(ctx.t('menu.main_menu.btn_profile'), 'profile:view')
       .text(ctx.t('menu.main_menu.btn_balance'), 'balance:view')
       .row()
-      .text(ctx.t('menu.main_menu.btn_support'), 'support:contact');
+      .text(ctx.t('menu.main_menu.btn_support'), 'menu:support');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: message,
@@ -1135,35 +1137,35 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
   }
 
   private async handleSupportMenu(ctx: BotContext): Promise<void> {
-    const text = `<b>🏢 Техническая поддержка</b>
+    const text = `<b>🏢 ${ctx.t('support.title', { default: 'Support' })}</b>
 
-Мы всегда рады помочь вам!
+${ctx.t('support.description', { default: "We're here to help!" })}
 
-<b>📞 Способы связи:</b>
-• Телеграм: @motivbuy_support
-• Email: support@motivbuy.com
+<b>📞 ${ctx.t('support.contact_methods', { default: 'Contact Methods' })}:</b>
+• ${ctx.t('support.telegram', { default: 'Telegram' })}: @motivbuy_support
+• ${ctx.t('support.email', { default: 'Email' })}: support@motivbuy.com
 
-<b>⏰ Время работы:</b>
-• Пн-Пт: 9:00 - 21:00 (МСК)
-• Сб-Вс: 10:00 - 18:00 (МСК)
+<b>⏰ ${ctx.t('support.working_hours', { default: 'Working Hours' })}:</b>
+• ${ctx.t('support.weekdays', { default: 'Mon-Fri: 9:00 AM - 9:00 PM (MSK)' })}
+• ${ctx.t('support.weekends', { default: 'Sat-Sun: 10:00 AM - 6:00 PM (MSK)' })}
 
-<b>📋 Частые вопросы:</b>
-• Как создать заказ?
-• Как пополнить баланс?
-• Как вывести средства?
-• Проблемы с ботом
+<b>📋 ${ctx.t('support.faq_title', { default: 'Frequently Asked Questions' })}:</b>
+• ${ctx.t('help.faq_create_order', { default: 'How to create an order?' })}
+• ${ctx.t('help.faq_deposit', { default: 'How to deposit funds?' })}
+• ${ctx.t('help.faq_withdraw', { default: 'How to withdraw funds?' })}
+• ${ctx.t('help.faq_bot_issues', { default: 'Bot issues' })}
 
-<i>Выберите действие ниже или напишите нам напрямую.</i>`;
+<i>${ctx.t('support.select_action', { default: 'Select an action below or contact us directly' })}.</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text('💬 Написать в поддержку', 'support:contact')
+      .text(ctx.t('support.btn_contact', { default: '💬 Contact Support' }), 'support:contact')
       .row()
-      .text('❓ FAQ - Частые вопросы', 'help:faq')
+      .text(ctx.t('support.btn_faq', { default: '❓ FAQ' }), 'help:faq')
       .row()
-      .text('📝 Сообщить о проблеме', 'support:report')
-      .text('💡 Предложить идею', 'support:suggest')
+      .text(ctx.t('support.btn_report', { default: '📝 Report Issue' }), 'support:report')
+      .text(ctx.t('support.btn_suggest', { default: '💡 Suggest Feature' }), 'support:suggest')
       .row()
-      .text('« Назад в меню', 'menu:main');
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1173,44 +1175,44 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
   }
 
   private async handleHelpMenu(ctx: BotContext): Promise<void> {
-    const text = `<b>❓ Справка и помощь</b>
+    const text = `<b>❓ ${ctx.t('menu.help.title', { default: 'Help & Support' })}</b>
 
-Добро пожаловать в справочный центр MotivBuy!
+${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
 
-<b>🚀 Быстрый старт:</b>
-1. Создайте заказ через "Купить подписчиков"
-2. Укажите ссылку на канал/чат
-3. Добавьте бота в администраторы
-4. Настройте параметры и запустите
+<b>🚀 ${ctx.t('help.quick_start', { default: 'Quick Start' })}:</b>
+1. ${ctx.t('help.step1', { default: 'Create an order via "Buy Traffic"' })}
+2. ${ctx.t('help.step2', { default: 'Enter your channel/group link' })}
+3. ${ctx.t('help.step3', { default: 'Add the bot as admin' })}
+4. ${ctx.t('help.step4', { default: 'Configure settings and launch' })}
 
-<b>📚 Разделы справки:</b>
-• Создание и настройка заказов
-• Управление балансом
-• Статистика и аналитика
-• Продажа трафика
+<b>📚 ${ctx.t('help.sections_title', { default: 'Help Sections' })}:</b>
+• ${ctx.t('help.section_orders', { default: 'Creating and managing orders' })}
+• ${ctx.t('help.section_balance', { default: 'Balance management' })}
+• ${ctx.t('help.section_stats', { default: 'Statistics and analytics' })}
+• ${ctx.t('help.section_traffic', { default: 'Selling traffic' })}
 
-<b>💬 Основные команды:</b>
-/start - Главное меню
-/menu - Открыть меню
-/balance - Проверить баланс
-/profile - Ваш профиль
-/settings - Настройки
-/help - Эта справка
+<b>💬 ${ctx.t('help.commands_title', { default: 'Main Commands' })}:</b>
+/start - ${ctx.t('commands.start_desc', { default: 'Main menu' })}
+/menu - ${ctx.t('commands.menu_desc', { default: 'Open menu' })}
+/balance - ${ctx.t('commands.balance_desc', { default: 'Check balance' })}
+/profile - ${ctx.t('commands.profile_desc', { default: 'Your profile' })}
+/settings - ${ctx.t('commands.settings_desc', { default: 'Settings' })}
+/help - ${ctx.t('commands.help_desc', { default: 'This help' })}
 
-<i>Если у вас остались вопросы, обратитесь в поддержку.</i>`;
+<i>${ctx.t('help.contact_hint', { default: 'If you have questions, contact support.' })}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text('📖 Как создать заказ', 'help:createOrder')
+      .text(ctx.t('help.btn_create_order', { default: '📖 How to create an order' }), 'help:createOrder')
       .row()
-      .text('💰 Пополнение баланса', 'help:topup')
-      .text('💸 Вывод средств', 'help:withdraw')
+      .text(ctx.t('help.btn_topup', { default: '💰 Deposit funds' }), 'help:topup')
+      .text(ctx.t('help.btn_withdraw', { default: '💸 Withdraw funds' }), 'help:withdraw')
       .row()
-      .text('📊 Статистика', 'help:stats')
-      .text('🤖 Продажа трафика', 'help:traffic')
+      .text(ctx.t('help.btn_stats', { default: '📊 Statistics' }), 'help:stats')
+      .text(ctx.t('help.btn_traffic', { default: '🤖 Selling traffic' }), 'help:traffic')
       .row()
-      .text('🏢 Связаться с поддержкой', 'support:contact')
+      .text(ctx.t('support.btn_contact', { default: '🏢 Contact Support' }), 'support:contact')
       .row()
-      .text('« Назад в меню', 'menu:main');
+      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1899,26 +1901,26 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
 
   // Support action handlers
   private async handleSupportContact(ctx: BotContext): Promise<void> {
-    const text = `<b>💬 Связаться с поддержкой</b>
+    const text = `<b>💬 ${ctx.t('support.contact_title', { default: 'Contact Support' })}</b>
 
-Вы можете связаться с нами следующими способами:
+${ctx.t('support.contact_intro', { default: 'You can contact us through the following channels:' })}
 
 <b>📱 Telegram:</b>
-@motivbuy_support - Быстрый ответ
+@motivbuy_support - ${ctx.t('support.fast_response', { default: 'Fast response' })}
 
 <b>📧 Email:</b>
 support@motivbuy.com
 
-<b>⏰ Среднее время ответа:</b>
-• Telegram: 5-15 минут
-• Email: 2-4 часа
+<b>⏰ ${ctx.t('support.response_time', { default: 'Average response time' })}:</b>
+• Telegram: ${ctx.t('support.response_telegram', { default: '5-15 minutes' })}
+• Email: ${ctx.t('support.response_email', { default: '2-4 hours' })}
 
-<i>Напишите нам, и мы обязательно поможем!</i>`;
+<i>${ctx.t('support.contact_hint', { default: "Write to us and we'll help you!" })}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .url('💬 Написать в Telegram', 'https://t.me/motivbuy_support')
+      .url(ctx.t('support.btn_write_telegram', { default: '💬 Write on Telegram' }), 'https://t.me/motivbuy_support')
       .row()
-      .text('« Назад', 'support');
+      .text(ctx.t('common.back', { default: '« Back' }), 'menu:support');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1928,28 +1930,28 @@ support@motivbuy.com
   }
 
   private async handleSupportReport(ctx: BotContext): Promise<void> {
-    const text = `<b>📝 Сообщить о проблеме</b>
+    const text = `<b>📝 ${ctx.t('support.report_title', { default: 'Report a Problem' })}</b>
 
-Пожалуйста, опишите проблему как можно подробнее:
+${ctx.t('support.report_intro', { default: 'Please describe the issue in detail:' })}
 
-<b>Что нам нужно знать:</b>
-• Что произошло?
-• Какие действия вы выполняли?
-• Когда это случилось?
-• Есть ли скриншоты?
+<b>${ctx.t('support.what_we_need', { default: 'What we need to know' })}:</b>
+• ${ctx.t('support.report_q1', { default: 'What happened?' })}
+• ${ctx.t('support.report_q2', { default: 'What actions were you performing?' })}
+• ${ctx.t('support.report_q3', { default: 'When did it happen?' })}
+• ${ctx.t('support.report_q4', { default: 'Do you have screenshots?' })}
 
-<b>Частые проблемы:</b>
-• Заказ не работает
-• Ошибка при оплате
-• Не начисляются подписчики
-• Проблемы с ботом
+<b>${ctx.t('support.common_issues', { default: 'Common issues' })}:</b>
+• ${ctx.t('support.issue_order', { default: 'Order not working' })}
+• ${ctx.t('support.issue_payment', { default: 'Payment error' })}
+• ${ctx.t('support.issue_subscribers', { default: 'Subscribers not being added' })}
+• ${ctx.t('support.issue_bot', { default: 'Bot issues' })}
 
-<i>Отправьте описание проблемы следующим сообщением.</i>`;
+<i>${ctx.t('support.report_hint', { default: 'Send the problem description in your next message.' })}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .url('📝 Отправить в поддержку', 'https://t.me/motivbuy_support')
+      .url(ctx.t('support.btn_send_report', { default: '📝 Send to Support' }), 'https://t.me/motivbuy_support')
       .row()
-      .text('« Назад', 'support');
+      .text(ctx.t('common.back', { default: '« Back' }), 'menu:support');
 
     if (ctx.session) {
       ctx.session.conversationState = 'awaiting_support_report';
@@ -2112,25 +2114,25 @@ support@motivbuy.com
   }
 
   private async handleSupportSuggest(ctx: BotContext): Promise<void> {
-    const text = `<b>💡 Предложить идею</b>
+    const text = `<b>💡 ${ctx.t('support.suggest_title', { default: 'Suggest an Idea' })}</b>
 
-Мы всегда рады вашим идеям и предложениям!
+${ctx.t('support.suggest_intro', { default: "We're always happy to hear your ideas and suggestions!" })}
 
-<b>Что можно предложить:</b>
-• Новые функции
-• Улучшения интерфейса
-• Оптимизацию процессов
-• Любые другие идеи
+<b>${ctx.t('support.suggest_what', { default: 'What you can suggest' })}:</b>
+• ${ctx.t('support.suggest_features', { default: 'New features' })}
+• ${ctx.t('support.suggest_ui', { default: 'UI improvements' })}
+• ${ctx.t('support.suggest_optimization', { default: 'Process optimization' })}
+• ${ctx.t('support.suggest_other', { default: 'Any other ideas' })}
 
-<b>Как отправить:</b>
-Просто напишите вашу идею следующим сообщением!
+<b>${ctx.t('support.suggest_how', { default: 'How to send' })}:</b>
+${ctx.t('support.suggest_instructions', { default: 'Just write your idea in the next message!' })}
 
-<i>Ваши предложения помогают нам становиться лучше!</i>`;
+<i>${ctx.t('support.suggest_thanks', { default: 'Your suggestions help us improve!' })}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .url('💡 Отправить предложение', 'https://t.me/motivbuy_support')
+      .url(ctx.t('support.btn_send_suggestion', { default: '💡 Send Suggestion' }), 'https://t.me/motivbuy_support')
       .row()
-      .text('« Назад', 'support');
+      .text(ctx.t('common.back', { default: '« Back' }), 'menu:support');
 
     if (ctx.session) {
       ctx.session.conversationState = 'awaiting_support_suggestion';
@@ -2145,32 +2147,32 @@ support@motivbuy.com
 
   // Help action handlers
   private async handleHelpFAQ(ctx: BotContext): Promise<void> {
-    const text = `<b>❓ Часто задаваемые вопросы</b>
+    const text = `<b>❓ ${ctx.t('help.faq_title', { default: 'Frequently Asked Questions' })}</b>
 
-<b>Q: Как создать заказ?</b>
-A: Нажмите "Купить подписчиков", введите ссылку на канал и следуйте инструкциям.
+<b>Q: ${ctx.t('help.faq_q1', { default: 'How to create an order?' })}</b>
+A: ${ctx.t('help.faq_a1', { default: 'Click "Buy Traffic", enter your channel link and follow the instructions.' })}
 
-<b>Q: Как пополнить баланс?</b>
-A: Перейдите в раздел "Баланс" → "Пополнить" и выберите способ оплаты.
+<b>Q: ${ctx.t('help.faq_q2', { default: 'How to deposit funds?' })}</b>
+A: ${ctx.t('help.faq_a2', { default: 'Go to "Balance" → "Deposit" and select a payment method.' })}
 
-<b>Q: Как быстро приходят подписчики?</b>
-A: Обычно в течение 24 часов после запуска заказа.
+<b>Q: ${ctx.t('help.faq_q3', { default: 'How fast do subscribers arrive?' })}</b>
+A: ${ctx.t('help.faq_a3', { default: 'Usually within 24 hours after order launch.' })}
 
-<b>Q: Можно ли отменить заказ?</b>
-A: Да, вы можете остановить заказ в любой момент.
+<b>Q: ${ctx.t('help.faq_q4', { default: 'Can I cancel an order?' })}</b>
+A: ${ctx.t('help.faq_a4', { default: 'Yes, you can stop the order at any time.' })}
 
-<b>Q: Как вывести средства?</b>
-A: Баланс → Вывод. Минимальная сумма: $10.
+<b>Q: ${ctx.t('help.faq_q5', { default: 'How to withdraw funds?' })}</b>
+A: ${ctx.t('help.faq_a5', { default: 'Balance → Withdraw. Minimum amount: $10.' })}
 
-<b>Q: Подписчики настоящие?</b>
-A: Да, все подписчики - реальные пользователи Telegram.`;
+<b>Q: ${ctx.t('help.faq_q6', { default: 'Are subscribers real?' })}</b>
+A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram users.' })}`;
 
     const keyboard = new InlineKeyboard()
-      .text('📖 Подробнее о заказах', 'help:createOrder')
+      .text(ctx.t('help.btn_more_orders', { default: '📖 More about orders' }), 'help:createOrder')
       .row()
-      .text('💰 Вопросы по балансу', 'help:topup')
+      .text(ctx.t('help.btn_balance_questions', { default: '💰 Balance questions' }), 'help:topup')
       .row()
-      .text('« Назад в справку', 'help');
+      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2385,32 +2387,32 @@ A: Да, все подписчики - реальные пользователи
   }
 
   private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
-    const text = `<b>📖 Как создать заказ</b>
+    const text = `<b>📖 ${ctx.t('help.create_order_title', { default: 'How to Create an Order' })}</b>
 
-<b>Шаг 1: Начало</b>
-Нажмите "👥 Купить подписчиков" в главном меню.
+<b>${ctx.t('help.step', { default: 'Step' })} 1:</b>
+${ctx.t('help.create_step1', { default: 'Click "Buy Traffic" in the main menu.' })}
 
-<b>Шаг 2: Ссылка на канал</b>
-Отправьте пригласительную ссылку на ваш канал или группу.
-Формат: t.me/joinchat/xxx или t.me/+xxx
+<b>${ctx.t('help.step', { default: 'Step' })} 2:</b>
+${ctx.t('help.create_step2', { default: 'Send an invite link to your channel or group.' })}
+${ctx.t('help.create_format', { default: 'Format: t.me/joinchat/xxx or t.me/+xxx' })}
 
-<b>Шаг 3: Добавление бота</b>
-Добавьте нашего бота в администраторы вашего канала.
-Это нужно для отслеживания статистики.
+<b>${ctx.t('help.step', { default: 'Step' })} 3:</b>
+${ctx.t('help.create_step3', { default: 'Add our bot as an admin to your channel.' })}
+${ctx.t('help.create_step3_note', { default: 'This is needed for tracking statistics.' })}
 
-<b>Шаг 4: Настройка</b>
-Укажите желаемое количество подписчиков и другие параметры.
+<b>${ctx.t('help.step', { default: 'Step' })} 4:</b>
+${ctx.t('help.create_step4', { default: 'Set the desired number of subscribers and other parameters.' })}
 
-<b>Шаг 5: Запуск</b>
-После модерации заказ будет запущен автоматически.
+<b>${ctx.t('help.step', { default: 'Step' })} 5:</b>
+${ctx.t('help.create_step5', { default: 'After moderation, the order will start automatically.' })}
 
-<b>💡 Совет:</b>
-Чем интереснее ваш канал, тем больше подписчиков останется!`;
+<b>💡 ${ctx.t('help.tip', { default: 'Tip' })}:</b>
+${ctx.t('help.create_tip', { default: 'The more interesting your channel, the more subscribers will stay!' })}`;
 
     const keyboard = new InlineKeyboard()
-      .text('🆕 Создать заказ', 'order:create:start')
+      .text(ctx.t('help.btn_create_now', { default: '🆕 Create Order' }), 'order:create:start')
       .row()
-      .text('« Назад в справку', 'help');
+      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2420,35 +2422,32 @@ A: Да, все подписчики - реальные пользователи
   }
 
   private async handleHelpTopup(ctx: BotContext): Promise<void> {
-    const text = `<b>💰 Пополнение баланса</b>
+    const text = `<b>💰 ${ctx.t('help.topup_title', { default: 'Depositing Funds' })}</b>
 
-<b>Доступные способы оплаты:</b>
+<b>${ctx.t('help.payment_methods', { default: 'Available Payment Methods' })}:</b>
 
-<b>💳 Банковская карта</b>
-• Visa, MasterCard, МИР
-• Моментальное зачисление
-• Комиссия: 0%
+<b>💳 ${ctx.t('help.method_card', { default: 'Bank Card' })}</b>
+• Visa, MasterCard, MIR
+• ${ctx.t('help.instant_deposit', { default: 'Instant deposit' })}
+• ${ctx.t('help.no_fee', { default: 'Fee: 0%' })}
 
-<b>🪙 Криптовалюта</b>
-• Bitcoin (BTC)
-• Ethereum (ETH)
-• USDT (TRC-20, ERC-20)
-• Зачисление: 1-3 подтверждения
+<b>🪙 ${ctx.t('help.method_crypto', { default: 'Cryptocurrency' })}</b>
+• Bitcoin (BTC), Ethereum (ETH), USDT
+• ${ctx.t('help.crypto_confirmations', { default: 'Deposit: 1-3 confirmations' })}
 
-<b>📱 Электронные кошельки</b>
-• QIWI, ЮMoney
-• Моментальное зачисление
+<b>📱 ${ctx.t('help.method_ewallet', { default: 'E-wallets' })}</b>
+• ${ctx.t('help.instant_deposit', { default: 'Instant deposit' })}
 
-<b>Минимальная сумма:</b> $10
-<b>Максимальная сумма:</b> $10,000
+<b>${ctx.t('help.min_amount', { default: 'Minimum amount' })}:</b> $10
+<b>${ctx.t('help.max_amount', { default: 'Maximum amount' })}:</b> $10,000
 
-<b>💡 Бонус:</b>
-При пополнении от $100 - бонус 5%!`;
+<b>💡 ${ctx.t('help.bonus', { default: 'Bonus' })}:</b>
+${ctx.t('help.deposit_bonus', { default: 'Deposit $100+ and get 5% bonus!' })}`;
 
     const keyboard = new InlineKeyboard()
-      .text('💰 Пополнить сейчас', 'balance:deposit')
+      .text(ctx.t('help.btn_deposit_now', { default: '💰 Deposit Now' }), 'balance:deposit')
       .row()
-      .text('« Назад в справку', 'help');
+      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2458,36 +2457,35 @@ A: Да, все подписчики - реальные пользователи
   }
 
   private async handleHelpWithdraw(ctx: BotContext): Promise<void> {
-    const text = `<b>💸 Вывод средств</b>
+    const text = `<b>💸 ${ctx.t('help.withdraw_title', { default: 'Withdrawing Funds' })}</b>
 
-<b>Способы вывода:</b>
+<b>${ctx.t('help.withdrawal_methods', { default: 'Withdrawal Methods' })}:</b>
 
-<b>🪙 Криптовалюта</b>
+<b>🪙 ${ctx.t('help.method_crypto', { default: 'Cryptocurrency' })}</b>
 • Bitcoin, Ethereum, USDT
-• Комиссия: сетевая
-• Срок: до 24 часов
+• ${ctx.t('help.network_fee', { default: 'Fee: network' })}
+• ${ctx.t('help.processing_24h', { default: 'Processing: up to 24 hours' })}
 
-<b>📱 Электронные кошельки</b>
-• QIWI, ЮMoney
-• Комиссия: 1-2%
-• Срок: до 24 часов
+<b>📱 ${ctx.t('help.method_ewallet', { default: 'E-wallets' })}</b>
+• ${ctx.t('help.ewallet_fee', { default: 'Fee: 1-2%' })}
+• ${ctx.t('help.processing_24h', { default: 'Processing: up to 24 hours' })}
 
-<b>Условия вывода:</b>
-• Минимальная сумма: $10
-• Верификация: для сумм от $500
+<b>${ctx.t('help.withdraw_conditions', { default: 'Withdrawal conditions' })}:</b>
+• ${ctx.t('help.min_amount', { default: 'Minimum amount' })}: $10
+• ${ctx.t('help.verification_note', { default: 'Verification: for amounts over $500' })}
 
-<b>Статусы выплат:</b>
-⏳ Ожидание - заявка в обработке
-✅ Выполнено - средства отправлены
-❌ Отклонено - проверьте реквизиты
+<b>${ctx.t('help.payout_statuses', { default: 'Payout statuses' })}:</b>
+⏳ ${ctx.t('help.status_pending', { default: 'Pending - request being processed' })}
+✅ ${ctx.t('help.status_completed', { default: 'Completed - funds sent' })}
+❌ ${ctx.t('help.status_rejected', { default: 'Rejected - check details' })}
 
-<b>💡 Совет:</b>
-Выводите на верифицированные кошельки!`;
+<b>💡 ${ctx.t('help.tip', { default: 'Tip' })}:</b>
+${ctx.t('help.withdraw_tip', { default: 'Withdraw to verified wallets!' })}`;
 
     const keyboard = new InlineKeyboard()
-      .text('💸 Вывести средства', 'balance:withdraw')
+      .text(ctx.t('help.btn_withdraw_now', { default: '💸 Withdraw Funds' }), 'balance:withdraw')
       .row()
-      .text('« Назад в справку', 'help');
+      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2497,40 +2495,39 @@ A: Да, все подписчики - реальные пользователи
   }
 
   private async handleHelpStats(ctx: BotContext): Promise<void> {
-    const text = `<b>📊 Статистика и аналитика</b>
+    const text = `<b>📊 ${ctx.t('help.stats_title', { default: 'Statistics & Analytics' })}</b>
 
-<b>Какую статистику можно видеть:</b>
+<b>${ctx.t('help.stats_available', { default: 'Available statistics' })}:</b>
 
-<b>📈 По заказам:</b>
-• Количество подписчиков
-• Скорость набора
-• Процент отписок
-• Конверсия
+<b>📈 ${ctx.t('help.stats_orders', { default: 'Order statistics' })}:</b>
+• ${ctx.t('help.stats_subscribers', { default: 'Number of subscribers' })}
+• ${ctx.t('help.stats_speed', { default: 'Growth speed' })}
+• ${ctx.t('help.stats_unsubscribe', { default: 'Unsubscribe rate' })}
+• ${ctx.t('help.stats_conversion', { default: 'Conversion' })}
 
-<b>💰 Финансовая:</b>
-• Доходы за период
-• Расходы на заказы
-• История транзакций
-• Прогноз расходов
+<b>💰 ${ctx.t('help.stats_financial', { default: 'Financial' })}:</b>
+• ${ctx.t('help.stats_income', { default: 'Income for period' })}
+• ${ctx.t('help.stats_expenses', { default: 'Order expenses' })}
+• ${ctx.t('help.stats_history', { default: 'Transaction history' })}
 
-<b>🎯 По трафику:</b>
-• Источники трафика
-• Качество подписчиков
-• Активность аудитории
+<b>🎯 ${ctx.t('help.stats_traffic', { default: 'Traffic statistics' })}:</b>
+• ${ctx.t('help.stats_sources', { default: 'Traffic sources' })}
+• ${ctx.t('help.stats_quality', { default: 'Subscriber quality' })}
+• ${ctx.t('help.stats_activity', { default: 'Audience activity' })}
 
-<b>📅 Периоды:</b>
-• Сегодня
-• Неделя
-• Месяц
-• Произвольный период
+<b>📅 ${ctx.t('help.stats_periods', { default: 'Periods' })}:</b>
+• ${ctx.t('help.period_today', { default: 'Today' })}
+• ${ctx.t('help.period_week', { default: 'Week' })}
+• ${ctx.t('help.period_month', { default: 'Month' })}
+• ${ctx.t('help.period_custom', { default: 'Custom period' })}
 
-<b>💡 Совет:</b>
-Анализируйте статистику для оптимизации кампаний!`;
+<b>💡 ${ctx.t('help.tip', { default: 'Tip' })}:</b>
+${ctx.t('help.stats_tip', { default: 'Analyze statistics to optimize campaigns!' })}`;
 
     const keyboard = new InlineKeyboard()
-      .text('📊 Посмотреть статистику', 'stats:overview')
+      .text(ctx.t('help.btn_view_stats', { default: '📊 View Statistics' }), 'stats:overview')
       .row()
-      .text('« Назад в справку', 'help');
+      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2540,39 +2537,39 @@ A: Да, все подписчики - реальные пользователи
   }
 
   private async handleHelpTraffic(ctx: BotContext): Promise<void> {
-    const text = `<b>🤖 Продажа трафика</b>
+    const text = `<b>🤖 ${ctx.t('help.traffic_title', { default: 'Selling Traffic' })}</b>
 
-Зарабатывайте, привлекая подписчиков для других каналов!
+${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers for other channels!' })}
 
-<b>Как это работает:</b>
-1. Добавьте свой бот/канал как источник трафика
-2. Показывайте рекламу в своих ботах
-3. Получайте оплату за каждого подписчика
+<b>${ctx.t('help.how_it_works', { default: 'How it works' })}:</b>
+1. ${ctx.t('help.traffic_step1', { default: 'Add your bot/channel as a traffic source' })}
+2. ${ctx.t('help.traffic_step2', { default: 'Show ads in your bots' })}
+3. ${ctx.t('help.traffic_step3', { default: 'Get paid for each subscriber' })}
 
-<b>💰 Сколько можно заработать:</b>
-• От $0.01 до $0.10 за подписчика
-• Зависит от качества аудитории
-• Выплаты автоматически
+<b>💰 ${ctx.t('help.traffic_earnings', { default: 'How much you can earn' })}:</b>
+• ${ctx.t('help.traffic_rate', { default: '$0.01 to $0.10 per subscriber' })}
+• ${ctx.t('help.traffic_depends', { default: 'Depends on audience quality' })}
+• ${ctx.t('help.traffic_auto', { default: 'Automatic payouts' })}
 
-<b>📋 Требования:</b>
-• Минимум 1000 активных пользователей
-• Реальные пользователи (не боты)
-• Соблюдение правил Telegram
+<b>📋 ${ctx.t('help.traffic_requirements', { default: 'Requirements' })}:</b>
+• ${ctx.t('help.traffic_req1', { default: 'Minimum 1000 active users' })}
+• ${ctx.t('help.traffic_req2', { default: 'Real users (not bots)' })}
+• ${ctx.t('help.traffic_req3', { default: 'Compliance with Telegram rules' })}
 
-<b>🚀 Преимущества:</b>
-• Автоматическая интеграция
-• Детальная статистика
-• Мгновенные выплаты
-• Поддержка 24/7
+<b>🚀 ${ctx.t('help.traffic_benefits', { default: 'Benefits' })}:</b>
+• ${ctx.t('help.traffic_ben1', { default: 'Automatic integration' })}
+• ${ctx.t('help.traffic_ben2', { default: 'Detailed statistics' })}
+• ${ctx.t('help.traffic_ben3', { default: 'Instant payouts' })}
+• ${ctx.t('help.traffic_ben4', { default: '24/7 Support' })}
 
-<i>Начните зарабатывать уже сегодня!</i>`;
+<i>${ctx.t('help.traffic_cta', { default: 'Start earning today!' })}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text('🤖 Добавить источник трафика', 'traffic:sources')
+      .text(ctx.t('help.btn_add_source', { default: '🤖 Add Traffic Source' }), 'traffic:sources')
       .row()
-      .text('📊 Мои источники', 'traffic')
+      .text(ctx.t('help.btn_my_sources', { default: '📊 My Sources' }), 'menu:traffic')
       .row()
-      .text('« Назад в справку', 'help');
+      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,

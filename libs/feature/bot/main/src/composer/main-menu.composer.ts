@@ -492,73 +492,43 @@ export class MainMenuComposer {
     /* eslint-enable @typescript-eslint/no-unused-vars */
     const buttons: MenuButton[][] = [];
 
-    // Core features row
+    // Centralized menu layout:
+    // Row 1: Sell Traffic | Buy Traffic
     buttons.push([
       {
-        text: balance ? `💰 Balance ($${balance.availableAmount.toFixed(2)})` : '💰 Balance',
-        callbackData: CallbackUtil.createMenuCallback('balance', 'navigate'),
-        metadata: { feature: 'balance', hasData: !!balance },
+        text: ctx.t('menu.main_menu.btn_sell_traffic'),
+        callbackData: 'menu:sell_traffic',
+        metadata: { feature: 'sell_traffic' },
       },
       {
-        text: '📈 Statistics',
-        callbackData: CallbackUtil.createMenuCallback('statistics', 'navigate'),
-        metadata: { feature: 'statistics' },
+        text: ctx.t('menu.main_menu.btn_buy_traffic'),
+        callbackData: 'menu:buy_traffic',
+        metadata: { feature: 'buy_traffic' },
       },
     ]);
 
-    // Traffic and campaigns row
+    // Row 2: Profile | Balance
     buttons.push([
       {
-        text: '🎯 Traffic',
-        callbackData: CallbackUtil.createMenuCallback('traffic', 'navigate'),
-        metadata: { feature: 'traffic' },
-      },
-      {
-        text: '📋 Campaigns',
-        callbackData: CallbackUtil.createMenuCallback('campaign', 'navigate'),
-        metadata: { feature: 'campaigns' },
-      },
-    ]);
-
-    // User management row
-    buttons.push([
-      {
-        text: '👤 Profile',
-        callbackData: CallbackUtil.createMenuCallback('profile', 'navigate'),
+        text: ctx.t('menu.main_menu.btn_profile'),
+        callbackData: 'profile:view',
         metadata: { feature: 'profile' },
       },
       {
-        text: '⚙️ Settings',
-        callbackData: CallbackUtil.createMenuCallback('settings', 'navigate'),
-        metadata: { feature: 'settings' },
+        text: balance
+          ? `${ctx.t('menu.main_menu.btn_balance')} ($${balance.availableAmount.toFixed(2)})`
+          : ctx.t('menu.main_menu.btn_balance'),
+        callbackData: 'balance:view',
+        metadata: { feature: 'balance', hasData: !!balance },
       },
     ]);
 
-    // Financial operations row
+    // Row 3: Support
     buttons.push([
       {
-        text: '💸 Withdraw',
-        callbackData: CallbackUtil.createMenuCallback('withdrawal', 'navigate'),
-        metadata: { feature: 'withdrawal', requiresBalance: true },
-      },
-      {
-        text: '🤝 Referrals',
-        callbackData: CallbackUtil.createMenuCallback('referral', 'navigate'),
-        metadata: { feature: 'referrals' },
-      },
-    ]);
-
-    // Utility row
-    buttons.push([
-      {
-        text: '❓ Help',
-        callbackData: CallbackUtil.createMenuCallback('help', 'navigate'),
-        metadata: { feature: 'help' },
-      },
-      {
-        text: '⚡ Quick Actions',
-        callbackData: CallbackUtil.createActionCallback('action', 'quick_menu'),
-        metadata: { feature: 'quick_actions' },
+        text: ctx.t('menu.main_menu.btn_support'),
+        callbackData: 'menu:support',
+        metadata: { feature: 'support' },
       },
     ]);
 
@@ -568,24 +538,24 @@ export class MainMenuComposer {
   private getDefaultMainMenu(ctx: BotContext): MenuConfig {
     const userName = ctx.from?.first_name || 'User';
 
+    // Centralized menu layout:
+    // Row 1: Sell Traffic | Buy Traffic
+    // Row 2: Profile | Balance
+    // Row 3: Support
     return {
       type: MenuType.Main,
       title: `Welcome, ${userName}! 🚀`,
-      description: 'Choose an option from the menu below:',
+      description: ctx.t('menu.main_menu.select_action'),
       buttons: [
         [
-          { text: '💰 Balance', callbackData: 'menu:balance' },
-          { text: '📈 Statistics', callbackData: 'menu:statistics' },
+          { text: ctx.t('menu.main_menu.btn_sell_traffic'), callbackData: 'menu:sell_traffic' },
+          { text: ctx.t('menu.main_menu.btn_buy_traffic'), callbackData: 'menu:buy_traffic' },
         ],
         [
-          { text: '🎯 Traffic', callbackData: 'menu:traffic' },
-          { text: '📋 Campaigns', callbackData: 'menu:campaign' },
+          { text: ctx.t('menu.main_menu.btn_profile'), callbackData: 'profile:view' },
+          { text: ctx.t('menu.main_menu.btn_balance'), callbackData: 'balance:view' },
         ],
-        [
-          { text: '👤 Profile', callbackData: 'menu:profile' },
-          { text: '⚙️ Settings', callbackData: 'menu:settings' },
-        ],
-        [{ text: '❓ Help', callbackData: 'menu:help' }],
+        [{ text: ctx.t('menu.main_menu.btn_support'), callbackData: 'menu:support' }],
       ],
       isInline: true,
     };
