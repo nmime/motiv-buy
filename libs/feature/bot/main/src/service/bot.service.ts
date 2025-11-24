@@ -1,6 +1,8 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
+import { RedisAdapter } from '@grammyjs/storage-redis';
 import type { Update } from 'grammy/types';
+import type { Redis, Cluster } from 'ioredis';
 import { BotCommand, BotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
 import { unknownToError, toError } from '@app/common-shared';
@@ -11,6 +13,7 @@ import { CallbackRouterHandler } from '../handler/callback-router.handler';
 import { BotAuthMiddleware } from '../middleware';
 import { BotUserService, BotSessionService } from './auth';
 import { protectHandler } from '../util';
+import { RedisInjectToken } from '@app/common-redis';
 
 /**
  * Extended Grammy Context with session and i18n support
@@ -51,6 +54,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     private readonly botUserService: BotUserService,
     private readonly botSessionService: BotSessionService,
     private readonly telegramModerationNotifier: TelegramModerationNotifier,
+    @Inject(RedisInjectToken) private readonly redis: Redis | Cluster,
   ) {
     // Note: ProfileActionHandler, SettingsActionHandler, BalanceActionHandler, and MenuActionHandler
     // cannot be injected here because they depend on services that are not available in bot.service.ts scope.
@@ -93,10 +97,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       // Create Grammy bot instance
       this.bot = new Bot<BotSessionContext>(botToken);
 
-      // Install session middleware
+      // Install session middleware with Redis storage for persistence
+      // Type assertion required: ioredis types are compatible but @grammyjs/storage-redis
+      // uses a slightly different type definition. Runtime compatibility verified.
+      const storage = new RedisAdapter({ instance: this.redis as Redis });
       this.bot.use(
         session({
           initial: () => ({}),
+          storage,
         }),
       );
 
