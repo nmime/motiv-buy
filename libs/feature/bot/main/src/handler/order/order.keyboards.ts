@@ -44,29 +44,8 @@ function getStatusText(status: OrderStatus): string {
 }
 
 /**
- * Main Menu Keyboard - centralized layout (fallback with hardcoded Russian)
- * NOTE: Prefer using MenuActionHandler.createMainMenuKeyboard(ctx) which uses translations
- * Row 1: Sell Traffic | Buy Traffic
- * Row 2: Profile | Balance
- * Row 3: Support
- */
-export function createMainMenuKeyboard(): InlineKeyboard {
-  const keyboard = new InlineKeyboard();
-
-  // Row 1: Sell Traffic | Buy Traffic
-  keyboard.text('💰 Продать трафик', 'menu:sell_traffic').text('🛒 Купить трафик', 'menu:buy_traffic').row();
-
-  // Row 2: Profile | Balance
-  keyboard.text('👤 Профиль', 'profile:view').text('💳 Баланс', 'balance:view').row();
-
-  // Row 3: Support
-  keyboard.text('🏢 Тех. поддержка', 'menu:support');
-
-  return keyboard;
-}
-
-/**
  * A1: Order List Keyboard (with pagination)
+ * NOTE: Main menu is now handled by MenuActionHandler.createMainMenuKeyboard(ctx) with translations
  */
 export function createOrderListKeyboard(orders: Order[], showDeleted = false, page = 1): InlineKeyboard {
   const keyboard = new InlineKeyboard();
