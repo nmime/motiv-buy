@@ -1,82 +1,88 @@
 # Development Guidelines & Code Standards
 
-> **IMPORTANT FOR AI AGENTS**: Read this entire document before writing ANY code. These rules are MANDATORY and violations will break the build.
+## TL;DR - CRITICAL RULES
+
+> **AI AGENT INSTRUCTION**: These 7 rules are NON-NEGOTIABLE. Violations will fail the build.
+
+| # | Rule | Instead Use |
+|---|------|-------------|
+| 1 | **NEVER** `any` type | `unknown` + type guards |
+| 2 | **NEVER** `as` assertions | Type guards (except `as const`) |
+| 3 | **NEVER** `+`,`-`,`*`,`/` for money | `add()`, `subtract()`, `multiply()`, `divide()` |
+| 4 | **NEVER** `switch`/`if-else-if` | `Record<K,V>` object lookup |
+| 5 | **NEVER** import `*-main` in libs | Only `*-shared` in libs |
+| 6 | **NEVER** hardcode strings | `ctx.t('key')` from locales |
+| 7 | **NEVER** duplicate functions | Search first, reuse existing |
 
 ---
 
-## STOP - READ BEFORE YOU CODE
+## BEFORE YOU CODE - MANDATORY CHECKLIST
 
-### MANDATORY PRE-CODING CHECKLIST
-
-Before writing ANY code, you MUST:
-
-1. **SEARCH for existing functions** - Run grep/search for similar functionality before creating new functions
-2. **CHECK locale files** - All user-facing strings MUST exist in `libs/common/intl/locales/{en,ru}/*.json`
-3. **VERIFY imports** - Never import `@app/feature-*-main` from within `libs/`
-4. **USE Decimal.js** - Any arithmetic with money MUST use `@app/common-shared/util` functions
+```
+[ ] SEARCHED for existing similar functions in codebase
+[ ] CHECKED locale files exist for any user-facing text
+[ ] VERIFIED imports don't use @app/feature-*-main from libs/
+[ ] CONFIRMED using Decimal.js for any money calculations
+```
 
 ---
 
-## CRITICAL RULES - VIOLATIONS WILL FAIL BUILD
+## CRITICAL RULES - VIOLATIONS FAIL BUILD
 
 ### RULE 1: NO `any` TYPE
 
 ```typescript
-// FORBIDDEN - Will fail lint
+// FORBIDDEN
 function process(data: any) { }
 
-// REQUIRED - Use unknown + type guards
+// REQUIRED
 function process(data: unknown) {
   if (isValidData(data)) { /* safe */ }
 }
 ```
-
-**Action**: Use `unknown` with type guards. Never use `any`.
 
 ---
 
 ### RULE 2: NO `as` TYPE ASSERTIONS
 
 ```typescript
-// FORBIDDEN - Unsafe cast
+// FORBIDDEN
 const user = data as User;
 
-// REQUIRED - Type guard
+// REQUIRED
 if (isUser(data)) {
   const user = data; // Type-safe
 }
 ```
 
-**Exception**: `as const` for literal types is allowed.
+**Exception**: `as const` is allowed.
 
 ---
 
 ### RULE 3: NO NATIVE ARITHMETIC FOR MONEY
 
 ```typescript
-// FORBIDDEN - Precision loss
+// FORBIDDEN
 const total = price + tax;
-const result = amount * rate;
 
-// REQUIRED - Decimal.js utilities
-import { add, multiply, subtract, divide } from '@app/common-shared/util';
+// REQUIRED
+import { add, subtract, multiply, divide } from '@app/common-shared/util';
 const total = add(price, tax);
-const result = multiply(amount, rate);
 ```
 
-**Import map**:
-| Operation | Function |
-|-----------|----------|
+| Native | Decimal.js |
+|--------|------------|
 | `a + b` | `add(a, b)` |
 | `a - b` | `subtract(a, b)` |
 | `a * b` | `multiply(a, b)` |
 | `a / b` | `divide(a, b)` |
 | `parseFloat(x)` | `decimal(x)` |
 | `.toFixed(8)` | `toDbString(x, 8)` |
+| `.toFixed(2)` | `toDisplayString(x, 2)` |
 
 ---
 
-### RULE 4: NO SWITCH/IF-ELSE-IF CHAINS
+### RULE 4: NO SWITCH/IF-ELSE-IF
 
 ```typescript
 // FORBIDDEN
@@ -88,7 +94,7 @@ switch (status) {
 // FORBIDDEN
 if (status === 'pending') { } else if (status === 'done') { }
 
-// REQUIRED - Object/Map lookup
+// REQUIRED
 const HANDLERS: Record<Status, Handler> = {
   pending: handlePending,
   done: handleDone,
@@ -101,56 +107,52 @@ const handler = HANDLERS[status];
 ### RULE 5: NO CROSS-MODULE MAIN IMPORTS
 
 ```typescript
-// FORBIDDEN - From within libs/
+// FORBIDDEN - From libs/
 import { PaymentService } from '@app/feature-payment-main'; // CIRCULAR!
 
-// ALLOWED - Only from apps/
-// apps/api/src/controller.ts
+// ALLOWED - From apps/
 import { PaymentService } from '@app/feature-payment-main'; // OK
 ```
 
-**Import rules**:
-- `libs/` can import: `@app/common-*`, `@app/database`, `@app/feature-*-shared`
-- `apps/` can import: Everything including `@app/feature-*-main`
+| Location | Can Import |
+|----------|------------|
+| `libs/` | `@app/common-*`, `@app/database`, `@app/feature-*-shared` |
+| `apps/` | Everything including `@app/feature-*-main` |
 
 ---
 
-### RULE 6: NO HARDCODED USER-FACING STRINGS
+### RULE 6: NO HARDCODED STRINGS
 
 ```typescript
-// FORBIDDEN - Hardcoded text
+// FORBIDDEN
 await ctx.reply('Welcome to the bot!');
-await ctx.reply('Your balance: ' + balance);
 
-// REQUIRED - Use localization
+// REQUIRED
 await ctx.reply(ctx.t('bot.welcome'));
-await ctx.reply(ctx.t('balance.current', { amount: balance }));
+await ctx.reply(ctx.t('balance.current', { amount }));
 ```
 
-**Locale files location**: `libs/common/intl/locales/{en,ru}/*.json`
+**Locale path**: `libs/common/intl/locales/{en,ru}/*.json`
 
-**Before adding new text**:
-1. Add key to `en/*.json`
-2. Add key to `ru/*.json`
-3. Use `ctx.t('key')` or i18n service
+**Steps**: 1) Add to `en/*.json` 2) Add to `ru/*.json` 3) Use `ctx.t('key')`
 
 ---
 
 ### RULE 7: NO DUPLICATE FUNCTIONS
 
-**BEFORE creating ANY new function**:
+**BEFORE creating ANY function**:
 
-1. Search codebase: `grep -r "functionName" libs/`
-2. Check `@app/common-shared` for existing utilities
-3. If similar logic exists, REUSE or EXTEND it
+1. `grep -r "functionName" libs/`
+2. Check `@app/common-shared` utilities
+3. If exists → REUSE, don't duplicate
 
 ```typescript
-// FORBIDDEN - Duplicating existing logic
+// FORBIDDEN
 function formatBalance(amount: string): string {
   return new Decimal(amount).toFixed(2);
 }
 
-// REQUIRED - Use existing utility
+// REQUIRED
 import { toDisplayString } from '@app/common-shared/util';
 const formatted = toDisplayString(amount, 2);
 ```
@@ -162,123 +164,88 @@ const formatted = toDisplayString(amount, 2);
 ```
 /
 ├── apps/
-│   ├── api/              # REST API (imports from libs/*/main)
-│   ├── bot/              # Telegram bot (imports from libs/*/main)
-│   └── migration/        # Database migrations
+│   ├── api/              # REST API → can import libs/*/main
+│   ├── bot/              # Telegram bot → can import libs/*/main
+│   └── migration/        # DB migrations
 └── libs/
-    ├── common/           # Cross-domain utilities
-    │   ├── exception/    # Exception handling
-    │   ├── health/       # Health checks
-    │   ├── intl/         # i18n & locales
-    │   ├── logger/       # Logging (use instead of console.log)
-    │   ├── nats/         # NATS messaging
-    │   ├── redis/        # Redis caching
-    │   ├── response/     # Response formatting
-    │   ├── shared/       # Utilities (Decimal, Result, etc.)
-    │   └── validation/   # Validation pipes
+    ├── common/
+    │   ├── intl/         # i18n & locales ← ALL user strings here
+    │   ├── logger/       # Logger ← use instead of console.log
+    │   ├── shared/       # Decimal utils, Result type
+    │   └── ...
     ├── database/         # Entities & repositories
-    └── feature/          # Domain modules
-        ├── auth/
-        ├── balance/
-        ├── bot/
-        ├── currency/
-        ├── notification/
-        ├── order/
-        ├── payment/
-        ├── statistic/
-        ├── traffic/
-        └── user/
-            ├── main/     # Business logic (apps only)
+    └── feature/
+        └── {module}/
+            ├── main/     # Business logic (apps ONLY)
             └── shared/   # DTOs, types (libs can import)
 ```
 
 ---
 
-## ESLINT RULES - ENFORCED
+## ESLINT - ENFORCED RULES
 
-### Naming Conventions
+### Naming
 
 | Element | Format | Example |
 |---------|--------|---------|
-| Variables | camelCase | `userName`, `orderCount` |
-| Functions | camelCase | `getUserById`, `processOrder` |
-| Classes | PascalCase | `UserEntity`, `PaymentService` |
-| Interfaces | PascalCase | `CreateUserDto`, `OrderStatus` |
+| Variables/Functions | camelCase | `userName`, `getUser` |
+| Classes/Interfaces | PascalCase | `UserEntity`, `CreateUserDto` |
 | Enum Keys | StrictPascalCase | `Pending`, `Completed` |
 | Enum Values | snake_case or UPPER | `"pending"`, `"USD"` |
 
 ### Enum Values
 
 ```typescript
-// CORRECT - snake_case
+// CORRECT
 enum OrderStatus {
-  Pending = 'pending',
+  Pending = 'pending',        // snake_case
   InProgress = 'in_progress',
 }
 
-// CORRECT - Short uppercase (2-5 chars)
 enum Currency {
-  Usd = 'USD',
+  Usd = 'USD',  // UPPER (2-5 chars)
   Btc = 'BTC',
 }
 
 // WRONG - Will fail lint
 enum Status {
-  Pending = 'Pending', // Must be 'pending'
-}
-```
-
-### Required Formatting
-
-```typescript
-// REQUIRED - Blank lines between class members
-class UserService {
-  private readonly logger: Logger;
-
-  constructor(private userRepo: UserRepository) {}
-
-  async findById(id: string): Promise<User> {
-    return this.userRepo.findOne({ id });
-  }
-
-  async update(id: string, dto: UpdateUserDto): Promise<User> {
-    // implementation
-  }
+  Pending = 'Pending',  // Must be 'pending'
 }
 ```
 
 ### Key Rules
 
-- `no-console` - Use `@app/common-logger` instead
-- `eqeqeq` - Always `===` and `!==`
-- `curly` - Always use braces `{ }`
-- `no-await-in-loop` - Use `Promise.all()` instead
-- `no-param-reassign` - Don't modify parameters
-- `@typescript-eslint/no-non-null-assertion` - No `!` assertions
-- `@typescript-eslint/explicit-member-accessibility` - No `public` keyword
+| Rule | Meaning |
+|------|---------|
+| `no-console` | Use `@app/common-logger` |
+| `eqeqeq` | Always `===` and `!==` |
+| `curly` | Always use `{ }` braces |
+| `no-await-in-loop` | Use `Promise.all()` |
+| `no-param-reassign` | Don't modify params |
+| `no-non-null-assertion` | No `!` operator |
+| `explicit-member-accessibility` | No `public` keyword |
+
+### Class Format
+
+```typescript
+class UserService {
+  private readonly logger: Logger;
+  // ↑ blank line ↓
+  constructor(private userRepo: UserRepository) {}
+  // ↑ blank line ↓
+  async findById(id: string): Promise<User> {
+    return this.userRepo.findOne({ id });
+  }
+}
+```
 
 ---
 
 ## TYPE SAFETY
 
-### TypeScript Strict Mode
-
-All these flags are enabled - code MUST comply:
-
-```json
-{
-  "strict": true,
-  "noImplicitAny": true,
-  "strictNullChecks": true,
-  "strictFunctionTypes": true,
-  "strictPropertyInitialization": true
-}
-```
-
-### Type Guards Pattern
+### Type Guard Pattern
 
 ```typescript
-// Define type guard
 function isUser(data: unknown): data is User {
   return (
     typeof data === 'object' &&
@@ -288,13 +255,12 @@ function isUser(data: unknown): data is User {
   );
 }
 
-// Use type guard
 function processUser(data: unknown) {
   if (!isUser(data)) {
     throw new Error('Invalid user data');
   }
-  // data is now typed as User
-  console.log(data.email);
+  // data is now User type
+  return data.email;
 }
 ```
 
@@ -302,42 +268,26 @@ function processUser(data: unknown) {
 
 ## DECIMAL ARITHMETIC
 
-### Why Required
-
-```javascript
-0.1 + 0.2 === 0.3  // false! Returns 0.30000000000000004
-```
-
-### Required Functions
-
 ```typescript
 import {
-  decimal,        // Create Decimal instance
-  add,            // Addition
-  subtract,       // Subtraction
-  multiply,       // Multiplication
-  divide,         // Division
-  sum,            // Sum array
-  percentage,     // Calculate percentage
-  toDbString,     // Format for DB storage
-  toDisplayString,// Format for display
-  toNumber,       // Convert to number (display only!)
+  decimal,         // Create instance
+  add,             // a + b
+  subtract,        // a - b
+  multiply,        // a * b
+  divide,          // a / b
+  sum,             // Array sum
+  toDbString,      // DB storage
+  toDisplayString, // UI display
+  toNumber,        // Final output only
 } from '@app/common-shared/util';
-```
 
-### Usage
-
-```typescript
-// Calculate total
+// Usage
 const total = add(price, tax);
 const discount = multiply(total, '0.1');
-const final = subtract(total, discount);
-
-// Save to database
 user.balance = toDbString(add(balance, amount), 8);
 
-// Display to user (ONLY at final output)
-return { balance: toNumber(final) };
+// toNumber ONLY for final API response
+return { balance: toNumber(total) };
 ```
 
 ---
@@ -358,10 +308,8 @@ async function createPayment(dto: CreatePaymentDto): Promise<Result<Payment, Err
   }
 }
 
-// Usage
 const result = await createPayment(dto);
 if (result.err) {
-  logger.error('Payment failed', result.val);
   throw result.val;
 }
 const payment = result.val;
@@ -371,13 +319,12 @@ const payment = result.val;
 
 ```typescript
 // CORRECT - Parallel
-const [user, balance, orders] = await Promise.all([
+const [user, balance] = await Promise.all([
   this.userRepo.findById(userId),
   this.balanceRepo.findByUser(userId),
-  this.orderRepo.findByUser(userId),
 ]);
 
-// WRONG - Sequential (slow)
+// WRONG - Sequential
 const user = await this.userRepo.findById(userId);
 const balance = await this.balanceRepo.findByUser(userId);
 ```
@@ -404,68 +351,32 @@ export class CreateOrderDto {
 
 ---
 
-## FILE ORGANIZATION
+## FILE RULES
 
-### Rules
-
-1. **Maximum 500 lines per file** - Split if larger
-2. **No files in root folder** - Use appropriate directories
-3. **File naming**:
-   - `*.service.ts` - Services
-   - `*.controller.ts` - Controllers
-   - `*.repository.ts` - Repositories
-   - `*.entity.ts` - Entities
-   - `*.dto.ts` - DTOs
-   - `*.interface.ts` - Interfaces
-   - `*.constants.ts` - Constants
+- **MUST** keep files under 500 lines
+- **MUST** use proper naming: `*.service.ts`, `*.controller.ts`, `*.entity.ts`, `*.dto.ts`
+- **NEVER** save files to root folder
 
 ---
 
-## BUILD & COMMANDS
-
-### Package Manager
-
-**Use `pnpm` only** - Not npm or yarn.
-
-### Required Commands After Changes
+## COMMANDS
 
 ```bash
-pnpm run build    # Build project
-pnpm run test     # Run tests
-pnpm run lint     # Check linting (MUST PASS)
-pnpm run lint:fix # Auto-fix lint issues
-```
+# Package manager - pnpm ONLY
+pnpm install
 
-### Development
+# After changes - ALL must pass
+pnpm run build
+pnpm run test
+pnpm run lint
 
-```bash
-pnpm run dev          # Start all services
-pnpm run dev:api      # Start API only
-pnpm run dev:bot      # Start bot only
-```
+# Development
+pnpm run dev:api
+pnpm run dev:bot
 
-### Database
-
-```bash
-pnpm run migration:run    # Run migrations
-pnpm run migration:status # Check status
-pnpm run migration:revert # Rollback last
-```
-
----
-
-## ENVIRONMENT VARIABLES
-
-```typescript
-// FORBIDDEN - Hardcoded secrets
-const apiKey = 'sk-xxx-hardcoded';
-
-// REQUIRED - Use ConfigService
-import { ConfigService } from '@nestjs/config';
-
-constructor(private config: ConfigService) {}
-
-const apiKey = this.config.get<string>('CRYPTO_BOT_API_KEY');
+# Database
+pnpm run migration:run
+pnpm run migration:status
 ```
 
 ---
@@ -473,18 +384,18 @@ const apiKey = this.config.get<string>('CRYPTO_BOT_API_KEY');
 ## DATABASE
 
 ```typescript
-// Monetary values - ALWAYS decimal(20,8)
+// Monetary - ALWAYS decimal(20,8)
 @Property({ type: 'decimal(20,8)' })
 balance: string;
 
-// Indexes for queried fields
+// Indexes for queries
 @Index()
 @Property()
 userId: string;
 
-// Transactions for multi-step operations
+// Transactions
 await this.em.transactional(async (em) => {
-  const user = await em.findOne(UserEntity, { id: userId });
+  const user = await em.findOne(UserEntity, { id });
   user.balance = newBalance;
   await em.flush();
 });
@@ -492,56 +403,82 @@ await this.em.transactional(async (em) => {
 
 ---
 
+## ENVIRONMENT
+
+```typescript
+// FORBIDDEN
+const apiKey = 'hardcoded-secret';
+
+// REQUIRED
+import { ConfigService } from '@nestjs/config';
+const apiKey = this.config.get<string>('API_KEY');
+```
+
+---
+
+## BEFORE COMMIT CHECKLIST
+
+```
+[ ] No `any` types in code
+[ ] No `as` assertions (except `as const`)
+[ ] All money uses Decimal.js functions
+[ ] No switch/if-else-if chains
+[ ] No @app/feature-*-main imports from libs/
+[ ] All user strings in locale files
+[ ] No duplicate functions created
+[ ] pnpm run lint passes
+[ ] pnpm run build passes
+[ ] pnpm run test passes
+```
+
+---
+
 ## QUICK REFERENCE
 
-### MUST DO - REQUIRED
+### MUST - REQUIRED
 
-- **MUST** use TypeScript strict mode
-- **MUST** use Decimal.js for money (`add`, `subtract`, `multiply`, `divide`)
-- **MUST** use type guards instead of `as` assertions
-- **MUST** use Maps/objects instead of switch/if-else
-- **MUST** use Result type for fallible operations
-- **MUST** use module separation (main vs shared)
-- **MUST** use ConfigService for environment variables
-- **MUST** use localization for all user-facing text
-- **MUST** use `Promise.all()` for parallel operations
-- **MUST** search for existing functions before creating new ones
-- **MUST** keep files under 500 lines
+- **MUST** use `unknown` + type guards for dynamic data
+- **MUST** use `add()`, `subtract()`, `multiply()`, `divide()` for money
+- **MUST** use `Record<K,V>` instead of switch/if-else
+- **MUST** use `ctx.t('key')` for user-facing text
+- **MUST** use `@app/common-logger` instead of console.log
+- **MUST** use `ConfigService` for environment variables
+- **MUST** use `Promise.all()` for parallel async operations
+- **MUST** search codebase before creating new functions
 - **MUST** run `pnpm run lint` before committing
 
-### NEVER DO - FORBIDDEN
+### NEVER - FORBIDDEN
 
-- **NEVER** use `any` type - use `unknown` with type guards
-- **NEVER** use `as` type assertions - only `as const` allowed
-- **NEVER** use `+`, `-`, `*`, `/` for money - use Decimal.js
-- **NEVER** use `switch` or `if-else-if` - use Map/object lookup
-- **NEVER** use `parseFloat` for financial data - use `decimal()`
-- **NEVER** import `@app/feature-*-main` from `libs/` - circular dependency
-- **NEVER** hardcode secrets or user-facing strings - use config/locales
-- **NEVER** use `console.log` - use `@app/common-logger`
-- **NEVER** create duplicate functions - search and reuse existing
-- **NEVER** skip error handling - use Result type or try/catch
-- **NEVER** commit commented-out code - delete unused code
-- **NEVER** use magic numbers - define named constants
+- **NEVER** use `any` type → use `unknown` with type guards
+- **NEVER** use `as` assertions → use type guards
+- **NEVER** use `+`,`-`,`*`,`/` for money → use Decimal.js
+- **NEVER** use `switch`/`if-else-if` → use object lookup
+- **NEVER** use `parseFloat` for money → use `decimal()`
+- **NEVER** import `@app/feature-*-main` from libs/ → circular dependency
+- **NEVER** hardcode strings → use locale files
+- **NEVER** use `console.log` → use logger service
+- **NEVER** duplicate functions → search and reuse
+- **NEVER** skip error handling → use Result type
+- **NEVER** commit commented code → delete it
+- **NEVER** use magic numbers → define constants
 
 ---
 
 ## RESOURCES
 
-- **Locale Files**: `libs/common/intl/locales/`
-- **Shared Utilities**: `libs/common/shared/src/`
-- **Database Entities**: `libs/database/src/`
+| Resource | Path |
+|----------|------|
+| Locale Files | `libs/common/intl/locales/` |
+| Shared Utils | `libs/common/shared/src/` |
+| Entities | `libs/database/src/` |
+| Logger | `@app/common-logger` |
 
 ---
 
 <!-- nx configuration start-->
-<!-- Leave the start & end comments to automatically receive updates. -->
+# Nx
 
-# Nx Guidelines
-
-- Run tasks through `nx` (e.g., `nx run`, `nx run-many`, `nx affected`)
-- Use `nx_workspace` tool to understand workspace architecture
-- Use `nx_project_details` for specific project structure
-- Use `nx_docs` for configuration questions
-
+- Run tasks via `nx run`, `nx run-many`, `nx affected`
+- Use `nx_workspace` for architecture overview
+- Use `nx_project_details` for project structure
 <!-- nx configuration end-->
