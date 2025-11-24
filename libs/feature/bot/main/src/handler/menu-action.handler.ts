@@ -414,7 +414,9 @@ export class MenuActionHandler {
   async validateMenuAccess(ctx: BotContext, requiredRole?: string): Promise<boolean> {
     if (!isAuthenticated(ctx)) {
       await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Please use /start to begin.' }),
+        ctx.t('common.errors.authentication_required', {
+          default: 'Authentication required. Please use /start to begin.',
+        }),
       );
 
       return false;

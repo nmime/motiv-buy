@@ -6,7 +6,7 @@ import type { Redis, Cluster } from 'ioredis';
 import { BotCommand, BotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
 import { unknownToError, toError } from '@app/common-shared';
-import { OrderHandler } from '../features/order/order.handler';
+import { OrderHandler } from '../handler/order';
 import { I18nService } from 'nestjs-i18n';
 import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl';
 import { CallbackRouterHandler } from '../handler/callback-router.handler';

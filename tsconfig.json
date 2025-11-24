@@ -44,7 +44,9 @@
       "@app/feature-user-main": ["libs/feature/user/main/src"],
       "@app/feature-user-shared": ["libs/feature/user/shared/src"],
       "@app/feature-notification-main": ["libs/feature/notification/main/src"],
-      "@app/feature-notification-shared": ["libs/feature/notification/shared/src"]
+      "@app/feature-notification-shared": ["libs/feature/notification/shared/src"],
+      "@app/feature-order-main": ["libs/feature/order/main/src"],
+      "@app/feature-order-shared": ["libs/feature/order/shared/src"]
     }
   }
 }

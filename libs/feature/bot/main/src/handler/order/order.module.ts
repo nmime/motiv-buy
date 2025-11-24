@@ -1,7 +1,7 @@
 /**
- * Order Feature Module
+ * Order Feature Module (Bot UI)
  *
- * Provides order management functionality including:
+ * Provides order UI handlers for the bot including:
  * - Order creation flow (A1-A6)
  * - Order configuration and editing
  * - Order statistics and analytics
@@ -10,20 +10,20 @@
 
 import { Module } from '@nestjs/common';
 import { BotSharedModule } from '@app/feature-bot-shared';
-import { OrderService } from './order.service';
+import { BotOrderService } from './bot-order.service';
 import { OrderHandler } from './order.handler';
 import { OrderConfigHandler, OrderCreationHandler, OrderEditHandler, OrderManagementHandler } from './handlers';
 
 @Module({
   imports: [BotSharedModule],
   providers: [
-    OrderService,
+    BotOrderService,
     OrderHandler,
     OrderCreationHandler,
     OrderManagementHandler,
     OrderConfigHandler,
     OrderEditHandler,
   ],
-  exports: [OrderService, OrderHandler],
+  exports: [BotOrderService, OrderHandler],
 })
 export class OrderModule {}

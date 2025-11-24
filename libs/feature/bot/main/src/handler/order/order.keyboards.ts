@@ -5,7 +5,7 @@
  */
 
 import { InlineKeyboard } from 'grammy';
-import { availableTopics, Order, OrderDisplayLocation, OrderStatus, UserGender } from './order.types';
+import { availableTopics, Order, OrderDisplayLocation, OrderStatus, UserGender } from '@app/feature-order-shared';
 
 /**
  * Pagination configuration

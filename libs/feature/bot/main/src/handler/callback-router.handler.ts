@@ -76,7 +76,9 @@ export class CallbackRouterHandler {
   private withAuth(handler: (ctx: AuthenticatedBotContext) => Promise<void>): (ctx: BotContext) => Promise<void> {
     return async (ctx: BotContext) => {
       if (!isAuthenticated(ctx)) {
-        await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+        await ctx.reply(
+          ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+        );
 
         return;
       }
@@ -93,7 +95,9 @@ export class CallbackRouterHandler {
   ): (ctx: BotContext, params: string[]) => Promise<void> {
     return async (ctx: BotContext, params: string[]) => {
       if (!isAuthenticated(ctx)) {
-        await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+        await ctx.reply(
+          ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+        );
 
         return;
       }
@@ -421,7 +425,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.profileHandler.handleProfileView(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
     }
   }
 
@@ -436,7 +442,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.balanceHandler.handleBalanceView(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
     }
   }
 
@@ -451,7 +459,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.statisticsHandler.handleStatisticsOverview(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
     }
   }
 
@@ -466,7 +476,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.handleOrdersMenu(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
     }
   }
 
@@ -481,7 +493,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.settingsHandler.handleSettingsView(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
     }
   }
 
@@ -538,7 +552,9 @@ export class CallbackRouterHandler {
     if (isAuthenticated(ctx)) {
       await this.handleReferralsMenu(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
     }
   }
 
@@ -549,7 +565,9 @@ export class CallbackRouterHandler {
     if (isAuthenticated(ctx)) {
       await this.handlePaymentsMenu(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
     }
   }
 
@@ -558,7 +576,9 @@ export class CallbackRouterHandler {
    */
   private async routeDepositAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
 
       return;
     }
@@ -590,7 +610,9 @@ export class CallbackRouterHandler {
    */
   private async routeWithdrawalAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
 
       return;
     }
@@ -623,7 +645,9 @@ export class CallbackRouterHandler {
     const trafficActionHandlers: Record<string, (ctx: BotContext, params: string[]) => Promise<void>> = {
       sources: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+          await ctx.reply(
+            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+          );
 
           return;
         }
@@ -636,7 +660,9 @@ export class CallbackRouterHandler {
       },
       targets: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+          await ctx.reply(
+            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+          );
 
           return;
         }
@@ -649,7 +675,9 @@ export class CallbackRouterHandler {
       },
       source: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+          await ctx.reply(
+            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+          );
 
           return;
         }
@@ -669,7 +697,9 @@ export class CallbackRouterHandler {
       },
       target: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+          await ctx.reply(
+            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+          );
 
           return;
         }
@@ -689,7 +719,9 @@ export class CallbackRouterHandler {
       },
       analytics: async (ctx) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+          await ctx.reply(
+            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+          );
 
           return;
         }
@@ -704,7 +736,9 @@ export class CallbackRouterHandler {
       await handler(ctx, params);
     } else {
       if (!isAuthenticated(ctx)) {
-        await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+        await ctx.reply(
+          ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+        );
 
         return;
       }
@@ -764,7 +798,9 @@ export class CallbackRouterHandler {
    */
   private async routeCampaignAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
 
       return;
     }
@@ -777,7 +813,9 @@ export class CallbackRouterHandler {
    */
   private async routeAdminAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
 
       return;
     }
@@ -801,7 +839,9 @@ export class CallbackRouterHandler {
     if (isAuthenticated(ctx)) {
       await this.profileHandler.handleVerification(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
     }
   }
 
@@ -810,7 +850,9 @@ export class CallbackRouterHandler {
    */
   private async routeExportAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
 
       return;
     }
@@ -823,7 +865,9 @@ export class CallbackRouterHandler {
    */
   private async routeResetAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }));
+      await ctx.reply(
+        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
+      );
 
       return;
     }
