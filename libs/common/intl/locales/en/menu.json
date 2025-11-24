@@ -54,7 +54,7 @@
     }
   },
   "main_menu": {
-    "select_action": "Select an option 👇",
+    "select_action": "💰 Earn by selling traffic from your channels\n🛒 Buy targeted subscribers for your channels\n\nWhat would you like to do?",
     "btn_sell_traffic": "💰 Sell Traffic",
     "btn_buy_traffic": "🛒 Buy Traffic",
     "btn_profile": "👤 Profile",
