@@ -128,7 +128,8 @@ export class BotOrderService extends OrderService {
    * Cleanup expired sessions
    */
   private cleanupExpiredSessions(): void {
-    this.botLogger.debug('Session cleanup would run here with database integration');
+    // Session cleanup is handled by Redis TTL automatically
+    // This method is kept for future database-backed session cleanup if needed
   }
 }
 

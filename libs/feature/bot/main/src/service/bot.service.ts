@@ -94,8 +94,13 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         throw new Error(this.i18n.t('common.errors.bot_token_not_configured'));
       }
 
-      // Create Grammy bot instance
-      this.bot = new Bot<BotSessionContext>(botToken);
+      // Create Grammy bot instance with client configuration
+      const pollingConfig = this.botConfigService.getBotConfig().polling;
+      this.bot = new Bot<BotSessionContext>(botToken, {
+        client: {
+          timeoutSeconds: pollingConfig?.timeout || 30,
+        },
+      });
 
       // Install session middleware with Redis storage for persistence
       // Type assertion required: ioredis types are compatible but @grammyjs/storage-redis
@@ -207,9 +212,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     this.webhookMode = false;
     this.isRunning = true;
 
-    await this.bot.start();
-
-    this.logger.log('Bot started successfully in polling mode');
+    const pollingConfig = this.botConfigService.getBotConfig().polling;
+    await this.bot.start({
+      allowed_updates: [],
+      drop_pending_updates: pollingConfig?.dropPendingUpdates,
+      onStart: () => {
+        this.logger.log('Bot started successfully in polling mode');
+      },
+    });
   }
 
   /**
