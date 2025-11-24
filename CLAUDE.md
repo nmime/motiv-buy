@@ -6,10 +6,12 @@
 2. [Critical Rules](#critical-rules)
 3. [Module Architecture](#module-architecture)
 4. [Type Safety & TypeScript](#type-safety--typescript)
-5. [Decimal Arithmetic](#decimal-arithmetic)
-6. [Code Style & Patterns](#code-style--patterns)
-7. [File Organization](#file-organization)
-8. [Build & Development](#build--development)
+5. [ESLint & Code Style](#eslint--code-style)
+6. [Localization](#localization)
+7. [Decimal Arithmetic](#decimal-arithmetic)
+8. [Code Patterns](#code-patterns)
+9. [File Organization](#file-organization)
+10. [Build & Development](#build--development)
 
 ---
 
@@ -59,6 +61,12 @@ NestJS monorepo application with:
    - Only apps can import from `libs/*/main`
    - See [Module Architecture](#module-architecture)
 
+6. **NO HARDCODED USER-FACING STRINGS**
+   - ALL user-facing text MUST be in locale files
+   - Locale files: `libs/common/intl/locales/{lang}/*.json`
+   - Use i18n service/decorators for translations
+   - See [Localization](#localization) section
+
 ---
 
 ## Module Architecture
@@ -66,24 +74,36 @@ NestJS monorepo application with:
 ### Directory Structure
 
 ```
-monorepo/
+/
 ├── apps/
 │   ├── api/              # REST API application
-│   └── bot/              # Telegram bot application
+│   ├── bot/              # Telegram bot application
+│   └── migration/        # Database migration CLI
 └── libs/
     ├── common/           # Cross-domain utilities
-    │   ├── exception/
-    │   ├── logger/
-    │   ├── validation/
-    │   └── shared/       # Common utilities for ALL domains
+    │   ├── exception/    # Exception handling
+    │   ├── health/       # Health checks
+    │   ├── intl/         # Internationalization & locales
+    │   ├── logger/       # Logging utilities
+    │   ├── nats/         # NATS messaging
+    │   ├── redis/        # Redis caching
+    │   ├── response/     # Response formatting
+    │   ├── shared/       # Common utilities for ALL domains
+    │   └── validation/   # Validation utilities
     ├── database/         # Database entities & repositories
     └── feature/          # Domain-specific modules
-        ├── auth/
-        │   ├── main/     # Business logic (apps import)
-        │   └── shared/   # Types/DTOs (other libs import)
-        ├── payment/
-        ├── balance/
-        └── traffic/
+        ├── auth/         # Authentication
+        ├── balance/      # User balance management
+        ├── bot/          # Bot-specific logic
+        ├── currency/     # Currency handling
+        ├── notification/ # Notifications
+        ├── order/        # Order management
+        ├── payment/      # Payment processing
+        ├── statistic/    # Statistics & analytics
+        ├── traffic/      # Traffic management
+        └── user/         # User management
+            ├── main/     # Business logic (apps import)
+            └── shared/   # Types/DTOs (other libs import)
 ```
 
 ### Module Import Rules
@@ -217,6 +237,119 @@ function handleError(error: unknown) {
 
 ---
 
+## ESLint & Code Style
+
+**Always run `pnpm run lint` before committing.** ESLint is configured with strict rules.
+
+### Naming Conventions (Enforced by ESLint)
+
+| Element         | Format              | Example                        |
+| --------------- | ------------------- | ------------------------------ |
+| Variables       | camelCase           | `userName`, `orderCount`       |
+| Functions       | camelCase           | `getUserById`, `processOrder`  |
+| Classes/Types   | PascalCase          | `UserEntity`, `PaymentService` |
+| Interfaces      | PascalCase          | `CreateUserDto`, `OrderStatus` |
+| Enum Keys       | StrictPascalCase    | `Pending`, `Completed`         |
+| Enum Values     | snake_case or codes | `"pending"`, `"USD"`, `"10"`   |
+
+### Enum Value Rules
+
+```typescript
+// ✅ CORRECT - snake_case values
+enum OrderStatus {
+  Pending = 'pending',
+  InProgress = 'in_progress',
+  Completed = 'completed',
+}
+
+// ✅ CORRECT - short uppercase codes (2-5 chars)
+enum Currency {
+  Usd = 'USD',
+  Btc = 'BTC',
+}
+
+// ❌ WRONG - PascalCase values
+enum OrderStatus {
+  Pending = 'Pending', // ❌ Not snake_case
+}
+```
+
+### Key ESLint Rules
+
+- **`no-console`**: Use logger service instead of `console.log`
+- **`eqeqeq`**: Always use `===` and `!==`
+- **`curly`**: Always use braces for control statements
+- **`no-var`**: Use `const` or `let`
+- **`prefer-destructuring`**: Use destructuring for objects/arrays
+- **`no-await-in-loop`**: Avoid await in loops, use `Promise.all`
+- **`no-param-reassign`**: Don't reassign function parameters
+- **`@typescript-eslint/no-non-null-assertion`**: No `!` assertions
+- **`@typescript-eslint/explicit-member-accessibility`**: No `public` keyword
+
+### Class Member Formatting
+
+```typescript
+// ✅ CORRECT - blank lines between members
+class UserService {
+  private readonly logger: Logger;
+
+  constructor(private userRepo: UserRepository) {}
+
+  async findById(id: string): Promise<User> {
+    return this.userRepo.findOne({ id });
+  }
+
+  async update(id: string, dto: UpdateUserDto): Promise<User> {
+    // ...
+  }
+}
+```
+
+---
+
+## Localization
+
+### Structure
+
+```
+libs/common/intl/locales/
+├── en/
+│   ├── common.json      # Shared translations
+│   ├── menu.json        # Menu items
+│   ├── auth.json        # Authentication
+│   ├── balance.json     # Balance module
+│   ├── payment.json     # Payment module
+│   ├── orders.json      # Order module
+│   ├── traffic.json     # Traffic module
+│   └── ...
+└── ru/
+    └── ...              # Same structure
+```
+
+### Usage
+
+**❌ WRONG - Hardcoded strings:**
+
+```typescript
+await ctx.reply('Welcome to the bot!');
+await ctx.reply('Your balance: ' + balance);
+```
+
+**✅ CORRECT - Use locale keys:**
+
+```typescript
+await ctx.reply(ctx.t('bot.welcome'));
+await ctx.reply(ctx.t('balance.current', { amount: balance }));
+```
+
+### Adding New Translations
+
+1. Add key to **both** `en/*.json` and `ru/*.json`
+2. Use dot notation for organization: `"module.action.description"`
+3. Use placeholders for dynamic values: `"balance.amount": "Balance: {amount}"`
+
+---
+
 ## Decimal Arithmetic
 
 ### Why Decimal.js?
@@ -319,7 +452,7 @@ const result = balanceNum - pendingNum; // ❌ Lost precision!
 
 ---
 
-## Code Style & Patterns
+## Code Patterns
 
 ### Use Maps Instead of Switch/If-Else-If
 
@@ -613,51 +746,12 @@ await this.em.transactional(async (em) => {
 
 ---
 
-## Best Practices Summary
-
-### DO ✅
-
-- Use TypeScript strict mode
-- Use Decimal.js for all financial calculations
-- Use type guards instead of assertions
-- Use Maps/objects instead of switch/if-else chains
-- Use Result type for fallible operations
-- Use proper module separation (main vs shared)
-- Use environment variables for configuration
-- Write tests before implementation (TDD)
-- Keep files under 500 lines
-- Use meaningful variable/function names
-- Document complex logic with comments
-- Use async/await instead of promises
-- Validate all user inputs
-- Handle all error cases
-- Use transactions for multi-step database operations
-
-### DON'T ❌
-
-- Don't use `any` type
-- Don't use `as` assertions (except `as const`)
-- Don't use native arithmetic for money (`+`, `-`, `*`, `/`)
-- Don't use switch/case or if-else-if chains
-- Don't import `main` modules in libs
-- Don't hardcode secrets or configuration
-- Don't save files to root folder
-- Don't create files over 500 lines
-- Don't use `parseFloat` for financial data
-- Don't convert Decimal to number mid-calculation
-- Don't skip error handling
-- Don't ignore TypeScript errors
-- Don't commit commented-out code
-- Don't use magic numbers (use constants)
-
----
-
 ## Additional Resources
 
 - **Complete Guidelines**: `/docs/DEVELOPMENT-GUIDELINES.md`
+- **Locale Files**: `/libs/common/intl/locales/`
 - **API Documentation**: Generated via Swagger/OpenAPI
 - **Database Schema**: See MikroORM entities in `/libs/database`
-- **Testing Guide**: `/docs/TESTING.md` (if exists)
 
 ---
 
