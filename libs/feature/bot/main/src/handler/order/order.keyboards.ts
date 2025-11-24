@@ -2,9 +2,11 @@
  * Order Feature Keyboards
  *
  * Inline keyboard builders for the order creation and management feature
+ * All keyboards accept BotContext for i18n translations
  */
 
 import { InlineKeyboard } from 'grammy';
+import { BotContext } from '@app/feature-bot-shared';
 import { availableTopics, Order, OrderDisplayLocation, OrderStatus, UserGender } from '@app/feature-order-shared';
 
 /**
@@ -30,31 +32,36 @@ function getStatusEmoji(status: OrderStatus): string {
   return emojiMap[status] || '⚪';
 }
 
-function getStatusText(status: OrderStatus): string {
-  const textMap: Record<OrderStatus, string> = {
-    [OrderStatus.Active]: 'Активен',
-    [OrderStatus.Paused]: 'Остановлен',
-    [OrderStatus.Moderation]: 'На модерации',
-    [OrderStatus.Rejected]: 'Отклонен',
-    [OrderStatus.Completed]: 'Завершен',
-    [OrderStatus.Deleted]: 'Удален',
+function getStatusTextKey(status: OrderStatus): string {
+  const keyMap: Record<OrderStatus, string> = {
+    [OrderStatus.Active]: 'orders.status.active',
+    [OrderStatus.Paused]: 'orders.status.paused',
+    [OrderStatus.Moderation]: 'orders.status.moderation',
+    [OrderStatus.Rejected]: 'orders.status.rejected',
+    [OrderStatus.Completed]: 'orders.status.completed',
+    [OrderStatus.Deleted]: 'orders.status.deleted',
   };
 
-  return textMap[status] || 'Неизвестно';
+  return keyMap[status] || 'orders.status.unknown';
 }
 
 /**
  * A1: Order List Keyboard (with pagination)
  * NOTE: Main menu is now handled by MenuActionHandler.createMainMenuKeyboard(ctx) with translations
  */
-export function createOrderListKeyboard(orders: Order[], showDeleted = false, page = 1): InlineKeyboard {
+export function createOrderListKeyboard(
+  ctx: BotContext,
+  orders: Order[],
+  showDeleted = false,
+  page = 1,
+): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // New order button
-  keyboard.text('🆕 Новый заказ', 'order:create:start').row();
+  keyboard.text(ctx.t('orders.btn_new'), 'order:create:start').row();
 
   // Search button
-  keyboard.text('🔍 Поиск', 'order:search').row();
+  keyboard.text(ctx.t('orders.btn_search'), 'order:search').row();
 
   // Filter orders
   const filteredOrders = orders.filter((o) =>
@@ -70,9 +77,9 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
   // List orders for current page
   pageOrders.forEach((order) => {
     const statusEmoji = getStatusEmoji(order.status);
-    const statusText = getStatusText(order.status);
-    const label = `${statusEmoji} ${order.config.name || 'Без названия'}`;
-    const subtitle = `${order.stats.totalSubscribers} подписчиков | ${statusText}`;
+    const statusText = ctx.t(getStatusTextKey(order.status));
+    const label = `${statusEmoji} ${order.config.name || ctx.t('orders.list.no_name')}`;
+    const subtitle = `${order.stats.totalSubscribers} ${ctx.t('orders.list.subscribers')} | ${statusText}`;
 
     keyboard.text(`${label}\n${subtitle}`, `order:view:${order.id}`).row();
   });
@@ -82,13 +89,13 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
     const paginationRow: Array<{ text: string; callback_data: string }> = [];
 
     if (page > 1) {
-      paginationRow.push({ text: '◀️ Пред', callback_data: `order:list:page:${page - 1}` });
+      paginationRow.push({ text: ctx.t('orders.list.btn_prev'), callback_data: `order:list:page:${page - 1}` });
     }
 
     paginationRow.push({ text: `${page}/${totalPages}`, callback_data: 'noop' });
 
     if (page < totalPages) {
-      paginationRow.push({ text: 'След ▶️', callback_data: `order:list:page:${page + 1}` });
+      paginationRow.push({ text: ctx.t('orders.list.btn_next'), callback_data: `order:list:page:${page + 1}` });
     }
 
     // Add pagination buttons to keyboard
@@ -105,11 +112,11 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
 
   // Show deleted orders button
   if (!showDeleted && orders.some((o) => o.status === OrderStatus.Deleted)) {
-    keyboard.text('🗑️ Удаленные заказы', 'order:deleted').row();
+    keyboard.text(ctx.t('orders.list.btn_deleted'), 'order:deleted').row();
   }
 
   // Back button
-  keyboard.text('◀️ Назад', 'menu:main');
+  keyboard.text(ctx.t('orders.common.btn_back'), 'menu:main');
 
   return keyboard;
 }
@@ -117,15 +124,15 @@ export function createOrderListKeyboard(orders: Order[], showDeleted = false, pa
 /**
  * A2: Channel Link Input Helper Keyboard
  */
-export function createChannelLinkHelpKeyboard(): InlineKeyboard {
+export function createChannelLinkHelpKeyboard(ctx: BotContext): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   keyboard
-    .text('🔗 Зачем нужна пригласительная ссылка?', 'order:help:invite_link')
+    .text(ctx.t('orders.help.invite_link_why'), 'order:help:invite_link')
     .row()
-    .text('📝 Как создать пригласительную ссылку?', 'order:help:create_invite')
+    .text(ctx.t('orders.help.invite_link_how'), 'order:help:create_invite')
     .row()
-    .text('◀️ Назад', 'order:list');
+    .text(ctx.t('orders.common.btn_back'), 'order:list');
 
   return keyboard;
 }
@@ -133,25 +140,27 @@ export function createChannelLinkHelpKeyboard(): InlineKeyboard {
 /**
  * A3: Add Bot as Admin Keyboard
  */
-export function createAddBotAdminKeyboard(channelUsername?: string): InlineKeyboard {
+export function createAddBotAdminKeyboard(ctx: BotContext, channelUsername?: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // Main add button - opens channel selector
-  keyboard.text('➕ Добавить в канал/чат', 'order:bot:add_dialog').row();
+  keyboard.text(ctx.t('orders.bot_admin.btn_add_channel'), 'order:bot:add_dialog').row();
 
   // Alternative add button
   if (channelUsername) {
-    keyboard.url('➕ Добавить в канал', `https://t.me/${channelUsername}?startgroup=admin`).row();
+    keyboard
+      .url(ctx.t('orders.bot_admin.btn_add_to_channel'), `https://t.me/${channelUsername}?startgroup=admin`)
+      .row();
   }
 
   // Confirmation button
-  keyboard.text('✅ Я добавил бота в администраторы', 'order:bot:check').row();
+  keyboard.text(ctx.t('orders.bot_admin.btn_added_confirm'), 'order:bot:check').row();
 
   // Skip button
-  keyboard.text('❌ Я не хочу добавлять бота (не рекомендуется)', 'order:bot:skip').row();
+  keyboard.text(ctx.t('orders.bot_admin.btn_skip'), 'order:bot:skip').row();
 
   // Back button
-  keyboard.text('◀️ Назад', 'order:create:back');
+  keyboard.text(ctx.t('orders.common.btn_back'), 'order:create:back');
 
   return keyboard;
 }
@@ -159,23 +168,26 @@ export function createAddBotAdminKeyboard(channelUsername?: string): InlineKeybo
 /**
  * A4: Moderation Status Keyboard
  */
-export function createModerationKeyboard(orderId: string): InlineKeyboard {
+export function createModerationKeyboard(ctx: BotContext, orderId: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // Continue to configuration
-  keyboard.text('⚙️ Продолжить настройку ➡️', `order:config:start:${orderId}`).row();
+  keyboard.text(ctx.t('orders.moderation.btn_continue_setup'), `order:config:start:${orderId}`).row();
 
   // Skip configuration
-  keyboard.text('Пропустить (использовать настройки по умолчанию)', `order:config:skip:${orderId}`).row();
+  keyboard.text(ctx.t('orders.moderation.btn_skip_setup'), `order:config:skip:${orderId}`).row();
 
   // Top menu row
-  keyboard.text('💻 Интеграция (API)', 'order:integration').text('🔄 Передать бота', 'order:transfer').row();
+  keyboard
+    .text(ctx.t('orders.moderation.btn_integration'), 'order:integration')
+    .text(ctx.t('orders.moderation.btn_transfer'), 'order:transfer')
+    .row();
 
   // Stop button
-  keyboard.text('⏸️ Остановить', `order:stop:${orderId}`).row();
+  keyboard.text(ctx.t('orders.moderation.btn_stop'), `order:stop:${orderId}`).row();
 
   // Back button
-  keyboard.text('◀️ Назад', 'order:list');
+  keyboard.text(ctx.t('orders.common.btn_back'), 'order:list');
 
   return keyboard;
 }
@@ -183,38 +195,38 @@ export function createModerationKeyboard(orderId: string): InlineKeyboard {
 /**
  * A5: Order Configuration Menu Keyboard
  */
-export function createConfigurationKeyboard(orderId: string): InlineKeyboard {
+export function createConfigurationKeyboard(ctx: BotContext, orderId: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // View channel button
-  keyboard.text('VIEW CHANNEL', `order:view_channel:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_view_channel'), `order:view_channel:${orderId}`).row();
 
   // Basic settings
-  keyboard.text('📝 Изменить название заказа', `order:edit:name:${orderId}`).row();
-  keyboard.text('🔗 Изменить ссылку', `order:edit:link:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_edit_name'), `order:edit:name:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_edit_link'), `order:edit:link:${orderId}`).row();
 
   // Subscriber parameters
-  keyboard.text('📊 Пользователей в день', `order:edit:daily:${orderId}`).row();
-  keyboard.text('📈 Пользователей всего', `order:edit:total:${orderId}`).row();
-  keyboard.text('🕐 Распределить в течение дня', `order:toggle:distribute:${orderId}`).row();
-  keyboard.text('📉 Учитывать отписки', `order:toggle:unsubscribes:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_daily_users'), `order:edit:daily:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_total_users'), `order:edit:total:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_distribute'), `order:toggle:distribute:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_count_unsubscribes'), `order:toggle:unsubscribes:${orderId}`).row();
 
   // Target audience
-  keyboard.text('👥 NEW Настройка пользователей', `order:edit:audience:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_audience_settings'), `order:edit:audience:${orderId}`).row();
 
   // Financial
-  keyboard.text('💸 Цена за подписчика', `order:edit:price:${orderId}`).row();
-  keyboard.text('🚫 Исключенные тематики', `order:edit:topics:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_price_per_sub'), `order:edit:price:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_excluded_topics'), `order:edit:topics:${orderId}`).row();
 
   // Schedule
-  keyboard.text('🕐 Запуск по времени', `order:edit:start_time:${orderId}`).row();
-  keyboard.text('📋 Расписание', `order:edit:schedule:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_start_time'), `order:edit:start_time:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_schedule'), `order:edit:schedule:${orderId}`).row();
 
   // Display locations
-  keyboard.text('📍 Места показов', `order:edit:locations:${orderId}`).row();
+  keyboard.text(ctx.t('orders.config.btn_locations'), `order:edit:locations:${orderId}`).row();
 
   // Done button
-  keyboard.text('✅ Готово', `order:config:done:${orderId}`);
+  keyboard.text(ctx.t('orders.config.btn_done'), `order:config:done:${orderId}`);
 
   return keyboard;
 }
@@ -222,14 +234,14 @@ export function createConfigurationKeyboard(orderId: string): InlineKeyboard {
 /**
  * Target Audience Configuration Keyboard
  */
-export function createAudienceConfigKeyboard(orderId: string): InlineKeyboard {
+export function createAudienceConfigKeyboard(ctx: BotContext, orderId: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
-  keyboard.text('👤 Пол', `order:audience:gender:${orderId}`).row();
-  keyboard.text('🌍 Регион', `order:audience:region:${orderId}`).row();
-  keyboard.text('🎂 Возраст', `order:audience:age:${orderId}`).row();
-  keyboard.text('⚡ Активность', `order:audience:activity:${orderId}`).row();
-  keyboard.text('Сохранить', `order:audience:save:${orderId}`);
+  keyboard.text(ctx.t('orders.audience.btn_gender'), `order:audience:gender:${orderId}`).row();
+  keyboard.text(ctx.t('orders.audience.btn_region'), `order:audience:region:${orderId}`).row();
+  keyboard.text(ctx.t('orders.audience.btn_age'), `order:audience:age:${orderId}`).row();
+  keyboard.text(ctx.t('orders.audience.btn_activity'), `order:audience:activity:${orderId}`).row();
+  keyboard.text(ctx.t('orders.audience.btn_save'), `order:audience:save:${orderId}`);
 
   return keyboard;
 }
@@ -237,15 +249,15 @@ export function createAudienceConfigKeyboard(orderId: string): InlineKeyboard {
 /**
  * Gender Selection Keyboard
  */
-export function createGenderKeyboard(orderId: string): InlineKeyboard {
+export function createGenderKeyboard(ctx: BotContext, orderId: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   keyboard
-    .text('Любой (по умолчанию)', `order:gender:${UserGender.Any}:${orderId}`)
+    .text(ctx.t('orders.gender.any'), `order:gender:${UserGender.Any}:${orderId}`)
     .row()
-    .text('Мужской', `order:gender:${UserGender.Male}:${orderId}`)
+    .text(ctx.t('orders.gender.male'), `order:gender:${UserGender.Male}:${orderId}`)
     .row()
-    .text('Женский', `order:gender:${UserGender.Female}:${orderId}`);
+    .text(ctx.t('orders.gender.female'), `order:gender:${UserGender.Female}:${orderId}`);
 
   return keyboard;
 }
@@ -253,7 +265,7 @@ export function createGenderKeyboard(orderId: string): InlineKeyboard {
 /**
  * Excluded Topics Keyboard
  */
-export function createTopicsKeyboard(orderId: string, selectedTopics: string[]): InlineKeyboard {
+export function createTopicsKeyboard(ctx: BotContext, orderId: string, selectedTopics: string[]): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   availableTopics.forEach((topic) => {
@@ -262,7 +274,7 @@ export function createTopicsKeyboard(orderId: string, selectedTopics: string[]):
     keyboard.text(`${prefix} ${topic.name}`, `order:topic:${topic.id}:${orderId}`).row();
   });
 
-  keyboard.text('Сохранить', `order:topics:save:${orderId}`);
+  keyboard.text(ctx.t('orders.audience.btn_save'), `order:topics:save:${orderId}`);
 
   return keyboard;
 }
@@ -270,15 +282,15 @@ export function createTopicsKeyboard(orderId: string, selectedTopics: string[]):
 /**
  * Display Location Selection Keyboard
  */
-export function createLocationKeyboard(orderId: string): InlineKeyboard {
+export function createLocationKeyboard(ctx: BotContext, orderId: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   keyboard
-    .text('📍 Только в моих ботах', `order:location:${OrderDisplayLocation.MyBotsOnly}:${orderId}`)
+    .text(ctx.t('orders.location.my_bots_only'), `order:location:${OrderDisplayLocation.MyBotsOnly}:${orderId}`)
     .row()
-    .text('🌐 Только в чужих ботах', `order:location:${OrderDisplayLocation.OtherBotsOnly}:${orderId}`)
+    .text(ctx.t('orders.location.other_bots_only'), `order:location:${OrderDisplayLocation.OtherBotsOnly}:${orderId}`)
     .row()
-    .text('🔄 В моих и чужих ботах', `order:location:${OrderDisplayLocation.Both}:${orderId}`);
+    .text(ctx.t('orders.location.both'), `order:location:${OrderDisplayLocation.Both}:${orderId}`);
 
   return keyboard;
 }
@@ -286,45 +298,53 @@ export function createLocationKeyboard(orderId: string): InlineKeyboard {
 /**
  * A6: View Order Keyboard
  */
-export function createViewOrderKeyboard(order: Order): InlineKeyboard {
+export function createViewOrderKeyboard(ctx: BotContext, order: Order): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // View channel button
   if (order.channel.username) {
-    keyboard.url('VIEW CHANNEL', `https://t.me/${order.channel.username}`).row();
+    keyboard.url(ctx.t('orders.config.btn_view_channel'), `https://t.me/${order.channel.username}`).row();
   }
 
   // Refresh stats
-  keyboard.text('🔄 Обновить статистику', `order:refresh:${order.id}`).row();
+  keyboard.text(ctx.t('orders.view.btn_refresh_stats'), `order:refresh:${order.id}`).row();
 
   // Settings and Statistics
   keyboard
-    .text('⚙️ Настройки', `order:config:start:${order.id}`)
-    .text('📊 Статистика', `order:stats:${order.id}`)
+    .text(ctx.t('orders.view.btn_settings'), `order:config:start:${order.id}`)
+    .text(ctx.t('orders.view.btn_statistics'), `order:stats:${order.id}`)
     .row();
 
   // Duplicate
-  keyboard.text('📋 Дублировать', `order:duplicate:${order.id}`).row();
+  keyboard.text(ctx.t('orders.view.btn_duplicate'), `order:duplicate:${order.id}`).row();
 
   // Start/Stop and Delete
-  const actionText = order.status === OrderStatus.Active ? '⏸️ Остановить' : '▶️ Запустить';
-  keyboard.text(actionText, `order:toggle:${order.id}`).text('🗑️ Удалить', `order:delete:${order.id}`).row();
+  const actionText =
+    order.status === OrderStatus.Active ? ctx.t('orders.view.btn_stop') : ctx.t('orders.view.btn_start');
+
+  keyboard
+    .text(actionText, `order:toggle:${order.id}`)
+    .text(ctx.t('orders.view.btn_delete'), `order:delete:${order.id}`)
+    .row();
 
   // Download IDs and Report
   keyboard
-    .text('💾 Скачать ID участников', `order:download:ids:${order.id}`)
-    .text('📄 Отчет (скачать PDF)', `order:download:report:${order.id}`)
+    .text(ctx.t('orders.view.btn_download_ids'), `order:download:ids:${order.id}`)
+    .text(ctx.t('orders.view.btn_download_report'), `order:download:report:${order.id}`)
     .row();
 
   // Help
-  keyboard.text('❓ Заказ не работает? Причины', 'order:help:troubleshoot').row();
+  keyboard.text(ctx.t('orders.view.btn_troubleshoot'), 'order:help:troubleshoot').row();
 
   // Balance section
-  keyboard.text('⬇️ Баланс аккаунта ⬇️', 'balance:view').row();
-  keyboard.text('👤 Остаток', 'balance:view').text('💸 Пополнить баланс', 'balance:topup').row();
+  keyboard.text(ctx.t('orders.view.btn_balance_section'), 'balance:view').row();
+  keyboard
+    .text(ctx.t('orders.view.btn_balance'), 'balance:view')
+    .text(ctx.t('orders.view.btn_topup'), 'balance:topup')
+    .row();
 
   // Back to orders list
-  keyboard.text('◀️ Назад к списку заказов', 'order:list');
+  keyboard.text(ctx.t('orders.view.btn_back_to_list'), 'order:list');
 
   return keyboard;
 }
@@ -332,13 +352,13 @@ export function createViewOrderKeyboard(order: Order): InlineKeyboard {
 /**
  * Order Statistics Keyboard
  */
-export function createStatsKeyboard(orderId: string): InlineKeyboard {
+export function createStatsKeyboard(ctx: BotContext, orderId: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   keyboard
-    .text('📥 Скачать полный отчет (Excel)', `order:download:excel:${orderId}`)
+    .text(ctx.t('orders.stats.btn_download_excel'), `order:download:excel:${orderId}`)
     .row()
-    .text('◀️ Назад', `order:view:${orderId}`);
+    .text(ctx.t('orders.common.btn_back'), `order:view:${orderId}`);
 
   return keyboard;
 }
@@ -346,10 +366,12 @@ export function createStatsKeyboard(orderId: string): InlineKeyboard {
 /**
  * Delete Confirmation Keyboard
  */
-export function createDeleteConfirmKeyboard(orderId: string): InlineKeyboard {
+export function createDeleteConfirmKeyboard(ctx: BotContext, orderId: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
-  keyboard.text('✅ Да, удалить', `order:delete:confirm:${orderId}`).text('❌ Отмена', `order:view:${orderId}`);
+  keyboard
+    .text(ctx.t('orders.delete.btn_confirm'), `order:delete:confirm:${orderId}`)
+    .text(ctx.t('orders.delete.btn_cancel'), `order:view:${orderId}`);
 
   return keyboard;
 }

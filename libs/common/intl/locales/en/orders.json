@@ -9,7 +9,7 @@
   "btn_new": "🆕 New Order",
   "btn_active": "📋 Active Orders",
   "btn_completed": "✅ Completed",
-  "btn_search": "🔍 Search Orders",
+  "btn_search": "🔍 Search",
   "stats_refreshed": "Statistics refreshed",
   "stopped": "Order stopped",
   "deleted_list": "Deleted Orders\n\nNo deleted orders found.",
@@ -26,5 +26,97 @@
   "integration": "Integration Settings\n\nConfigure integration options.",
   "transfer": "Transfer Order\n\nTransfer this order to another account.",
   "channel_view": "Channel View\n\nView channel details.",
-  "type_selection": "Type Selection\n\nSelect the order type."
+  "type_selection": "Type Selection\n\nSelect the order type.",
+  "status": {
+    "active": "Active",
+    "paused": "Paused",
+    "moderation": "Under moderation",
+    "rejected": "Rejected",
+    "completed": "Completed",
+    "deleted": "Deleted",
+    "unknown": "Unknown"
+  },
+  "list": {
+    "no_name": "Untitled",
+    "subscribers": "subscribers",
+    "btn_deleted": "🗑️ Deleted orders",
+    "btn_prev": "◀️ Prev",
+    "btn_next": "Next ▶️"
+  },
+  "help": {
+    "invite_link_why": "🔗 Why do I need an invite link?",
+    "invite_link_how": "📝 How to create an invite link?"
+  },
+  "bot_admin": {
+    "btn_add_channel": "➕ Add to channel/chat",
+    "btn_add_to_channel": "➕ Add to channel",
+    "btn_added_confirm": "✅ I added the bot as admin",
+    "btn_skip": "❌ I don't want to add the bot (not recommended)"
+  },
+  "moderation": {
+    "btn_continue_setup": "⚙️ Continue setup ➡️",
+    "btn_skip_setup": "Skip (use default settings)",
+    "btn_integration": "💻 Integration (API)",
+    "btn_transfer": "🔄 Transfer bot",
+    "btn_stop": "⏸️ Stop"
+  },
+  "config": {
+    "btn_view_channel": "VIEW CHANNEL",
+    "btn_edit_name": "📝 Change order name",
+    "btn_edit_link": "🔗 Change link",
+    "btn_daily_users": "📊 Users per day",
+    "btn_total_users": "📈 Total users",
+    "btn_distribute": "🕐 Distribute throughout day",
+    "btn_count_unsubscribes": "📉 Count unsubscribes",
+    "btn_audience_settings": "👥 NEW User settings",
+    "btn_price_per_sub": "💸 Price per subscriber",
+    "btn_excluded_topics": "🚫 Excluded topics",
+    "btn_start_time": "🕐 Start by time",
+    "btn_schedule": "📋 Schedule",
+    "btn_locations": "📍 Display locations",
+    "btn_done": "✅ Done"
+  },
+  "audience": {
+    "btn_gender": "👤 Gender",
+    "btn_region": "🌍 Region",
+    "btn_age": "🎂 Age",
+    "btn_activity": "⚡ Activity",
+    "btn_save": "Save"
+  },
+  "gender": {
+    "any": "Any (default)",
+    "male": "Male",
+    "female": "Female"
+  },
+  "location": {
+    "my_bots_only": "📍 Only in my bots",
+    "other_bots_only": "🌐 Only in other bots",
+    "both": "🔄 In my and other bots"
+  },
+  "view": {
+    "btn_refresh_stats": "🔄 Refresh statistics",
+    "btn_settings": "⚙️ Settings",
+    "btn_statistics": "📊 Statistics",
+    "btn_duplicate": "📋 Duplicate",
+    "btn_stop": "⏸️ Stop",
+    "btn_start": "▶️ Start",
+    "btn_delete": "🗑️ Delete",
+    "btn_download_ids": "💾 Download member IDs",
+    "btn_download_report": "📄 Report (download PDF)",
+    "btn_troubleshoot": "❓ Order not working? Reasons",
+    "btn_balance_section": "⬇️ Account balance ⬇️",
+    "btn_balance": "👤 Balance",
+    "btn_topup": "💸 Top up balance",
+    "btn_back_to_list": "◀️ Back to orders list"
+  },
+  "stats": {
+    "btn_download_excel": "📥 Download full report (Excel)"
+  },
+  "delete": {
+    "btn_confirm": "✅ Yes, delete",
+    "btn_cancel": "❌ Cancel"
+  },
+  "common": {
+    "btn_back": "◀️ Back"
+  }
 }

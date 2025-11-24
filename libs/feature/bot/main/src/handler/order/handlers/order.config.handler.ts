@@ -87,7 +87,7 @@ export class OrderConfigHandler {
       }
 
       const message = `${ctx.t('bot.configuration.title')}\n\n${ctx.t('bot.configuration.basic_settings')}\n${ctx.t('bot.configuration.name')} ${order.config.name || ''}\n${ctx.t('bot.configuration.link')} ${order.config.channelLink || ''}`;
-      const keyboard = createConfigurationKeyboard(orderId);
+      const keyboard = createConfigurationKeyboard(ctx, orderId);
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -155,7 +155,7 @@ export class OrderConfigHandler {
         return;
       }
 
-      const keyboard = createAudienceConfigKeyboard(orderId);
+      const keyboard = createAudienceConfigKeyboard(ctx, orderId);
       const message = `<b>${ctx.t('bot.configuration.targeting')}</b>\n\n${ctx.t('bot.configuration.targeting')}:`;
 
       await ctx.editMessageText(message, {
@@ -192,7 +192,7 @@ export class OrderConfigHandler {
         return;
       }
 
-      const keyboard = createGenderKeyboard(orderId);
+      const keyboard = createGenderKeyboard(ctx, orderId);
       const message = `<b>${ctx.t('bot.configuration.gender')}:</b>`;
 
       await ctx.editMessageText(message, {
@@ -273,7 +273,7 @@ export class OrderConfigHandler {
         return;
       }
 
-      const keyboard = createTopicsKeyboard(orderId, order.config.excludedTopics);
+      const keyboard = createTopicsKeyboard(ctx, orderId, order.config.excludedTopics);
       const message = `<b>${ctx.t('bot.configuration.excluded_topics')}</b>\n\n${ctx.t('bot.configuration.excluded_topics')}:`;
 
       await ctx.editMessageText(message, {
@@ -362,7 +362,7 @@ export class OrderConfigHandler {
         return;
       }
 
-      const keyboard = createLocationKeyboard(orderId);
+      const keyboard = createLocationKeyboard(ctx, orderId);
       const message = `<b>${ctx.t('bot.configuration.display_locations')}</b>\n\n${ctx.t('bot.configuration.display_locations')}:`;
 
       await ctx.editMessageText(message, {

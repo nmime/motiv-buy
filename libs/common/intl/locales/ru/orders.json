@@ -9,7 +9,7 @@
   "btn_new": "🆕 Новый заказ",
   "btn_active": "📋 Активные заказы",
   "btn_completed": "✅ Завершенные",
-  "btn_search": "🔍 Поиск заказов",
+  "btn_search": "🔍 Поиск",
   "stats_refreshed": "Статистика обновлена",
   "stopped": "Заказ остановлен",
   "deleted_list": "Удаленные заказы\n\nУдаленные заказы не найдены.",
@@ -26,5 +26,97 @@
   "integration": "Настройки интеграции\n\nНастройте параметры интеграции.",
   "transfer": "Перенос заказа\n\nПеренесите этот заказ на другой аккаунт.",
   "channel_view": "Просмотр канала\n\nПросмотр деталей канала.",
-  "type_selection": "Выбор типа\n\nВыберите тип заказа."
+  "type_selection": "Выбор типа\n\nВыберите тип заказа.",
+  "status": {
+    "active": "Активен",
+    "paused": "Остановлен",
+    "moderation": "На модерации",
+    "rejected": "Отклонен",
+    "completed": "Завершен",
+    "deleted": "Удален",
+    "unknown": "Неизвестно"
+  },
+  "list": {
+    "no_name": "Без названия",
+    "subscribers": "подписчиков",
+    "btn_deleted": "🗑️ Удаленные заказы",
+    "btn_prev": "◀️ Пред",
+    "btn_next": "След ▶️"
+  },
+  "help": {
+    "invite_link_why": "🔗 Зачем нужна пригласительная ссылка?",
+    "invite_link_how": "📝 Как создать пригласительную ссылку?"
+  },
+  "bot_admin": {
+    "btn_add_channel": "➕ Добавить в канал/чат",
+    "btn_add_to_channel": "➕ Добавить в канал",
+    "btn_added_confirm": "✅ Я добавил бота в администраторы",
+    "btn_skip": "❌ Я не хочу добавлять бота (не рекомендуется)"
+  },
+  "moderation": {
+    "btn_continue_setup": "⚙️ Продолжить настройку ➡️",
+    "btn_skip_setup": "Пропустить (использовать настройки по умолчанию)",
+    "btn_integration": "💻 Интеграция (API)",
+    "btn_transfer": "🔄 Передать бота",
+    "btn_stop": "⏸️ Остановить"
+  },
+  "config": {
+    "btn_view_channel": "VIEW CHANNEL",
+    "btn_edit_name": "📝 Изменить название заказа",
+    "btn_edit_link": "🔗 Изменить ссылку",
+    "btn_daily_users": "📊 Пользователей в день",
+    "btn_total_users": "📈 Пользователей всего",
+    "btn_distribute": "🕐 Распределить в течение дня",
+    "btn_count_unsubscribes": "📉 Учитывать отписки",
+    "btn_audience_settings": "👥 NEW Настройка пользователей",
+    "btn_price_per_sub": "💸 Цена за подписчика",
+    "btn_excluded_topics": "🚫 Исключенные тематики",
+    "btn_start_time": "🕐 Запуск по времени",
+    "btn_schedule": "📋 Расписание",
+    "btn_locations": "📍 Места показов",
+    "btn_done": "✅ Готово"
+  },
+  "audience": {
+    "btn_gender": "👤 Пол",
+    "btn_region": "🌍 Регион",
+    "btn_age": "🎂 Возраст",
+    "btn_activity": "⚡ Активность",
+    "btn_save": "Сохранить"
+  },
+  "gender": {
+    "any": "Любой (по умолчанию)",
+    "male": "Мужской",
+    "female": "Женский"
+  },
+  "location": {
+    "my_bots_only": "📍 Только в моих ботах",
+    "other_bots_only": "🌐 Только в чужих ботах",
+    "both": "🔄 В моих и чужих ботах"
+  },
+  "view": {
+    "btn_refresh_stats": "🔄 Обновить статистику",
+    "btn_settings": "⚙️ Настройки",
+    "btn_statistics": "📊 Статистика",
+    "btn_duplicate": "📋 Дублировать",
+    "btn_stop": "⏸️ Остановить",
+    "btn_start": "▶️ Запустить",
+    "btn_delete": "🗑️ Удалить",
+    "btn_download_ids": "💾 Скачать ID участников",
+    "btn_download_report": "📄 Отчет (скачать PDF)",
+    "btn_troubleshoot": "❓ Заказ не работает? Причины",
+    "btn_balance_section": "⬇️ Баланс аккаунта ⬇️",
+    "btn_balance": "👤 Остаток",
+    "btn_topup": "💸 Пополнить баланс",
+    "btn_back_to_list": "◀️ Назад к списку заказов"
+  },
+  "stats": {
+    "btn_download_excel": "📥 Скачать полный отчет (Excel)"
+  },
+  "delete": {
+    "btn_confirm": "✅ Да, удалить",
+    "btn_cancel": "❌ Отмена"
+  },
+  "common": {
+    "btn_back": "◀️ Назад"
+  }
 }

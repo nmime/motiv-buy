@@ -69,7 +69,7 @@ export class OrderManagementHandler {
       const activeOrders = orders.filter((o) => o.status !== OrderStatus.Deleted);
 
       const message = `<b>${ctx.t('bot.order.list_title')}</b>\n\n${ctx.t('bot.order.total_count', { count: activeOrders.length })}`;
-      const keyboard = createOrderListKeyboard(activeOrders, false, page);
+      const keyboard = createOrderListKeyboard(ctx, activeOrders, false, page);
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -108,7 +108,7 @@ export class OrderManagementHandler {
       const deletedOrders = orders.filter((o) => o.status === OrderStatus.Deleted);
 
       const message = `<b>${ctx.t('bot.buttons.show_deleted')}</b>\n\n${ctx.t('bot.order.total_count', { count: deletedOrders.length })}`;
-      const keyboard = createOrderListKeyboard(deletedOrders, true);
+      const keyboard = createOrderListKeyboard(ctx, deletedOrders, true);
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -151,7 +151,7 @@ export class OrderManagementHandler {
       }
 
       const message = `${ctx.t('bot.order.order_number', { id: order.id })}\n\n${ctx.t('bot.view_order.users_section')}\n${ctx.t('bot.view_order.total')} ${order.stats.totalSubscribers || 0}\n${ctx.t('bot.view_order.today')} ${order.stats.subscribersToday || 0}`;
-      const keyboard = createViewOrderKeyboard(order);
+      const keyboard = createViewOrderKeyboard(ctx, order);
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -188,7 +188,7 @@ export class OrderManagementHandler {
       }
 
       const message = `${ctx.t('bot.stats.title', { id: order.id })}\n\n${ctx.t('bot.stats.detailed')}\n${ctx.t('bot.stats.today', { count: order.stats.subscribersToday || 0 })}`;
-      const keyboard = createStatsKeyboard(orderId);
+      const keyboard = createStatsKeyboard(ctx, orderId);
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -271,7 +271,7 @@ export class OrderManagementHandler {
         return;
       }
 
-      const keyboard = createDeleteConfirmKeyboard(orderId);
+      const keyboard = createDeleteConfirmKeyboard(ctx, orderId);
       const message = `<b>${ctx.t('common.buttons.delete_order')}</b>\n\n${ctx.t('common.confirm')}?`;
 
       await ctx.editMessageText(message, {

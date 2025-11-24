@@ -53,7 +53,7 @@ export class OrderCreationHandler {
       this.orderService.initOrderCreation(ctx);
 
       const message = `${ctx.t('bot.order.creation')}\n${ctx.t('bot.order.step', { current: 1, total: 3 })}\n\n${ctx.t('bot.order.channel_link_instruction')}\n\n${ctx.t('bot.order.examples_title')}\n${ctx.t('bot.order.example1')}\n${ctx.t('bot.order.example2')}`;
-      const keyboard = createChannelLinkHelpKeyboard();
+      const keyboard = createChannelLinkHelpKeyboard(ctx);
 
       await ctx.editMessageText(message, {
         reply_markup: keyboard,
@@ -134,7 +134,7 @@ export class OrderCreationHandler {
     this.orderService.moveToNextStep(ctx, OrderFlowStep.AddBotAdmin);
 
     const message = `${ctx.t('bot.order.channel_found')}\n\n${ctx.t('bot.order.channel_name')} ${channel.title}\n${ctx.t('bot.order.channel_subscribers')} ${channel.subscriberCount || 0}\n\n${ctx.t('bot.order.bot_admin_instruction')}\n@${ctx.me.username}\n\n${ctx.t('bot.order.requirement')}`;
-    const keyboard = createAddBotAdminKeyboard(channel.username);
+    const keyboard = createAddBotAdminKeyboard(ctx, channel.username);
 
     await ctx.reply(message, {
       reply_markup: keyboard,
@@ -228,7 +228,7 @@ export class OrderCreationHandler {
 
     const botIsAdmin = state.channel?.botIsAdmin || false;
     const message = `${ctx.t('bot.order.moderation_submitted')}\n\n${ctx.t('bot.order.channel')} ${state.channel?.title}\n${ctx.t('bot.order.link')} ${state.config.channelLink}\n${ctx.t('bot.order.status_label')} ${ctx.t('bot.order.status_pending')}\n\n${botIsAdmin ? ctx.t('bot.order.bot_added') : ctx.t('bot.order.bot_not_added')}\n\n${ctx.t('bot.order.time_estimate')}`;
-    const keyboard = createModerationKeyboard(order.id);
+    const keyboard = createModerationKeyboard(ctx, order.id);
 
     await ctx.editMessageText(message, {
       reply_markup: keyboard,
