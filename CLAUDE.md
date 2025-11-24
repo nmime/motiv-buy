@@ -494,35 +494,35 @@ await this.em.transactional(async (em) => {
 
 ## QUICK REFERENCE
 
-### ALWAYS DO
+### MUST DO - REQUIRED
 
-- Use TypeScript strict mode
-- Use Decimal.js for money (`add`, `subtract`, `multiply`, `divide`)
-- Use type guards instead of `as` assertions
-- Use Maps/objects instead of switch/if-else
-- Use Result type for fallible operations
-- Use module separation (main vs shared)
-- Use ConfigService for environment variables
-- Use localization for all user-facing text
-- Use `Promise.all()` for parallel operations
-- Search for existing functions before creating new ones
-- Keep files under 500 lines
-- Run `pnpm run lint` before committing
+- **MUST** use TypeScript strict mode
+- **MUST** use Decimal.js for money (`add`, `subtract`, `multiply`, `divide`)
+- **MUST** use type guards instead of `as` assertions
+- **MUST** use Maps/objects instead of switch/if-else
+- **MUST** use Result type for fallible operations
+- **MUST** use module separation (main vs shared)
+- **MUST** use ConfigService for environment variables
+- **MUST** use localization for all user-facing text
+- **MUST** use `Promise.all()` for parallel operations
+- **MUST** search for existing functions before creating new ones
+- **MUST** keep files under 500 lines
+- **MUST** run `pnpm run lint` before committing
 
-### NEVER DO
+### NEVER DO - FORBIDDEN
 
-- Use `any` type
-- Use `as` type assertions (except `as const`)
-- Use `+`, `-`, `*`, `/` for money calculations
-- Use `switch` or `if-else-if` chains
-- Use `parseFloat` for financial data
-- Import `@app/feature-*-main` from within `libs/`
-- Hardcode secrets or user-facing strings
-- Use `console.log` (use logger service)
-- Create duplicate functions with similar logic
-- Skip error handling
-- Commit commented-out code
-- Use magic numbers (define constants)
+- **NEVER** use `any` type - use `unknown` with type guards
+- **NEVER** use `as` type assertions - only `as const` allowed
+- **NEVER** use `+`, `-`, `*`, `/` for money - use Decimal.js
+- **NEVER** use `switch` or `if-else-if` - use Map/object lookup
+- **NEVER** use `parseFloat` for financial data - use `decimal()`
+- **NEVER** import `@app/feature-*-main` from `libs/` - circular dependency
+- **NEVER** hardcode secrets or user-facing strings - use config/locales
+- **NEVER** use `console.log` - use `@app/common-logger`
+- **NEVER** create duplicate functions - search and reuse existing
+- **NEVER** skip error handling - use Result type or try/catch
+- **NEVER** commit commented-out code - delete unused code
+- **NEVER** use magic numbers - define named constants
 
 ---
 
