@@ -752,6 +752,45 @@ await this.em.transactional(async (em) => {
 
 ---
 
+## Best Practices Summary
+
+### DO ✅
+
+- Use TypeScript strict mode
+- Use Decimal.js for all financial calculations
+- Use type guards instead of assertions
+- Use Maps/objects instead of switch/if-else chains
+- Use Result type for fallible operations
+- Use proper module separation (main vs shared)
+- Use environment variables for configuration
+- Write tests before implementation (TDD)
+- Keep files under 500 lines
+- Use meaningful variable/function names
+- Document complex logic with comments
+- Use async/await instead of promises
+- Validate all user inputs
+- Handle all error cases
+- Use transactions for multi-step database operations
+
+### DON'T ❌
+
+- Don't use `any` type
+- Don't use `as` assertions (except `as const`)
+- Don't use native arithmetic for money (`+`, `-`, `*`, `/`)
+- Don't use switch/case or if-else-if chains
+- Don't import `main` modules in libs
+- Don't hardcode secrets or configuration
+- Don't save files to root folder
+- Don't create files over 500 lines
+- Don't use `parseFloat` for financial data
+- Don't convert Decimal to number mid-calculation
+- Don't skip error handling
+- Don't ignore TypeScript errors
+- Don't commit commented-out code
+- Don't use magic numbers (use constants)
+
+---
+
 ## Additional Resources
 
 - **Complete Guidelines**: `/docs/DEVELOPMENT-GUIDELINES.md`
