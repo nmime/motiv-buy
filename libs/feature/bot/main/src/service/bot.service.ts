@@ -1,16 +1,19 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
+import { RedisAdapter } from '@grammyjs/storage-redis';
 import type { Update } from 'grammy/types';
+import type { Redis, Cluster } from 'ioredis';
 import { BotCommand, BotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
 import { unknownToError, toError } from '@app/common-shared';
-import { OrderHandler } from '../features/order/order.handler';
+import { OrderHandler } from '../handler/order';
 import { I18nService } from 'nestjs-i18n';
 import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl';
 import { CallbackRouterHandler } from '../handler/callback-router.handler';
 import { BotAuthMiddleware } from '../middleware';
 import { BotUserService, BotSessionService } from './auth';
 import { protectHandler } from '../util';
+import { RedisInjectToken } from '@app/common-redis';
 
 /**
  * Extended Grammy Context with session and i18n support
@@ -51,6 +54,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     private readonly botUserService: BotUserService,
     private readonly botSessionService: BotSessionService,
     private readonly telegramModerationNotifier: TelegramModerationNotifier,
+    @Inject(RedisInjectToken) private readonly redis: Redis | Cluster,
   ) {
     // Note: ProfileActionHandler, SettingsActionHandler, BalanceActionHandler, and MenuActionHandler
     // cannot be injected here because they depend on services that are not available in bot.service.ts scope.
@@ -93,10 +97,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       // Create Grammy bot instance
       this.bot = new Bot<BotSessionContext>(botToken);
 
-      // Install session middleware
+      // Install session middleware with Redis storage for persistence
+      // Type assertion required: ioredis types are compatible but @grammyjs/storage-redis
+      // uses a slightly different type definition. Runtime compatibility verified.
+      const storage = new RedisAdapter({ instance: this.redis as Redis });
       this.bot.use(
         session({
           initial: () => ({}),
+          storage,
         }),
       );
 
@@ -615,6 +623,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       state: ctx.userData,
       language: ctx.language,
       t: ctx.t,
+      // Copy authentication properties set by auth middleware
+      // These are dynamically added to ctx by BotAuthMiddleware.authenticateUser()
+      // Using property access since they're optional and dynamically set
+      user: 'user' in ctx ? ctx.user : undefined,
+      isAuthenticated: ctx.isAuthenticated,
+      sessionId: 'sessionId' in ctx ? ctx.sessionId : undefined,
+      isNewUser: 'isNewUser' in ctx ? ctx.isNewUser : undefined,
+      userId: ctx.userId,
     };
 
     // Safe cast: We've constructed an object with all BotContext properties
@@ -624,22 +640,21 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
   // Command handlers
   private async handleStartCommand(ctx: BotContext): Promise<void> {
-    // Import main menu from order feature
-    const message = `Выбери нужный пункт 👇`;
+    const message = ctx.t('menu.main_menu.select_action');
 
     await ctx.replyWithHTML(message, {
       reply_markup: {
         inline_keyboard: [
-          [{ text: '👥 Купить подписчиков', callback_data: 'order:list' }],
+          [{ text: ctx.t('menu.main_menu.btn_buy_subscribers'), callback_data: 'order:list' }],
           [
-            { text: '🤖 Продажа трафика', callback_data: 'traffic:manage' },
-            { text: '📋 Мои заказы', callback_data: 'order:list' },
+            { text: ctx.t('menu.main_menu.btn_sell_traffic'), callback_data: 'traffic:manage' },
+            { text: ctx.t('menu.main_menu.btn_my_orders'), callback_data: 'order:list' },
           ],
           [
-            { text: '👤 Профиль', callback_data: 'profile:view' },
-            { text: '💰 Баланс', callback_data: 'balance:view' },
+            { text: ctx.t('menu.main_menu.btn_profile'), callback_data: 'profile:view' },
+            { text: ctx.t('menu.main_menu.btn_balance'), callback_data: 'balance:view' },
           ],
-          [{ text: '🏢 Тех. поддержка', callback_data: 'support:contact' }],
+          [{ text: ctx.t('menu.main_menu.btn_support'), callback_data: 'support:contact' }],
         ],
       },
     });

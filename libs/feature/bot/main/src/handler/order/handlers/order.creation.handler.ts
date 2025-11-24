@@ -10,8 +10,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
-import { OrderService } from '../order.service';
-import { OrderFlowStep } from '../order.types';
+import { BotOrderService } from '../bot-order.service';
+import { OrderFlowStep } from '@app/feature-order-shared';
 import { createAddBotAdminKeyboard, createChannelLinkHelpKeyboard, createModerationKeyboard } from '../order.keyboards';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class OrderCreationHandler {
   private readonly logger = new Logger(OrderCreationHandler.name);
   private composer: Composer<BotContext>;
 
-  constructor(private readonly orderService: OrderService) {
+  constructor(private readonly orderService: BotOrderService) {
     this.composer = new Composer<BotContext>();
     this.setupHandlers();
   }

@@ -32,7 +32,7 @@ export class BalanceActionHandler {
     try {
       const balances = await this.getUserBalances(ctx.user.id);
       const balanceText = await this.formatBalanceView(ctx, balances);
-      const keyboard = this.menuHandler.createBalanceMenuKeyboard();
+      const keyboard = this.menuHandler.createBalanceMenuKeyboard(ctx);
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: balanceText,

@@ -9,7 +9,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
-import { OrderService } from '../order.service';
+import { BotOrderService } from '../bot-order.service';
 import {
   createAudienceConfigKeyboard,
   createConfigurationKeyboard,
@@ -17,14 +17,14 @@ import {
   createLocationKeyboard,
   createTopicsKeyboard,
 } from '../order.keyboards';
-import { OrderDisplayLocation, UserGender } from '../order.types';
+import { OrderDisplayLocation, UserGender } from '@app/feature-order-shared';
 
 @Injectable()
 export class OrderConfigHandler {
   private readonly logger = new Logger(OrderConfigHandler.name);
   private composer: Composer<BotContext>;
 
-  constructor(private readonly orderService: OrderService) {
+  constructor(private readonly orderService: BotOrderService) {
     this.composer = new Composer<BotContext>();
     this.setupHandlers();
   }

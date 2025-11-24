@@ -14,7 +14,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
-import { OrderService } from './order.service';
+import { BotOrderService } from './bot-order.service';
 import { OrderCreationHandler } from './handlers/order.creation.handler';
 import { OrderManagementHandler } from './handlers/order.management.handler';
 import { OrderConfigHandler } from './handlers/order.config.handler';
@@ -32,7 +32,7 @@ export class OrderHandler {
   private configHandler: OrderConfigHandler;
   private editHandler: OrderEditHandler;
 
-  constructor(private readonly orderService: OrderService) {
+  constructor(private readonly orderService: BotOrderService) {
     // Initialize sub-handlers
     this.creationHandler = new OrderCreationHandler(orderService);
     this.managementHandler = new OrderManagementHandler(orderService);

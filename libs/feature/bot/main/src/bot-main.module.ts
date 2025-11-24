@@ -10,7 +10,7 @@ import { TrafficSharedModule } from '@app/feature-traffic-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
 import { BotService, BotUserService, BotSessionService, MenuService, MessageService, SessionService } from './service';
 import { BotConfigModule } from './config';
-import { OrderModule } from './features/order/order.module';
+import { OrderModule } from './handler/order/order.module';
 import {
   CallbackRouterHandler,
   MenuActionHandler,

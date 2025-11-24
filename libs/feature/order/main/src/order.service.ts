@@ -1,39 +1,38 @@
 /**
  * Order Service
  *
- * Business logic for order creation and management
+ * Business logic for order creation and management.
+ * This service handles pure business operations without bot-specific dependencies.
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { BotContext, ChannelService } from '@app/feature-bot-shared';
 import {
   ChannelInfo,
   defaultOrderConfig,
   Order,
   OrderConfiguration,
-  OrderFlowStep,
-  OrderSessionState,
   OrderStatistics,
   OrderStatus,
-} from './order.types';
+} from '@app/feature-order-shared';
+
+/**
+ * Channel Service Interface
+ * Allows dependency injection of channel validation service
+ */
+export interface IChannelService {
+  getChannelInfoFromLink(link: string): Promise<ChannelInfo | null>;
+  checkBotIsAdmin(channelId: string): Promise<boolean>;
+}
 
 @Injectable()
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
 
   // FUTURE: Replace with database persistence for finalized orders
-  // Incomplete drafts are stored in Redis sessions via getOrderSessionState/saveOrderSessionState
   private orders: Map<string, Order> = new Map();
 
-  // Session cleanup interval (1 hour)
-  private readonly sessionTtlMs = 60 * 60 * 1000; // 1 hour
-  private readonly sessionCleanupIntervalMs = 15 * 60 * 1000; // 15 minutes
-
-  constructor(private readonly channelService: ChannelService) {
-    // Start session cleanup
-    this.startSessionCleanup();
-  }
+  constructor(private readonly channelService: IChannelService) {}
 
   /**
    * Get all orders for a user
@@ -180,7 +179,6 @@ export class OrderService {
    * Validate channel link
    */
   async validateChannelLink(link: string): Promise<{ valid: boolean; error?: string }> {
-    // Basic validation
     // eslint-disable-next-line sonarjs/duplicates-in-character-class
     const telegramLinkRegex = /^https?:\/\/(t\.me|telegram\.me)\/([\w\d_]+|\+[\w\d_]+)$/i;
 
@@ -191,8 +189,6 @@ export class OrderService {
       };
     }
 
-    // FUTURE: Implement real validation with Telegram API
-    // For now, accept all valid format links
     return { valid: true };
   }
 
@@ -206,7 +202,6 @@ export class OrderService {
       return null;
     }
 
-    // Map ChannelServiceInfo to local ChannelInfo type
     return {
       id: result.id,
       title: result.title,
@@ -229,8 +224,7 @@ export class OrderService {
    * Update channel bot admin status
    */
   async updateChannelBotAdmin(channelId: string, isAdmin: boolean): Promise<void> {
-    // Find all orders with this channel
-    for (const order of this.orders.values()) {
+    for (const order of Array.from(this.orders.values())) {
       if (order.channel.id === channelId) {
         order.channel.botIsAdmin = isAdmin;
         order.updatedAt = new Date();
@@ -239,98 +233,6 @@ export class OrderService {
     }
 
     this.logger.log(`Bot admin status updated for channel ${channelId}: ${isAdmin}`);
-  }
-
-  /**
-   * Get order session state from context (checks TTL)
-   */
-  getOrderSessionState(ctx: BotContext): OrderSessionState | null {
-    const state = (ctx.session?.formData?.orderCreation as OrderSessionState & { expiresAt?: number }) || null;
-
-    if (!state) {
-      return null;
-    }
-
-    // Check if session is expired
-    if (state.expiresAt && Date.now() > state.expiresAt) {
-      this.logger.warn('Session expired, clearing state');
-      this.clearOrderSessionState(ctx);
-
-      return null;
-    }
-
-    return state;
-  }
-
-  /**
-   * Save order session state to context with TTL
-   */
-  saveOrderSessionState(ctx: BotContext, state: OrderSessionState): void {
-    if (!ctx.session) {
-      ctx.session = {};
-    }
-
-    if (!ctx.session.formData) {
-      ctx.session.formData = {};
-    }
-
-    // Add TTL metadata
-    const stateWithTTL = {
-      ...state,
-      expiresAt: Date.now() + this.sessionTtlMs,
-    };
-
-    ctx.session.formData.orderCreation = stateWithTTL;
-  }
-
-  /**
-   * Clear order session state
-   */
-  clearOrderSessionState(ctx: BotContext): void {
-    if (ctx.session?.formData) {
-      delete ctx.session.formData.orderCreation;
-    }
-  }
-
-  /**
-   * Initialize order creation flow
-   */
-  initOrderCreation(ctx: BotContext): OrderSessionState {
-    const state: OrderSessionState = {
-      currentStep: OrderFlowStep.EnterChannelLink,
-      config: { ...defaultOrderConfig },
-      startedAt: new Date(),
-    };
-
-    this.saveOrderSessionState(ctx, state);
-
-    return state;
-  }
-
-  /**
-   * Move to next step in order creation
-   */
-  moveToNextStep(ctx: BotContext, nextStep: OrderFlowStep): void {
-    const state = this.getOrderSessionState(ctx);
-    if (state) {
-      state.currentStep = nextStep;
-      this.saveOrderSessionState(ctx, state);
-    }
-  }
-
-  /**
-   * Update order creation config
-   */
-  updateOrderCreationConfig(ctx: BotContext, config: Partial<OrderConfiguration>): void {
-    const state = this.getOrderSessionState(ctx);
-    if (state) {
-      state.config = {
-        ...state.config,
-        ...config,
-      };
-
-      this.saveOrderSessionState(ctx, state);
-    }
   }
 
   /**
@@ -350,12 +252,11 @@ export class OrderService {
     }
 
     // FUTURE: Implement real stats refresh from tracking system
-    // For now, simulate some activity
-    // eslint-disable-next-line sonarjs/pseudo-random -- Mock data generation for demo purposes
+    // eslint-disable-next-line sonarjs/pseudo-random
     order.stats.subscribersToday = Math.floor(Math.random() * 50);
 
     order.stats.totalSubscribers += order.stats.subscribersToday;
-    // eslint-disable-next-line sonarjs/pseudo-random -- Mock data generation for demo purposes
+    // eslint-disable-next-line sonarjs/pseudo-random
     order.stats.conversionRate = 85 + Math.random() * 10;
     order.updatedAt = new Date();
 
@@ -374,7 +275,6 @@ export class OrderService {
       return '';
     }
 
-    // FUTURE: Implement real report generation
     const report = `
 Order Report #${orderId}
 ========================
@@ -395,24 +295,6 @@ Created: ${order.createdAt.toLocaleDateString()}
    */
   private generateOrderId(): string {
     return `order_${randomBytes(16).toString('hex')}`;
-  }
-
-  /**
-   * Start session cleanup interval
-   */
-  private startSessionCleanup(): void {
-    setInterval(() => {
-      this.cleanupExpiredSessions();
-    }, this.sessionCleanupIntervalMs);
-  }
-
-  /**
-   * Cleanup expired sessions
-   */
-  private cleanupExpiredSessions(): void {
-    // FUTURE: Implement session cleanup when Redis/database is integrated
-    // For now, this is a placeholder for the in-memory implementation
-    this.logger.debug('Session cleanup would run here with database integration');
   }
 
   /**

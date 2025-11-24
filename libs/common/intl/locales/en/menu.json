@@ -54,18 +54,13 @@
     }
   },
   "main_menu": {
-    "greeting": "Welcome",
-    "description": "<b>MotivBuy</b> — Your Telegram growth platform",
-    "buy_title": "Buy Traffic",
-    "buy_desc": "Get real subscribers for your channels and groups",
-    "sell_title": "Sell Traffic",
-    "sell_desc": "Monetize your bot or channel audience",
-    "select_action": "Select an action below",
-    "btn_buy_traffic": "🛒 Buy Traffic",
-    "btn_sell_traffic": "💰 Sell Traffic",
-    "btn_balance": "💳 Balance",
+    "select_action": "Select an option 👇",
+    "btn_buy_subscribers": "👥 Buy Subscribers",
+    "btn_sell_traffic": "🤖 Sell Traffic",
+    "btn_my_orders": "📋 My Orders",
     "btn_profile": "👤 Profile",
-    "btn_support": "🆘 Support"
+    "btn_balance": "💰 Balance",
+    "btn_support": "🏢 Support"
   },
   "buy_traffic": {
     "title": "Buy Traffic",
