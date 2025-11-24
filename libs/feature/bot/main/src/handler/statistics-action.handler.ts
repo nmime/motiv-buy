@@ -78,7 +78,7 @@ export class StatisticsActionHandler {
   async handleDetailedStatistics(ctx: AuthenticatedBotContext): Promise<void> {
     const stats = await this.calculateDetailedStatistics(ctx.user.id);
     const statsText = this.formatDetailedStatistics(stats, ctx);
-    const keyboard = this.menuHandler.createBackButton('menu:statistics', ctx.t('common.common.back'));
+    const keyboard = this.menuHandler.createBackButton('menu:statistics', ctx.t('common.back'));
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: statsText,
@@ -95,7 +95,7 @@ export class StatisticsActionHandler {
   async handleTrafficStatistics(ctx: AuthenticatedBotContext): Promise<void> {
     const trafficStats = await this.calculateTrafficStatistics(ctx.user.id);
     const statsText = this.formatTrafficStatistics(trafficStats, ctx);
-    const keyboard = this.menuHandler.createBackButton('menu:statistics', ctx.t('common.common.back'));
+    const keyboard = this.menuHandler.createBackButton('menu:statistics', ctx.t('common.back'));
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: statsText,
@@ -112,7 +112,7 @@ export class StatisticsActionHandler {
   async handleEarningsStatistics(ctx: AuthenticatedBotContext): Promise<void> {
     const earningsStats = await this.calculateEarningsStatistics(ctx.user.id);
     const statsText = this.formatEarningsStatistics(earningsStats, ctx);
-    const keyboard = this.menuHandler.createBackButton('menu:statistics', ctx.t('common.common.back'));
+    const keyboard = this.menuHandler.createBackButton('menu:statistics', ctx.t('common.back'));
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: statsText,

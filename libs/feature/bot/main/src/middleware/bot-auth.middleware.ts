@@ -53,17 +53,16 @@ export class BotAuthMiddleware {
   async middleware(ctx: BotContext, next: () => Promise<void>): Promise<void> {
     try {
       await this.authenticateUser(ctx);
-      await next();
     } catch (err: unknown) {
       this.logger.error('Authentication middleware error', err, {
         telegramId: ctx.from?.id,
         chatId: ctx.chat?.id,
       });
-
-      // Continue with next handler even if auth fails
-      // This ensures the bot doesn't break completely
-      await next();
+      // Continue even if auth fails - don't break the bot
     }
+
+    // Always call next() exactly once
+    await next();
   }
 
   /**

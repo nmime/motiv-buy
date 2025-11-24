@@ -146,7 +146,7 @@ export class SettingsActionHandler {
       `• ${ctx.t('settings.date_format', { default: 'Date Format' })}: DD/MM/YYYY / MM/DD/YYYY\n\n` +
       `<i>${ctx.t('settings.coming_soon', { default: 'More preferences coming soon!' })}</i>`;
 
-    const keyboard = this.menuHandler.createBackButton('menu:settings', ctx.t('common.common.back'));
+    const keyboard = this.menuHandler.createBackButton('menu:settings', ctx.t('common.back'));
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: preferencesText,

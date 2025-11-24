@@ -50,7 +50,8 @@
       "title": "Help",
       "faq": "❓ FAQ",
       "tutorials": "📚 Tutorials",
-      "contact": "📞 Contact Support"
+      "contact": "📞 Contact Support",
+      "faq_coming_soon": "FAQ section coming soon!"
     }
   },
   "main_menu": {
@@ -60,63 +61,5 @@
     "btn_profile": "👤 Profile",
     "btn_balance": "💳 Balance",
     "btn_support": "🏢 Support"
-  },
-  "buy_traffic": {
-    "title": "Buy Traffic",
-    "description": "Get real subscribers for your Telegram channels and groups.",
-    "your_balance": "Your Balance",
-    "active_orders": "Active Orders",
-    "how_it_works": "How it works",
-    "step1": "Create a new order",
-    "step2": "Enter your channel/group link",
-    "step3": "Select package and quantity",
-    "step4": "Confirm and pay",
-    "step5": "Watch your subscribers grow!",
-    "select_action": "Select an action",
-    "btn_new_order": "➕ New Order",
-    "btn_my_orders": "📋 My Orders",
-    "btn_active": "🔄 Active Orders",
-    "btn_completed": "✅ Completed",
-    "btn_deposit": "💳 Top Up Balance"
-  },
-  "sell_traffic": {
-    "title": "Sell Traffic",
-    "description": "Monetize your Telegram bot or channel by selling traffic to advertisers.",
-    "your_stats": "Your Statistics",
-    "total_sources": "Traffic Sources",
-    "active_sources": "Active",
-    "pending_earnings": "Pending Earnings",
-    "available_balance": "Available Balance",
-    "how_to_earn": "How to earn",
-    "step1": "Add your bot as a traffic source",
-    "step2": "Connect it to receive orders",
-    "step3": "Your bot shows ads to users",
-    "step4": "Get paid for each subscriber!",
-    "select_action": "Select an action",
-    "btn_my_sources": "📊 My Sources",
-    "btn_add_source": "➕ Add Source",
-    "btn_analytics": "📈 Analytics",
-    "btn_earnings": "💵 Earnings",
-    "btn_withdraw": "💸 Withdraw"
-  },
-  "support": {
-    "title": "Support",
-    "description": "We're here to help!",
-    "contact_methods": "Contact Methods",
-    "telegram": "Telegram",
-    "email": "Email",
-    "working_hours": "Working Hours",
-    "weekdays": "Mon-Fri: 9:00 AM - 9:00 PM (MSK)",
-    "weekends": "Sat-Sun: 10:00 AM - 6:00 PM (MSK)",
-    "faq_title": "Frequently Asked Questions",
-    "select_action": "Select an action below or contact us directly",
-    "btn_contact": "💬 Contact Support",
-    "btn_faq": "❓ FAQ",
-    "btn_report": "📝 Report Issue",
-    "btn_suggest": "💡 Suggest Feature"
-  },
-  "common": {
-    "back_to_menu": "« Back to Menu",
-    "user": "User"
   }
 }

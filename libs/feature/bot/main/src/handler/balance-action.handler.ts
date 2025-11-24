@@ -54,8 +54,9 @@ export class BalanceActionHandler {
     try {
       const limit = 10;
       const offset = (page - 1) * limit;
+      const em = this.em.fork();
 
-      const [transactions, total] = await this.em.findAndCount(
+      const [transactions, total] = await em.findAndCount(
         UserBalanceHistoryEntity,
         { user: ctx.user.id },
         {
@@ -163,7 +164,9 @@ export class BalanceActionHandler {
    * Get user balances
    */
   private async getUserBalances(userId: string): Promise<UserBalanceEntity[]> {
-    return await this.em.find(
+    const em = this.em.fork();
+
+    return await em.find(
       UserBalanceEntity,
       { user: userId },
       {

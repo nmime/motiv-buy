@@ -74,7 +74,7 @@ export class CallbackRouterHandler {
    * Create back button with translated text
    */
   private createBackButton(ctx: BotContext, returnTo: string): InlineKeyboard {
-    return this.menuHandler.createBackButton(returnTo, ctx.t('common.common.back'));
+    return this.menuHandler.createBackButton(returnTo, ctx.t('common.back'));
   }
 
   /**
@@ -158,7 +158,7 @@ export class CallbackRouterHandler {
       ['payments', this.withAuth((ctx) => this.handlePaymentsMenu(ctx))],
       ['support', this.handleSupportMenu.bind(this)],
       ['help', this.handleHelpMenu.bind(this)],
-      ['traffic', this.withAuth((ctx) => this.handleTrafficMenu(ctx))],
+      ['traffic', this.withAuth((ctx) => this.handleSellTrafficMenu(ctx))],
       ['campaign', this.withAuth((ctx) => this.handleCampaignMenu(ctx))],
       ['withdrawal', this.withAuth((ctx) => this.balanceHandler.handleWithdrawalStart(ctx))],
       ['notifications', this.withAuth((ctx) => this.settingsHandler.handleNotificationSettings(ctx))],
@@ -750,7 +750,7 @@ export class CallbackRouterHandler {
         return;
       }
 
-      await this.handleTrafficMenu(ctx);
+      await this.handleSellTrafficMenu(ctx);
     }
   }
 
@@ -935,32 +935,27 @@ export class CallbackRouterHandler {
 
     const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
 
-    const text = `<b>🛒 ${ctx.t('buy_traffic.title', { default: 'Buy Traffic' })}</b>
+    const text = `<b>🛒 ${ctx.t('buy_traffic.title')}</b>
 
-${ctx.t('buy_traffic.description', { default: 'Get real subscribers for your Telegram channels and groups.' })}
+${ctx.t('buy_traffic.description')}
 
-<b>💰 ${ctx.t('buy_traffic.your_balance', { default: 'Your Balance' })}:</b> $${availableBalance}
-<b>📦 ${ctx.t('buy_traffic.active_orders', { default: 'Active Orders' })}:</b> ${activeOrdersCount}
+<b>💰 ${ctx.t('buy_traffic.your_balance')}:</b> $${availableBalance}
+<b>📦 ${ctx.t('buy_traffic.active_orders')}:</b> ${activeOrdersCount}
 
-<b>📋 ${ctx.t('buy_traffic.how_it_works', { default: 'How it works' })}:</b>
-1. ${ctx.t('buy_traffic.step1', { default: 'Create a new order' })}
-2. ${ctx.t('buy_traffic.step2', { default: 'Enter your channel/group link' })}
-3. ${ctx.t('buy_traffic.step3', { default: 'Select package and quantity' })}
-4. ${ctx.t('buy_traffic.step4', { default: 'Confirm and pay' })}
-5. ${ctx.t('buy_traffic.step5', { default: 'Watch your subscribers grow!' })}
+<b>📋 ${ctx.t('buy_traffic.how_it_works')}:</b>
+1. ${ctx.t('buy_traffic.step1')}
+2. ${ctx.t('buy_traffic.step2')}
+3. ${ctx.t('buy_traffic.step3')}
+4. ${ctx.t('buy_traffic.step4')}
+5. ${ctx.t('buy_traffic.step5')}
 
-<i>${ctx.t('buy_traffic.select_action', { default: 'Select an action' })} 👇</i>`;
+<i>${ctx.t('buy_traffic.select_action')} 👇</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('buy_traffic.btn_new_order', { default: '➕ New Order' }), 'order:create:start')
-      .text(ctx.t('buy_traffic.btn_my_orders', { default: '📋 My Orders' }), 'orders:list')
+      .text(ctx.t('buy_traffic.btn_new_order'), 'order:create:start')
+      .text(ctx.t('buy_traffic.btn_my_orders'), 'orders:list')
       .row()
-      .text(ctx.t('buy_traffic.btn_active', { default: '🔄 Active Orders' }), 'orders:active')
-      .text(ctx.t('buy_traffic.btn_completed', { default: '✅ Completed' }), 'orders:completed')
-      .row()
-      .text(ctx.t('buy_traffic.btn_deposit', { default: '💳 Top Up Balance' }), 'balance:deposit')
-      .row()
-      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -982,34 +977,29 @@ ${ctx.t('buy_traffic.description', { default: 'Get real subscribers for your Tel
     const pendingEarnings = balance ? toDisplayString(balance.lockedBalance, 2) : '0.00';
     const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
 
-    const text = `<b>💰 ${ctx.t('sell_traffic.title', { default: 'Sell Traffic' })}</b>
+    const text = `<b>💰 ${ctx.t('sell_traffic.title')}</b>
 
-${ctx.t('sell_traffic.description', { default: 'Monetize your Telegram bot or channel by selling traffic to advertisers.' })}
+${ctx.t('sell_traffic.description')}
 
-<b>📊 ${ctx.t('sell_traffic.your_stats', { default: 'Your Statistics' })}:</b>
-• ${ctx.t('sell_traffic.total_sources', { default: 'Traffic Sources' })}: ${sourcesCount}
-• ${ctx.t('sell_traffic.active_sources', { default: 'Active' })}: ${activeSourcesCount}
-• ${ctx.t('sell_traffic.pending_earnings', { default: 'Pending Earnings' })}: $${pendingEarnings}
-• ${ctx.t('sell_traffic.available_balance', { default: 'Available Balance' })}: $${availableBalance}
+<b>📊 ${ctx.t('sell_traffic.your_stats')}:</b>
+• ${ctx.t('sell_traffic.total_sources')}: ${sourcesCount}
+• ${ctx.t('sell_traffic.active_sources')}: ${activeSourcesCount}
+• ${ctx.t('sell_traffic.pending_earnings')}: $${pendingEarnings}
+• ${ctx.t('sell_traffic.available_balance')}: $${availableBalance}
 
-<b>💡 ${ctx.t('sell_traffic.how_to_earn', { default: 'How to earn' })}:</b>
-1. ${ctx.t('sell_traffic.step1', { default: 'Add your bot as a traffic source' })}
-2. ${ctx.t('sell_traffic.step2', { default: 'Connect it to receive orders' })}
-3. ${ctx.t('sell_traffic.step3', { default: 'Your bot shows ads to users' })}
-4. ${ctx.t('sell_traffic.step4', { default: 'Get paid for each subscriber!' })}
+<b>💡 ${ctx.t('sell_traffic.how_to_earn')}:</b>
+1. ${ctx.t('sell_traffic.step1')}
+2. ${ctx.t('sell_traffic.step2')}
+3. ${ctx.t('sell_traffic.step3')}
+4. ${ctx.t('sell_traffic.step4')}
 
-<i>${ctx.t('sell_traffic.select_action', { default: 'Select an action' })} 👇</i>`;
+<i>${ctx.t('sell_traffic.select_action')} 👇</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('sell_traffic.btn_my_sources', { default: '📊 My Sources' }), 'traffic:sources')
-      .text(ctx.t('sell_traffic.btn_add_source', { default: '➕ Add Source' }), 'traffic:sources:add')
+      .text(ctx.t('sell_traffic.btn_my_sources'), 'traffic:sources')
+      .text(ctx.t('sell_traffic.btn_add_source'), 'traffic:sources:add')
       .row()
-      .text(ctx.t('sell_traffic.btn_analytics', { default: '📈 Analytics' }), 'traffic:analytics')
-      .text(ctx.t('sell_traffic.btn_earnings', { default: '💵 Earnings' }), 'balance:view')
-      .row()
-      .text(ctx.t('sell_traffic.btn_withdraw', { default: '💸 Withdraw' }), 'balance:withdraw')
-      .row()
-      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2168,11 +2158,11 @@ A: ${ctx.t('help.faq_a5', { default: 'Balance → Withdraw. Minimum amount: $10.
 A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram users.' })}`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('help.btn_more_orders', { default: '📖 More about orders' }), 'help:createOrder')
+      .text(ctx.t('help.btn_more_orders'), 'help:createOrder')
       .row()
-      .text(ctx.t('help.btn_balance_questions', { default: '💰 Balance questions' }), 'help:topup')
+      .text(ctx.t('help.btn_balance_questions'), 'help:topup')
       .row()
-      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
+      .text(ctx.t('common.back'), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2412,7 +2402,7 @@ ${ctx.t('help.create_tip', { default: 'The more interesting your channel, the mo
     const keyboard = new InlineKeyboard()
       .text(ctx.t('help.btn_create_now', { default: '🆕 Create Order' }), 'order:create:start')
       .row()
-      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
+      .text(ctx.t('common.back'), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2447,7 +2437,7 @@ ${ctx.t('help.deposit_bonus', { default: 'Deposit $100+ and get 5% bonus!' })}`;
     const keyboard = new InlineKeyboard()
       .text(ctx.t('help.btn_deposit_now', { default: '💰 Deposit Now' }), 'balance:deposit')
       .row()
-      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
+      .text(ctx.t('common.back'), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2485,7 +2475,7 @@ ${ctx.t('help.withdraw_tip', { default: 'Withdraw to verified wallets!' })}`;
     const keyboard = new InlineKeyboard()
       .text(ctx.t('help.btn_withdraw_now', { default: '💸 Withdraw Funds' }), 'balance:withdraw')
       .row()
-      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
+      .text(ctx.t('common.back'), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2527,7 +2517,7 @@ ${ctx.t('help.stats_tip', { default: 'Analyze statistics to optimize campaigns!'
     const keyboard = new InlineKeyboard()
       .text(ctx.t('help.btn_view_stats', { default: '📊 View Statistics' }), 'stats:overview')
       .row()
-      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
+      .text(ctx.t('common.back'), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2569,7 +2559,7 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
       .row()
       .text(ctx.t('help.btn_my_sources', { default: '📊 My Sources' }), 'menu:traffic')
       .row()
-      .text(ctx.t('help.btn_back_to_help', { default: '« Back to Help' }), 'menu:help');
+      .text(ctx.t('common.back'), 'menu:help');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,

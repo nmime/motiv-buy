@@ -106,7 +106,7 @@ export class ProfileActionHandler {
    */
   async handleProfileDetails(ctx: AuthenticatedBotContext): Promise<void> {
     const detailsText = this.formatProfileDetails(ctx.user);
-    const keyboard = this.menuHandler.createBackButton('menu:profile', ctx.t('common.common.back'));
+    const keyboard = this.menuHandler.createBackButton('menu:profile', ctx.t('common.back'));
 
     await ctx.replyWithHTML(detailsText, { reply_markup: keyboard });
   }

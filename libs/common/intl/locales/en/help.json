@@ -1,0 +1,22 @@
+{
+  "faq_title": "Frequently Asked Questions",
+  "faq_create_order": "How to create an order?",
+  "faq_deposit": "How to deposit funds?",
+  "faq_withdraw": "How to withdraw funds?",
+  "faq_bot_issues": "Bot issues",
+  "faq_q1": "How to create an order?",
+  "faq_a1": "Click \"Buy Traffic\", enter your channel link and follow the instructions.",
+  "faq_q2": "How to deposit funds?",
+  "faq_a2": "Go to \"Balance\" → \"Deposit\" and select a payment method.",
+  "faq_q3": "How fast do subscribers arrive?",
+  "faq_a3": "Usually within 24 hours after order launch.",
+  "faq_q4": "Can I cancel an order?",
+  "faq_a4": "Yes, you can stop the order at any time.",
+  "faq_q5": "How to withdraw funds?",
+  "faq_a5": "Balance → Withdraw. Minimum amount: $10.",
+  "faq_q6": "Are subscribers real?",
+  "faq_a6": "Yes, all subscribers are real Telegram users.",
+  "contact_hint": "If you have questions, contact support.",
+  "btn_more_orders": "📦 Orders FAQ",
+  "btn_balance_questions": "💰 Balance FAQ"
+}

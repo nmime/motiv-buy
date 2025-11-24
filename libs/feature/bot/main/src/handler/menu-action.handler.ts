@@ -93,7 +93,7 @@ export class MenuActionHandler {
       .text(ctx.t('menu.profile.edit'), 'profile:edit')
       .text(ctx.t('menu.profile.details'), 'profile:details')
       .row()
-      .text(ctx.t('buttons.view'), 'profile:verify')
+      .text(ctx.t('common.buttons.view'), 'profile:verify')
       .row()
       .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
@@ -191,9 +191,7 @@ export class MenuActionHandler {
       .text(ctx.t('traffic.targets'), 'traffic:targets')
       .row()
       .text(ctx.t('menu.sell_traffic.btn_add_source'), 'traffic:sources:add')
-      .text(ctx.t('buttons.add'), 'traffic:targets:add')
-      .row()
-      .text(ctx.t('menu.sell_traffic.btn_analytics'), 'traffic:analytics')
+      .text(ctx.t('common.buttons.add'), 'traffic:targets:add')
       .row()
       .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
@@ -212,8 +210,8 @@ export class MenuActionHandler {
       keyboard.text(`${statusEmoji} ${source.name}`, `traffic:source:view:${source.id}`).row();
     });
 
-    keyboard.text(ctx.t('menu.sell_traffic.btn_add_source'), 'traffic:sources:add').row();
-    keyboard.text(ctx.t('common.back'), 'menu:traffic');
+    keyboard.text(ctx.t('sell_traffic.btn_add_source'), 'traffic:sources:add').row();
+    keyboard.text(ctx.t('common.back'), 'menu:sell_traffic');
 
     return keyboard;
   }
@@ -232,8 +230,8 @@ export class MenuActionHandler {
       keyboard.text(`${statusEmoji} ${target.name}`, `traffic:target:view:${target.id}`).row();
     });
 
-    keyboard.text(ctx.t('buttons.add'), 'traffic:targets:add').row();
-    keyboard.text(ctx.t('common.back'), 'menu:traffic');
+    keyboard.text(ctx.t('common.buttons.add'), 'traffic:targets:add').row();
+    keyboard.text(ctx.t('common.back'), 'menu:sell_traffic');
 
     return keyboard;
   }
@@ -243,11 +241,11 @@ export class MenuActionHandler {
    */
   createTrafficSourceDetailKeyboard(ctx: BotContext, sourceId: string): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('buttons.edit'), `traffic:source:edit:${sourceId}`)
+      .text(ctx.t('common.buttons.edit'), `traffic:source:edit:${sourceId}`)
       .text(ctx.t('traffic.source_status_toggled'), `traffic:source:toggle:${sourceId}`)
       .row()
       .text(ctx.t('common.statistics'), `traffic:source:stats:${sourceId}`)
-      .text(ctx.t('buttons.delete'), `traffic:source:delete:${sourceId}`)
+      .text(ctx.t('common.buttons.delete'), `traffic:source:delete:${sourceId}`)
       .row()
       .text(ctx.t('common.back'), 'traffic:sources');
   }
@@ -257,11 +255,11 @@ export class MenuActionHandler {
    */
   createTrafficTargetDetailKeyboard(ctx: BotContext, targetId: string): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('buttons.edit'), `traffic:target:edit:${targetId}`)
+      .text(ctx.t('common.buttons.edit'), `traffic:target:edit:${targetId}`)
       .text(ctx.t('traffic.target_status_toggled'), `traffic:target:toggle:${targetId}`)
       .row()
       .text(ctx.t('common.statistics'), `traffic:target:stats:${targetId}`)
-      .text(ctx.t('buttons.delete'), `traffic:target:delete:${targetId}`)
+      .text(ctx.t('common.buttons.delete'), `traffic:target:delete:${targetId}`)
       .row()
       .text(ctx.t('common.back'), 'traffic:targets');
   }

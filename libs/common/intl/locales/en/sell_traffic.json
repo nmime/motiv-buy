@@ -1,0 +1,17 @@
+{
+  "title": "Sell Traffic",
+  "description": "Monetize your Telegram bot or channel by selling traffic to advertisers.",
+  "your_stats": "Your Statistics",
+  "total_sources": "Traffic Sources",
+  "active_sources": "Active",
+  "pending_earnings": "Pending Earnings",
+  "available_balance": "Available Balance",
+  "how_to_earn": "How to earn",
+  "step1": "Add your bot as a traffic source",
+  "step2": "Connect it to receive orders",
+  "step3": "Your bot shows ads to users",
+  "step4": "Get paid for each subscriber!",
+  "select_action": "Select an action",
+  "btn_my_sources": "📊 My Sources",
+  "btn_add_source": "➕ Add Source"
+}
