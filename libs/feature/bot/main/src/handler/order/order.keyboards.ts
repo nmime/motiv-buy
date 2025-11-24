@@ -44,19 +44,23 @@ function getStatusText(status: OrderStatus): string {
 }
 
 /**
- * Main Menu Keyboard - 5 buttons matching the main handleMainMenu in callback-router
+ * Main Menu Keyboard - centralized layout (fallback with hardcoded Russian)
+ * NOTE: Prefer using MenuActionHandler.createMainMenuKeyboard(ctx) which uses translations
+ * Row 1: Sell Traffic | Buy Traffic
+ * Row 2: Profile | Balance
+ * Row 3: Support
  */
 export function createMainMenuKeyboard(): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
-  // Row 1: Buy and Sell Traffic
-  keyboard.text('🛒 Купить трафик', 'menu:buy_traffic').text('💰 Продать трафик', 'menu:sell_traffic').row();
+  // Row 1: Sell Traffic | Buy Traffic
+  keyboard.text('💰 Продать трафик', 'menu:sell_traffic').text('🛒 Купить трафик', 'menu:buy_traffic').row();
 
-  // Row 2: Balance and Profile
-  keyboard.text('💳 Баланс', 'balance:view').text('👤 Профиль', 'profile:view').row();
+  // Row 2: Profile | Balance
+  keyboard.text('👤 Профиль', 'profile:view').text('💳 Баланс', 'balance:view').row();
 
   // Row 3: Support
-  keyboard.text('🆘 Поддержка', 'menu:support');
+  keyboard.text('🏢 Тех. поддержка', 'menu:support');
 
   return keyboard;
 }

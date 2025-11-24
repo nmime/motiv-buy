@@ -901,16 +901,18 @@ export class CallbackRouterHandler {
   private async handleMainMenu(ctx: BotContext): Promise<void> {
     const message = ctx.t('menu.main_menu.select_action');
 
+    // Centralized menu layout:
+    // Row 1: Sell Traffic | Buy Traffic
+    // Row 2: Profile | Balance
+    // Row 3: Support
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('menu.main_menu.btn_buy_subscribers'), 'order:list')
-      .row()
-      .text(ctx.t('menu.main_menu.btn_sell_traffic'), 'traffic:manage')
-      .text(ctx.t('menu.main_menu.btn_my_orders'), 'order:list')
+      .text(ctx.t('menu.main_menu.btn_sell_traffic'), 'menu:sell_traffic')
+      .text(ctx.t('menu.main_menu.btn_buy_traffic'), 'menu:buy_traffic')
       .row()
       .text(ctx.t('menu.main_menu.btn_profile'), 'profile:view')
       .text(ctx.t('menu.main_menu.btn_balance'), 'balance:view')
       .row()
-      .text(ctx.t('menu.main_menu.btn_support'), 'support:contact');
+      .text(ctx.t('menu.main_menu.btn_support'), 'menu:support');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: message,
