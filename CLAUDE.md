@@ -67,6 +67,12 @@ NestJS monorepo application with:
    - Use i18n service/decorators for translations
    - See [Localization](#localization) section
 
+7. **NO DUPLICATE FUNCTIONS OR HANDLERS**
+   - Before creating new functions, search for existing ones with similar functionality
+   - Reuse existing utilities from `@app/common-shared` instead of duplicating logic
+   - Extract shared logic into common utilities when same pattern appears twice
+   - Consolidate handlers that perform similar operations into single configurable function
+
 ---
 
 ## Module Architecture
