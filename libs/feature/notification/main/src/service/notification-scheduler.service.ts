@@ -7,7 +7,8 @@ import { NotificationSenderService } from './notification-sender.service';
 @Injectable()
 export class NotificationSchedulerService implements OnModuleInit {
   private readonly logger = new Logger(NotificationSchedulerService.name);
-  private isProcessing = false;
+  private isProcessingUserNotifications = false;
+  private isProcessingRetryable = false;
   private readonly batchSize = 100;
 
   constructor(
@@ -21,11 +22,11 @@ export class NotificationSchedulerService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_10_SECONDS)
   async processUserNotifications(): Promise<void> {
-    if (this.isProcessing) {
+    if (this.isProcessingUserNotifications) {
       return;
     }
 
-    this.isProcessing = true;
+    this.isProcessingUserNotifications = true;
 
     // Fork EntityManager for cron job context (cron jobs run outside request context)
     const em = this.orm.em.fork() as SqlEntityManager;
@@ -59,12 +60,20 @@ export class NotificationSchedulerService implements OnModuleInit {
     } catch (error) {
       this.logger.error('Error processing user notifications:', error);
     } finally {
-      this.isProcessing = false;
+      // Clear the forked EntityManager to release managed entities and connections back to the pool
+      em.clear();
+      this.isProcessingUserNotifications = false;
     }
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async processRetryableNotifications(): Promise<void> {
+    if (this.isProcessingRetryable) {
+      return;
+    }
+
+    this.isProcessingRetryable = true;
+
     // Fork EntityManager for cron job context (cron jobs run outside request context)
     const em = this.orm.em.fork() as SqlEntityManager;
     const notificationRepository = new NotificationRepository(em);
@@ -84,6 +93,10 @@ export class NotificationSchedulerService implements OnModuleInit {
       }
     } catch (error) {
       this.logger.error('Error processing retryable notifications:', error);
+    } finally {
+      // Clear the forked EntityManager to release managed entities and connections back to the pool
+      em.clear();
+      this.isProcessingRetryable = false;
     }
   }
 }
