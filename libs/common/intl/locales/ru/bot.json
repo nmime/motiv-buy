@@ -61,7 +61,6 @@
     "withdrawal": "💸 Вывод",
     "referral": "🤝 Рефералы",
     "back_to_balance": "◀️ К балансу",
-    "back_to_menu": "🏠 В меню",
     "balance": {
       "title": "💰 Баланс",
       "history_coming_soon": "📈 История транзакций скоро!",
@@ -259,7 +258,6 @@
     "check_bot_admin": "✅ Проверить добавление",
     "configure_now": "⚙️ Настроить сейчас",
     "configure_later": "⏭ Настроить позже",
-    "back_to_menu": "🏠 В главное меню",
     "edit_name": "✏️ Название",
     "edit_link": "🔗 Ссылка",
     "edit_users_per_day": "📊 Польз./день",

@@ -199,7 +199,6 @@
     "check_bot_admin": "✅ Check Addition",
     "configure_now": "⚙️ Configure Now",
     "configure_later": "⏭ Configure Later",
-    "back_to_menu": "🏠 Back to Menu",
     "edit_name": "✏️ Name",
     "edit_link": "🔗 Link",
     "edit_users_per_day": "📊 Users/day",
@@ -255,7 +254,6 @@
     "withdrawal": "💸 Withdraw",
     "referral": "🤝 Referral",
     "back_to_balance": "◀️ Back to Balance",
-    "back_to_menu": "🏠 Back to Menu",
     "balance": {
       "title": "💰 Balance",
       "history_coming_soon": "📈 Transaction history coming soon!",

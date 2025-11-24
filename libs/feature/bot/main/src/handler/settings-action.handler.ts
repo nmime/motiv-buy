@@ -64,9 +64,9 @@ export class SettingsActionHandler {
   async handleLanguageSettings(ctx: AuthenticatedBotContext): Promise<void> {
     const currentLang = ctx.user.languageCode || 'en';
     const languageText =
-      `🌐 <b>${ctx.t('settings.language_title', { default: 'Language Settings' })}</b>\n\n` +
-      `${ctx.t('settings.current_language', { default: 'Current language' })}: ${this.getLanguageName(currentLang)}\n\n` +
-      `${ctx.t('settings.select_language', { default: 'Select your preferred language:' })}`;
+      `🌐 <b>${ctx.t('settings.language_title')}</b>\n\n` +
+      `${ctx.t('settings.current_language')}: ${this.getLanguageName(currentLang)}\n\n` +
+      `${ctx.t('settings.select_language')}`;
 
     const languageKeyboard = this.createLanguageKeyboard(currentLang, ctx);
 
@@ -89,7 +89,7 @@ export class SettingsActionHandler {
     });
 
     if (!validation.isValid || !this.supportedLanguages.includes(validation.sanitized as string)) {
-      await ctx.reply(ctx.t('common.errors.invalid_input', { default: 'Invalid input.' }));
+      await ctx.reply(ctx.t('common.errors.invalid_input'));
 
       return;
     }
@@ -127,7 +127,7 @@ export class SettingsActionHandler {
    */
   async handleNotificationToggle(ctx: AuthenticatedBotContext, notificationType: string): Promise<void> {
     await this.toggleNotification(ctx.user.id, notificationType);
-    await ctx.answerCallbackQuery(ctx.t('common.success.updated', { default: 'Updated!' }));
+    await ctx.answerCallbackQuery(ctx.t('common.success.updated'));
     await this.handleNotificationSettings(ctx);
 
     this.logger.log('Notification toggled', { userId: ctx.user.id, type: notificationType });
@@ -138,13 +138,13 @@ export class SettingsActionHandler {
    */
   async handlePreferencesSettings(ctx: AuthenticatedBotContext): Promise<void> {
     const preferencesText =
-      `🎨 <b>${ctx.t('settings.preferences_title', { default: 'Preferences' })}</b>\n\n` +
-      `${ctx.t('settings.preferences_description', { default: 'Customize your bot experience:' })}\n\n` +
-      `• ${ctx.t('settings.display_mode', { default: 'Display Mode' })}: Compact / Detailed\n` +
-      `• ${ctx.t('settings.currency_format', { default: 'Currency Format' })}: USD / EUR / RUB\n` +
-      `• ${ctx.t('settings.timezone', { default: 'Timezone' })}: Auto / Custom\n` +
-      `• ${ctx.t('settings.date_format', { default: 'Date Format' })}: DD/MM/YYYY / MM/DD/YYYY\n\n` +
-      `<i>${ctx.t('settings.coming_soon', { default: 'More preferences coming soon!' })}</i>`;
+      `🎨 <b>${ctx.t('settings.preferences_title')}</b>\n\n` +
+      `${ctx.t('settings.preferences_description')}\n\n` +
+      `• ${ctx.t('settings.display_mode')}: Compact / Detailed\n` +
+      `• ${ctx.t('settings.currency_format')}: USD / EUR / RUB\n` +
+      `• ${ctx.t('settings.timezone')}: Auto / Custom\n` +
+      `• ${ctx.t('settings.date_format')}: DD/MM/YYYY / MM/DD/YYYY\n\n` +
+      `<i>${ctx.t('settings.coming_soon')}</i>`;
 
     const keyboard = this.menuHandler.createBackButton('menu:settings', ctx.t('common.back'));
 
@@ -288,18 +288,18 @@ export class SettingsActionHandler {
    */
   private formatSettingsView(preferences: UserPreferences, ctx: AuthenticatedBotContext): string {
     return (
-      `<b>⚙️ ${ctx.t('settings.title', { default: 'Settings' })}</b>\n\n` +
-      `<b>🌐 ${ctx.t('settings.language', { default: 'Language' })}:</b> ${this.getLanguageName(preferences.language)}\n\n` +
-      `<b>🔔 ${ctx.t('settings.notifications', { default: 'Notifications' })}:</b>\n` +
-      `• ${ctx.t('settings.balance', { default: 'Balance' })}: ${preferences.notifications.balance ? '✅' : '❌'}\n` +
-      `• ${ctx.t('settings.trade', { default: 'Trade' })}: ${preferences.notifications.trade ? '✅' : '❌'}\n` +
-      `• ${ctx.t('settings.referral', { default: 'Referral' })}: ${preferences.notifications.referral ? '✅' : '❌'}\n` +
-      `• ${ctx.t('settings.system', { default: 'System' })}: ${preferences.notifications.system ? '✅' : '❌'}\n` +
-      `• ${ctx.t('settings.marketing', { default: 'Marketing' })}: ${preferences.notifications.marketing ? '✅' : '❌'}\n\n` +
-      `<b>🔒 ${ctx.t('settings.privacy', { default: 'Privacy' })}:</b>\n` +
-      `• ${ctx.t('settings.show_profile', { default: 'Show Profile' })}: ${preferences.privacy.showProfile ? '✅' : '❌'}\n` +
-      `• ${ctx.t('settings.show_stats', { default: 'Show Stats' })}: ${preferences.privacy.showStats ? '✅' : '❌'}\n\n` +
-      `<i>${ctx.t('settings.use_buttons', { default: 'Use the buttons below to manage your settings.' })}</i>`
+      `<b>⚙️ ${ctx.t('settings.title')}</b>\n\n` +
+      `<b>🌐 ${ctx.t('settings.language')}:</b> ${this.getLanguageName(preferences.language)}\n\n` +
+      `<b>🔔 ${ctx.t('settings.notifications')}:</b>\n` +
+      `• ${ctx.t('settings.balance')}: ${preferences.notifications.balance ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.trade')}: ${preferences.notifications.trade ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.referral')}: ${preferences.notifications.referral ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.system')}: ${preferences.notifications.system ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.marketing')}: ${preferences.notifications.marketing ? '✅' : '❌'}\n\n` +
+      `<b>🔒 ${ctx.t('settings.privacy')}:</b>\n` +
+      `• ${ctx.t('settings.show_profile')}: ${preferences.privacy.showProfile ? '✅' : '❌'}\n` +
+      `• ${ctx.t('settings.show_stats')}: ${preferences.privacy.showStats ? '✅' : '❌'}\n\n` +
+      `<i>${ctx.t('settings.use_buttons')}</i>`
     );
   }
 
@@ -308,13 +308,13 @@ export class SettingsActionHandler {
    */
   private formatNotificationSettings(prefs: UserPreferences['notifications'], ctx: AuthenticatedBotContext): string {
     return (
-      `<b>🔔 ${ctx.t('settings.notification_title', { default: 'Notification Settings' })}</b>\n\n` +
-      `${ctx.t('settings.balance_changes', { default: 'Balance Changes' })}: ${prefs.balance ? '✅' : '❌'}\n` +
-      `${ctx.t('settings.trade_notifications', { default: 'Trade Notifications' })}: ${prefs.trade ? '✅' : '❌'}\n` +
-      `${ctx.t('settings.referral_updates', { default: 'Referral Updates' })}: ${prefs.referral ? '✅' : '❌'}\n` +
-      `${ctx.t('settings.system_messages', { default: 'System Messages' })}: ${prefs.system ? '✅' : '❌'}\n` +
-      `${ctx.t('settings.marketing', { default: 'Marketing' })}: ${prefs.marketing ? '✅' : '❌'}\n\n` +
-      `<i>${ctx.t('settings.tap_to_toggle', { default: 'Tap on an option to toggle it.' })}</i>`
+      `<b>🔔 ${ctx.t('settings.notification_title')}</b>\n\n` +
+      `${ctx.t('settings.balance_changes')}: ${prefs.balance ? '✅' : '❌'}\n` +
+      `${ctx.t('settings.trade_notifications')}: ${prefs.trade ? '✅' : '❌'}\n` +
+      `${ctx.t('settings.referral_updates')}: ${prefs.referral ? '✅' : '❌'}\n` +
+      `${ctx.t('settings.system_messages')}: ${prefs.system ? '✅' : '❌'}\n` +
+      `${ctx.t('settings.marketing')}: ${prefs.marketing ? '✅' : '❌'}\n\n` +
+      `<i>${ctx.t('settings.tap_to_toggle')}</i>`
     );
   }
 
@@ -323,10 +323,10 @@ export class SettingsActionHandler {
    */
   private formatPrivacySettings(prefs: UserPreferences['privacy'], ctx: AuthenticatedBotContext): string {
     return (
-      `<b>🔒 ${ctx.t('settings.privacy_title', { default: 'Privacy Settings' })}</b>\n\n` +
-      `${ctx.t('settings.show_profile', { default: 'Show Profile' })}: ${prefs.showProfile ? '✅ Public' : '❌ Private'}\n` +
-      `${ctx.t('settings.show_statistics', { default: 'Show Statistics' })}: ${prefs.showStats ? '✅ Public' : '❌ Private'}\n\n` +
-      `<i>${ctx.t('settings.control_visibility', { default: 'Control who can see your information.' })}</i>`
+      `<b>🔒 ${ctx.t('settings.privacy_title')}</b>\n\n` +
+      `${ctx.t('settings.show_profile')}: ${prefs.showProfile ? '✅ Public' : '❌ Private'}\n` +
+      `${ctx.t('settings.show_statistics')}: ${prefs.showStats ? '✅ Public' : '❌ Private'}\n\n` +
+      `<i>${ctx.t('settings.control_visibility')}</i>`
     );
   }
 
@@ -350,7 +350,7 @@ export class SettingsActionHandler {
       keyboard.text(`${marker}${lang.name}`, `settings:lang:${lang.code}`).row();
     });
 
-    keyboard.text(ctx.t('common.back', { default: '« Back' }), 'menu:settings');
+    keyboard.text(ctx.t('common.back'), 'menu:settings');
 
     return keyboard;
   }
@@ -360,27 +360,15 @@ export class SettingsActionHandler {
    */
   private createNotificationKeyboard(prefs: UserPreferences['notifications'], ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text(
-        `${prefs.balance ? '✅' : '❌'} ${ctx.t('settings.balance', { default: 'Balance' })}`,
-        'settings:notify:balance',
-      )
-      .text(`${prefs.trade ? '✅' : '❌'} ${ctx.t('settings.trade', { default: 'Trade' })}`, 'settings:notify:trade')
+      .text(`${prefs.balance ? '✅' : '❌'} ${ctx.t('settings.balance')}`, 'settings:notify:balance')
+      .text(`${prefs.trade ? '✅' : '❌'} ${ctx.t('settings.trade')}`, 'settings:notify:trade')
       .row()
-      .text(
-        `${prefs.referral ? '✅' : '❌'} ${ctx.t('settings.referral', { default: 'Referral' })}`,
-        'settings:notify:referral',
-      )
-      .text(
-        `${prefs.system ? '✅' : '❌'} ${ctx.t('settings.system', { default: 'System' })}`,
-        'settings:notify:system',
-      )
+      .text(`${prefs.referral ? '✅' : '❌'} ${ctx.t('settings.referral')}`, 'settings:notify:referral')
+      .text(`${prefs.system ? '✅' : '❌'} ${ctx.t('settings.system')}`, 'settings:notify:system')
       .row()
-      .text(
-        `${prefs.marketing ? '✅' : '❌'} ${ctx.t('settings.marketing', { default: 'Marketing' })}`,
-        'settings:notify:marketing',
-      )
+      .text(`${prefs.marketing ? '✅' : '❌'} ${ctx.t('settings.marketing')}`, 'settings:notify:marketing')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'menu:settings');
+      .text(ctx.t('common.back'), 'menu:settings');
   }
 
   /**
@@ -388,15 +376,9 @@ export class SettingsActionHandler {
    */
   private createPrivacyKeyboard(prefs: UserPreferences['privacy'], ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text(
-        `${prefs.showProfile ? '✅' : '❌'} ${ctx.t('settings.profile', { default: 'Profile' })}`,
-        'settings:privacy:profile',
-      )
-      .text(
-        `${prefs.showStats ? '✅' : '❌'} ${ctx.t('settings.stats', { default: 'Stats' })}`,
-        'settings:privacy:stats',
-      )
+      .text(`${prefs.showProfile ? '✅' : '❌'} ${ctx.t('settings.profile')}`, 'settings:privacy:profile')
+      .text(`${prefs.showStats ? '✅' : '❌'} ${ctx.t('settings.stats')}`, 'settings:privacy:stats')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'menu:settings');
+      .text(ctx.t('common.back'), 'menu:settings');
   }
 }

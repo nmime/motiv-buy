@@ -105,7 +105,7 @@ export class OrderHandler {
       await ctx.answerCallbackQuery();
     } catch (error) {
       this.logger.error('Error handling main menu', error);
-      await ctx.answerCallbackQuery(ctx.t('common.errors.menu_load', { default: '❌ Error loading menu' }));
+      await ctx.answerCallbackQuery(ctx.t('common.errors.menu_load'));
     }
   }
 
@@ -148,14 +148,14 @@ export class OrderHandler {
    * Handle integration (API) placeholder
    */
   private async handleIntegration(ctx: BotContext): Promise<void> {
-    await ctx.answerCallbackQuery(ctx.t('orders.integration_coming', { default: '💻 API Integration coming soon' }));
+    await ctx.answerCallbackQuery(ctx.t('orders.integration_coming'));
   }
 
   /**
    * Handle bot transfer placeholder
    */
   private async handleTransfer(ctx: BotContext): Promise<void> {
-    await ctx.answerCallbackQuery(ctx.t('orders.transfer_coming', { default: '🔄 Bot transfer coming soon' }));
+    await ctx.answerCallbackQuery(ctx.t('orders.transfer_coming'));
   }
 
   /**
@@ -165,17 +165,13 @@ export class OrderHandler {
     const callbackData = ctx.callbackQuery?.data || '';
 
     if (callbackData.includes('ids')) {
-      await ctx.answerCallbackQuery(
-        ctx.t('orders.download_ids_coming', { default: '💾 Downloading member IDs coming soon' }),
-      );
+      await ctx.answerCallbackQuery(ctx.t('orders.download_ids_coming'));
     } else if (callbackData.includes('report')) {
-      await ctx.answerCallbackQuery(
-        ctx.t('orders.download_pdf_coming', { default: '📄 PDF report generation coming soon' }),
-      );
+      await ctx.answerCallbackQuery(ctx.t('orders.download_pdf_coming'));
     } else if (callbackData.includes('excel')) {
-      await ctx.answerCallbackQuery(ctx.t('orders.download_excel_coming', { default: '📥 Excel export coming soon' }));
+      await ctx.answerCallbackQuery(ctx.t('orders.download_excel_coming'));
     } else {
-      await ctx.answerCallbackQuery(ctx.t('orders.feature_coming', { default: '📥 Feature coming soon' }));
+      await ctx.answerCallbackQuery(ctx.t('orders.feature_coming'));
     }
   }
 }

@@ -83,9 +83,7 @@ export class CallbackRouterHandler {
   private withAuth(handler: (ctx: AuthenticatedBotContext) => Promise<void>): (ctx: BotContext) => Promise<void> {
     return async (ctx: BotContext) => {
       if (!isAuthenticated(ctx)) {
-        await ctx.reply(
-          ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-        );
+        await ctx.reply(ctx.t('common.errors.authentication_required'));
 
         return;
       }
@@ -102,9 +100,7 @@ export class CallbackRouterHandler {
   ): (ctx: BotContext, params: string[]) => Promise<void> {
     return async (ctx: BotContext, params: string[]) => {
       if (!isAuthenticated(ctx)) {
-        await ctx.reply(
-          ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-        );
+        await ctx.reply(ctx.t('common.errors.authentication_required'));
 
         return;
       }
@@ -432,9 +428,7 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.profileHandler.handleProfileView(ctx);
     } else {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
     }
   }
 
@@ -449,9 +443,7 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.balanceHandler.handleBalanceView(ctx);
     } else {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
     }
   }
 
@@ -466,9 +458,7 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.statisticsHandler.handleStatisticsOverview(ctx);
     } else {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
     }
   }
 
@@ -483,9 +473,7 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.handleOrdersMenu(ctx);
     } else {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
     }
   }
 
@@ -500,9 +488,7 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.settingsHandler.handleSettingsView(ctx);
     } else {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
     }
   }
 
@@ -559,9 +545,7 @@ export class CallbackRouterHandler {
     if (isAuthenticated(ctx)) {
       await this.handleReferralsMenu(ctx);
     } else {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
     }
   }
 
@@ -572,9 +556,7 @@ export class CallbackRouterHandler {
     if (isAuthenticated(ctx)) {
       await this.handlePaymentsMenu(ctx);
     } else {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
     }
   }
 
@@ -583,9 +565,7 @@ export class CallbackRouterHandler {
    */
   private async routeDepositAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
 
       return;
     }
@@ -617,9 +597,7 @@ export class CallbackRouterHandler {
    */
   private async routeWithdrawalAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
 
       return;
     }
@@ -652,9 +630,7 @@ export class CallbackRouterHandler {
     const trafficActionHandlers: Record<string, (ctx: BotContext, params: string[]) => Promise<void>> = {
       sources: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(
-            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-          );
+          await ctx.reply(ctx.t('common.errors.authentication_required'));
 
           return;
         }
@@ -667,9 +643,7 @@ export class CallbackRouterHandler {
       },
       targets: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(
-            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-          );
+          await ctx.reply(ctx.t('common.errors.authentication_required'));
 
           return;
         }
@@ -682,9 +656,7 @@ export class CallbackRouterHandler {
       },
       source: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(
-            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-          );
+          await ctx.reply(ctx.t('common.errors.authentication_required'));
 
           return;
         }
@@ -704,9 +676,7 @@ export class CallbackRouterHandler {
       },
       target: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(
-            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-          );
+          await ctx.reply(ctx.t('common.errors.authentication_required'));
 
           return;
         }
@@ -726,9 +696,7 @@ export class CallbackRouterHandler {
       },
       analytics: async (ctx) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(
-            ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-          );
+          await ctx.reply(ctx.t('common.errors.authentication_required'));
 
           return;
         }
@@ -743,9 +711,7 @@ export class CallbackRouterHandler {
       await handler(ctx, params);
     } else {
       if (!isAuthenticated(ctx)) {
-        await ctx.reply(
-          ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-        );
+        await ctx.reply(ctx.t('common.errors.authentication_required'));
 
         return;
       }
@@ -805,9 +771,7 @@ export class CallbackRouterHandler {
    */
   private async routeCampaignAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
 
       return;
     }
@@ -820,9 +784,7 @@ export class CallbackRouterHandler {
    */
   private async routeAdminAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
 
       return;
     }
@@ -834,9 +796,7 @@ export class CallbackRouterHandler {
    * Route auth actions
    */
   private async routeAuthAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await ctx.reply(
-      ctx.t('auth.feature_info', { default: '🔐 Authentication features are managed through your profile settings.' }),
-    );
+    await ctx.reply(ctx.t('auth.feature_info'));
   }
 
   /**
@@ -846,9 +806,7 @@ export class CallbackRouterHandler {
     if (isAuthenticated(ctx)) {
       await this.profileHandler.handleVerification(ctx);
     } else {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
     }
   }
 
@@ -857,9 +815,7 @@ export class CallbackRouterHandler {
    */
   private async routeExportAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
 
       return;
     }
@@ -872,9 +828,7 @@ export class CallbackRouterHandler {
    */
   private async routeResetAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', { default: 'Authentication required. Use /start' }),
-      );
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
 
       return;
     }
@@ -955,7 +909,7 @@ ${ctx.t('buy_traffic.description')}
       .text(ctx.t('buy_traffic.btn_new_order'), 'order:create:start')
       .text(ctx.t('buy_traffic.btn_my_orders'), 'orders:list')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -999,7 +953,7 @@ ${ctx.t('sell_traffic.description')}
       .text(ctx.t('sell_traffic.btn_my_sources'), 'traffic:sources')
       .text(ctx.t('sell_traffic.btn_add_source'), 'traffic:sources:add')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1021,24 +975,24 @@ ${ctx.t('sell_traffic.description')}
       this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
     ]);
 
-    const text = `<b>📦 ${ctx.t('orders.title', { default: 'My Orders' })}</b>
+    const text = `<b>📦 ${ctx.t('orders.title')}</b>
 
-<b>📊 ${ctx.t('orders.stats_title', { default: 'Order Statistics' })}:</b>
-• ${ctx.t('orders.active_count', { default: 'Active' })}: ${activeCount}
-• ${ctx.t('orders.completed_count', { default: 'Completed' })}: ${completedCount}
-• ${ctx.t('orders.total_count', { default: 'Total' })}: ${totalCount}
+<b>📊 ${ctx.t('orders.stats_title')}:</b>
+• ${ctx.t('orders.active_count')}: ${activeCount}
+• ${ctx.t('orders.completed_count')}: ${completedCount}
+• ${ctx.t('orders.total_count')}: ${totalCount}
 
-<i>${ctx.t('common.select_action', { default: 'Select an action below' })}:</i>`;
+<i>${ctx.t('common.select_action')}:</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('orders.btn_new', { default: '🆕 New Order' }), 'order:create:start')
+      .text(ctx.t('orders.btn_new'), 'order:create:start')
       .row()
-      .text(ctx.t('orders.btn_active', { default: '📋 Active Orders' }), 'orders:active')
-      .text(ctx.t('orders.btn_completed', { default: '✅ Completed' }), 'orders:completed')
+      .text(ctx.t('orders.btn_active'), 'orders:active')
+      .text(ctx.t('orders.btn_completed'), 'orders:completed')
       .row()
-      .text(ctx.t('orders.btn_search', { default: '🔍 Search Orders' }), 'orders:search')
+      .text(ctx.t('orders.btn_search'), 'orders:search')
       .row()
-      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1052,33 +1006,33 @@ ${ctx.t('sell_traffic.description')}
     const referralCode = ctx.user.id.substring(0, 8);
     const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
 
-    const text = `<b>🎁 ${ctx.t('referrals.title', { default: 'Referral Program' })}</b>
+    const text = `<b>🎁 ${ctx.t('referrals.title')}</b>
 
-${ctx.t('referrals.description', { default: 'Invite friends and earn bonuses!' })}
+${ctx.t('referrals.description')}
 
-<b>💰 ${ctx.t('referrals.rewards_title', { default: 'Your Rewards' })}:</b>
-• ${ctx.t('referrals.reward_percent', { default: '10% from every purchase' })}
-• ${ctx.t('referrals.reward_lifetime', { default: 'Lifetime earnings' })}
-• ${ctx.t('referrals.reward_unlimited', { default: 'Unlimited referrals' })}
+<b>💰 ${ctx.t('referrals.rewards_title')}:</b>
+• ${ctx.t('referrals.reward_percent')}
+• ${ctx.t('referrals.reward_lifetime')}
+• ${ctx.t('referrals.reward_unlimited')}
 
-<b>🔗 ${ctx.t('referrals.link_title', { default: 'Your Referral Link' })}:</b>
+<b>🔗 ${ctx.t('referrals.link_title')}:</b>
 <code>${referralLink}</code>
 
-<b>📊 ${ctx.t('referrals.stats_title', { default: 'Statistics' })}:</b>
-• ${ctx.t('referrals.invited', { default: 'Invited' })}: 0
-• ${ctx.t('referrals.earned', { default: 'Earned' })}: $0.00
+<b>📊 ${ctx.t('referrals.stats_title')}:</b>
+• ${ctx.t('referrals.invited')}: 0
+• ${ctx.t('referrals.earned')}: $0.00
 
-<i>${ctx.t('referrals.share_hint', { default: 'Share your link with friends!' })}</i>`;
+<i>${ctx.t('referrals.share_hint')}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('referrals.btn_copy', { default: '📋 Copy Link' }), 'referral:copy')
+      .text(ctx.t('referrals.btn_copy'), 'referral:copy')
       .row()
-      .text(ctx.t('referrals.btn_list', { default: '📊 My Referrals' }), 'referral:list')
-      .text(ctx.t('referrals.btn_stats', { default: '💰 Statistics' }), 'referral:stats')
+      .text(ctx.t('referrals.btn_list'), 'referral:list')
+      .text(ctx.t('referrals.btn_stats'), 'referral:stats')
       .row()
-      .text(ctx.t('referrals.btn_share', { default: '📤 Share' }), 'referral:share')
+      .text(ctx.t('referrals.btn_share'), 'referral:share')
       .row()
-      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1090,34 +1044,34 @@ ${ctx.t('referrals.description', { default: 'Invite friends and earn bonuses!' }
   private async handlePaymentsMenu(ctx: AuthenticatedBotContext): Promise<void> {
     const transactionCount = await this.em.count(UserBalanceHistoryEntity, { user: ctx.user.id });
 
-    const text = `<b>💳 ${ctx.t('payments.title', { default: 'Payments' })}</b>
+    const text = `<b>💳 ${ctx.t('payments.title')}</b>
 
-${ctx.t('payments.description', { default: 'Manage your finances in one place.' })}
+${ctx.t('payments.description')}
 
-<b>📊 ${ctx.t('payments.stats_title', { default: 'Statistics' })}:</b>
-• ${ctx.t('payments.total_transactions', { default: 'Total transactions' })}: ${transactionCount}
+<b>📊 ${ctx.t('payments.stats_title')}:</b>
+• ${ctx.t('payments.total_transactions')}: ${transactionCount}
 
-<b>💰 ${ctx.t('payments.deposit_methods', { default: 'Payment Methods' })}:</b>
-• ${ctx.t('payments.method_cards', { default: 'Bank cards (Visa, MC, MIR)' })}
-• ${ctx.t('payments.method_crypto', { default: 'Cryptocurrencies (BTC, ETH, USDT)' })}
-• ${ctx.t('payments.method_wallets', { default: 'E-wallets' })}
+<b>💰 ${ctx.t('payments.deposit_methods')}:</b>
+• ${ctx.t('payments.method_cards')}
+• ${ctx.t('payments.method_crypto')}
+• ${ctx.t('payments.method_wallets')}
 
-<b>💸 ${ctx.t('payments.withdraw_methods', { default: 'Withdrawal Methods' })}:</b>
-• ${ctx.t('payments.withdraw_crypto', { default: 'Cryptocurrencies' })}
-• ${ctx.t('payments.withdraw_wallets', { default: 'E-wallets' })}
-• ${ctx.t('payments.withdraw_min', { default: 'Minimum: $10' })}
+<b>💸 ${ctx.t('payments.withdraw_methods')}:</b>
+• ${ctx.t('payments.withdraw_crypto')}
+• ${ctx.t('payments.withdraw_wallets')}
+• ${ctx.t('payments.withdraw_min')}
 
-<i>${ctx.t('common.select_action', { default: 'Select an action below' })}:</i>`;
+<i>${ctx.t('common.select_action')}:</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('payments.btn_deposit', { default: '💰 Top Up Balance' }), 'balance:deposit')
-      .text(ctx.t('payments.btn_withdraw', { default: '💸 Withdraw' }), 'balance:withdraw')
+      .text(ctx.t('payments.btn_deposit'), 'balance:deposit')
+      .text(ctx.t('payments.btn_withdraw'), 'balance:withdraw')
       .row()
-      .text(ctx.t('payments.btn_history', { default: '📜 Payment History' }), 'payment:history')
+      .text(ctx.t('payments.btn_history'), 'payment:history')
       .row()
-      .text(ctx.t('payments.btn_methods', { default: '💳 Payment Methods' }), 'payment:methods')
+      .text(ctx.t('payments.btn_methods'), 'payment:methods')
       .row()
-      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1127,35 +1081,35 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
   }
 
   private async handleSupportMenu(ctx: BotContext): Promise<void> {
-    const text = `<b>🏢 ${ctx.t('support.title', { default: 'Support' })}</b>
+    const text = `<b>🏢 ${ctx.t('support.title')}</b>
 
-${ctx.t('support.description', { default: "We're here to help!" })}
+${ctx.t('support.description')}
 
-<b>📞 ${ctx.t('support.contact_methods', { default: 'Contact Methods' })}:</b>
-• ${ctx.t('support.telegram', { default: 'Telegram' })}: @motivbuy_support
-• ${ctx.t('support.email', { default: 'Email' })}: support@motivbuy.com
+<b>📞 ${ctx.t('support.contact_methods')}:</b>
+• ${ctx.t('support.telegram')}: @motivbuy_support
+• ${ctx.t('support.email')}: support@motivbuy.com
 
-<b>⏰ ${ctx.t('support.working_hours', { default: 'Working Hours' })}:</b>
-• ${ctx.t('support.weekdays', { default: 'Mon-Fri: 9:00 AM - 9:00 PM (MSK)' })}
-• ${ctx.t('support.weekends', { default: 'Sat-Sun: 10:00 AM - 6:00 PM (MSK)' })}
+<b>⏰ ${ctx.t('support.working_hours')}:</b>
+• ${ctx.t('support.weekdays')}
+• ${ctx.t('support.weekends')}
 
-<b>📋 ${ctx.t('support.faq_title', { default: 'Frequently Asked Questions' })}:</b>
-• ${ctx.t('help.faq_create_order', { default: 'How to create an order?' })}
-• ${ctx.t('help.faq_deposit', { default: 'How to deposit funds?' })}
-• ${ctx.t('help.faq_withdraw', { default: 'How to withdraw funds?' })}
-• ${ctx.t('help.faq_bot_issues', { default: 'Bot issues' })}
+<b>📋 ${ctx.t('support.faq_title')}:</b>
+• ${ctx.t('help.faq_create_order')}
+• ${ctx.t('help.faq_deposit')}
+• ${ctx.t('help.faq_withdraw')}
+• ${ctx.t('help.faq_bot_issues')}
 
-<i>${ctx.t('support.select_action', { default: 'Select an action below or contact us directly' })}.</i>`;
+<i>${ctx.t('support.select_action')}.</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('support.btn_contact', { default: '💬 Contact Support' }), 'support:contact')
+      .text(ctx.t('support.btn_contact'), 'support:contact')
       .row()
-      .text(ctx.t('support.btn_faq', { default: '❓ FAQ' }), 'help:faq')
+      .text(ctx.t('support.btn_faq'), 'help:faq')
       .row()
-      .text(ctx.t('support.btn_report', { default: '📝 Report Issue' }), 'support:report')
-      .text(ctx.t('support.btn_suggest', { default: '💡 Suggest Feature' }), 'support:suggest')
+      .text(ctx.t('support.btn_report'), 'support:report')
+      .text(ctx.t('support.btn_suggest'), 'support:suggest')
       .row()
-      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1165,44 +1119,44 @@ ${ctx.t('support.description', { default: "We're here to help!" })}
   }
 
   private async handleHelpMenu(ctx: BotContext): Promise<void> {
-    const text = `<b>❓ ${ctx.t('menu.help.title', { default: 'Help & Support' })}</b>
+    const text = `<b>❓ ${ctx.t('menu.help.title')}</b>
 
-${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
+${ctx.t('help.welcome')}
 
-<b>🚀 ${ctx.t('help.quick_start', { default: 'Quick Start' })}:</b>
-1. ${ctx.t('help.step1', { default: 'Create an order via "Buy Traffic"' })}
-2. ${ctx.t('help.step2', { default: 'Enter your channel/group link' })}
-3. ${ctx.t('help.step3', { default: 'Add the bot as admin' })}
-4. ${ctx.t('help.step4', { default: 'Configure settings and launch' })}
+<b>🚀 ${ctx.t('help.quick_start')}:</b>
+1. ${ctx.t('help.step1')}
+2. ${ctx.t('help.step2')}
+3. ${ctx.t('help.step3')}
+4. ${ctx.t('help.step4')}
 
-<b>📚 ${ctx.t('help.sections_title', { default: 'Help Sections' })}:</b>
-• ${ctx.t('help.section_orders', { default: 'Creating and managing orders' })}
-• ${ctx.t('help.section_balance', { default: 'Balance management' })}
-• ${ctx.t('help.section_stats', { default: 'Statistics and analytics' })}
-• ${ctx.t('help.section_traffic', { default: 'Selling traffic' })}
+<b>📚 ${ctx.t('help.sections_title')}:</b>
+• ${ctx.t('help.section_orders')}
+• ${ctx.t('help.section_balance')}
+• ${ctx.t('help.section_stats')}
+• ${ctx.t('help.section_traffic')}
 
-<b>💬 ${ctx.t('help.commands_title', { default: 'Main Commands' })}:</b>
-/start - ${ctx.t('commands.start_desc', { default: 'Main menu' })}
-/menu - ${ctx.t('commands.menu_desc', { default: 'Open menu' })}
-/balance - ${ctx.t('commands.balance_desc', { default: 'Check balance' })}
-/profile - ${ctx.t('commands.profile_desc', { default: 'Your profile' })}
-/settings - ${ctx.t('commands.settings_desc', { default: 'Settings' })}
-/help - ${ctx.t('commands.help_desc', { default: 'This help' })}
+<b>💬 ${ctx.t('help.commands_title')}:</b>
+/start - ${ctx.t('commands.start_desc')}
+/menu - ${ctx.t('commands.menu_desc')}
+/balance - ${ctx.t('commands.balance_desc')}
+/profile - ${ctx.t('commands.profile_desc')}
+/settings - ${ctx.t('commands.settings_desc')}
+/help - ${ctx.t('commands.help_desc')}
 
-<i>${ctx.t('help.contact_hint', { default: 'If you have questions, contact support.' })}</i>`;
+<i>${ctx.t('help.contact_hint')}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('help.btn_create_order', { default: '📖 How to create an order' }), 'help:createOrder')
+      .text(ctx.t('help.btn_create_order'), 'help:createOrder')
       .row()
-      .text(ctx.t('help.btn_topup', { default: '💰 Deposit funds' }), 'help:topup')
-      .text(ctx.t('help.btn_withdraw', { default: '💸 Withdraw funds' }), 'help:withdraw')
+      .text(ctx.t('help.btn_topup'), 'help:topup')
+      .text(ctx.t('help.btn_withdraw'), 'help:withdraw')
       .row()
-      .text(ctx.t('help.btn_stats', { default: '📊 Statistics' }), 'help:stats')
-      .text(ctx.t('help.btn_traffic', { default: '🤖 Selling traffic' }), 'help:traffic')
+      .text(ctx.t('help.btn_stats'), 'help:stats')
+      .text(ctx.t('help.btn_traffic'), 'help:traffic')
       .row()
-      .text(ctx.t('support.btn_contact', { default: '🏢 Contact Support' }), 'support:contact')
+      .text(ctx.t('support.btn_contact'), 'support:contact')
       .row()
-      .text(ctx.t('common.back_to_menu', { default: '« Back to Menu' }), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1223,24 +1177,24 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
 
     const totalOrders = await this.em.count(TrafficOrderEntity, { creator: ctx.user.id });
 
-    let text = `<b>${ctx.t('traffic.management_title', { default: '🎯 Traffic Management' })}</b>\n\n`;
-    text += `<b>${ctx.t('common.overview', { default: '📊 Overview' })}:</b>\n`;
-    text += `• ${ctx.t('traffic.sources', { default: 'Traffic Sources' })}: ${sources.length}\n`;
-    text += `• ${ctx.t('orders.active', { default: 'Active Orders' })}: ${activeOrders}\n`;
-    text += `• ${ctx.t('orders.total', { default: 'Total Orders' })}: ${totalOrders}\n\n`;
+    let text = `<b>${ctx.t('traffic.management_title')}</b>\n\n`;
+    text += `<b>${ctx.t('common.overview')}:</b>\n`;
+    text += `• ${ctx.t('traffic.sources')}: ${sources.length}\n`;
+    text += `• ${ctx.t('orders.active')}: ${activeOrders}\n`;
+    text += `• ${ctx.t('orders.total')}: ${totalOrders}\n\n`;
 
     if (sources.length > 0) {
-      text += `<b>${ctx.t('traffic.your_sources', { default: 'Your Sources' })}:</b>\n`;
+      text += `<b>${ctx.t('traffic.your_sources')}:</b>\n`;
       sources.slice(0, 5).forEach((source) => {
         const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
         text += `${statusEmoji} ${source.name} (${source.type})\n`;
       });
 
       if (sources.length > 5) {
-        text += `... ${ctx.t('common.and_more', { default: 'and', count: sources.length - 5 })} ${sources.length - 5} ${ctx.t('common.more', { default: 'more' })}\n`;
+        text += `... ${ctx.t('common.and_more')} ${sources.length - 5} ${ctx.t('common.more')}\n`;
       }
     } else {
-      text += `<i>${ctx.t('traffic.no_sources', { default: 'No traffic sources yet. Create one to get started!' })}</i>`;
+      text += `<i>${ctx.t('traffic.no_sources')}</i>`;
     }
 
     const keyboard = this.menuHandler.createTrafficMenuKeyboard(ctx);
@@ -1276,15 +1230,15 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
       return acc.plus(decimal(order.spentAmount || '0'));
     }, decimal(0));
 
-    let text = `<b>${ctx.t('campaign.management_title', { default: '📋 Campaign Management' })}</b>\n\n`;
-    text += `<b>${ctx.t('common.statistics', { default: '📊 Statistics' })}:</b>\n`;
-    text += `• ${ctx.t('campaign.active', { default: 'Active Campaigns' })}: ${active}\n`;
-    text += `• ${ctx.t('common.completed', { default: 'Completed' })}: ${completed}\n`;
-    text += `• ${ctx.t('common.total', { default: 'Total' })}: ${total}\n`;
-    text += `• ${ctx.t('common.total_spent', { default: 'Total Spent' })}: $${toDisplayString(totalSpent, 2)}\n\n`;
+    let text = `<b>${ctx.t('campaign.management_title')}</b>\n\n`;
+    text += `<b>${ctx.t('common.statistics')}:</b>\n`;
+    text += `• ${ctx.t('campaign.active')}: ${active}\n`;
+    text += `• ${ctx.t('common.completed')}: ${completed}\n`;
+    text += `• ${ctx.t('common.total')}: ${total}\n`;
+    text += `• ${ctx.t('common.total_spent')}: $${toDisplayString(totalSpent, 2)}\n\n`;
 
     if (recentCampaigns.length > 0) {
-      text += `<b>${ctx.t('campaign.recent', { default: 'Recent Campaigns' })}:</b>\n`;
+      text += `<b>${ctx.t('campaign.recent')}:</b>\n`;
       for (const campaign of recentCampaigns) {
         const statusEmoji =
           {
@@ -1297,10 +1251,10 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
           }[campaign.status] || '❓';
 
         text += `${statusEmoji} ${campaign.orderId.substring(0, 8)}... (${campaign.type})\n`;
-        text += `   ${ctx.t('common.progress', { default: 'Progress' })}: ${campaign.currentCount}/${campaign.targetCount}\n`;
+        text += `   ${ctx.t('common.progress')}: ${campaign.currentCount}/${campaign.targetCount}\n`;
       }
     } else {
-      text += `<i>${ctx.t('campaign.no_campaigns', { default: 'No campaigns yet. Click "Create Campaign" to get started!' })}</i>`;
+      text += `<i>${ctx.t('campaign.no_campaigns')}</i>`;
     }
 
     const keyboard = this.menuHandler.createCampaignMenuKeyboard(ctx);
@@ -1687,7 +1641,7 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
   // Order management handlers
   private async handleDeletedOrders(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.deleted_list', { default: '🗑 Deleted Orders\n\nNo deleted orders found.' }),
+      text: ctx.t('orders.deleted_list'),
       parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
@@ -1696,7 +1650,7 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
   private async handleOrderConfig(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
     if (!_params || _params.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('orders.select_to_configure', { default: '⚙️ Please select an order to configure.' }),
+        text: ctx.t('orders.select_to_configure'),
         parseMode: 'HTML',
         replyMarkup: this.createBackButton(ctx, 'menu:orders'),
       });
@@ -1710,7 +1664,7 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
 
   private async handleOrderEdit(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.edit_prompt', { default: '✏️ Edit Order\n\nPlease select what you want to edit:' }),
+      text: ctx.t('orders.edit_prompt'),
       parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
@@ -1718,7 +1672,7 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
 
   private async handleOrderToggle(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.toggled', { default: '✅ Order status has been toggled.' }),
+      text: ctx.t('orders.toggled'),
       parseMode: 'HTML',
     });
   }
@@ -1776,7 +1730,7 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
 
   private async handleOrderTopicSelection(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.topic_selection', { default: '🎯 Topic Selection\n\nSelect topics for your campaign.' }),
+      text: ctx.t('orders.topic_selection'),
       parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
@@ -1819,18 +1773,18 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
       const completionRate =
         targetActions > 0 ? toDisplayString(multiply(divide(totalActions, targetActions), 100), 1) : '0.0';
 
-      let text = `<b>${ctx.t('orders.statistics_title', { default: '📊 Order Statistics' })}</b>\n\n`;
-      text += `<b>${ctx.t('common.overview', { default: 'Overview' })}:</b>\n`;
-      text += `• ${ctx.t('orders.total_orders', { default: 'Total Orders' })}: ${totalOrders}\n`;
-      text += `• ${ctx.t('orders.active', { default: 'Active' })}: ${activeOrders}\n`;
-      text += `• ${ctx.t('orders.completed', { default: 'Completed' })}: ${completedOrders}\n\n`;
-      text += `<b>${ctx.t('common.financial', { default: 'Financial' })}:</b>\n`;
-      text += `• ${ctx.t('orders.total_budget', { default: 'Total Budget' })}: $${toDisplayString(totalBudget, 2)}\n`;
-      text += `• ${ctx.t('orders.total_spent', { default: 'Total Spent' })}: $${toDisplayString(totalSpent, 2)}\n\n`;
-      text += `<b>${ctx.t('common.performance', { default: 'Performance' })}:</b>\n`;
-      text += `• ${ctx.t('orders.actions_completed', { default: 'Actions Completed' })}: ${totalActions}\n`;
-      text += `• ${ctx.t('orders.target_actions', { default: 'Target Actions' })}: ${targetActions}\n`;
-      text += `• ${ctx.t('orders.completion_rate', { default: 'Completion Rate' })}: ${completionRate}%`;
+      let text = `<b>${ctx.t('orders.statistics_title')}</b>\n\n`;
+      text += `<b>${ctx.t('common.overview')}:</b>\n`;
+      text += `• ${ctx.t('orders.total_orders')}: ${totalOrders}\n`;
+      text += `• ${ctx.t('orders.active')}: ${activeOrders}\n`;
+      text += `• ${ctx.t('orders.completed')}: ${completedOrders}\n\n`;
+      text += `<b>${ctx.t('common.financial')}:</b>\n`;
+      text += `• ${ctx.t('orders.total_budget')}: $${toDisplayString(totalBudget, 2)}\n`;
+      text += `• ${ctx.t('orders.total_spent')}: $${toDisplayString(totalSpent, 2)}\n\n`;
+      text += `<b>${ctx.t('common.performance')}:</b>\n`;
+      text += `• ${ctx.t('orders.actions_completed')}: ${totalActions}\n`;
+      text += `• ${ctx.t('orders.target_actions')}: ${targetActions}\n`;
+      text += `• ${ctx.t('orders.completion_rate')}: ${completionRate}%`;
 
       await this.messageService.sendOrEditMessage(ctx, {
         text,
@@ -1846,7 +1800,7 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
 
   private async handleOrderDuplicate(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.duplicated', { default: '📋 Order duplicated successfully!' }),
+      text: ctx.t('orders.duplicated'),
       parseMode: 'HTML',
     });
   }
@@ -1863,7 +1817,7 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
 
   private async handleOrderTransfer(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.transfer', { default: '🔄 Transfer Order\n\nTransfer this order to another account.' }),
+      text: ctx.t('orders.transfer'),
       parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
@@ -1891,26 +1845,26 @@ ${ctx.t('help.welcome', { default: 'Welcome to the MotivBuy Help Center!' })}
 
   // Support action handlers
   private async handleSupportContact(ctx: BotContext): Promise<void> {
-    const text = `<b>💬 ${ctx.t('support.contact_title', { default: 'Contact Support' })}</b>
+    const text = `<b>💬 ${ctx.t('support.contact_title')}</b>
 
-${ctx.t('support.contact_intro', { default: 'You can contact us through the following channels:' })}
+${ctx.t('support.contact_intro')}
 
 <b>📱 Telegram:</b>
-@motivbuy_support - ${ctx.t('support.fast_response', { default: 'Fast response' })}
+@motivbuy_support - ${ctx.t('support.fast_response')}
 
 <b>📧 Email:</b>
 support@motivbuy.com
 
-<b>⏰ ${ctx.t('support.response_time', { default: 'Average response time' })}:</b>
-• Telegram: ${ctx.t('support.response_telegram', { default: '5-15 minutes' })}
-• Email: ${ctx.t('support.response_email', { default: '2-4 hours' })}
+<b>⏰ ${ctx.t('support.response_time')}:</b>
+• Telegram: ${ctx.t('support.response_telegram')}
+• Email: ${ctx.t('support.response_email')}
 
-<i>${ctx.t('support.contact_hint', { default: "Write to us and we'll help you!" })}</i>`;
+<i>${ctx.t('support.contact_hint')}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .url(ctx.t('support.btn_write_telegram', { default: '💬 Write on Telegram' }), 'https://t.me/motivbuy_support')
+      .url(ctx.t('support.btn_write_telegram'), 'https://t.me/motivbuy_support')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'menu:support');
+      .text(ctx.t('common.back'), 'menu:support');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1920,28 +1874,28 @@ support@motivbuy.com
   }
 
   private async handleSupportReport(ctx: BotContext): Promise<void> {
-    const text = `<b>📝 ${ctx.t('support.report_title', { default: 'Report a Problem' })}</b>
+    const text = `<b>📝 ${ctx.t('support.report_title')}</b>
 
-${ctx.t('support.report_intro', { default: 'Please describe the issue in detail:' })}
+${ctx.t('support.report_intro')}
 
-<b>${ctx.t('support.what_we_need', { default: 'What we need to know' })}:</b>
-• ${ctx.t('support.report_q1', { default: 'What happened?' })}
-• ${ctx.t('support.report_q2', { default: 'What actions were you performing?' })}
-• ${ctx.t('support.report_q3', { default: 'When did it happen?' })}
-• ${ctx.t('support.report_q4', { default: 'Do you have screenshots?' })}
+<b>${ctx.t('support.what_we_need')}:</b>
+• ${ctx.t('support.report_q1')}
+• ${ctx.t('support.report_q2')}
+• ${ctx.t('support.report_q3')}
+• ${ctx.t('support.report_q4')}
 
-<b>${ctx.t('support.common_issues', { default: 'Common issues' })}:</b>
-• ${ctx.t('support.issue_order', { default: 'Order not working' })}
-• ${ctx.t('support.issue_payment', { default: 'Payment error' })}
-• ${ctx.t('support.issue_subscribers', { default: 'Subscribers not being added' })}
-• ${ctx.t('support.issue_bot', { default: 'Bot issues' })}
+<b>${ctx.t('support.common_issues')}:</b>
+• ${ctx.t('support.issue_order')}
+• ${ctx.t('support.issue_payment')}
+• ${ctx.t('support.issue_subscribers')}
+• ${ctx.t('support.issue_bot')}
 
-<i>${ctx.t('support.report_hint', { default: 'Send the problem description in your next message.' })}</i>`;
+<i>${ctx.t('support.report_hint')}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .url(ctx.t('support.btn_send_report', { default: '📝 Send to Support' }), 'https://t.me/motivbuy_support')
+      .url(ctx.t('support.btn_send_report'), 'https://t.me/motivbuy_support')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'menu:support');
+      .text(ctx.t('common.back'), 'menu:support');
 
     if (ctx.session) {
       ctx.session.conversationState = 'awaiting_support_report';
@@ -1963,7 +1917,7 @@ ${ctx.t('support.report_intro', { default: 'Please describe the issue in detail:
       { orderBy: { createdAt: 'DESC' }, limit: 10 },
     );
 
-    let text = ctx.t('traffic.sources_list_title', { default: '<b>📊 Traffic Sources</b>\n\n' });
+    let text = ctx.t('traffic.sources_list_title');
 
     if (sources.length === 0) {
       text += ctx.t('traffic.no_sources', {
@@ -2001,7 +1955,7 @@ ${ctx.t('support.report_intro', { default: 'Please describe the issue in detail:
       ctx.session.formData = { step: 'enter_name' };
     }
 
-    let text = ctx.t('traffic.add_source_title', { default: '<b>➕ Add Traffic Source</b>\n\n' });
+    let text = ctx.t('traffic.add_source_title');
     text += ctx.t('traffic.add_source_instructions', {
       default: 'Please enter the name for your new traffic source:\n\n<i>Use /cancel to abort.</i>',
     });
@@ -2017,7 +1971,7 @@ ${ctx.t('support.report_intro', { default: 'Please describe the issue in detail:
     const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
 
     if (!source) {
-      await ctx.reply(ctx.t('traffic.source_not_found', { default: 'Traffic source not found' }));
+      await ctx.reply(ctx.t('traffic.source_not_found'));
 
       return;
     }
@@ -2026,7 +1980,7 @@ ${ctx.t('support.report_intro', { default: 'Please describe the issue in detail:
     const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
     const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
 
-    let text = ctx.t('traffic.source_details_title', { default: '<b>📊 Traffic Source Details</b>\n\n' });
+    let text = ctx.t('traffic.source_details_title');
     text += `<b>Name:</b> ${source.name}\n`;
     text += `<b>Type:</b> ${typeLabel}\n`;
     text += `<b>Status:</b> ${statusEmoji} ${source.status}\n`;
@@ -2071,7 +2025,7 @@ ${ctx.t('support.report_intro', { default: 'Please describe the issue in detail:
     const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
 
     if (!source) {
-      await ctx.reply(ctx.t('traffic.source_not_found', { default: 'Traffic source not found' }));
+      await ctx.reply(ctx.t('traffic.source_not_found'));
 
       return;
     }
@@ -2082,10 +2036,7 @@ ${ctx.t('support.report_intro', { default: 'Please describe the issue in detail:
 
     await this.em.flush();
 
-    const newStatusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
-    await ctx.answerCallbackQuery(
-      ctx.t('traffic.source_status_toggled', { default: `Status changed to ${newStatusEmoji} ${source.status}` }),
-    );
+    await ctx.answerCallbackQuery(ctx.t('traffic.source_status_toggled'));
 
     // Refresh the view
     await this.handleTrafficSourceView(ctx, sourceId);
@@ -2104,25 +2055,25 @@ ${ctx.t('support.report_intro', { default: 'Please describe the issue in detail:
   }
 
   private async handleSupportSuggest(ctx: BotContext): Promise<void> {
-    const text = `<b>💡 ${ctx.t('support.suggest_title', { default: 'Suggest an Idea' })}</b>
+    const text = `<b>💡 ${ctx.t('support.suggest_title')}</b>
 
-${ctx.t('support.suggest_intro', { default: "We're always happy to hear your ideas and suggestions!" })}
+${ctx.t('support.suggest_intro')}
 
-<b>${ctx.t('support.suggest_what', { default: 'What you can suggest' })}:</b>
-• ${ctx.t('support.suggest_features', { default: 'New features' })}
-• ${ctx.t('support.suggest_ui', { default: 'UI improvements' })}
-• ${ctx.t('support.suggest_optimization', { default: 'Process optimization' })}
-• ${ctx.t('support.suggest_other', { default: 'Any other ideas' })}
+<b>${ctx.t('support.suggest_what')}:</b>
+• ${ctx.t('support.suggest_features')}
+• ${ctx.t('support.suggest_ui')}
+• ${ctx.t('support.suggest_optimization')}
+• ${ctx.t('support.suggest_other')}
 
-<b>${ctx.t('support.suggest_how', { default: 'How to send' })}:</b>
-${ctx.t('support.suggest_instructions', { default: 'Just write your idea in the next message!' })}
+<b>${ctx.t('support.suggest_how')}:</b>
+${ctx.t('support.suggest_instructions')}
 
-<i>${ctx.t('support.suggest_thanks', { default: 'Your suggestions help us improve!' })}</i>`;
+<i>${ctx.t('support.suggest_thanks')}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .url(ctx.t('support.btn_send_suggestion', { default: '💡 Send Suggestion' }), 'https://t.me/motivbuy_support')
+      .url(ctx.t('support.btn_send_suggestion'), 'https://t.me/motivbuy_support')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'menu:support');
+      .text(ctx.t('common.back'), 'menu:support');
 
     if (ctx.session) {
       ctx.session.conversationState = 'awaiting_support_suggestion';
@@ -2137,25 +2088,25 @@ ${ctx.t('support.suggest_instructions', { default: 'Just write your idea in the 
 
   // Help action handlers
   private async handleHelpFAQ(ctx: BotContext): Promise<void> {
-    const text = `<b>❓ ${ctx.t('help.faq_title', { default: 'Frequently Asked Questions' })}</b>
+    const text = `<b>❓ ${ctx.t('help.faq_title')}</b>
 
-<b>Q: ${ctx.t('help.faq_q1', { default: 'How to create an order?' })}</b>
-A: ${ctx.t('help.faq_a1', { default: 'Click "Buy Traffic", enter your channel link and follow the instructions.' })}
+<b>Q: ${ctx.t('help.faq_q1')}</b>
+A: ${ctx.t('help.faq_a1')}
 
-<b>Q: ${ctx.t('help.faq_q2', { default: 'How to deposit funds?' })}</b>
-A: ${ctx.t('help.faq_a2', { default: 'Go to "Balance" → "Deposit" and select a payment method.' })}
+<b>Q: ${ctx.t('help.faq_q2')}</b>
+A: ${ctx.t('help.faq_a2')}
 
-<b>Q: ${ctx.t('help.faq_q3', { default: 'How fast do subscribers arrive?' })}</b>
-A: ${ctx.t('help.faq_a3', { default: 'Usually within 24 hours after order launch.' })}
+<b>Q: ${ctx.t('help.faq_q3')}</b>
+A: ${ctx.t('help.faq_a3')}
 
-<b>Q: ${ctx.t('help.faq_q4', { default: 'Can I cancel an order?' })}</b>
-A: ${ctx.t('help.faq_a4', { default: 'Yes, you can stop the order at any time.' })}
+<b>Q: ${ctx.t('help.faq_q4')}</b>
+A: ${ctx.t('help.faq_a4')}
 
-<b>Q: ${ctx.t('help.faq_q5', { default: 'How to withdraw funds?' })}</b>
-A: ${ctx.t('help.faq_a5', { default: 'Balance → Withdraw. Minimum amount: $10.' })}
+<b>Q: ${ctx.t('help.faq_q5')}</b>
+A: ${ctx.t('help.faq_a5')}
 
-<b>Q: ${ctx.t('help.faq_q6', { default: 'Are subscribers real?' })}</b>
-A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram users.' })}`;
+<b>Q: ${ctx.t('help.faq_q6')}</b>
+A: ${ctx.t('help.faq_a6')}`;
 
     const keyboard = new InlineKeyboard()
       .text(ctx.t('help.btn_more_orders'), 'help:createOrder')
@@ -2175,7 +2126,7 @@ A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram use
     const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
 
     if (!source) {
-      await ctx.reply(ctx.t('traffic.source_not_found', { default: 'Traffic source not found' }));
+      await ctx.reply(ctx.t('traffic.source_not_found'));
 
       return;
     }
@@ -2217,7 +2168,7 @@ A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram use
       { orderBy: { createdAt: 'DESC' }, limit: 10 },
     );
 
-    let text = ctx.t('traffic.targets_list_title', { default: '<b>🎯 Traffic Targets</b>\n\n' });
+    let text = ctx.t('traffic.targets_list_title');
 
     if (targets.length === 0) {
       text += ctx.t('traffic.no_targets', {
@@ -2266,7 +2217,7 @@ A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram use
       ctx.session.formData = { step: 'enter_name' };
     }
 
-    let text = ctx.t('traffic.add_target_title', { default: '<b>➕ Add Traffic Target</b>\n\n' });
+    let text = ctx.t('traffic.add_target_title');
     text += ctx.t('traffic.add_target_instructions', {
       default: 'Please enter the name for your new traffic target:\n\n<i>Use /cancel to abort.</i>',
     });
@@ -2282,7 +2233,7 @@ A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram use
     const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
 
     if (!target) {
-      await ctx.reply(ctx.t('traffic.target_not_found', { default: 'Traffic target not found' }));
+      await ctx.reply(ctx.t('traffic.target_not_found'));
 
       return;
     }
@@ -2291,7 +2242,7 @@ A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram use
     const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
     const typeLabel = this.getTargetTypeLabel(target.type);
 
-    let text = ctx.t('traffic.target_details_title', { default: '<b>🎯 Traffic Target Details</b>\n\n' });
+    let text = ctx.t('traffic.target_details_title');
     text += `<b>Name:</b> ${target.name}\n`;
     text += `<b>Type:</b> ${typeLabel}\n`;
     text += `<b>Status:</b> ${statusEmoji} ${target.status}\n`;
@@ -2344,7 +2295,7 @@ A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram use
     const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
 
     if (!target) {
-      await ctx.reply(ctx.t('traffic.target_not_found', { default: 'Traffic target not found' }));
+      await ctx.reply(ctx.t('traffic.target_not_found'));
 
       return;
     }
@@ -2355,10 +2306,7 @@ A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram use
 
     await this.em.flush();
 
-    const newStatusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
-    await ctx.answerCallbackQuery(
-      ctx.t('traffic.target_status_toggled', { default: `Status changed to ${newStatusEmoji} ${target.status}` }),
-    );
+    await ctx.answerCallbackQuery(ctx.t('traffic.target_status_toggled'));
 
     // Refresh the view
     await this.handleTrafficTargetView(ctx, targetId);
@@ -2377,30 +2325,30 @@ A: ${ctx.t('help.faq_a6', { default: 'Yes, all subscribers are real Telegram use
   }
 
   private async handleHelpCreateOrder(ctx: BotContext): Promise<void> {
-    const text = `<b>📖 ${ctx.t('help.create_order_title', { default: 'How to Create an Order' })}</b>
+    const text = `<b>📖 ${ctx.t('help.create_order_title')}</b>
 
-<b>${ctx.t('help.step', { default: 'Step' })} 1:</b>
-${ctx.t('help.create_step1', { default: 'Click "Buy Traffic" in the main menu.' })}
+<b>${ctx.t('help.step')} 1:</b>
+${ctx.t('help.create_step1')}
 
-<b>${ctx.t('help.step', { default: 'Step' })} 2:</b>
-${ctx.t('help.create_step2', { default: 'Send an invite link to your channel or group.' })}
-${ctx.t('help.create_format', { default: 'Format: t.me/joinchat/xxx or t.me/+xxx' })}
+<b>${ctx.t('help.step')} 2:</b>
+${ctx.t('help.create_step2')}
+${ctx.t('help.create_format')}
 
-<b>${ctx.t('help.step', { default: 'Step' })} 3:</b>
-${ctx.t('help.create_step3', { default: 'Add our bot as an admin to your channel.' })}
-${ctx.t('help.create_step3_note', { default: 'This is needed for tracking statistics.' })}
+<b>${ctx.t('help.step')} 3:</b>
+${ctx.t('help.create_step3')}
+${ctx.t('help.create_step3_note')}
 
-<b>${ctx.t('help.step', { default: 'Step' })} 4:</b>
-${ctx.t('help.create_step4', { default: 'Set the desired number of subscribers and other parameters.' })}
+<b>${ctx.t('help.step')} 4:</b>
+${ctx.t('help.create_step4')}
 
-<b>${ctx.t('help.step', { default: 'Step' })} 5:</b>
-${ctx.t('help.create_step5', { default: 'After moderation, the order will start automatically.' })}
+<b>${ctx.t('help.step')} 5:</b>
+${ctx.t('help.create_step5')}
 
-<b>💡 ${ctx.t('help.tip', { default: 'Tip' })}:</b>
-${ctx.t('help.create_tip', { default: 'The more interesting your channel, the more subscribers will stay!' })}`;
+<b>💡 ${ctx.t('help.tip')}:</b>
+${ctx.t('help.create_tip')}`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('help.btn_create_now', { default: '🆕 Create Order' }), 'order:create:start')
+      .text(ctx.t('help.btn_create_now'), 'order:create:start')
       .row()
       .text(ctx.t('common.back'), 'menu:help');
 
@@ -2412,30 +2360,30 @@ ${ctx.t('help.create_tip', { default: 'The more interesting your channel, the mo
   }
 
   private async handleHelpTopup(ctx: BotContext): Promise<void> {
-    const text = `<b>💰 ${ctx.t('help.topup_title', { default: 'Depositing Funds' })}</b>
+    const text = `<b>💰 ${ctx.t('help.topup_title')}</b>
 
-<b>${ctx.t('help.payment_methods', { default: 'Available Payment Methods' })}:</b>
+<b>${ctx.t('help.payment_methods')}:</b>
 
-<b>💳 ${ctx.t('help.method_card', { default: 'Bank Card' })}</b>
+<b>💳 ${ctx.t('help.method_card')}</b>
 • Visa, MasterCard, MIR
-• ${ctx.t('help.instant_deposit', { default: 'Instant deposit' })}
-• ${ctx.t('help.no_fee', { default: 'Fee: 0%' })}
+• ${ctx.t('help.instant_deposit')}
+• ${ctx.t('help.no_fee')}
 
-<b>🪙 ${ctx.t('help.method_crypto', { default: 'Cryptocurrency' })}</b>
+<b>🪙 ${ctx.t('help.method_crypto')}</b>
 • Bitcoin (BTC), Ethereum (ETH), USDT
-• ${ctx.t('help.crypto_confirmations', { default: 'Deposit: 1-3 confirmations' })}
+• ${ctx.t('help.crypto_confirmations')}
 
-<b>📱 ${ctx.t('help.method_ewallet', { default: 'E-wallets' })}</b>
-• ${ctx.t('help.instant_deposit', { default: 'Instant deposit' })}
+<b>📱 ${ctx.t('help.method_ewallet')}</b>
+• ${ctx.t('help.instant_deposit')}
 
-<b>${ctx.t('help.min_amount', { default: 'Minimum amount' })}:</b> $10
-<b>${ctx.t('help.max_amount', { default: 'Maximum amount' })}:</b> $10,000
+<b>${ctx.t('help.min_amount')}:</b> $10
+<b>${ctx.t('help.max_amount')}:</b> $10,000
 
-<b>💡 ${ctx.t('help.bonus', { default: 'Bonus' })}:</b>
-${ctx.t('help.deposit_bonus', { default: 'Deposit $100+ and get 5% bonus!' })}`;
+<b>💡 ${ctx.t('help.bonus')}:</b>
+${ctx.t('help.deposit_bonus')}`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('help.btn_deposit_now', { default: '💰 Deposit Now' }), 'balance:deposit')
+      .text(ctx.t('help.btn_deposit_now'), 'balance:deposit')
       .row()
       .text(ctx.t('common.back'), 'menu:help');
 
@@ -2447,33 +2395,33 @@ ${ctx.t('help.deposit_bonus', { default: 'Deposit $100+ and get 5% bonus!' })}`;
   }
 
   private async handleHelpWithdraw(ctx: BotContext): Promise<void> {
-    const text = `<b>💸 ${ctx.t('help.withdraw_title', { default: 'Withdrawing Funds' })}</b>
+    const text = `<b>💸 ${ctx.t('help.withdraw_title')}</b>
 
-<b>${ctx.t('help.withdrawal_methods', { default: 'Withdrawal Methods' })}:</b>
+<b>${ctx.t('help.withdrawal_methods')}:</b>
 
-<b>🪙 ${ctx.t('help.method_crypto', { default: 'Cryptocurrency' })}</b>
+<b>🪙 ${ctx.t('help.method_crypto')}</b>
 • Bitcoin, Ethereum, USDT
-• ${ctx.t('help.network_fee', { default: 'Fee: network' })}
-• ${ctx.t('help.processing_24h', { default: 'Processing: up to 24 hours' })}
+• ${ctx.t('help.network_fee')}
+• ${ctx.t('help.processing_24h')}
 
-<b>📱 ${ctx.t('help.method_ewallet', { default: 'E-wallets' })}</b>
-• ${ctx.t('help.ewallet_fee', { default: 'Fee: 1-2%' })}
-• ${ctx.t('help.processing_24h', { default: 'Processing: up to 24 hours' })}
+<b>📱 ${ctx.t('help.method_ewallet')}</b>
+• ${ctx.t('help.ewallet_fee')}
+• ${ctx.t('help.processing_24h')}
 
-<b>${ctx.t('help.withdraw_conditions', { default: 'Withdrawal conditions' })}:</b>
-• ${ctx.t('help.min_amount', { default: 'Minimum amount' })}: $10
-• ${ctx.t('help.verification_note', { default: 'Verification: for amounts over $500' })}
+<b>${ctx.t('help.withdraw_conditions')}:</b>
+• ${ctx.t('help.min_amount')}: $10
+• ${ctx.t('help.verification_note')}
 
-<b>${ctx.t('help.payout_statuses', { default: 'Payout statuses' })}:</b>
-⏳ ${ctx.t('help.status_pending', { default: 'Pending - request being processed' })}
-✅ ${ctx.t('help.status_completed', { default: 'Completed - funds sent' })}
-❌ ${ctx.t('help.status_rejected', { default: 'Rejected - check details' })}
+<b>${ctx.t('help.payout_statuses')}:</b>
+⏳ ${ctx.t('help.status_pending')}
+✅ ${ctx.t('help.status_completed')}
+❌ ${ctx.t('help.status_rejected')}
 
-<b>💡 ${ctx.t('help.tip', { default: 'Tip' })}:</b>
-${ctx.t('help.withdraw_tip', { default: 'Withdraw to verified wallets!' })}`;
+<b>💡 ${ctx.t('help.tip')}:</b>
+${ctx.t('help.withdraw_tip')}`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('help.btn_withdraw_now', { default: '💸 Withdraw Funds' }), 'balance:withdraw')
+      .text(ctx.t('help.btn_withdraw_now'), 'balance:withdraw')
       .row()
       .text(ctx.t('common.back'), 'menu:help');
 
@@ -2485,37 +2433,37 @@ ${ctx.t('help.withdraw_tip', { default: 'Withdraw to verified wallets!' })}`;
   }
 
   private async handleHelpStats(ctx: BotContext): Promise<void> {
-    const text = `<b>📊 ${ctx.t('help.stats_title', { default: 'Statistics & Analytics' })}</b>
+    const text = `<b>📊 ${ctx.t('help.stats_title')}</b>
 
-<b>${ctx.t('help.stats_available', { default: 'Available statistics' })}:</b>
+<b>${ctx.t('help.stats_available')}:</b>
 
-<b>📈 ${ctx.t('help.stats_orders', { default: 'Order statistics' })}:</b>
-• ${ctx.t('help.stats_subscribers', { default: 'Number of subscribers' })}
-• ${ctx.t('help.stats_speed', { default: 'Growth speed' })}
-• ${ctx.t('help.stats_unsubscribe', { default: 'Unsubscribe rate' })}
-• ${ctx.t('help.stats_conversion', { default: 'Conversion' })}
+<b>📈 ${ctx.t('help.stats_orders')}:</b>
+• ${ctx.t('help.stats_subscribers')}
+• ${ctx.t('help.stats_speed')}
+• ${ctx.t('help.stats_unsubscribe')}
+• ${ctx.t('help.stats_conversion')}
 
-<b>💰 ${ctx.t('help.stats_financial', { default: 'Financial' })}:</b>
-• ${ctx.t('help.stats_income', { default: 'Income for period' })}
-• ${ctx.t('help.stats_expenses', { default: 'Order expenses' })}
-• ${ctx.t('help.stats_history', { default: 'Transaction history' })}
+<b>💰 ${ctx.t('help.stats_financial')}:</b>
+• ${ctx.t('help.stats_income')}
+• ${ctx.t('help.stats_expenses')}
+• ${ctx.t('help.stats_history')}
 
-<b>🎯 ${ctx.t('help.stats_traffic', { default: 'Traffic statistics' })}:</b>
-• ${ctx.t('help.stats_sources', { default: 'Traffic sources' })}
-• ${ctx.t('help.stats_quality', { default: 'Subscriber quality' })}
-• ${ctx.t('help.stats_activity', { default: 'Audience activity' })}
+<b>🎯 ${ctx.t('help.stats_traffic')}:</b>
+• ${ctx.t('help.stats_sources')}
+• ${ctx.t('help.stats_quality')}
+• ${ctx.t('help.stats_activity')}
 
-<b>📅 ${ctx.t('help.stats_periods', { default: 'Periods' })}:</b>
-• ${ctx.t('help.period_today', { default: 'Today' })}
-• ${ctx.t('help.period_week', { default: 'Week' })}
-• ${ctx.t('help.period_month', { default: 'Month' })}
-• ${ctx.t('help.period_custom', { default: 'Custom period' })}
+<b>📅 ${ctx.t('help.stats_periods')}:</b>
+• ${ctx.t('help.period_today')}
+• ${ctx.t('help.period_week')}
+• ${ctx.t('help.period_month')}
+• ${ctx.t('help.period_custom')}
 
-<b>💡 ${ctx.t('help.tip', { default: 'Tip' })}:</b>
-${ctx.t('help.stats_tip', { default: 'Analyze statistics to optimize campaigns!' })}`;
+<b>💡 ${ctx.t('help.tip')}:</b>
+${ctx.t('help.stats_tip')}`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('help.btn_view_stats', { default: '📊 View Statistics' }), 'stats:overview')
+      .text(ctx.t('help.btn_view_stats'), 'stats:overview')
       .row()
       .text(ctx.t('common.back'), 'menu:help');
 
@@ -2527,37 +2475,37 @@ ${ctx.t('help.stats_tip', { default: 'Analyze statistics to optimize campaigns!'
   }
 
   private async handleHelpTraffic(ctx: BotContext): Promise<void> {
-    const text = `<b>🤖 ${ctx.t('help.traffic_title', { default: 'Selling Traffic' })}</b>
+    const text = `<b>🤖 ${ctx.t('help.traffic_title')}</b>
 
-${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers for other channels!' })}
+${ctx.t('help.traffic_intro')}
 
-<b>${ctx.t('help.how_it_works', { default: 'How it works' })}:</b>
-1. ${ctx.t('help.traffic_step1', { default: 'Add your bot/channel as a traffic source' })}
-2. ${ctx.t('help.traffic_step2', { default: 'Show ads in your bots' })}
-3. ${ctx.t('help.traffic_step3', { default: 'Get paid for each subscriber' })}
+<b>${ctx.t('help.how_it_works')}:</b>
+1. ${ctx.t('help.traffic_step1')}
+2. ${ctx.t('help.traffic_step2')}
+3. ${ctx.t('help.traffic_step3')}
 
-<b>💰 ${ctx.t('help.traffic_earnings', { default: 'How much you can earn' })}:</b>
-• ${ctx.t('help.traffic_rate', { default: '$0.01 to $0.10 per subscriber' })}
-• ${ctx.t('help.traffic_depends', { default: 'Depends on audience quality' })}
-• ${ctx.t('help.traffic_auto', { default: 'Automatic payouts' })}
+<b>💰 ${ctx.t('help.traffic_earnings')}:</b>
+• ${ctx.t('help.traffic_rate')}
+• ${ctx.t('help.traffic_depends')}
+• ${ctx.t('help.traffic_auto')}
 
-<b>📋 ${ctx.t('help.traffic_requirements', { default: 'Requirements' })}:</b>
-• ${ctx.t('help.traffic_req1', { default: 'Minimum 1000 active users' })}
-• ${ctx.t('help.traffic_req2', { default: 'Real users (not bots)' })}
-• ${ctx.t('help.traffic_req3', { default: 'Compliance with Telegram rules' })}
+<b>📋 ${ctx.t('help.traffic_requirements')}:</b>
+• ${ctx.t('help.traffic_req1')}
+• ${ctx.t('help.traffic_req2')}
+• ${ctx.t('help.traffic_req3')}
 
-<b>🚀 ${ctx.t('help.traffic_benefits', { default: 'Benefits' })}:</b>
-• ${ctx.t('help.traffic_ben1', { default: 'Automatic integration' })}
-• ${ctx.t('help.traffic_ben2', { default: 'Detailed statistics' })}
-• ${ctx.t('help.traffic_ben3', { default: 'Instant payouts' })}
-• ${ctx.t('help.traffic_ben4', { default: '24/7 Support' })}
+<b>🚀 ${ctx.t('help.traffic_benefits')}:</b>
+• ${ctx.t('help.traffic_ben1')}
+• ${ctx.t('help.traffic_ben2')}
+• ${ctx.t('help.traffic_ben3')}
+• ${ctx.t('help.traffic_ben4')}
 
-<i>${ctx.t('help.traffic_cta', { default: 'Start earning today!' })}</i>`;
+<i>${ctx.t('help.traffic_cta')}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('help.btn_add_source', { default: '🤖 Add Traffic Source' }), 'traffic:sources')
+      .text(ctx.t('help.btn_add_source'), 'traffic:sources')
       .row()
-      .text(ctx.t('help.btn_my_sources', { default: '📊 My Sources' }), 'menu:traffic')
+      .text(ctx.t('help.btn_my_sources'), 'menu:traffic')
       .row()
       .text(ctx.t('common.back'), 'menu:help');
 
@@ -2572,7 +2520,7 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
     const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
 
     if (!target) {
-      await ctx.reply(ctx.t('traffic.target_not_found', { default: 'Traffic target not found' }));
+      await ctx.reply(ctx.t('traffic.target_not_found'));
 
       return;
     }
@@ -2621,7 +2569,7 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
     const totalSpent = sum(orders.map((o) => decimal(o.spentAmount || '0')));
     const totalBudget = sum(orders.map((o) => decimal(o.totalBudget || '0')));
 
-    let text = ctx.t('traffic.analytics_title', { default: '<b>📈 Traffic Analytics</b>\n\n' });
+    let text = ctx.t('traffic.analytics_title');
     text += `<b>Resources:</b>\n`;
     text += `• Traffic Sources: ${sourcesCount}\n`;
     text += `• Traffic Targets: ${targetsCount}\n\n`;
@@ -2657,9 +2605,9 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
       .text('$250', 'deposit:amount:250')
       .text('$500', 'deposit:amount:500')
       .row()
-      .text(ctx.t('common.custom_amount', { default: '💲 Custom Amount' }), 'deposit:amount:custom')
+      .text(ctx.t('common.custom_amount'), 'deposit:amount:custom')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
+      .text(ctx.t('common.back'), 'deposit:methods');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('balance.deposit_card_title', {
@@ -2686,7 +2634,7 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
       .row()
       .text('◎ TON', 'deposit:crypto:ton')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
+      .text(ctx.t('common.back'), 'deposit:methods');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('balance.deposit_crypto_title', {
@@ -2709,9 +2657,9 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
       .text('$500', 'deposit:amount:500')
       .text('$1000', 'deposit:amount:1000')
       .row()
-      .text(ctx.t('common.custom_amount', { default: '💲 Custom Amount' }), 'deposit:amount:custom')
+      .text(ctx.t('common.custom_amount'), 'deposit:amount:custom')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'deposit:methods');
+      .text(ctx.t('common.back'), 'deposit:methods');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('balance.deposit_bank_title', {
@@ -2803,10 +2751,10 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
       { orderBy: { createdAt: 'DESC' }, limit: 10 },
     );
 
-    let text = ctx.t('balance.deposit_history_title', { default: '<b>📥 Deposit History</b>\n\n' });
+    let text = ctx.t('balance.deposit_history_title');
 
     if (deposits.length === 0) {
-      text += ctx.t('balance.no_deposits', { default: '<i>No deposits yet.</i>' });
+      text += ctx.t('balance.no_deposits');
     } else {
       deposits.forEach((deposit) => {
         const amount = decimal(deposit.amount);
@@ -2858,9 +2806,9 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
       .text('$250', 'withdrawal:amount:250')
       .text('All', 'withdrawal:amount:all')
       .row()
-      .text(ctx.t('common.custom_amount', { default: '💲 Custom Amount' }), 'withdrawal:amount:custom')
+      .text(ctx.t('common.custom_amount'), 'withdrawal:amount:custom')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'menu:balance');
+      .text(ctx.t('common.back'), 'menu:balance');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('balance.withdrawal_amount_prompt', {
@@ -2935,10 +2883,10 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
       { orderBy: { createdAt: 'DESC' }, limit: 10 },
     );
 
-    let text = ctx.t('balance.withdrawal_history_title', { default: '<b>📤 Withdrawal History</b>\n\n' });
+    let text = ctx.t('balance.withdrawal_history_title');
 
     if (withdrawals.length === 0) {
-      text += ctx.t('balance.no_withdrawals', { default: '<i>No withdrawals yet.</i>' });
+      text += ctx.t('balance.no_withdrawals');
     } else {
       withdrawals.forEach((withdrawal) => {
         const amount = decimal(withdrawal.amount);
@@ -2963,7 +2911,7 @@ ${ctx.t('help.traffic_intro', { default: 'Earn money by attracting subscribers f
       .row()
       .text('🏦 Bank', 'withdrawal:method:bank')
       .row()
-      .text(ctx.t('common.back', { default: '« Back' }), 'menu:balance');
+      .text(ctx.t('common.back'), 'menu:balance');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('balance.withdrawal_methods', {

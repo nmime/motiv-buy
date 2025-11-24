@@ -95,7 +95,7 @@ export class MenuActionHandler {
       .row()
       .text(ctx.t('common.buttons.view'), 'profile:verify')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -109,7 +109,7 @@ export class MenuActionHandler {
       .text(ctx.t('balance.withdraw'), 'balance:withdraw')
       .text(ctx.t('menu.balance.deposit'), 'balance:deposit')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -123,7 +123,7 @@ export class MenuActionHandler {
       .text(ctx.t('menu.stats.traffic'), 'stats:traffic')
       .text(ctx.t('menu.stats.earnings'), 'stats:earnings')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -137,7 +137,7 @@ export class MenuActionHandler {
       .text(ctx.t('orders.btn_new'), 'orders:create')
       .text(ctx.t('orders.btn_search'), 'orders:search')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -151,7 +151,7 @@ export class MenuActionHandler {
       .text(ctx.t('menu.settings.preferences'), 'settings:preferences')
       .text(ctx.t('menu.settings.privacy'), 'settings:privacy')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -165,7 +165,7 @@ export class MenuActionHandler {
       .text(ctx.t('bot.referral.earnings'), 'referral:earnings')
       .text(ctx.t('bot.referral.stats'), 'referral:stats')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -179,7 +179,7 @@ export class MenuActionHandler {
       .text(ctx.t('balance.withdraw'), 'payment:withdraw')
       .text(ctx.t('balance.top_up'), 'payment:topup')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -193,7 +193,7 @@ export class MenuActionHandler {
       .text(ctx.t('menu.sell_traffic.btn_add_source'), 'traffic:sources:add')
       .text(ctx.t('common.buttons.add'), 'traffic:targets:add')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -275,7 +275,7 @@ export class MenuActionHandler {
       .text(ctx.t('orders.btn_new'), 'campaign:create')
       .text(ctx.t('menu.sell_traffic.btn_analytics'), 'campaign:analytics')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -317,7 +317,7 @@ export class MenuActionHandler {
       .text(ctx.t('settings.title'), 'admin:settings')
       .text(ctx.t('bot.admin.logs'), 'admin:logs')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -345,7 +345,7 @@ export class MenuActionHandler {
       .text(ctx.t('balance.withdrawal_methods'), 'withdrawal:methods')
       .text(ctx.t('balance.minimum_withdrawal'), 'withdrawal:limits')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -359,7 +359,7 @@ export class MenuActionHandler {
       .text(ctx.t('payment.method'), 'deposit:methods')
       .text(ctx.t('bot.bonuses.title'), 'deposit:bonuses')
       .row()
-      .text(ctx.t('common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back'), 'menu:main');
   }
 
   /**
@@ -446,9 +446,7 @@ export class MenuActionHandler {
     const hasRequiredRole = ctx.user.role === requiredRole;
 
     if (!hasRequiredRole) {
-      await ctx.reply(
-        ctx.t('common.errors.no_permission', { default: 'You do not have permission to access this menu.' }),
-      );
+      await ctx.reply(ctx.t('common.errors.no_permission'));
     }
 
     return hasRequiredRole;

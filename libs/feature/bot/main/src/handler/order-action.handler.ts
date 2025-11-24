@@ -46,25 +46,20 @@ export class OrderActionHandler {
     );
 
     if (orders.length === 0) {
-      await ctx.reply(ctx.t('bot.order.no_active_orders', { default: 'You have no active orders.' }));
+      await ctx.reply(ctx.t('bot.order.no_active_orders'));
 
       return;
     }
 
     const totalPages = Math.ceil(total / limit);
-    const ordersText = this.formatOrdersList(
-      orders,
-      ctx.t('orders.active_title', { default: 'Active Orders' }),
-      page,
-      totalPages,
-    );
+    const ordersText = this.formatOrdersList(orders, ctx.t('orders.active_title'), page, totalPages);
 
     let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:active');
     if (totalPages > 1) {
       keyboard = keyboard.row();
     }
 
-    keyboard = keyboard.text(ctx.t('common.back', { default: '« Back' }), 'menu:orders');
+    keyboard = keyboard.text(ctx.t('common.back'), 'menu:orders');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ordersText,
@@ -97,25 +92,20 @@ export class OrderActionHandler {
     );
 
     if (orders.length === 0) {
-      await ctx.reply(ctx.t('orders.no_completed', { default: 'You have no completed orders yet.' }));
+      await ctx.reply(ctx.t('orders.no_completed'));
 
       return;
     }
 
     const totalPages = Math.ceil(total / limit);
-    const ordersText = this.formatOrdersList(
-      orders,
-      ctx.t('orders.completed_title', { default: 'Completed Orders' }),
-      page,
-      totalPages,
-    );
+    const ordersText = this.formatOrdersList(orders, ctx.t('orders.completed_title'), page, totalPages);
 
     let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:completed');
     if (totalPages > 1) {
       keyboard = keyboard.row();
     }
 
-    keyboard = keyboard.text(ctx.t('common.back', { default: '« Back' }), 'menu:orders');
+    keyboard = keyboard.text(ctx.t('common.back'), 'menu:orders');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ordersText,
@@ -138,7 +128,7 @@ export class OrderActionHandler {
     const typeKeyboard = this.createOrderTypeKeyboard(ctx);
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: `➕ <b>${ctx.t('orders.create_title', { default: 'Create New Order' })}</b>\n\n${ctx.t('orders.select_type', { default: 'Please select the order type:' })}`,
+      text: `➕ <b>${ctx.t('orders.create_title')}</b>\n\n${ctx.t('orders.select_type')}`,
       parseMode: 'HTML',
       replyMarkup: typeKeyboard,
     });
@@ -157,7 +147,7 @@ export class OrderActionHandler {
     );
 
     if (!order) {
-      await ctx.reply(ctx.t('orders.not_found', { default: 'Order not found.' }));
+      await ctx.reply(ctx.t('orders.not_found'));
 
       return;
     }
@@ -185,9 +175,9 @@ export class OrderActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text:
-        `🔍 <b>${ctx.t('orders.search_title', { default: 'Search Orders' })}</b>\n\n` +
-        `${ctx.t('orders.search_prompt', { default: 'Please enter the order ID or keywords to search:' })}\n\n` +
-        `<i>${ctx.t('common.cancel_hint', { default: 'Use /cancel to abort.' })}</i>`,
+        `🔍 <b>${ctx.t('orders.search_title')}</b>\n\n` +
+        `${ctx.t('orders.search_prompt')}\n\n` +
+        `<i>${ctx.t('common.cancel_hint')}</i>`,
       parseMode: 'HTML',
     });
   }
@@ -227,7 +217,7 @@ export class OrderActionHandler {
     const target = await order.trafficTarget.load();
 
     if (!source || !target) {
-      return ctx.t('orders.details_not_found', { default: 'Order details not found' });
+      return ctx.t('orders.details_not_found');
     }
 
     const totalBudgetDisplay = toDisplayString(order.totalBudget, 2);
@@ -235,27 +225,23 @@ export class OrderActionHandler {
     const pricePerActionDisplay = toDisplayString(order.pricePerAction, 4);
 
     return (
-      `${statusEmoji} <b>${ctx.t('orders.details_title', { default: 'Order Details' })}</b>\n\n` +
-      `<b>${ctx.t('orders.order_id', { default: 'Order ID' })}:</b> <code>${order.orderId}</code>\n` +
-      `<b>${ctx.t('orders.type', { default: 'Type' })}:</b> ${order.type}\n` +
-      `<b>${ctx.t('orders.status', { default: 'Status' })}:</b> ${order.status}\n\n` +
-      `<b>${ctx.t('orders.progress', { default: 'Progress' })}:</b>\n` +
-      `• ${ctx.t('orders.current', { default: 'Current' })}: ${order.currentCount}\n` +
-      `• ${ctx.t('orders.target', { default: 'Target' })}: ${order.targetCount}\n` +
-      `• ${ctx.t('orders.completion', { default: 'Completion' })}: ${progressDisplay}%\n\n` +
-      `<b>${ctx.t('orders.budget', { default: 'Budget' })}:</b>\n` +
-      `• ${ctx.t('orders.total', { default: 'Total' })}: $${totalBudgetDisplay}\n` +
-      `• ${ctx.t('orders.spent', { default: 'Spent' })}: $${spentAmountDisplay}\n` +
-      `• ${ctx.t('orders.price_per_action', { default: 'Price per Action' })}: $${pricePerActionDisplay}\n\n` +
-      `<b>${ctx.t('orders.source', { default: 'Source' })}:</b> ${source.name}\n` +
-      `<b>${ctx.t('orders.target_label', { default: 'Target' })}:</b> ${target.name}\n\n` +
-      (order.description
-        ? `<b>${ctx.t('orders.description', { default: 'Description' })}:</b>\n${order.description}\n\n`
-        : '') +
-      `<b>${ctx.t('orders.created', { default: 'Created' })}:</b> ${order.createdAt.toLocaleString()}\n` +
-      (order.completedAt
-        ? `<b>${ctx.t('orders.completed', { default: 'Completed' })}:</b> ${order.completedAt.toLocaleString()}`
-        : '')
+      `${statusEmoji} <b>${ctx.t('orders.details_title')}</b>\n\n` +
+      `<b>${ctx.t('orders.order_id')}:</b> <code>${order.orderId}</code>\n` +
+      `<b>${ctx.t('orders.type')}:</b> ${order.type}\n` +
+      `<b>${ctx.t('orders.status')}:</b> ${order.status}\n\n` +
+      `<b>${ctx.t('orders.progress')}:</b>\n` +
+      `• ${ctx.t('orders.current')}: ${order.currentCount}\n` +
+      `• ${ctx.t('orders.target')}: ${order.targetCount}\n` +
+      `• ${ctx.t('orders.completion')}: ${progressDisplay}%\n\n` +
+      `<b>${ctx.t('orders.budget')}:</b>\n` +
+      `• ${ctx.t('orders.total')}: $${totalBudgetDisplay}\n` +
+      `• ${ctx.t('orders.spent')}: $${spentAmountDisplay}\n` +
+      `• ${ctx.t('orders.price_per_action')}: $${pricePerActionDisplay}\n\n` +
+      `<b>${ctx.t('orders.source')}:</b> ${source.name}\n` +
+      `<b>${ctx.t('orders.target_label')}:</b> ${target.name}\n\n` +
+      (order.description ? `<b>${ctx.t('orders.description')}:</b>\n${order.description}\n\n` : '') +
+      `<b>${ctx.t('orders.created')}:</b> ${order.createdAt.toLocaleString()}\n` +
+      (order.completedAt ? `<b>${ctx.t('orders.completed')}:</b> ${order.completedAt.toLocaleString()}` : '')
     );
   }
 
@@ -280,15 +266,15 @@ export class OrderActionHandler {
    */
   private createOrderTypeKeyboard(ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text(ctx.t('orders.type_join', { default: '👥 Join' }), 'order:type:join')
-      .text(ctx.t('orders.type_view', { default: '👀 View' }), 'order:type:view')
+      .text(ctx.t('orders.type_join'), 'order:type:join')
+      .text(ctx.t('orders.type_view'), 'order:type:view')
       .row()
-      .text(ctx.t('orders.type_subscribe', { default: '👍 Subscribe' }), 'order:type:subscribe')
-      .text(ctx.t('orders.type_react', { default: '❤️ React' }), 'order:type:react')
+      .text(ctx.t('orders.type_subscribe'), 'order:type:subscribe')
+      .text(ctx.t('orders.type_react'), 'order:type:react')
       .row()
-      .text(ctx.t('orders.type_comment', { default: '💬 Comment' }), 'order:type:comment')
+      .text(ctx.t('orders.type_comment'), 'order:type:comment')
       .row()
-      .text(ctx.t('common.cancel', { default: '« Cancel' }), 'menu:orders');
+      .text(ctx.t('common.cancel'), 'menu:orders');
   }
 
   /**
@@ -296,8 +282,8 @@ export class OrderActionHandler {
    */
   private createOrderDetailsKeyboard(orderId: string, ctx: AuthenticatedBotContext) {
     return new InlineKeyboard()
-      .text(ctx.t('common.refresh', { default: '🔄 Refresh' }), `order:details:${orderId}`)
+      .text(ctx.t('common.refresh'), `order:details:${orderId}`)
       .row()
-      .text(ctx.t('orders.back_to_orders', { default: '« Back to Orders' }), 'menu:orders');
+      .text(ctx.t('orders.back_to_orders'), 'menu:orders');
   }
 }

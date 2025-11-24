@@ -258,19 +258,19 @@ export class StatisticsActionHandler {
    */
   private formatStatisticsOverview(stats: UserStatistics, user: UserEntity, ctx: AuthenticatedBotContext): string {
     return (
-      `<b>📊 ${ctx.t('statistics.overview_title', { default: 'Statistics Overview' })}</b>\n\n` +
-      `<b>📦 ${ctx.t('statistics.orders', { default: 'Orders' })}:</b>\n` +
-      `• ${ctx.t('statistics.total', { default: 'Total' })}: ${stats.totalOrders}\n` +
-      `• ${ctx.t('statistics.active', { default: 'Active' })}: ${stats.activeOrders}\n` +
-      `• ${ctx.t('statistics.completed', { default: 'Completed' })}: ${stats.completedOrders}\n\n` +
-      `<b>💰 ${ctx.t('statistics.earnings', { default: 'Earnings' })}:</b>\n` +
-      `• ${ctx.t('statistics.total', { default: 'Total' })}: $${toDisplayString(stats.totalEarnings, 2)}\n` +
-      `• ${ctx.t('statistics.avg_per_order', { default: 'Avg per Order' })}: $${toDisplayString(stats.avgOrderValue, 2)}\n` +
-      `• ${ctx.t('statistics.referral_earnings', { default: 'Referral Earnings' })}: $${toDisplayString(stats.referralEarnings, 2)}\n\n` +
-      `<b>📈 ${ctx.t('statistics.performance', { default: 'Performance' })}:</b>\n` +
-      `• ${ctx.t('statistics.success_rate', { default: 'Success Rate' })}: ${toDisplayString(stats.successRate, 1)}%\n` +
-      `• ${ctx.t('statistics.total_referrals', { default: 'Total Referrals' })}: ${user.referralCount}\n\n` +
-      `<i>${ctx.t('statistics.select_option', { default: 'Select an option below for detailed statistics.' })}</i>`
+      `<b>📊 ${ctx.t('statistics.overview_title')}</b>\n\n` +
+      `<b>📦 ${ctx.t('statistics.orders')}:</b>\n` +
+      `• ${ctx.t('statistics.total')}: ${stats.totalOrders}\n` +
+      `• ${ctx.t('statistics.active')}: ${stats.activeOrders}\n` +
+      `• ${ctx.t('statistics.completed')}: ${stats.completedOrders}\n\n` +
+      `<b>💰 ${ctx.t('statistics.earnings')}:</b>\n` +
+      `• ${ctx.t('statistics.total')}: $${toDisplayString(stats.totalEarnings, 2)}\n` +
+      `• ${ctx.t('statistics.avg_per_order')}: $${toDisplayString(stats.avgOrderValue, 2)}\n` +
+      `• ${ctx.t('statistics.referral_earnings')}: $${toDisplayString(stats.referralEarnings, 2)}\n\n` +
+      `<b>📈 ${ctx.t('statistics.performance')}:</b>\n` +
+      `• ${ctx.t('statistics.success_rate')}: ${toDisplayString(stats.successRate, 1)}%\n` +
+      `• ${ctx.t('statistics.total_referrals')}: ${user.referralCount}\n\n` +
+      `<i>${ctx.t('statistics.select_option')}</i>`
     );
   }
 
@@ -278,20 +278,20 @@ export class StatisticsActionHandler {
    * Format detailed statistics
    */
   private formatDetailedStatistics(stats: DetailedStatistics, ctx: AuthenticatedBotContext): string {
-    let text = `<b>📊 ${ctx.t('statistics.detailed_title', { default: 'Detailed Statistics' })}</b>\n\n`;
+    let text = `<b>📊 ${ctx.t('statistics.detailed_title')}</b>\n\n`;
 
-    text += `<b>${ctx.t('statistics.orders_by_status', { default: 'Orders by Status' })}:</b>\n`;
+    text += `<b>${ctx.t('statistics.orders_by_status')}:</b>\n`;
     for (const [status, count] of Object.entries(stats.ordersByStatus)) {
       text += `• ${status}: ${count}\n`;
     }
 
-    text += `\n<b>${ctx.t('statistics.orders_by_type', { default: 'Orders by Type' })}:</b>\n`;
+    text += `\n<b>${ctx.t('statistics.orders_by_type')}:</b>\n`;
     for (const [type, count] of Object.entries(stats.ordersByType)) {
       text += `• ${type}: ${count}\n`;
     }
 
-    text += `\n<b>${ctx.t('statistics.total_spent', { default: 'Total Spent' })}:</b> $${toDisplayString(stats.totalSpent, 2)}\n`;
-    text += `<b>${ctx.t('statistics.total_orders', { default: 'Total Orders' })}:</b> ${stats.totalOrders}`;
+    text += `\n<b>${ctx.t('statistics.total_spent')}:</b> $${toDisplayString(stats.totalSpent, 2)}\n`;
+    text += `<b>${ctx.t('statistics.total_orders')}:</b> ${stats.totalOrders}`;
 
     return text;
   }
@@ -301,12 +301,12 @@ export class StatisticsActionHandler {
    */
   private formatTrafficStatistics(stats: TrafficStatistics, ctx: AuthenticatedBotContext): string {
     return (
-      `<b>🎯 ${ctx.t('statistics.traffic_title', { default: 'Traffic Statistics' })}</b>\n\n` +
-      `<b>${ctx.t('statistics.total_actions', { default: 'Total Actions Completed' })}:</b> ${stats.totalActions}\n` +
-      `<b>${ctx.t('statistics.target_actions', { default: 'Target Actions' })}:</b> ${stats.totalTargetActions}\n` +
-      `<b>${ctx.t('statistics.completion_rate', { default: 'Completion Rate' })}:</b> ${toDisplayString(stats.completionRate, 1)}%\n` +
-      `<b>${ctx.t('statistics.total_orders', { default: 'Total Orders' })}:</b> ${stats.totalOrders}\n\n` +
-      `<i>${ctx.t('statistics.keep_completing', { default: 'Keep completing orders to improve your statistics!' })}</i>`
+      `<b>🎯 ${ctx.t('statistics.traffic_title')}</b>\n\n` +
+      `<b>${ctx.t('statistics.total_actions')}:</b> ${stats.totalActions}\n` +
+      `<b>${ctx.t('statistics.target_actions')}:</b> ${stats.totalTargetActions}\n` +
+      `<b>${ctx.t('statistics.completion_rate')}:</b> ${toDisplayString(stats.completionRate, 1)}%\n` +
+      `<b>${ctx.t('statistics.total_orders')}:</b> ${stats.totalOrders}\n\n` +
+      `<i>${ctx.t('statistics.keep_completing')}</i>`
     );
   }
 
@@ -314,24 +314,24 @@ export class StatisticsActionHandler {
    * Format earnings statistics
    */
   private formatEarningsStatistics(stats: EarningsStatistics, ctx: AuthenticatedBotContext): string {
-    let text = `<b>💎 ${ctx.t('statistics.earnings_title', { default: 'Earnings Statistics' })}</b>\n\n`;
+    let text = `<b>💎 ${ctx.t('statistics.earnings_title')}</b>\n\n`;
 
-    text += `<b>${ctx.t('statistics.earnings_by_type', { default: 'Earnings by Type' })}:</b>\n`;
+    text += `<b>${ctx.t('statistics.earnings_by_type')}:</b>\n`;
     for (const [type, amount] of Object.entries(stats.earningsByType)) {
       text += `• ${type}: $${toDisplayString(amount as number, 2)}\n`;
     }
 
-    text += `\n<b>${ctx.t('statistics.last_7_days', { default: 'Last 7 Days' })}:</b> $${toDisplayString(stats.earningsLast7Days, 2)}\n`;
+    text += `\n<b>${ctx.t('statistics.last_7_days')}:</b> $${toDisplayString(stats.earningsLast7Days, 2)}\n`;
     if (stats.earningsLast30Days !== undefined) {
-      text += `<b>${ctx.t('statistics.last_30_days', { default: 'Last 30 Days' })}:</b> $${toDisplayString(stats.earningsLast30Days, 2)}\n`;
+      text += `<b>${ctx.t('statistics.last_30_days')}:</b> $${toDisplayString(stats.earningsLast30Days, 2)}\n`;
     }
 
     if (stats.totalEarnings !== undefined) {
-      text += `<b>${ctx.t('statistics.total_earnings', { default: 'Total Earnings' })}:</b> $${toDisplayString(stats.totalEarnings, 2)}\n`;
+      text += `<b>${ctx.t('statistics.total_earnings')}:</b> $${toDisplayString(stats.totalEarnings, 2)}\n`;
     }
 
     if (stats.totalTransactions !== undefined) {
-      text += `<b>${ctx.t('statistics.total_transactions', { default: 'Total Transactions' })}:</b> ${stats.totalTransactions}`;
+      text += `<b>${ctx.t('statistics.total_transactions')}:</b> ${stats.totalTransactions}`;
     }
 
     return text;
