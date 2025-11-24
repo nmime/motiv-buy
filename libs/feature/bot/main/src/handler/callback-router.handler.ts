@@ -71,6 +71,13 @@ export class CallbackRouterHandler {
   }
 
   /**
+   * Create back button with translated text
+   */
+  private createBackButton(ctx: BotContext, returnTo: string): InlineKeyboard {
+    return this.menuHandler.createBackButton(returnTo, ctx.t('common.common.back'));
+  }
+
+  /**
    * Wraps an authenticated handler, checking the type guard before calling
    */
   private withAuth(handler: (ctx: AuthenticatedBotContext) => Promise<void>): (ctx: BotContext) => Promise<void> {
@@ -892,24 +899,21 @@ export class CallbackRouterHandler {
   // Placeholder methods for additional features
 
   private async handleMainMenu(ctx: BotContext): Promise<void> {
-    const userName = ctx.from?.first_name || 'User';
-
-    // Build welcome text from translation - pass userName for {{userName}} placeholder
-    const text =
-      ctx.t('main_menu.welcome', { userName }) ||
-      `<b>👋 Welcome, ${userName}!</b>\n\n<b>MotivBuy</b> — Your Telegram growth platform\n\n<b>🛒 Buy Traffic</b>\nGet real subscribers for your channels and groups\n\n<b>💰 Sell Traffic</b>\nMonetize your bot or channel audience\n\n<i>Select an action below 👇</i>`;
+    const message = ctx.t('menu.main_menu.select_action');
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('main_menu.btn_buy_traffic') || '🛒 Buy Traffic', 'menu:buy_traffic')
-      .text(ctx.t('main_menu.btn_sell_traffic') || '💰 Sell Traffic', 'menu:sell_traffic')
+      .text(ctx.t('menu.main_menu.btn_buy_subscribers'), 'order:list')
       .row()
-      .text(ctx.t('main_menu.btn_balance') || '💳 Balance', 'balance:view')
-      .text(ctx.t('main_menu.btn_profile') || '👤 Profile', 'profile:view')
+      .text(ctx.t('menu.main_menu.btn_sell_traffic'), 'traffic:manage')
+      .text(ctx.t('menu.main_menu.btn_my_orders'), 'order:list')
       .row()
-      .text(ctx.t('main_menu.btn_support') || '🆘 Support', 'menu:support');
+      .text(ctx.t('menu.main_menu.btn_profile'), 'profile:view')
+      .text(ctx.t('menu.main_menu.btn_balance'), 'balance:view')
+      .row()
+      .text(ctx.t('menu.main_menu.btn_support'), 'support:contact');
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text,
+      text: message,
       parseMode: 'HTML',
       replyMarkup: keyboard,
     });
@@ -1247,7 +1251,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
       text += `<i>${ctx.t('traffic.no_sources', { default: 'No traffic sources yet. Create one to get started!' })}</i>`;
     }
 
-    const keyboard = this.menuHandler.createTrafficMenuKeyboard();
+    const keyboard = this.menuHandler.createTrafficMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
@@ -1307,7 +1311,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
       text += `<i>${ctx.t('campaign.no_campaigns', { default: 'No campaigns yet. Click "Create Campaign" to get started!' })}</i>`;
     }
 
-    const keyboard = this.menuHandler.createCampaignMenuKeyboard();
+    const keyboard = this.menuHandler.createCampaignMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
@@ -1337,7 +1341,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
   }
 
   private async handleProfileSecurityMenu(ctx: BotContext, _params: string[]): Promise<void> {
-    const keyboard = this.menuHandler.createProfileSecurityMenuKeyboard();
+    const keyboard = this.menuHandler.createProfileSecurityMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('profile.security_menu', {
         default: '🔒 Security Settings\n\nManage your account security options.',
@@ -1367,7 +1371,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
           '📧 Email Security\n\n✅ Email notifications are enabled\n✅ Two-factor authentication available\n\nUse the buttons below to manage your email settings.',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:profile'),
+      replyMarkup: this.createBackButton(ctx, 'menu:profile'),
     });
   }
 
@@ -1412,7 +1416,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('profile:security'),
+      replyMarkup: this.createBackButton(ctx, 'profile:security'),
     });
   }
 
@@ -1428,7 +1432,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
       await this.messageService.sendOrEditMessage(ctx, {
         text: '📊 <b>Balance Analytics</b>\n\nNo transaction history available yet.\nStart using the platform to see your analytics!',
         parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+        replyMarkup: this.createBackButton(ctx, 'menu:balance'),
       });
 
       return;
@@ -1491,7 +1495,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+      replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }
 
@@ -1524,7 +1528,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
       text += '\n✅ You can withdraw your funds';
     }
 
-    const keyboard = this.menuHandler.createWithdrawalMenuKeyboard();
+    const keyboard = this.menuHandler.createWithdrawalMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
@@ -1544,7 +1548,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     text += '• Bank transfers: 1-3 business days\n\n';
     text += '<i>Select a payment method below to continue.</i>';
 
-    const keyboard = this.menuHandler.createDepositMenuKeyboard();
+    const keyboard = this.menuHandler.createDepositMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
@@ -1586,7 +1590,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     text += `• Total: ${totalSources}\n\n`;
     text += '<i>Select an action below to manage the system.</i>';
 
-    const keyboard = this.menuHandler.createAdminMenuKeyboard();
+    const keyboard = this.menuHandler.createAdminMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
@@ -1614,7 +1618,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     text += '<i>Select what you want to export below.</i>\n\n';
     text += '⚠️ Export may take a few moments for large datasets.';
 
-    const keyboard = this.menuHandler.createExportMenuKeyboard();
+    const keyboard = this.menuHandler.createExportMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
@@ -1652,7 +1656,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
           '🎨 Theme Settings\n\n✅ Auto-adapt theme (recommended)\n\nTheme automatically adapts to your Telegram settings.',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:settings'),
+      replyMarkup: this.createBackButton(ctx, 'menu:settings'),
     });
   }
 
@@ -1673,7 +1677,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         default: `📊 Account Status\n\n🆔 User ID: ${userId || 'Unknown'}\n✅ Status: Active\n📅 Member since: Today\n\nAll systems operational.`,
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:main'),
+      replyMarkup: this.createBackButton(ctx, 'menu:main'),
     });
   }
 
@@ -1684,7 +1688,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
           '💬 Available Commands\n\n/start - Start bot\n/menu - Open menu\n/help - Show help\n/profile - View profile\n/balance - Check balance\n/settings - Settings\n/stats - Statistics',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:main'),
+      replyMarkup: this.createBackButton(ctx, 'menu:main'),
     });
   }
 
@@ -1693,7 +1697,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.deleted_list', { default: '🗑 Deleted Orders\n\nNo deleted orders found.' }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1702,7 +1706,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.select_to_configure', { default: '⚙️ Please select an order to configure.' }),
         parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+        replyMarkup: this.createBackButton(ctx, 'menu:orders'),
       });
 
       return;
@@ -1716,7 +1720,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.edit_prompt', { default: '✏️ Edit Order\n\nPlease select what you want to edit:' }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1753,7 +1757,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         default: '🤖 Bot Management\n\nManage bots associated with your orders.',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1764,7 +1768,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
           '🎯 Audience Targeting\n\nDefine your target audience:\n- Age range\n- Gender\n- Location\n- Interests',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1774,7 +1778,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         default: '👥 Gender Selection\n\nChoose target gender:\n• All\n• Male\n• Female',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1782,7 +1786,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.topic_selection', { default: '🎯 Topic Selection\n\nSelect topics for your campaign.' }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1792,7 +1796,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         default: '🌍 Location Selection\n\nSelect target locations for your campaign.',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1839,7 +1843,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
       await this.messageService.sendOrEditMessage(ctx, {
         text,
         parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+        replyMarkup: this.createBackButton(ctx, 'menu:orders'),
       });
     } else {
       // Show specific order stats
@@ -1861,7 +1865,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         default: '🔗 Order Integration\n\nConnect your order with external services.',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1869,7 +1873,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.transfer', { default: '🔄 Transfer Order\n\nTransfer this order to another account.' }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1879,7 +1883,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         default: '📺 Channel Information\n\nView details about the associated channel.',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1889,7 +1893,7 @@ ${ctx.t('payments.description', { default: 'Manage your finances in one place.' 
         default: '📋 Order Type\n\nSelect the type of order you want to create.',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:orders'),
+      replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
 
@@ -1989,7 +1993,7 @@ support@motivbuy.com
     }
 
     const sourcesList = sources.map((s) => ({ id: s.id, name: s.name, status: s.status }));
-    const keyboard = this.menuHandler.createTrafficSourcesKeyboard(sourcesList);
+    const keyboard = this.menuHandler.createTrafficSourcesKeyboard(ctx, sourcesList);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2013,7 +2017,7 @@ support@motivbuy.com
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('traffic:sources'),
+      replyMarkup: this.createBackButton(ctx, 'traffic:sources'),
     });
   }
 
@@ -2047,7 +2051,7 @@ support@motivbuy.com
     text += `• Total Orders: ${ordersCount}\n`;
     text += `• Created: ${source.createdAt.toLocaleDateString()}\n`;
 
-    const keyboard = this.menuHandler.createTrafficSourceDetailKeyboard(sourceId);
+    const keyboard = this.menuHandler.createTrafficSourceDetailKeyboard(ctx, sourceId);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2067,7 +2071,7 @@ support@motivbuy.com
         default: '<b>✏️ Edit Traffic Source</b>\n\nEnter the new name for this source:\n\n<i>Use /cancel to abort.</i>',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton(`traffic:source:view:${sourceId}`),
+      replyMarkup: this.createBackButton(ctx, `traffic:source:view:${sourceId}`),
     });
   }
 
@@ -2208,7 +2212,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton(`traffic:source:view:${sourceId}`),
+      replyMarkup: this.createBackButton(ctx, `traffic:source:view:${sourceId}`),
     });
   }
 
@@ -2243,7 +2247,7 @@ A: Да, все подписчики - реальные пользователи
     }
 
     const targetsList = targets.map((t) => ({ id: t.id, name: t.name, status: t.status }));
-    const keyboard = this.menuHandler.createTrafficTargetsKeyboard(targetsList);
+    const keyboard = this.menuHandler.createTrafficTargetsKeyboard(ctx, targetsList);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2278,7 +2282,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('traffic:targets'),
+      replyMarkup: this.createBackButton(ctx, 'traffic:targets'),
     });
   }
 
@@ -2320,7 +2324,7 @@ A: Да, все подписчики - реальные пользователи
     text += `• Total Orders: ${ordersCount}\n`;
     text += `• Created: ${target.createdAt.toLocaleDateString()}\n`;
 
-    const keyboard = this.menuHandler.createTrafficTargetDetailKeyboard(targetId);
+    const keyboard = this.menuHandler.createTrafficTargetDetailKeyboard(ctx, targetId);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -2340,7 +2344,7 @@ A: Да, все подписчики - реальные пользователи
         default: '<b>✏️ Edit Traffic Target</b>\n\nEnter the new name for this target:\n\n<i>Use /cancel to abort.</i>',
       }),
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton(`traffic:target:view:${targetId}`),
+      replyMarkup: this.createBackButton(ctx, `traffic:target:view:${targetId}`),
     });
   }
 
@@ -2610,7 +2614,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton(`traffic:target:view:${targetId}`),
+      replyMarkup: this.createBackButton(ctx, `traffic:target:view:${targetId}`),
     });
   }
 
@@ -2645,7 +2649,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:traffic'),
+      replyMarkup: this.createBackButton(ctx, 'menu:traffic'),
     });
   }
 
@@ -2744,7 +2748,7 @@ A: Да, все подписчики - реальные пользователи
             '<b>💰 Enter Deposit Amount</b>\n\nPlease enter the amount you want to deposit:\n\n<i>Example: 100.00</i>',
         }),
         parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+        replyMarkup: this.createBackButton(ctx, 'deposit:methods'),
       });
 
       return;
@@ -2801,7 +2805,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+      replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }
 
@@ -2828,7 +2832,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+      replyMarkup: this.createBackButton(ctx, 'deposit:methods'),
     });
   }
 
@@ -2846,7 +2850,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('deposit:methods'),
+      replyMarkup: this.createBackButton(ctx, 'deposit:methods'),
     });
   }
 
@@ -2893,7 +2897,7 @@ A: Да, все подписчики - реальные пользователи
             '<b>💸 Enter Withdrawal Amount</b>\n\nPlease enter the amount you want to withdraw:\n\n<i>Example: 100.00</i>',
         }),
         parseMode: 'HTML',
-        replyMarkup: this.menuHandler.createBackButton('balance:withdraw'),
+        replyMarkup: this.createBackButton(ctx, 'balance:withdraw'),
       });
 
       return;
@@ -2933,7 +2937,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+      replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }
 
@@ -2961,7 +2965,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+      replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }
 
@@ -3003,7 +3007,7 @@ A: Да, все подписчики - реальные пользователи
     await this.messageService.sendOrEditMessage(ctx, {
       text,
       parseMode: 'HTML',
-      replyMarkup: this.menuHandler.createBackButton('menu:balance'),
+      replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }
 }

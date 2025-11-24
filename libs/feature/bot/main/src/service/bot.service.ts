@@ -623,6 +623,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       state: ctx.userData,
       language: ctx.language,
       t: ctx.t,
+      // Copy authentication properties set by auth middleware
+      // These are dynamically added to ctx by BotAuthMiddleware.authenticateUser()
+      // Using property access since they're optional and dynamically set
+      user: 'user' in ctx ? ctx.user : undefined,
+      isAuthenticated: ctx.isAuthenticated,
+      sessionId: 'sessionId' in ctx ? ctx.sessionId : undefined,
+      isNewUser: 'isNewUser' in ctx ? ctx.isNewUser : undefined,
+      userId: ctx.userId,
     };
 
     // Safe cast: We've constructed an object with all BotContext properties
@@ -632,22 +640,21 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
   // Command handlers
   private async handleStartCommand(ctx: BotContext): Promise<void> {
-    // Import main menu from order feature
-    const message = `Выбери нужный пункт 👇`;
+    const message = ctx.t('menu.main_menu.select_action');
 
     await ctx.replyWithHTML(message, {
       reply_markup: {
         inline_keyboard: [
-          [{ text: '👥 Купить подписчиков', callback_data: 'order:list' }],
+          [{ text: ctx.t('menu.main_menu.btn_buy_subscribers'), callback_data: 'order:list' }],
           [
-            { text: '🤖 Продажа трафика', callback_data: 'traffic:manage' },
-            { text: '📋 Мои заказы', callback_data: 'order:list' },
+            { text: ctx.t('menu.main_menu.btn_sell_traffic'), callback_data: 'traffic:manage' },
+            { text: ctx.t('menu.main_menu.btn_my_orders'), callback_data: 'order:list' },
           ],
           [
-            { text: '👤 Профиль', callback_data: 'profile:view' },
-            { text: '💰 Баланс', callback_data: 'balance:view' },
+            { text: ctx.t('menu.main_menu.btn_profile'), callback_data: 'profile:view' },
+            { text: ctx.t('menu.main_menu.btn_balance'), callback_data: 'balance:view' },
           ],
-          [{ text: '🏢 Тех. поддержка', callback_data: 'support:contact' }],
+          [{ text: ctx.t('menu.main_menu.btn_support'), callback_data: 'support:contact' }],
         ],
       },
     });

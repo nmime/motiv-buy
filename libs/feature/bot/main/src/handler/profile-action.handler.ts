@@ -33,7 +33,7 @@ export class ProfileActionHandler {
   async handleProfileView(ctx: AuthenticatedBotContext): Promise<void> {
     // ctx.user is GUARANTEED by AuthenticatedBotContext type - no ! needed
     const profileText = this.formatProfileView(ctx.user);
-    const keyboard = this.menuHandler.createProfileMenuKeyboard();
+    const keyboard = this.menuHandler.createProfileMenuKeyboard(ctx);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: profileText,
@@ -106,7 +106,7 @@ export class ProfileActionHandler {
    */
   async handleProfileDetails(ctx: AuthenticatedBotContext): Promise<void> {
     const detailsText = this.formatProfileDetails(ctx.user);
-    const keyboard = this.menuHandler.createBackButton('menu:profile');
+    const keyboard = this.menuHandler.createBackButton('menu:profile', ctx.t('common.common.back'));
 
     await ctx.replyWithHTML(detailsText, { reply_markup: keyboard });
   }

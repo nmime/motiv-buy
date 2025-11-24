@@ -47,7 +47,7 @@ export class SettingsActionHandler {
   async handleSettingsView(ctx: AuthenticatedBotContext): Promise<void> {
     const preferences = await this.getUserPreferences(ctx.user.id);
     const settingsText = this.formatSettingsView(preferences, ctx);
-    const keyboard = this.menuHandler.createSettingsMenuKeyboard();
+    const keyboard = this.menuHandler.createSettingsMenuKeyboard(ctx);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: settingsText,
@@ -146,7 +146,7 @@ export class SettingsActionHandler {
       `• ${ctx.t('settings.date_format', { default: 'Date Format' })}: DD/MM/YYYY / MM/DD/YYYY\n\n` +
       `<i>${ctx.t('settings.coming_soon', { default: 'More preferences coming soon!' })}</i>`;
 
-    const keyboard = this.menuHandler.createBackButton('menu:settings');
+    const keyboard = this.menuHandler.createBackButton('menu:settings', ctx.t('common.common.back'));
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: preferencesText,
