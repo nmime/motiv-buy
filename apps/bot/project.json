@@ -45,7 +45,8 @@
       "dependsOn": ["build"],
       "options": {
         "buildTarget": "bot:build",
-        "runBuildTargetDependencies": true
+        "runBuildTargetDependencies": true,
+        "watch": true
       },
       "configurations": {
         "development": {

@@ -136,14 +136,14 @@ export class CommandHandler {
               reply_markup: {
                 inline_keyboard: [
                   [
-                    { text: '📋 Main Menu', callback_data: 'menu:main' },
-                    { text: '💰 Balance', callback_data: 'menu:balance' },
+                    { text: ctx.t('bot.commands.btn_sell_traffic'), callback_data: 'menu:sell_traffic' },
+                    { text: ctx.t('bot.commands.btn_buy_traffic'), callback_data: 'menu:buy_traffic' },
                   ],
                   [
-                    { text: '📈 Statistics', callback_data: 'menu:statistics' },
-                    { text: '⚙️ Settings', callback_data: 'menu:settings' },
+                    { text: ctx.t('bot.commands.btn_balance'), callback_data: 'balance:view' },
+                    { text: ctx.t('bot.commands.btn_profile'), callback_data: 'profile:view' },
                   ],
-                  [{ text: '❓ Help', callback_data: 'menu:help' }],
+                  [{ text: ctx.t('bot.commands.btn_support'), callback_data: 'menu:support' }],
                 ],
               },
             },
@@ -152,8 +152,8 @@ export class CommandHandler {
           // New user - registration flow
           await ctx.replyWithHTML(
             `<b>${ctx.t('bot.commands.welcome_new')}</b>\n\n` +
-              `Hello <b>${userName}</b>, ${ctx.t('bot.commands.welcome_new_intro')}\n\n` +
-              `🎯 <b>${ctx.t('bot.commands.help_features')}</b>\n` +
+              `${ctx.t('bot.commands.welcome_new_intro')}\n\n` +
+              `<b>${ctx.t('bot.commands.help_features')}</b>\n\n` +
               ctx.t('bot.commands.feature_track') +
               `\n` +
               ctx.t('bot.commands.feature_monitor') +
@@ -164,16 +164,18 @@ export class CommandHandler {
               `\n` +
               ctx.t('bot.commands.feature_withdraw') +
               `\n` +
-              ctx.t('bot.commands.feature_optimize') +
-              `\n\n` +
-              `Let's get you set up! 🛠️`,
+              ctx.t('bot.commands.feature_optimize'),
             {
               reply_markup: {
                 inline_keyboard: [
-                  [{ text: '✅ Complete Setup', callback_data: 'auth:register' }],
+                  [{ text: ctx.t('bot.commands.btn_complete_setup'), callback_data: 'auth:register' }],
                   [
-                    { text: '📋 Main Menu', callback_data: 'menu:main' },
-                    { text: '❓ Help', callback_data: 'menu:help' },
+                    { text: ctx.t('bot.commands.btn_sell_traffic'), callback_data: 'menu:sell_traffic' },
+                    { text: ctx.t('bot.commands.btn_buy_traffic'), callback_data: 'menu:buy_traffic' },
+                  ],
+                  [
+                    { text: ctx.t('bot.commands.btn_balance'), callback_data: 'balance:view' },
+                    { text: ctx.t('bot.commands.btn_help'), callback_data: 'menu:help' },
                   ],
                 ],
               },

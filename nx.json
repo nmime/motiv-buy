@@ -52,5 +52,7 @@
       }
     }
   },
-  "nxCloudId": "690f49078b1eb076a1d06a00"
+  "tui": {
+    "enabled": false
+  }
 }
