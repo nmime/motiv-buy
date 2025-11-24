@@ -118,11 +118,5 @@
   },
   "common": {
     "btn_back": "◀️ Back"
-  },
-  "orders": {
-    "active": "📋 Active Orders",
-    "completed": "✅ Completed",
-    "create": "➕ Create Order",
-    "search": "🔍 Search"
   }
 }

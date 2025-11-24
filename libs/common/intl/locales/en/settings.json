@@ -12,18 +12,5 @@
   "export_data": "📥 Export Data\n\nDownload your account data.",
   "reset_settings": "🔄 Reset Settings\n\nReset all settings to default.",
   "reset_confirm": "Are you sure you want to reset all settings?",
-  "reset_success": "✅ Settings have been reset to default.",
-  "settings": {
-    "title": "⚙️ Settings",
-    "language": "🌐 Language",
-    "notifications": "🔔 Notifications",
-    "preferences": "⚙️ Preferences",
-    "privacy": "🔒 Privacy",
-    "logs": "📋 Logs",
-    "export_stats": "📊 Export Stats",
-    "export_transactions": "💳 Export Transactions",
-    "export_orders": "📋 Export Orders",
-    "export_profile": "👤 Export Profile",
-    "back_to_settings": "◀️ Back to Settings"
-  }
+  "reset_success": "✅ Settings have been reset to default."
 }

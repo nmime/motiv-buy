@@ -47,15 +47,5 @@
   "source_status_toggled": "Status changed successfully",
   "target_status_toggled": "Status changed successfully",
   "delete_source_confirm": "<b>⚠️ Delete Traffic Source</b>\n\nAre you sure you want to delete this traffic source?\n\n<b>This action cannot be undone!</b>",
-  "delete_target_confirm": "<b>⚠️ Delete Traffic Target</b>\n\nAre you sure you want to delete this traffic target?\n\n<b>This action cannot be undone!</b>",
-  "traffic": {
-    "sources": "📊 Traffic Sources",
-    "targets": "🎯 Traffic Targets",
-    "add_source": "➕ Add Source",
-    "add_target": "➕ Add Target",
-    "analytics": "📊 Analytics",
-    "toggle_status": "🔄 Toggle Status",
-    "back_to_sources": "◀️ Back to Sources",
-    "back_to_targets": "◀️ Back to Targets"
-  }
+  "delete_target_confirm": "<b>⚠️ Delete Traffic Target</b>\n\nAre you sure you want to delete this traffic target?\n\n<b>This action cannot be undone!</b>"
 }

@@ -90,12 +90,12 @@ export class MenuActionHandler {
    */
   createProfileMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('profile.profile.edit'), 'profile:edit')
-      .text(ctx.t('profile.profile.details'), 'profile:details')
+      .text(ctx.t('menu.profile.edit'), 'profile:edit')
+      .text(ctx.t('menu.profile.details'), 'profile:details')
       .row()
-      .text(ctx.t('profile.profile.verify'), 'profile:verify')
+      .text(ctx.t('buttons.view'), 'profile:verify')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -103,13 +103,13 @@ export class MenuActionHandler {
    */
   createBalanceMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('balance.balance.view'), 'balance:view')
-      .text(ctx.t('balance.balance.history'), 'balance:history')
+      .text(ctx.t('balance.current'), 'balance:view')
+      .text(ctx.t('balance.history'), 'balance:history')
       .row()
-      .text(ctx.t('balance.balance.withdraw'), 'balance:withdraw')
-      .text(ctx.t('balance.balance.deposit'), 'balance:deposit')
+      .text(ctx.t('balance.withdraw'), 'balance:withdraw')
+      .text(ctx.t('menu.balance.deposit'), 'balance:deposit')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -117,13 +117,13 @@ export class MenuActionHandler {
    */
   createStatisticsMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('menu.menu.stats.overview'), 'stats:overview')
-      .text(ctx.t('menu.menu.stats.detailed'), 'stats:detailed')
+      .text(ctx.t('menu.stats.overview'), 'stats:overview')
+      .text(ctx.t('menu.stats.detailed'), 'stats:detailed')
       .row()
-      .text(ctx.t('menu.menu.stats.traffic'), 'stats:traffic')
-      .text(ctx.t('menu.menu.stats.earnings'), 'stats:earnings')
+      .text(ctx.t('menu.stats.traffic'), 'stats:traffic')
+      .text(ctx.t('menu.stats.earnings'), 'stats:earnings')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -131,13 +131,13 @@ export class MenuActionHandler {
    */
   createOrdersMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('orders.orders.active'), 'orders:active')
-      .text(ctx.t('orders.orders.completed'), 'orders:completed')
+      .text(ctx.t('orders.btn_active'), 'orders:active')
+      .text(ctx.t('orders.btn_completed'), 'orders:completed')
       .row()
-      .text(ctx.t('orders.orders.create'), 'orders:create')
-      .text(ctx.t('orders.orders.search'), 'orders:search')
+      .text(ctx.t('orders.btn_new'), 'orders:create')
+      .text(ctx.t('orders.btn_search'), 'orders:search')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -145,13 +145,13 @@ export class MenuActionHandler {
    */
   createSettingsMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('settings.settings.language'), 'settings:language')
-      .text(ctx.t('settings.settings.notifications'), 'settings:notifications')
+      .text(ctx.t('menu.settings.language'), 'settings:language')
+      .text(ctx.t('menu.settings.notifications'), 'settings:notifications')
       .row()
-      .text(ctx.t('settings.settings.preferences'), 'settings:preferences')
-      .text(ctx.t('settings.settings.privacy'), 'settings:privacy')
+      .text(ctx.t('menu.settings.preferences'), 'settings:preferences')
+      .text(ctx.t('menu.settings.privacy'), 'settings:privacy')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -159,13 +159,13 @@ export class MenuActionHandler {
    */
   createReferralsMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('user.user.referral.list'), 'referral:list')
-      .text(ctx.t('user.user.referral.link'), 'referral:link')
+      .text(ctx.t('bot.referral.list'), 'referral:list')
+      .text(ctx.t('bot.referral.link'), 'referral:link')
       .row()
-      .text(ctx.t('user.user.referral.earnings'), 'referral:earnings')
-      .text(ctx.t('user.user.referral.stats'), 'referral:stats')
+      .text(ctx.t('bot.referral.earnings'), 'referral:earnings')
+      .text(ctx.t('bot.referral.stats'), 'referral:stats')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -173,13 +173,13 @@ export class MenuActionHandler {
    */
   createPaymentsMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('payment.payment.methods'), 'payment:methods')
-      .text(ctx.t('payment.payment.history'), 'payment:history')
+      .text(ctx.t('payment.method'), 'payment:methods')
+      .text(ctx.t('payment.payment_history'), 'payment:history')
       .row()
-      .text(ctx.t('payment.payment.withdraw'), 'payment:withdraw')
-      .text(ctx.t('payment.payment.topup'), 'payment:topup')
+      .text(ctx.t('balance.withdraw'), 'payment:withdraw')
+      .text(ctx.t('balance.top_up'), 'payment:topup')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -187,15 +187,15 @@ export class MenuActionHandler {
    */
   createTrafficMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('traffic.traffic.sources'), 'traffic:sources')
-      .text(ctx.t('traffic.traffic.targets'), 'traffic:targets')
+      .text(ctx.t('traffic.sources'), 'traffic:sources')
+      .text(ctx.t('traffic.targets'), 'traffic:targets')
       .row()
-      .text(ctx.t('traffic.traffic.add_source'), 'traffic:sources:add')
-      .text(ctx.t('traffic.traffic.add_target'), 'traffic:targets:add')
+      .text(ctx.t('menu.sell_traffic.btn_add_source'), 'traffic:sources:add')
+      .text(ctx.t('buttons.add'), 'traffic:targets:add')
       .row()
-      .text(ctx.t('traffic.traffic.analytics'), 'traffic:analytics')
+      .text(ctx.t('menu.sell_traffic.btn_analytics'), 'traffic:analytics')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -212,8 +212,8 @@ export class MenuActionHandler {
       keyboard.text(`${statusEmoji} ${source.name}`, `traffic:source:view:${source.id}`).row();
     });
 
-    keyboard.text(ctx.t('traffic.traffic.add_source'), 'traffic:sources:add').row();
-    keyboard.text(ctx.t('common.common.back'), 'menu:traffic');
+    keyboard.text(ctx.t('menu.sell_traffic.btn_add_source'), 'traffic:sources:add').row();
+    keyboard.text(ctx.t('common.back'), 'menu:traffic');
 
     return keyboard;
   }
@@ -232,8 +232,8 @@ export class MenuActionHandler {
       keyboard.text(`${statusEmoji} ${target.name}`, `traffic:target:view:${target.id}`).row();
     });
 
-    keyboard.text(ctx.t('traffic.traffic.add_target'), 'traffic:targets:add').row();
-    keyboard.text(ctx.t('common.common.back'), 'menu:traffic');
+    keyboard.text(ctx.t('buttons.add'), 'traffic:targets:add').row();
+    keyboard.text(ctx.t('common.back'), 'menu:traffic');
 
     return keyboard;
   }
@@ -243,13 +243,13 @@ export class MenuActionHandler {
    */
   createTrafficSourceDetailKeyboard(ctx: BotContext, sourceId: string): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('common.buttons.edit'), `traffic:source:edit:${sourceId}`)
-      .text(ctx.t('traffic.traffic.toggle_status'), `traffic:source:toggle:${sourceId}`)
+      .text(ctx.t('buttons.edit'), `traffic:source:edit:${sourceId}`)
+      .text(ctx.t('traffic.source_status_toggled'), `traffic:source:toggle:${sourceId}`)
       .row()
-      .text(ctx.t('common.common.statistics'), `traffic:source:stats:${sourceId}`)
-      .text(ctx.t('common.buttons.delete'), `traffic:source:delete:${sourceId}`)
+      .text(ctx.t('common.statistics'), `traffic:source:stats:${sourceId}`)
+      .text(ctx.t('buttons.delete'), `traffic:source:delete:${sourceId}`)
       .row()
-      .text(ctx.t('traffic.traffic.back_to_sources'), 'traffic:sources');
+      .text(ctx.t('common.back'), 'traffic:sources');
   }
 
   /**
@@ -257,13 +257,13 @@ export class MenuActionHandler {
    */
   createTrafficTargetDetailKeyboard(ctx: BotContext, targetId: string): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('common.buttons.edit'), `traffic:target:edit:${targetId}`)
-      .text(ctx.t('traffic.traffic.toggle_status'), `traffic:target:toggle:${targetId}`)
+      .text(ctx.t('buttons.edit'), `traffic:target:edit:${targetId}`)
+      .text(ctx.t('traffic.target_status_toggled'), `traffic:target:toggle:${targetId}`)
       .row()
-      .text(ctx.t('common.common.statistics'), `traffic:target:stats:${targetId}`)
-      .text(ctx.t('common.buttons.delete'), `traffic:target:delete:${targetId}`)
+      .text(ctx.t('common.statistics'), `traffic:target:stats:${targetId}`)
+      .text(ctx.t('buttons.delete'), `traffic:target:delete:${targetId}`)
       .row()
-      .text(ctx.t('traffic.traffic.back_to_targets'), 'traffic:targets');
+      .text(ctx.t('common.back'), 'traffic:targets');
   }
 
   /**
@@ -271,13 +271,13 @@ export class MenuActionHandler {
    */
   createCampaignMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('orders.orders.active'), 'campaign:active')
-      .text(ctx.t('orders.orders.completed'), 'campaign:completed')
+      .text(ctx.t('orders.btn_active'), 'campaign:active')
+      .text(ctx.t('orders.btn_completed'), 'campaign:completed')
       .row()
-      .text(ctx.t('orders.orders.create'), 'campaign:create')
-      .text(ctx.t('traffic.traffic.analytics'), 'campaign:analytics')
+      .text(ctx.t('orders.btn_new'), 'campaign:create')
+      .text(ctx.t('menu.sell_traffic.btn_analytics'), 'campaign:analytics')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -285,13 +285,13 @@ export class MenuActionHandler {
    */
   createProfileStatsMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('common.common.overview'), 'profile:stats:overview')
-      .text(ctx.t('profile.profile.activity'), 'profile:stats:activity')
+      .text(ctx.t('common.overview'), 'profile:stats:overview')
+      .text(ctx.t('balance.recent_activity'), 'profile:stats:activity')
       .row()
-      .text(ctx.t('profile.profile.earnings'), 'profile:stats:earnings')
-      .text(ctx.t('profile.profile.performance'), 'profile:stats:performance')
+      .text(ctx.t('balance.earned'), 'profile:stats:earnings')
+      .text(ctx.t('statistic.performance'), 'profile:stats:performance')
       .row()
-      .text(ctx.t('profile.profile.back_to_profile'), 'profile:view');
+      .text(ctx.t('common.back'), 'profile:view');
   }
 
   /**
@@ -299,13 +299,13 @@ export class MenuActionHandler {
    */
   createProfileSecurityMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('profile.profile.change_password'), 'profile:password')
-      .text(ctx.t('profile.profile.email_security'), 'profile:email_security')
+      .text(ctx.t('profile.password_change'), 'profile:password')
+      .text(ctx.t('profile.email_security'), 'profile:email_security')
       .row()
-      .text(ctx.t('profile.profile.two_fa'), 'profile:2fa')
-      .text(ctx.t('profile.profile.login_history'), 'profile:login_history')
+      .text(ctx.t('bot.settings.two_fa'), 'profile:2fa')
+      .text(ctx.t('bot.settings.login_history'), 'profile:login_history')
       .row()
-      .text(ctx.t('profile.profile.back_to_profile'), 'menu:profile');
+      .text(ctx.t('common.back'), 'menu:profile');
   }
 
   /**
@@ -313,13 +313,13 @@ export class MenuActionHandler {
    */
   createAdminMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('user.user.users'), 'admin:users')
-      .text(ctx.t('common.common.statistics'), 'admin:stats')
+      .text(ctx.t('common.user'), 'admin:users')
+      .text(ctx.t('common.statistics'), 'admin:stats')
       .row()
-      .text(ctx.t('settings.settings.title'), 'admin:settings')
-      .text(ctx.t('settings.settings.logs'), 'admin:logs')
+      .text(ctx.t('settings.title'), 'admin:settings')
+      .text(ctx.t('bot.admin.logs'), 'admin:logs')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -327,13 +327,13 @@ export class MenuActionHandler {
    */
   createExportMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('settings.settings.export_stats'), 'export:stats')
-      .text(ctx.t('settings.settings.export_transactions'), 'export:transactions')
+      .text(ctx.t('statistic.export_stats'), 'export:stats')
+      .text(ctx.t('statistic.export_transactions'), 'export:transactions')
       .row()
-      .text(ctx.t('settings.settings.export_orders'), 'export:orders')
-      .text(ctx.t('settings.settings.export_profile'), 'export:profile')
+      .text(ctx.t('statistic.export_orders'), 'export:orders')
+      .text(ctx.t('statistic.export_profile'), 'export:profile')
       .row()
-      .text(ctx.t('settings.settings.back_to_settings'), 'menu:settings');
+      .text(ctx.t('common.back'), 'menu:settings');
   }
 
   /**
@@ -341,13 +341,13 @@ export class MenuActionHandler {
    */
   createWithdrawalMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('balance.balance.new_withdrawal'), 'withdrawal:create')
-      .text(ctx.t('balance.balance.history'), 'withdrawal:history')
+      .text(ctx.t('balance.withdraw'), 'withdrawal:create')
+      .text(ctx.t('balance.history'), 'withdrawal:history')
       .row()
-      .text(ctx.t('balance.balance.methods'), 'withdrawal:methods')
-      .text(ctx.t('balance.balance.limits'), 'withdrawal:limits')
+      .text(ctx.t('balance.withdrawal_methods'), 'withdrawal:methods')
+      .text(ctx.t('balance.minimum_withdrawal'), 'withdrawal:limits')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
@@ -355,13 +355,13 @@ export class MenuActionHandler {
    */
   createDepositMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('balance.balance.add_funds'), 'deposit:create')
-      .text(ctx.t('balance.balance.history'), 'deposit:history')
+      .text(ctx.t('balance.deposit_info_title'), 'deposit:create')
+      .text(ctx.t('balance.history'), 'deposit:history')
       .row()
-      .text(ctx.t('balance.balance.methods'), 'deposit:methods')
-      .text(ctx.t('balance.balance.bonuses'), 'deposit:bonuses')
+      .text(ctx.t('payment.method'), 'deposit:methods')
+      .text(ctx.t('bot.bonuses.title'), 'deposit:bonuses')
       .row()
-      .text(ctx.t('common.common.back_to_menu'), 'menu:main');
+      .text(ctx.t('common.back_to_menu'), 'menu:main');
   }
 
   /**
