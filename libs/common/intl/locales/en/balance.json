@@ -18,6 +18,7 @@
   "page": "Page {{page}} of {{total}}",
   "top_up": "💳 Top Up",
   "withdraw": "💸 Withdraw",
+  "deposit": "💳 Deposit",
   "recent_activity": "📈 Recent Activity",
   "account_created": "Account created:",
   "balance_updated": "✅ Balance updated",

@@ -93,8 +93,6 @@ export class MenuActionHandler {
       .text(ctx.t('menu.profile.edit'), 'profile:edit')
       .text(ctx.t('menu.profile.details'), 'profile:details')
       .row()
-      .text(ctx.t('common.buttons.view'), 'profile:verify')
-      .row()
       .text(ctx.t('common.back'), 'menu:main');
   }
 
@@ -107,7 +105,7 @@ export class MenuActionHandler {
       .text(ctx.t('balance.history'), 'balance:history')
       .row()
       .text(ctx.t('balance.withdraw'), 'balance:withdraw')
-      .text(ctx.t('menu.balance.deposit'), 'balance:deposit')
+      .text(ctx.t('balance.deposit'), 'balance:deposit')
       .row()
       .text(ctx.t('common.back'), 'menu:main');
   }
