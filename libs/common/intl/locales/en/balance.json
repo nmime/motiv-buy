@@ -54,5 +54,16 @@
   "deposit_initiated": "<b>✅ Deposit Initiated</b>\n\n<b>Amount:</b> ${{amount}}\n<b>Method:</b> {{method}}\n\n",
   "deposit_card_instructions": "📝 <b>Next Steps:</b>\n1. You will receive a payment link shortly\n2. Complete the payment on the secure payment page\n3. Funds will be credited instantly after confirmation",
   "deposit_crypto_instructions": "📝 <b>Next Steps:</b>\n1. Send the exact amount to the wallet address below\n2. Wait for network confirmation\n3. Funds will be credited automatically",
-  "deposit_bank_instructions": "📝 <b>Next Steps:</b>\n1. Transfer funds to the bank account details below\n2. Include your user ID in the reference\n3. Funds will be credited within 1-3 business days"
+  "deposit_bank_instructions": "📝 <b>Next Steps:</b>\n1. Transfer funds to the bank account details below\n2. Include your user ID in the reference\n3. Funds will be credited within 1-3 business days",
+  "balance": {
+    "view": "💰 View Balance",
+    "history": "📊 History",
+    "withdraw": "💸 Withdraw",
+    "deposit": "💳 Deposit",
+    "new_withdrawal": "💸 New Withdrawal",
+    "methods": "💳 Payment Methods",
+    "limits": "📊 Limits",
+    "add_funds": "💳 Add Funds",
+    "bonuses": "🎁 Bonuses"
+  }
 }

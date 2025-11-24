@@ -20,7 +20,7 @@
     "unknown_error": "❌ Unknown error occurred",
     "server_error": "❌ Server error. Please try again later.",
     "page": "Page {{page}} of {{total}}",
-    "select_action": "Select an action below",
+    "select_action": "Select an action below:",
     "overview": "📊 Overview",
     "statistics": "📊 Statistics",
     "completed": "Completed",
@@ -29,7 +29,9 @@
     "total_spent": "Total Spent",
     "and_more": "and",
     "more": "more",
-    "user": "User"
+    "user": "User",
+    "active": "Active",
+    "orders": "Orders"
   },
   "buttons": {
     "back": "◀️ Back",

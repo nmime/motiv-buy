@@ -32,5 +32,11 @@
   "invalid_amount": "❌ Неверная сумма",
   "payment_timeout": "❌ Тайм-аут платежа",
   "retry_payment": "🔄 Повторить платеж",
-  "payment_history": "💳 История платежей"
+  "payment_history": "💳 История платежей",
+  "payment": {
+    "methods": "💳 Способы оплаты",
+    "history": "📋 История платежей",
+    "withdraw": "💸 Вывод",
+    "topup": "💳 Пополнить"
+  }
 }

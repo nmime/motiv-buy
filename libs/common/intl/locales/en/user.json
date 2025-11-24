@@ -34,5 +34,14 @@
     "privacy": "🔒 Privacy",
     "security": "🔐 Security",
     "language_changed": "✅ Language changed"
+  },
+  "user": {
+    "users": "👥 Users",
+    "referral": {
+      "list": "📋 My Referrals",
+      "link": "🔗 Referral Link",
+      "earnings": "💰 Referral Earnings",
+      "stats": "📊 Referral Stats"
+    }
   }
 }

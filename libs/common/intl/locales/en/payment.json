@@ -32,5 +32,11 @@
   "invalid_amount": "❌ Invalid amount",
   "payment_timeout": "❌ Payment timeout",
   "retry_payment": "🔄 Retry Payment",
-  "payment_history": "💳 Payment History"
+  "payment_history": "💳 Payment History",
+  "payment": {
+    "methods": "💳 Payment Methods",
+    "history": "📋 Payment History",
+    "withdraw": "💸 Withdraw",
+    "topup": "💳 Top Up"
+  }
 }
