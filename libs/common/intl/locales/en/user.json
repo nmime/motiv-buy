@@ -13,9 +13,6 @@
     "member_since": "Member since:",
     "active": "Active",
     "inactive": "Inactive",
-    "verified": "✅ Verified",
-    "not_verified": "❌ Not verified",
-    "verification_status": "Verification Status:",
     "edit_name": "✏️ Name",
     "edit_email": "✏️ Email",
     "edit_username": "✏️ Username",
@@ -24,8 +21,7 @@
     "confirm_delete": "⚠️ Are you sure? This action cannot be undone.",
     "profile_updated": "✅ Profile updated successfully",
     "profile_update_failed": "❌ Failed to update profile",
-    "edit_prompt": "What would you like to edit?",
-    "already_verified": "✅ Your account is already verified!"
+    "edit_prompt": "What would you like to edit?"
   },
   "settings": {
     "title": "⚙️ Settings",

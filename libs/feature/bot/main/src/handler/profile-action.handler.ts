@@ -112,25 +112,6 @@ export class ProfileActionHandler {
   }
 
   /**
-   * Handle account verification
-   *
-   * Note: This handler must be wrapped with protectHandler()
-   */
-  async handleVerification(ctx: AuthenticatedBotContext): Promise<void> {
-    const verificationText =
-      '🔐 <b>Account Verification</b>\n\n' +
-      'To verify your account, please complete the following steps:\n\n' +
-      '1. Ensure your profile information is complete\n' +
-      '2. Complete at least 5 traffic orders successfully\n' +
-      '3. Maintain a good reputation score\n\n' +
-      'Once all requirements are met, your account will be automatically verified.';
-
-    await ctx.replyWithHTML(verificationText);
-
-    this.logger.log('Verification info viewed', { userId: ctx.user.id });
-  }
-
-  /**
    * Field update map for O(1) lookup performance
    */
   private readonly fieldUpdaters: Record<string, keyof UserEntity> = {

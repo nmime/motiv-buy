@@ -131,7 +131,6 @@ export class CallbackRouterHandler {
       ['campaign', this.routeCampaignAction.bind(this)],
       ['admin', this.routeAdminAction.bind(this)],
       ['auth', this.routeAuthAction.bind(this)],
-      ['verify', this.routeVerifyAction.bind(this)],
       ['export', this.routeExportAction.bind(this)],
       ['reset', this.routeResetAction.bind(this)],
       ['status', this.routeStatusAction.bind(this)],
@@ -177,7 +176,6 @@ export class CallbackRouterHandler {
         }),
       ],
       ['details', this.withAuthParams((ctx) => this.profileHandler.handleProfileDetails(ctx))],
-      ['verify', this.withAuthParams((ctx) => this.profileHandler.handleVerification(ctx))],
       ['stats', this.withAuthParams((ctx, params) => this.handleProfileStatsMenu(ctx, params))],
       ['stats:overview', this.withAuthParams((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
       ['stats:activity', this.withAuthParams((ctx) => this.statisticsHandler.handleDetailedStatistics(ctx))],
@@ -797,17 +795,6 @@ export class CallbackRouterHandler {
    */
   private async routeAuthAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     await ctx.reply(ctx.t('auth.feature_info'));
-  }
-
-  /**
-   * Route verify actions
-   */
-  private async routeVerifyAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    if (isAuthenticated(ctx)) {
-      await this.profileHandler.handleVerification(ctx);
-    } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
-    }
   }
 
   /**
@@ -1582,8 +1569,7 @@ ${ctx.t('help.welcome')}
     text += '✅ <b>Will NOT affect:</b>\n';
     text += '• Your balance\n';
     text += '• Order history\n';
-    text += '• Transaction history\n';
-    text += '• Profile verification\n\n';
+    text += '• Transaction history\n\n';
     text += '⚡️ <b>This action is IRREVERSIBLE!</b>\n\n';
     text += 'Are you absolutely sure you want to continue?';
 

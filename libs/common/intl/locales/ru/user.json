@@ -13,9 +13,6 @@
     "member_since": "Участник с:",
     "active": "Активен",
     "inactive": "Неактивен",
-    "verified": "✅ Проверен",
-    "not_verified": "❌ Не проверен",
-    "verification_status": "Статус проверки:",
     "edit_name": "✏️ Имя",
     "edit_email": "✏️ Email",
     "edit_username": "✏️ Имя пользователя",
@@ -24,8 +21,7 @@
     "confirm_delete": "⚠️ Вы уверены? Это действие нельзя отменить.",
     "profile_updated": "✅ Профиль успешно обновлен",
     "profile_update_failed": "❌ Не удалось обновить профиль",
-    "edit_prompt": "Что вы хотите изменить?",
-    "already_verified": "✅ Ваш аккаунт уже верифицирован!"
+    "edit_prompt": "Что вы хотите изменить?"
   },
   "settings": {
     "title": "⚙️ Настройки",

@@ -110,7 +110,10 @@ export class BalanceActionHandler {
       const availableBalance = balances.length > 0 ? balances[0].getAvailableBalance() : decimal(0);
 
       if (lessThan(availableBalance, decimal(10))) {
-        await ctx.reply(ctx.t('balance.insufficient_funds'));
+        await ctx.answerCallbackQuery({
+          text: ctx.t('balance.insufficient_funds'),
+          show_alert: true,
+        });
 
         return;
       }
@@ -150,9 +153,13 @@ export class BalanceActionHandler {
         .row()
         .text(ctx.t('balance.deposit_bank'), 'deposit:bank')
         .row()
-        .text(ctx.t('menu.back_to_balance'), 'menu:balance');
+        .text(ctx.t('common.back'), 'balance:view');
 
-      await ctx.replyWithHTML(depositText, { reply_markup: depositKeyboard });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: depositText,
+        parseMode: 'HTML',
+        replyMarkup: depositKeyboard,
+      });
 
       this.logger.log('Deposit info viewed', { userId: ctx.user.id });
     } catch (error) {
