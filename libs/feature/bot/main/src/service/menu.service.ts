@@ -78,7 +78,7 @@ export class MenuService {
           await ctx.reply(actionResult.message);
         }
       } else {
-        await ctx.reply(actionResult.message || 'Action failed. Please try again.');
+        await ctx.reply(actionResult.message || ctx.t('common.errors.operation_failed'));
       }
     } catch (err: unknown) {
       this.logger.error(`Error handling menu action: ${callbackData}`, {
@@ -87,7 +87,7 @@ export class MenuService {
         callbackData,
       });
 
-      await ctx.reply('Sorry, something went wrong. Please try again.');
+      await ctx.reply(ctx.t('common.errors.operation_failed'));
     }
   }
 
@@ -106,7 +106,7 @@ export class MenuService {
       });
 
       if (!ctx.from?.id) {
-        await ctx.reply('Authentication required to access menus.');
+        await ctx.reply(ctx.t('common.errors.authentication_required'));
 
         return;
       }
@@ -140,7 +140,7 @@ export class MenuService {
         menuType,
       });
 
-      await ctx.reply('Failed to navigate to menu. Please try again.');
+      await ctx.reply(ctx.t('common.errors.operation_failed'));
     }
   }
 
@@ -178,7 +178,7 @@ export class MenuService {
    */
   async goBack(ctx: BotContext): Promise<void> {
     if (!ctx.from?.id) {
-      await ctx.reply('Authentication required.');
+      await ctx.reply(ctx.t('common.errors.authentication_required'));
 
       return;
     }
@@ -198,255 +198,255 @@ export class MenuService {
 
   // Private helper methods
   private generateMainMenu(ctx: BotContext): MenuConfig {
-    const userName = ctx.from?.first_name || 'User';
+    const userName = ctx.from?.first_name || ctx.t('common.user');
 
     return {
       type: MenuType.Main,
-      title: `Welcome, ${userName}! 🚀`,
-      description: 'Choose an option from the menu below:',
+      title: ctx.t('bot.commands.welcome_back', { name: userName }),
+      description: ctx.t('bot.commands.use_menu'),
       buttons: [
         [
-          { text: '📈 Statistics', callbackData: 'menu:statistics' },
-          { text: '💰 Balance', callbackData: 'menu:balance' },
+          { text: ctx.t('bot.menu.statistics'), callbackData: 'menu:statistics' },
+          { text: ctx.t('bot.menu.balance.title'), callbackData: 'menu:balance' },
         ],
         [
-          { text: '🎯 Traffic', callbackData: 'menu:traffic' },
-          { text: '📋 Campaign', callbackData: 'menu:campaign' },
+          { text: ctx.t('bot.menu.traffic.title'), callbackData: 'menu:traffic' },
+          { text: ctx.t('bot.menu.campaign'), callbackData: 'menu:campaign' },
         ],
         [
-          { text: '👤 Profile', callbackData: 'menu:profile' },
-          { text: '⚙️ Settings', callbackData: 'menu:settings' },
+          { text: ctx.t('bot.menu.profile.title'), callbackData: 'menu:profile' },
+          { text: ctx.t('bot.menu.settings.title'), callbackData: 'menu:settings' },
         ],
         [
-          { text: '💸 Withdraw', callbackData: 'menu:withdrawal' },
-          { text: '🤝 Referrals', callbackData: 'menu:referral' },
+          { text: ctx.t('bot.menu.withdrawal'), callbackData: 'menu:withdrawal' },
+          { text: ctx.t('bot.menu.referral'), callbackData: 'menu:referral' },
         ],
-        [{ text: '❓ Help', callbackData: 'menu:help' }],
+        [{ text: ctx.t('bot.menu.help.title'), callbackData: 'menu:help' }],
       ],
       isInline: true,
     };
   }
 
-  private generateProfileMenu(_ctx: BotContext): MenuConfig {
+  private generateProfileMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Profile,
-      title: 'Your Profile 👤',
-      description: 'Manage your account information',
+      title: ctx.t('profile.title'),
+      description: ctx.t('profile.manage_hint'),
       buttons: [
         [
-          { text: '📝 Edit Info', callbackData: 'profile:edit' },
-          { text: '📊 View Stats', callbackData: 'profile:stats' },
+          { text: ctx.t('profile.details_title'), callbackData: 'profile:details' },
+          { text: ctx.t('profile.referrals'), callbackData: 'profile:stats' },
         ],
         [
-          { text: '🔒 Security', callbackData: 'profile:security' },
-          { text: '📧 Notifications', callbackData: 'menu:notifications' },
+          { text: ctx.t('profile.security_menu'), callbackData: 'profile:security' },
+          { text: ctx.t('settings.notifications'), callbackData: 'menu:notifications' },
         ],
-        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
+        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
   }
 
-  private generateSettingsMenu(_ctx: BotContext): MenuConfig {
+  private generateSettingsMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Settings,
-      title: 'Settings ⚙️',
-      description: 'Configure your preferences',
+      title: ctx.t('bot.menu.settings.title'),
+      description: ctx.t('settings.use_buttons'),
       buttons: [
         [
-          { text: '🌍 Language', callbackData: 'settings:language' },
-          { text: '🔔 Notifications', callbackData: 'settings:notifications' },
+          { text: ctx.t('settings.language_title'), callbackData: 'settings:language' },
+          { text: ctx.t('settings.notification_title'), callbackData: 'settings:notifications' },
         ],
         [
-          { text: '🎨 Theme', callbackData: 'settings:theme' },
-          { text: '🔒 Privacy', callbackData: 'settings:privacy' },
+          { text: ctx.t('settings.theme'), callbackData: 'settings:theme' },
+          { text: ctx.t('settings.privacy_title'), callbackData: 'settings:privacy' },
         ],
         [
-          { text: '📥 Export Data', callbackData: 'settings:export' },
-          { text: '🔄 Reset', callbackData: 'settings:reset' },
+          { text: ctx.t('settings.export_data'), callbackData: 'settings:export' },
+          { text: ctx.t('settings.reset_settings'), callbackData: 'settings:reset' },
         ],
-        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
+        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
   }
 
-  private generateBalanceMenu(_ctx: BotContext): MenuConfig {
+  private generateBalanceMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Balance,
-      title: 'Balance & Earnings 💰',
-      description: 'View your financial information',
+      title: ctx.t('bot.menu.balance.title'),
+      description: ctx.t('balance.view_description'),
       buttons: [
         [
-          { text: '💵 Current Balance', callbackData: 'balance:current' },
-          { text: '📈 Earnings History', callbackData: 'balance:history' },
+          { text: ctx.t('balance.current'), callbackData: 'balance:current' },
+          { text: ctx.t('balance.history_title'), callbackData: 'balance:history' },
         ],
         [
-          { text: '💸 Request Withdrawal', callbackData: 'menu:withdrawal' },
-          { text: '📊 Analytics', callbackData: 'balance:analytics' },
+          { text: ctx.t('balance.withdraw'), callbackData: 'menu:withdrawal' },
+          { text: ctx.t('statistic.title'), callbackData: 'balance:analytics' },
         ],
-        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
+        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
   }
 
-  private generateTrafficMenu(_ctx: BotContext): MenuConfig {
+  private generateTrafficMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Traffic,
-      title: 'Traffic Management 🎯',
-      description: 'Monitor and manage your traffic sources',
+      title: ctx.t('traffic.management_title'),
+      description: ctx.t('traffic.your_sources'),
       buttons: [
         [
-          { text: '📉 Live Stats', callbackData: 'traffic:live' },
-          { text: '🎯 Sources', callbackData: 'traffic:sources' },
+          { text: ctx.t('bot.menu.traffic.live_coming_soon'), callbackData: 'traffic:live' },
+          { text: ctx.t('traffic.sources'), callbackData: 'traffic:sources' },
         ],
         [
-          { text: '🔍 Analytics', callbackData: 'traffic:analytics' },
-          { text: '⚙️ Optimize', callbackData: 'traffic:optimize' },
+          { text: ctx.t('bot.menu.traffic.analytics_coming_soon'), callbackData: 'traffic:analytics' },
+          { text: ctx.t('bot.menu.traffic.optimize_coming_soon'), callbackData: 'traffic:optimize' },
         ],
         [
-          { text: '📋 Reports', callbackData: 'traffic:reports' },
-          { text: '⬅️ Back', callbackData: 'menu:main' },
+          { text: ctx.t('traffic.orders'), callbackData: 'traffic:reports' },
+          { text: ctx.t('common.buttons.back'), callbackData: 'menu:main' },
         ],
       ],
       isInline: true,
     };
   }
 
-  private generateStatisticsMenu(_ctx: BotContext): MenuConfig {
+  private generateStatisticsMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Statistics,
-      title: 'Statistics 📈',
-      description: 'View detailed performance metrics',
+      title: ctx.t('statistic.title'),
+      description: ctx.t('statistic.select_option'),
       buttons: [
         [
-          { text: '📈 Overview', callbackData: 'stats:overview' },
-          { text: '📅 Daily', callbackData: 'stats:daily' },
+          { text: ctx.t('statistic.overview_title'), callbackData: 'stats:overview' },
+          { text: ctx.t('statistic.daily'), callbackData: 'stats:daily' },
         ],
         [
-          { text: '📅 Weekly', callbackData: 'stats:weekly' },
-          { text: '📅 Monthly', callbackData: 'stats:monthly' },
+          { text: ctx.t('statistic.weekly'), callbackData: 'stats:weekly' },
+          { text: ctx.t('statistic.monthly'), callbackData: 'stats:monthly' },
         ],
         [
-          { text: '📥 Export', callbackData: 'stats:export' },
-          { text: '⬅️ Back', callbackData: 'menu:main' },
+          { text: ctx.t('statistic.export_statistics'), callbackData: 'stats:export' },
+          { text: ctx.t('common.buttons.back'), callbackData: 'menu:main' },
         ],
       ],
       isInline: true,
     };
   }
 
-  private generateHelpMenu(_ctx: BotContext): MenuConfig {
+  private generateHelpMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Help,
-      title: 'Help & Support ❓',
-      description: 'Get assistance and learn more',
+      title: ctx.t('bot.commands.help_title'),
+      description: ctx.t('bot.commands.help_intro'),
       buttons: [
         [
-          { text: '📝 FAQ', callbackData: 'help:faq' },
-          { text: '📞 Contact Support', callbackData: 'help:contact' },
+          { text: ctx.t('bot.menu.help.faq_coming_soon'), callbackData: 'help:faq' },
+          { text: ctx.t('bot.menu.support'), callbackData: 'help:contact' },
         ],
         [
-          { text: '📚 Tutorials', callbackData: 'help:tutorials' },
-          { text: '📢 Updates', callbackData: 'help:updates' },
+          { text: ctx.t('bot.menu.help.tutorials_coming_soon'), callbackData: 'help:tutorials' },
+          { text: ctx.t('common.overview'), callbackData: 'help:updates' },
         ],
         [
-          { text: '📜 Terms', callbackData: 'help:terms' },
-          { text: '🔒 Privacy', callbackData: 'help:privacy' },
+          { text: ctx.t('common.menu'), callbackData: 'help:terms' },
+          { text: ctx.t('settings.privacy'), callbackData: 'help:privacy' },
         ],
-        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
+        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
   }
 
-  private generateCampaignMenu(_ctx: BotContext): MenuConfig {
+  private generateCampaignMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Campaign,
-      title: 'Campaign Management 📋',
-      description: 'Manage your marketing campaigns',
+      title: ctx.t('bot.menu.campaign'),
+      description: ctx.t('orders.type_selection'),
       buttons: [
         [
-          { text: '➕ Create Campaign', callbackData: 'campaign:create' },
-          { text: '📋 Active Campaigns', callbackData: 'campaign:active' },
+          { text: ctx.t('common.buttons.create'), callbackData: 'campaign:create' },
+          { text: ctx.t('orders.btn_active'), callbackData: 'campaign:active' },
         ],
         [
-          { text: '📈 Performance', callbackData: 'campaign:performance' },
-          { text: '⚙️ Settings', callbackData: 'campaign:settings' },
+          { text: ctx.t('statistic.performance'), callbackData: 'campaign:performance' },
+          { text: ctx.t('bot.menu.settings.title'), callbackData: 'campaign:settings' },
         ],
-        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
+        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
   }
 
-  private generateWithdrawalMenu(_ctx: BotContext): MenuConfig {
+  private generateWithdrawalMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Withdrawal,
-      title: 'Withdrawal 💸',
-      description: 'Request and manage withdrawals',
+      title: ctx.t('bot.menu.withdrawal'),
+      description: ctx.t('balance.withdraw_description'),
       buttons: [
         [
-          { text: '💸 Request Withdrawal', callbackData: 'withdrawal:request' },
-          { text: '📋 History', callbackData: 'withdrawal:history' },
+          { text: ctx.t('balance.withdraw'), callbackData: 'withdrawal:request' },
+          { text: ctx.t('balance.history_title'), callbackData: 'withdrawal:history' },
         ],
         [
-          { text: '🏦 Payment Methods', callbackData: 'withdrawal:methods' },
-          { text: '⚙️ Settings', callbackData: 'withdrawal:settings' },
+          { text: ctx.t('balance.payment_methods'), callbackData: 'withdrawal:methods' },
+          { text: ctx.t('bot.menu.settings.title'), callbackData: 'withdrawal:settings' },
         ],
-        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
+        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
   }
 
-  private generateReferralMenu(_ctx: BotContext): MenuConfig {
+  private generateReferralMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Referral,
-      title: 'Referral Program 🤝',
-      description: 'Earn by inviting others',
+      title: ctx.t('bot.menu.referral'),
+      description: ctx.t('referral.invite_description'),
       buttons: [
         [
-          { text: '🔗 My Link', callbackData: 'referral:link' },
-          { text: '📈 Earnings', callbackData: 'referral:earnings' },
+          { text: ctx.t('referral.my_link'), callbackData: 'referral:link' },
+          { text: ctx.t('referral.earnings'), callbackData: 'referral:earnings' },
         ],
         [
-          { text: '👥 Referrals', callbackData: 'referral:list' },
-          { text: '🏆 Rewards', callbackData: 'referral:rewards' },
+          { text: ctx.t('referral.my_referrals'), callbackData: 'referral:list' },
+          { text: ctx.t('referral.rewards'), callbackData: 'referral:rewards' },
         ],
-        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
+        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
   }
 
-  private generateAdminMenu(_ctx: BotContext): MenuConfig {
+  private generateAdminMenu(ctx: BotContext): MenuConfig {
     return {
       type: MenuType.Admin,
-      title: 'Admin Panel 🔧',
-      description: 'Administrative functions',
+      title: ctx.t('admin.title'),
+      description: ctx.t('admin.description'),
       buttons: [
         [
-          { text: '📈 System Stats', callbackData: 'admin:stats' },
-          { text: '👥 User Management', callbackData: 'admin:users' },
+          { text: ctx.t('admin.system_stats'), callbackData: 'admin:stats' },
+          { text: ctx.t('admin.user_management'), callbackData: 'admin:users' },
         ],
         [
-          { text: '⚙️ System Config', callbackData: 'admin:config' },
-          { text: '📋 Logs', callbackData: 'admin:logs' },
+          { text: ctx.t('admin.system_config'), callbackData: 'admin:config' },
+          { text: ctx.t('admin.logs'), callbackData: 'admin:logs' },
         ],
-        [{ text: '⬅️ Back', callbackData: 'menu:main' }],
+        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
       ],
       isInline: true,
     };
   }
 
-  private generateDefaultMenu(_ctx: BotContext, menuType: MenuType): MenuConfig {
+  private generateDefaultMenu(ctx: BotContext, menuType: MenuType): MenuConfig {
     return {
       type: menuType,
-      title: 'Menu',
-      description: 'Select an option',
-      buttons: [[{ text: '⬅️ Back to Main', callbackData: 'menu:main' }]],
+      title: ctx.t('common.menu'),
+      description: ctx.t('common.select_action'),
+      buttons: [[{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }]],
       isInline: true,
     };
   }
@@ -481,7 +481,7 @@ export class MenuService {
         // Handle specific action logic here
         return {
           success: false,
-          message: `Action "${action}" is not implemented yet.`,
+          message: ctx.t('common.errors.feature_coming_soon'),
         };
     }
   }

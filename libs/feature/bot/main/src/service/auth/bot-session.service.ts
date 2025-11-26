@@ -38,6 +38,7 @@ export class BotSessionService {
         languageCode: user.languageCode,
         status: user.status,
         role: user.role,
+        referralCount: String(user.referralCount ?? 0),
         createdAt: user.createdAt.toISOString(),
         lastActiveAt: user.lastActiveAt?.toISOString(),
       };
@@ -77,6 +78,7 @@ export class BotSessionService {
         languageCode: sessionData.languageCode,
         status: sessionData.status as unknown,
         role: sessionData.role as unknown,
+        referralCount: sessionData.referralCount ? parseInt(sessionData.referralCount, 10) : 0,
         createdAt: sessionData.createdAt ? new Date(sessionData.createdAt) : undefined,
         lastActiveAt: sessionData.lastActiveAt ? new Date(sessionData.lastActiveAt) : undefined,
       } as Partial<UserEntity>;

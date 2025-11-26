@@ -8,11 +8,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
-import { UserBalanceEntity, UserBalanceHistoryEntity } from '@app/database';
+import {
+  UserBalanceEntity,
+  UserBalanceHistoryEntity,
+  ProviderCurrencyRepository,
+  ProviderCurrencyEntity,
+  CurrencyCode,
+} from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { decimal, lessThan, toDisplayString, toError } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
 import { InlineKeyboard } from 'grammy';
+import { PaymentService } from '@app/feature-payment-main';
 
 @Injectable()
 export class BalanceActionHandler {
@@ -22,12 +29,13 @@ export class BalanceActionHandler {
     private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
     private readonly messageService: MessageService,
+    private readonly paymentService: PaymentService,
+    private readonly providerCurrencyRepo: ProviderCurrencyRepository,
   ) {}
 
   /**
    * Handle balance view action
    */
-
   async handleBalanceView(ctx: AuthenticatedBotContext): Promise<void> {
     try {
       const balances = await this.getUserBalances(ctx.user.id);
@@ -48,7 +56,6 @@ export class BalanceActionHandler {
 
   /**
    * Handle transaction history view
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
    */
   async handleTransactionHistory(ctx: AuthenticatedBotContext, page = 1): Promise<void> {
     try {
@@ -68,7 +75,11 @@ export class BalanceActionHandler {
       );
 
       if (transactions.length === 0) {
-        await ctx.reply(ctx.t('balance.no_transactions'));
+        const backKeyboard = new InlineKeyboard().text(ctx.t('common.back'), 'balance:view');
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('balance.no_transactions'),
+          replyMarkup: backKeyboard,
+        });
 
         return;
       }
@@ -101,7 +112,6 @@ export class BalanceActionHandler {
   }
 
   /**
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
    * Handle withdrawal initiation
    */
   async handleWithdrawalStart(ctx: AuthenticatedBotContext): Promise<void> {
@@ -118,7 +128,6 @@ export class BalanceActionHandler {
         return;
       }
 
-      // Store withdrawal state in session
       if (ctx.session) {
         ctx.session.conversationState = 'withdrawal';
         ctx.session.formData = { step: 'select_currency' };
@@ -126,9 +135,10 @@ export class BalanceActionHandler {
 
       const currencyKeyboard = await this.createCurrencySelectionKeyboard(ctx, balances);
 
-      await ctx.reply(ctx.t('balance.withdrawal_prompt'), {
-        parse_mode: 'HTML',
-        reply_markup: currencyKeyboard,
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('balance.withdrawal_prompt'),
+        parseMode: 'HTML',
+        replyMarkup: currencyKeyboard,
       });
     } catch (error) {
       await this.menuHandler.handleMenuError(ctx, toError(error));
@@ -136,34 +146,198 @@ export class BalanceActionHandler {
   }
 
   /**
-   * Handle deposit initiation
+   * Handle deposit initiation - shows available currencies for deposit
    */
   async handleDepositStart(ctx: AuthenticatedBotContext): Promise<void> {
     try {
-      const depositText =
-        ctx.t('balance.deposit_info_title') +
-        '\n\n' +
-        ctx.t('balance.deposit_info_steps') +
-        '\n\n' +
-        ctx.t('balance.deposit_info_min_deposit');
+      const keyboard = await this.createDepositCurrencyKeyboard(ctx);
 
-      const depositKeyboard = new InlineKeyboard()
-        .text(ctx.t('balance.deposit_card'), 'deposit:card')
-        .text(ctx.t('balance.deposit_crypto'), 'deposit:crypto')
-        .row()
-        .text(ctx.t('balance.deposit_bank'), 'deposit:bank')
-        .row()
-        .text(ctx.t('common.back'), 'balance:view');
+      const depositText = ctx.t('balance.deposit_info_title') + '\n\n' + ctx.t('balance.deposit_select_currency');
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: depositText,
         parseMode: 'HTML',
-        replyMarkup: depositKeyboard,
+        replyMarkup: keyboard,
       });
 
-      this.logger.log('Deposit info viewed', { userId: ctx.user.id });
+      this.logger.log('Deposit currency selection viewed', { userId: ctx.user.id });
     } catch (error) {
       await this.menuHandler.handleMenuError(ctx, toError(error));
+    }
+  }
+
+  /**
+   * Handle deposit currency selection - prompts for amount input
+   */
+  async handleDepositCurrency(ctx: AuthenticatedBotContext, currency: CurrencyCode): Promise<void> {
+    try {
+      if (ctx.session) {
+        ctx.session.conversationState = 'deposit_amount';
+        ctx.session.formData = { currency, step: 'enter_amount' };
+      }
+
+      const keyboard = new InlineKeyboard().text(ctx.t('common.back'), 'balance:deposit');
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('balance.deposit_enter_amount', { currency, min: '1' }),
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+
+      this.logger.log('Deposit amount input prompted', { userId: ctx.user.id, currency });
+    } catch (error) {
+      await this.menuHandler.handleMenuError(ctx, toError(error));
+    }
+  }
+
+  /**
+   * Handle deposit amount submission - creates payment invoice
+   */
+  async handleDepositAmount(ctx: AuthenticatedBotContext, amount: string): Promise<void> {
+    try {
+      const currency = ctx.session?.formData?.currency as CurrencyCode | undefined;
+
+      if (!currency) {
+        await ctx.answerCallbackQuery({
+          text: ctx.t('balance.deposit_error'),
+          show_alert: true,
+        });
+
+        return this.handleDepositStart(ctx);
+      }
+
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        await ctx.reply(ctx.t('balance.deposit_amount_invalid'));
+
+        return;
+      }
+
+      if (amountNum < 1) {
+        await ctx.reply(ctx.t('balance.deposit_amount_too_low', { min: '1', currency }));
+
+        return;
+      }
+
+      const result = await this.paymentService.createTopUp(ctx.user.id, {
+        amount,
+        currency,
+        description: `Deposit ${amount} ${currency}`,
+      });
+
+      if (result.err) {
+        this.logger.error('Failed to create deposit invoice', { error: result.val, userId: ctx.user.id });
+        await ctx.reply(ctx.t('balance.deposit_error'));
+
+        return;
+      }
+
+      const invoice = result.val;
+
+      if (ctx.session) {
+        ctx.session.conversationState = undefined;
+        ctx.session.formData = undefined;
+      }
+
+      const keyboard = new InlineKeyboard()
+        .url(ctx.t('balance.deposit_pay_button', { amount, currency }), invoice.payUrl)
+        .row()
+        .text(ctx.t('common.back'), 'balance:view');
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('balance.deposit_success', { amount, currency }),
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+
+      this.logger.log('Deposit invoice created', {
+        userId: ctx.user.id,
+        invoiceId: invoice.id,
+        amount,
+        currency,
+      });
+    } catch (error) {
+      this.logger.error('Error handling deposit amount', { error: toError(error) });
+      await ctx.reply(ctx.t('balance.deposit_error'));
+    }
+  }
+
+  /**
+   * Currency display configuration
+   */
+  private readonly currencyConfig: Record<string, { emoji: string; label: string }> = {
+    [CurrencyCode.Usdt]: { emoji: '💵', label: 'USDT' },
+    [CurrencyCode.Ton]: { emoji: '💎', label: 'TON' },
+    [CurrencyCode.Btc]: { emoji: '₿', label: 'BTC' },
+    [CurrencyCode.Eth]: { emoji: 'Ξ', label: 'ETH' },
+    [CurrencyCode.Usdc]: { emoji: '💵', label: 'USDC' },
+    [CurrencyCode.Bnb]: { emoji: '🔶', label: 'BNB' },
+    [CurrencyCode.Trx]: { emoji: '🔷', label: 'TRX' },
+  };
+
+  /**
+   * Add currency buttons to keyboard in rows of 3
+   */
+  private addCurrencyButtons(keyboard: InlineKeyboard, currencies: CurrencyCode[]): void {
+    const buttonsPerRow = 3;
+
+    currencies.forEach((code, index) => {
+      const config = this.currencyConfig[code];
+      if (config) {
+        keyboard.text(`${config.emoji} ${config.label}`, `deposit:currency:${code}`);
+        if ((index + 1) % buttonsPerRow === 0) {
+          keyboard.row();
+        }
+      }
+    });
+
+    if (currencies.length % buttonsPerRow !== 0) {
+      keyboard.row();
+    }
+  }
+
+  /**
+   * Create keyboard with available deposit currencies
+   */
+  private async createDepositCurrencyKeyboard(ctx: AuthenticatedBotContext): Promise<InlineKeyboard> {
+    const keyboard = new InlineKeyboard();
+    const availableCurrencies = await this.getDepositCurrencies();
+    const defaultCurrencies = [CurrencyCode.Usdt, CurrencyCode.Ton, CurrencyCode.Btc];
+    const currencies = availableCurrencies.length === 0 ? defaultCurrencies : availableCurrencies;
+
+    this.addCurrencyButtons(keyboard, currencies);
+    keyboard.text(ctx.t('common.back'), 'balance:view');
+
+    return keyboard;
+  }
+
+  /**
+   * Get currencies available for deposit from provider configuration
+   */
+  private async getDepositCurrencies(): Promise<CurrencyCode[]> {
+    try {
+      const em = this.em.fork();
+      const providerCurrencies = await em.find(
+        ProviderCurrencyEntity,
+        { isEnabled: true, supportsDeposits: true },
+        { populate: ['currency'] },
+      );
+
+      const currencySet = new Set<CurrencyCode>();
+
+      for (const pc of providerCurrencies) {
+        // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
+        const currency = await pc.currency.load();
+        if (currency?.code) {
+          currencySet.add(currency.code as CurrencyCode);
+        }
+      }
+
+      return Array.from(currencySet);
+    } catch (error) {
+      this.logger.error('Failed to get deposit currencies', { error: toError(error) });
+
+      return [];
     }
   }
 
@@ -229,7 +403,6 @@ export class BalanceActionHandler {
     let text = ctx.t('balance.transaction_history_title', { page, totalPages }) + '\n\n';
 
     for (const tx of transactions) {
-      // tx.currency is a CurrencyCode enum, not a reference
       const currencyCode = tx.currency;
       const amount = decimal(tx.amount);
       const isPositive = amount.greaterThanOrEqualTo(0);

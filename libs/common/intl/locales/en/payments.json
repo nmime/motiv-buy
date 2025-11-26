@@ -1,0 +1,18 @@
+{
+  "title": "Payments",
+  "description": "Manage your deposits and withdrawals",
+  "stats_title": "Statistics",
+  "total_transactions": "Total Transactions",
+  "deposit_methods": "Deposit Methods",
+  "method_cards": "Bank Cards (Visa, MasterCard)",
+  "method_crypto": "Cryptocurrency (BTC, ETH, USDT)",
+  "method_wallets": "E-Wallets (PayPal, Skrill)",
+  "withdraw_methods": "Withdrawal Methods",
+  "withdraw_crypto": "Cryptocurrency (fastest)",
+  "withdraw_wallets": "E-Wallets (1-24 hours)",
+  "withdraw_min": "Minimum: $10",
+  "btn_deposit": "💳 Deposit",
+  "btn_withdraw": "💸 Withdraw",
+  "btn_history": "📜 History",
+  "btn_methods": "💳 Methods"
+}

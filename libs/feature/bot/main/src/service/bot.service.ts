@@ -421,7 +421,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       if (ctx?.reply) {
         const errorMessage = this.botConfigService.isDevelopment()
           ? `Error: ${error.message}`
-          : 'Sorry, something went wrong. Please try again later.';
+          : ctx.t('common.errors.something_went_wrong');
 
         await ctx.reply(errorMessage);
       }
@@ -675,24 +675,24 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
   private async handleHelpCommand(ctx: BotContext): Promise<void> {
     const helpText = `
-🤖 **MotivBuy Bot Help**
+**${ctx.t('help.title')}**
 
-**Available Commands:**
-/start - Start or restart the bot
-/menu - Open main menu
-/profile - View your profile
-/balance - Check your balance
-/settings - Manage settings
-/help - Show this help message
+**${ctx.t('help.available_commands')}**
+${ctx.t('help.cmd_start')}
+${ctx.t('help.cmd_menu')}
+${ctx.t('help.cmd_profile')}
+${ctx.t('help.cmd_balance')}
+${ctx.t('help.cmd_settings')}
+${ctx.t('help.cmd_help')}
 
-**Features:**
-• 📊 Track your campaign performance
-• 💰 Monitor earnings and balance
-• 🎯 Manage traffic sources
-• ⚙️ Customize preferences
-• 📈 View detailed statistics
+**${ctx.t('help.features_title')}**
+• ${ctx.t('help.feature_track')}
+• ${ctx.t('help.feature_balance')}
+• ${ctx.t('help.feature_traffic')}
+• ${ctx.t('help.feature_prefs')}
+• ${ctx.t('help.feature_stats')}
 
-For support, contact @support or use the /support command.
+${ctx.t('help.support_hint')}
 `;
 
     await ctx.replyWithMarkdown(helpText);
@@ -766,12 +766,10 @@ For support, contact @support or use the /support command.
   }
 
   private async handleUnknownCommand(ctx: BotContext): Promise<void> {
-    await ctx.reply(
-      "I don't understand that command. 🤔\n\n" + 'Use /help to see available commands or /menu for the main menu.',
-    );
+    await ctx.reply(ctx.t('common.errors.unknown_command'));
   }
 
   private async sendAuthenticationRequired(ctx: BotContext): Promise<void> {
-    await ctx.reply('Please authenticate first by using the /start command.');
+    await ctx.reply(ctx.t('common.errors.please_authenticate'));
   }
 }

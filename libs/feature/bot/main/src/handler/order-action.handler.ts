@@ -46,15 +46,19 @@ export class OrderActionHandler {
     );
 
     if (orders.length === 0) {
-      await ctx.reply(ctx.t('bot.order.no_active_orders'));
+      const keyboard = new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders');
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('bot.order.no_active_orders'),
+        replyMarkup: keyboard,
+      });
 
       return;
     }
 
     const totalPages = Math.ceil(total / limit);
-    const ordersText = this.formatOrdersList(orders, ctx.t('orders.active_title'), page, totalPages);
+    const ordersText = this.formatOrdersList(ctx, orders, ctx.t('orders.active_title'), page, totalPages);
 
-    let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:active');
+    let keyboard = this.menuHandler.createPaginationKeyboard(ctx, page, totalPages, 'orders:active');
     if (totalPages > 1) {
       keyboard = keyboard.row();
     }
@@ -63,7 +67,7 @@ export class OrderActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ordersText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
 
@@ -92,15 +96,19 @@ export class OrderActionHandler {
     );
 
     if (orders.length === 0) {
-      await ctx.reply(ctx.t('orders.no_completed'));
+      const keyboard = new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders');
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.no_completed'),
+        replyMarkup: keyboard,
+      });
 
       return;
     }
 
     const totalPages = Math.ceil(total / limit);
-    const ordersText = this.formatOrdersList(orders, ctx.t('orders.completed_title'), page, totalPages);
+    const ordersText = this.formatOrdersList(ctx, orders, ctx.t('orders.completed_title'), page, totalPages);
 
-    let keyboard = this.menuHandler.createPaginationKeyboard(page, totalPages, 'orders:completed');
+    let keyboard = this.menuHandler.createPaginationKeyboard(ctx, page, totalPages, 'orders:completed');
     if (totalPages > 1) {
       keyboard = keyboard.row();
     }
@@ -109,7 +117,7 @@ export class OrderActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ordersText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
 
@@ -129,7 +137,7 @@ export class OrderActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: `➕ <b>${ctx.t('orders.create_title')}</b>\n\n${ctx.t('orders.select_type')}`,
-      parseMode: 'HTML',
+
       replyMarkup: typeKeyboard,
     });
   }
@@ -147,7 +155,11 @@ export class OrderActionHandler {
     );
 
     if (!order) {
-      await ctx.reply(ctx.t('orders.not_found'));
+      const keyboard = new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders');
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.not_found'),
+        replyMarkup: keyboard,
+      });
 
       return;
     }
@@ -157,7 +169,7 @@ export class OrderActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: detailsText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
 
@@ -178,15 +190,20 @@ export class OrderActionHandler {
         `🔍 <b>${ctx.t('orders.search_title')}</b>\n\n` +
         `${ctx.t('orders.search_prompt')}\n\n` +
         `<i>${ctx.t('common.cancel_hint')}</i>`,
-      parseMode: 'HTML',
     });
   }
 
   /**
    * Format orders list
    */
-  private formatOrdersList(orders: TrafficOrderEntity[], title: string, page: number, totalPages: number): string {
-    let text = `<b>📦 ${title}</b> (Page ${page}/${totalPages})\n\n`;
+  private formatOrdersList(
+    ctx: AuthenticatedBotContext,
+    orders: TrafficOrderEntity[],
+    title: string,
+    page: number,
+    totalPages: number,
+  ): string {
+    let text = `<b>📦 ${title}</b> (${ctx.t('common.page', { page, total: totalPages })})\n\n`;
 
     for (const order of orders) {
       const progress = decimal(order.currentCount).div(order.targetCount).mul(100);
@@ -196,12 +213,12 @@ export class OrderActionHandler {
 
       text +=
         `${statusEmoji} <b>${order.type}</b> - <code>${order.orderId}</code>\n` +
-        `Progress: ${order.currentCount}/${order.targetCount} (${progressDisplay}%)\n` +
-        `Budget: $${budgetDisplay}\n` +
-        `Status: ${order.status}\n\n`;
+        `${ctx.t('orders.progress')}: ${order.currentCount}/${order.targetCount} (${progressDisplay}%)\n` +
+        `${ctx.t('orders.budget')}: $${budgetDisplay}\n` +
+        `${ctx.t('orders.status.active')}: ${order.status}\n\n`;
     }
 
-    text += '<i>Tap on an order ID to view details.</i>';
+    text += `<i>${ctx.t('orders.view.btn_back_to_list')}</i>`;
 
     return text;
   }

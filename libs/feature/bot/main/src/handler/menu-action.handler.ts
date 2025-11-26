@@ -90,7 +90,6 @@ export class MenuActionHandler {
    */
   createProfileMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('menu.profile.edit'), 'profile:edit')
       .text(ctx.t('menu.profile.details'), 'profile:details')
       .row()
       .text(ctx.t('common.back'), 'menu:main');
@@ -371,9 +370,18 @@ export class MenuActionHandler {
 
   /**
    * Create pagination keyboard
+   * @param ctx - Bot context for translation
+   * @param currentPage - Current page number
+   * @param totalPages - Total number of pages
+   * @param actionPrefix - Action prefix for callback data
    */
   // eslint-disable-next-line sonarjs/no-invariant-returns
-  createPaginationKeyboard(currentPage: number, totalPages: number, actionPrefix: string): InlineKeyboard {
+  createPaginationKeyboard(
+    ctx: BotContext,
+    currentPage: number,
+    totalPages: number,
+    actionPrefix: string,
+  ): InlineKeyboard {
     const keyboard = new InlineKeyboard();
 
     if (totalPages <= 1) {
@@ -384,19 +392,19 @@ export class MenuActionHandler {
 
     if (currentPage > 1) {
       buttons.push({
-        text: '« Previous',
+        text: ctx.t('common.pagination.previous'),
         data: this.generateCallbackData(`${actionPrefix}:page`, { page: String(currentPage - 1) }),
       });
     }
 
     buttons.push({
-      text: `${currentPage}/${totalPages}`,
+      text: ctx.t('common.pagination.page_info', { current: currentPage, total: totalPages }),
       data: 'pagination:current',
     });
 
     if (currentPage < totalPages) {
       buttons.push({
-        text: 'Next »',
+        text: ctx.t('common.pagination.next'),
         data: this.generateCallbackData(`${actionPrefix}:page`, { page: String(currentPage + 1) }),
       });
     }
@@ -408,11 +416,14 @@ export class MenuActionHandler {
 
   /**
    * Create confirmation keyboard
+   * @param ctx - Bot context for translation
+   * @param action - Action for callback data
+   * @param params - Additional params for callback data
    */
-  createConfirmationKeyboard(action: string, params: Record<string, string> = {}): InlineKeyboard {
+  createConfirmationKeyboard(ctx: BotContext, action: string, params: Record<string, string> = {}): InlineKeyboard {
     return new InlineKeyboard()
-      .text('✅ Confirm', this.generateCallbackData(`${action}:confirm`, params))
-      .text('❌ Cancel', this.generateCallbackData(`${action}:cancel`, params));
+      .text(ctx.t('common.buttons.confirm'), this.generateCallbackData(`${action}:confirm`, params))
+      .text(ctx.t('common.buttons.cancel'), this.generateCallbackData(`${action}:cancel`, params));
   }
 
   /**
@@ -460,25 +471,25 @@ export class MenuActionHandler {
       userId: ctx.from?.id,
     });
 
-    await ctx.reply(
-      'Sorry, there was an error processing your request. Please try again or use /menu to return to the main menu.',
-    );
+    await ctx.reply(ctx.t('common.errors.operation_failed'));
   }
 
   /**
    * Format user-friendly error message
    */
-  formatErrorMessage(error: Error): string {
-    // Map technical errors to user-friendly messages
-    const errorMessages: Record<string, string> = {
-      USER_NOT_FOUND: 'User account not found. Please use /start to register.',
-      INSUFFICIENT_BALANCE: 'Insufficient balance for this operation.',
-      INVALID_INPUT: 'Invalid input provided. Please check and try again.',
-      OPERATION_FAILED: 'Operation failed. Please try again later.',
-      UNAUTHORIZED: 'You are not authorized to perform this action.',
-      RATE_LIMIT_EXCEEDED: 'Too many requests. Please wait a moment and try again.',
+  formatErrorMessage(ctx: BotContext, error: Error): string {
+    // Map technical errors to user-friendly locale keys
+    const errorKeyMap: Record<string, string> = {
+      USER_NOT_FOUND: 'common.errors.user_not_found',
+      INSUFFICIENT_BALANCE: 'common.errors.insufficient_funds',
+      INVALID_INPUT: 'common.errors.invalid_input',
+      OPERATION_FAILED: 'common.errors.operation_failed',
+      UNAUTHORIZED: 'common.errors.unauthorized',
+      RATE_LIMIT_EXCEEDED: 'common.errors.rate_limit',
     };
 
-    return errorMessages[error.message] || 'An unexpected error occurred. Please try again.';
+    const localeKey = errorKeyMap[error.message];
+
+    return localeKey ? ctx.t(localeKey) : ctx.t('common.unknown_error');
   }
 }

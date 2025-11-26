@@ -25,6 +25,7 @@ import {
   TrafficOrderEntity,
   TrafficOrderStatus,
   TransactionType,
+  CurrencyCode,
 } from '@app/database';
 import { decimal, add, subtract, sum, multiply, divide, toDisplayString, toError } from '@app/common-shared';
 import { MenuActionHandler } from './menu-action.handler';
@@ -78,12 +79,33 @@ export class CallbackRouterHandler {
   }
 
   /**
+   * Safely answer callback query (skips for simulated callbacks from commands)
+   * Simulated callbacks have IDs starting with 'cmd_'
+   */
+  private async safeAnswerCallback(ctx: BotContext, text?: string): Promise<void> {
+    const callbackId = ctx.callbackQuery?.id;
+
+    // Skip if no callback query or if it's a simulated callback from a command
+    if (!callbackId || callbackId.startsWith('cmd_')) {
+      return;
+    }
+
+    try {
+      await ctx.answerCallbackQuery(text);
+    } catch {
+      // Silently ignore errors (e.g., callback already answered or expired)
+    }
+  }
+
+  /**
    * Wraps an authenticated handler, checking the type guard before calling
    */
   private withAuth(handler: (ctx: AuthenticatedBotContext) => Promise<void>): (ctx: BotContext) => Promise<void> {
     return async (ctx: BotContext) => {
       if (!isAuthenticated(ctx)) {
-        await ctx.reply(ctx.t('common.errors.authentication_required'));
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('common.errors.authentication_required'),
+        });
 
         return;
       }
@@ -100,7 +122,9 @@ export class CallbackRouterHandler {
   ): (ctx: BotContext, params: string[]) => Promise<void> {
     return async (ctx: BotContext, params: string[]) => {
       if (!isAuthenticated(ctx)) {
-        await ctx.reply(ctx.t('common.errors.authentication_required'));
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('common.errors.authentication_required'),
+        });
 
         return;
       }
@@ -161,20 +185,6 @@ export class CallbackRouterHandler {
 
     this.profileActionHandlers = new Map([
       ['view', this.withAuthParams((ctx) => this.profileHandler.handleProfileView(ctx))],
-      [
-        'edit',
-        this.withAuthParams(async (ctx, params) => {
-          if (params.length > 0) {
-            await ctx.reply(ctx.t('profile.enter_new_field', { field: params[0] }));
-            if (ctx.session) {
-              ctx.session.conversationState = 'profile_edit_field';
-              ctx.session.formData = { field: params[0] };
-            }
-          } else {
-            await this.profileHandler.handleProfileEditStart(ctx);
-          }
-        }),
-      ],
       ['details', this.withAuthParams((ctx) => this.profileHandler.handleProfileDetails(ctx))],
       ['stats', this.withAuthParams((ctx, params) => this.handleProfileStatsMenu(ctx, params))],
       ['stats:overview', this.withAuthParams((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
@@ -356,7 +366,7 @@ export class CallbackRouterHandler {
       const isAllowed = await this.rateLimitMiddleware.checkRateLimit(ctx, 'callback');
 
       if (!isAllowed) {
-        await ctx.answerCallbackQuery(ctx.t('common.errors.rate_limit'));
+        await this.safeAnswerCallback(ctx, ctx.t('common.errors.rate_limit'));
 
         return;
       }
@@ -380,12 +390,14 @@ export class CallbackRouterHandler {
         await handler(ctx, secondaryAction, params);
       } else {
         this.logger.warn('Unknown primary action', { primaryAction, data });
-        await ctx.answerCallbackQuery(ctx.t('common.errors.unknown_action'));
-        await ctx.reply(ctx.t('common.errors.unknown_action_help'));
+        await this.safeAnswerCallback(ctx, ctx.t('common.errors.unknown_action'));
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('common.errors.unknown_action_help'),
+        });
       }
 
       // Answer callback query to remove loading state
-      await ctx.answerCallbackQuery();
+      await this.safeAnswerCallback(ctx);
     } catch (error) {
       this.logger.error('Error routing callback', {
         error: error instanceof Error ? error.message : String(error),
@@ -393,7 +405,7 @@ export class CallbackRouterHandler {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery(ctx.t('common.error'));
+      await this.safeAnswerCallback(ctx, ctx.t('common.error'));
       await this.menuHandler.handleMenuError(ctx, toError(error));
     }
   }
@@ -426,7 +438,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.profileHandler.handleProfileView(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
     }
   }
 
@@ -441,7 +455,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.balanceHandler.handleBalanceView(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
     }
   }
 
@@ -456,7 +472,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.statisticsHandler.handleStatisticsOverview(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
     }
   }
 
@@ -471,7 +489,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.handleOrdersMenu(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
     }
   }
 
@@ -486,7 +506,9 @@ export class CallbackRouterHandler {
     } else if (isAuthenticated(ctx)) {
       await this.settingsHandler.handleSettingsView(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
     }
   }
 
@@ -543,7 +565,9 @@ export class CallbackRouterHandler {
     if (isAuthenticated(ctx)) {
       await this.handleReferralsMenu(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
     }
   }
 
@@ -554,7 +578,9 @@ export class CallbackRouterHandler {
     if (isAuthenticated(ctx)) {
       await this.handlePaymentsMenu(ctx);
     } else {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
     }
   }
 
@@ -563,22 +589,16 @@ export class CallbackRouterHandler {
    */
   private async routeDepositAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
 
       return;
     }
 
     const depositActionHandlers: Record<string, (ctx: AuthenticatedBotContext, params: string[]) => Promise<void>> = {
-      card: async (ctx) => this.handleDepositCard(ctx),
-      crypto: async (ctx) => this.handleDepositCrypto(ctx),
-      bank: async (ctx) => this.handleDepositBank(ctx),
-      amount: async (ctx, params) => this.handleDepositAmount(ctx, params[0]),
-      confirm: async (ctx, params) => this.handleDepositConfirm(ctx, params),
-      cancel: async (ctx) => this.handleDepositMenu(ctx),
+      currency: async (ctx, p) => this.balanceHandler.handleDepositCurrency(ctx, p[0] as CurrencyCode),
       history: async (ctx) => this.handleDepositHistory(ctx),
-      methods: async (ctx) => this.handleDepositMenu(ctx),
-      bonuses: async (ctx) => this.handleDepositBonuses(ctx),
-      create: async (ctx) => this.handleDepositMenu(ctx),
     };
 
     const handler = depositActionHandlers[action];
@@ -586,7 +606,7 @@ export class CallbackRouterHandler {
     if (handler) {
       await handler(ctx, params);
     } else {
-      await this.handleDepositMenu(ctx);
+      await this.balanceHandler.handleDepositStart(ctx);
     }
   }
 
@@ -595,7 +615,9 @@ export class CallbackRouterHandler {
    */
   private async routeWithdrawalAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
 
       return;
     }
@@ -628,7 +650,9 @@ export class CallbackRouterHandler {
     const trafficActionHandlers: Record<string, (ctx: BotContext, params: string[]) => Promise<void>> = {
       sources: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required'));
+          await this.messageService.sendOrEditMessage(ctx, {
+            text: ctx.t('common.errors.authentication_required'),
+          });
 
           return;
         }
@@ -641,7 +665,9 @@ export class CallbackRouterHandler {
       },
       targets: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required'));
+          await this.messageService.sendOrEditMessage(ctx, {
+            text: ctx.t('common.errors.authentication_required'),
+          });
 
           return;
         }
@@ -654,7 +680,9 @@ export class CallbackRouterHandler {
       },
       source: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required'));
+          await this.messageService.sendOrEditMessage(ctx, {
+            text: ctx.t('common.errors.authentication_required'),
+          });
 
           return;
         }
@@ -674,7 +702,9 @@ export class CallbackRouterHandler {
       },
       target: async (ctx, params) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required'));
+          await this.messageService.sendOrEditMessage(ctx, {
+            text: ctx.t('common.errors.authentication_required'),
+          });
 
           return;
         }
@@ -694,7 +724,9 @@ export class CallbackRouterHandler {
       },
       analytics: async (ctx) => {
         if (!isAuthenticated(ctx)) {
-          await ctx.reply(ctx.t('common.errors.authentication_required'));
+          await this.messageService.sendOrEditMessage(ctx, {
+            text: ctx.t('common.errors.authentication_required'),
+          });
 
           return;
         }
@@ -709,7 +741,9 @@ export class CallbackRouterHandler {
       await handler(ctx, params);
     } else {
       if (!isAuthenticated(ctx)) {
-        await ctx.reply(ctx.t('common.errors.authentication_required'));
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('common.errors.authentication_required'),
+        });
 
         return;
       }
@@ -769,7 +803,9 @@ export class CallbackRouterHandler {
    */
   private async routeCampaignAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
 
       return;
     }
@@ -782,7 +818,9 @@ export class CallbackRouterHandler {
    */
   private async routeAdminAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
 
       return;
     }
@@ -794,7 +832,9 @@ export class CallbackRouterHandler {
    * Route auth actions
    */
   private async routeAuthAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
-    await ctx.reply(ctx.t('auth.feature_info'));
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('auth.feature_info'),
+    });
   }
 
   /**
@@ -802,7 +842,9 @@ export class CallbackRouterHandler {
    */
   private async routeExportAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
 
       return;
     }
@@ -815,7 +857,9 @@ export class CallbackRouterHandler {
    */
   private async routeResetAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
 
       return;
     }
@@ -857,7 +901,6 @@ export class CallbackRouterHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: message,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -900,7 +943,6 @@ ${ctx.t('buy_traffic.description')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -944,7 +986,6 @@ ${ctx.t('sell_traffic.description')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -983,7 +1024,6 @@ ${ctx.t('sell_traffic.description')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1023,7 +1063,6 @@ ${ctx.t('referrals.description')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1062,7 +1101,6 @@ ${ctx.t('payments.description')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1100,13 +1138,12 @@ ${ctx.t('support.description')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
 
   private async handleHelpMenu(ctx: BotContext): Promise<void> {
-    const text = `<b>❓ ${ctx.t('menu.help.title')}</b>
+    const text = `<b>❓ ${ctx.t('menu.help_menu.title')}</b>
 
 ${ctx.t('help.welcome')}
 
@@ -1147,7 +1184,6 @@ ${ctx.t('help.welcome')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1187,7 +1223,6 @@ ${ctx.t('help.welcome')}
     const keyboard = this.menuHandler.createTrafficMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1247,7 +1282,6 @@ ${ctx.t('help.welcome')}
     const keyboard = this.menuHandler.createCampaignMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1279,7 +1313,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('profile.security_menu', {
         default: '🔒 Security Settings\n\nManage your account security options.',
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1289,7 +1322,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('profile.password_change', {
         default: '🔑 Change Password\n\nTo change your password, please enter your current password:',
       }),
-      parseMode: 'HTML',
     });
 
     if (ctx.session) {
@@ -1303,7 +1335,6 @@ ${ctx.t('help.welcome')}
         default:
           '📧 Email Security\n\n✅ Email notifications are enabled\n✅ Two-factor authentication available\n\nUse the buttons below to manage your email settings.',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:profile'),
     });
   }
@@ -1348,7 +1379,6 @@ ${ctx.t('help.welcome')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'profile:security'),
     });
   }
@@ -1364,7 +1394,6 @@ ${ctx.t('help.welcome')}
     if (history.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: '📊 <b>Balance Analytics</b>\n\nNo transaction history available yet.\nStart using the platform to see your analytics!',
-        parseMode: 'HTML',
         replyMarkup: this.createBackButton(ctx, 'menu:balance'),
       });
 
@@ -1427,7 +1456,6 @@ ${ctx.t('help.welcome')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }
@@ -1464,7 +1492,6 @@ ${ctx.t('help.welcome')}
     const keyboard = this.menuHandler.createWithdrawalMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1484,7 +1511,6 @@ ${ctx.t('help.welcome')}
     const keyboard = this.menuHandler.createDepositMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1492,7 +1518,9 @@ ${ctx.t('help.welcome')}
   private async handleAdminMenu(ctx: AuthenticatedBotContext): Promise<void> {
     // Check if user has admin or super admin role
     if (ctx.user.role !== UserRole.Admin && ctx.user.role !== UserRole.SuperAdmin) {
-      await ctx.reply('⛔️ Access denied. Admin privileges required.');
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.no_permission'),
+      });
 
       return;
     }
@@ -1526,7 +1554,6 @@ ${ctx.t('help.welcome')}
     const keyboard = this.menuHandler.createAdminMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1554,7 +1581,6 @@ ${ctx.t('help.welcome')}
     const keyboard = this.menuHandler.createExportMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1573,10 +1599,9 @@ ${ctx.t('help.welcome')}
     text += '⚡️ <b>This action is IRREVERSIBLE!</b>\n\n';
     text += 'Are you absolutely sure you want to continue?';
 
-    const keyboard = this.menuHandler.createConfirmationKeyboard('reset');
+    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, 'reset');
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1587,7 +1612,6 @@ ${ctx.t('help.welcome')}
         default:
           '🎨 Theme Settings\n\n✅ Auto-adapt theme (recommended)\n\nTheme automatically adapts to your Telegram settings.',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:settings'),
     });
   }
@@ -1598,7 +1622,6 @@ ${ctx.t('help.welcome')}
         default: `✅ Privacy setting "${setting}" has been updated.`,
         setting,
       }),
-      parseMode: 'HTML',
     });
   }
 
@@ -1608,7 +1631,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('status.display', {
         default: `📊 Account Status\n\n🆔 User ID: ${userId || 'Unknown'}\n✅ Status: Active\n📅 Member since: Today\n\nAll systems operational.`,
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:main'),
     });
   }
@@ -1619,7 +1641,6 @@ ${ctx.t('help.welcome')}
         default:
           '💬 Available Commands\n\n/start - Start bot\n/menu - Open menu\n/help - Show help\n/profile - View profile\n/balance - Check balance\n/settings - Settings\n/stats - Statistics',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:main'),
     });
   }
@@ -1628,7 +1649,6 @@ ${ctx.t('help.welcome')}
   private async handleDeletedOrders(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.deleted_list'),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1637,7 +1657,6 @@ ${ctx.t('help.welcome')}
     if (!_params || _params.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.select_to_configure'),
-        parseMode: 'HTML',
         replyMarkup: this.createBackButton(ctx, 'menu:orders'),
       });
 
@@ -1651,7 +1670,6 @@ ${ctx.t('help.welcome')}
   private async handleOrderEdit(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.edit_prompt'),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1659,17 +1677,15 @@ ${ctx.t('help.welcome')}
   private async handleOrderToggle(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.toggled'),
-      parseMode: 'HTML',
     });
   }
 
   private async handleOrderDelete(ctx: BotContext, _params: string[]): Promise<void> {
-    const keyboard = this.menuHandler.createConfirmationKeyboard('order:delete', { id: _params[0] || '' });
+    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, 'order:delete', { id: _params[0] || '' });
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.delete_confirm', {
         default: '⚠️ Delete Order\n\nAre you sure you want to delete this order? This action cannot be undone.',
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1679,7 +1695,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('orders.download_preparing', {
         default: '📥 Preparing download...\n\nYour order data will be sent shortly.',
       }),
-      parseMode: 'HTML',
     });
   }
 
@@ -1688,7 +1703,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('orders.bot_management', {
         default: '🤖 Bot Management\n\nManage bots associated with your orders.',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1699,7 +1713,6 @@ ${ctx.t('help.welcome')}
         default:
           '🎯 Audience Targeting\n\nDefine your target audience:\n- Age range\n- Gender\n- Location\n- Interests',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1709,7 +1722,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('orders.gender_selection', {
         default: '👥 Gender Selection\n\nChoose target gender:\n• All\n• Male\n• Female',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1717,7 +1729,6 @@ ${ctx.t('help.welcome')}
   private async handleOrderTopicSelection(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.topic_selection'),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1727,7 +1738,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('orders.location_selection', {
         default: '🌍 Location Selection\n\nSelect target locations for your campaign.',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1774,7 +1784,6 @@ ${ctx.t('help.welcome')}
 
       await this.messageService.sendOrEditMessage(ctx, {
         text,
-        parseMode: 'HTML',
         replyMarkup: this.createBackButton(ctx, 'menu:orders'),
       });
     } else {
@@ -1787,7 +1796,6 @@ ${ctx.t('help.welcome')}
   private async handleOrderDuplicate(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.duplicated'),
-      parseMode: 'HTML',
     });
   }
 
@@ -1796,7 +1804,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('orders.integration', {
         default: '🔗 Order Integration\n\nConnect your order with external services.',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1804,7 +1811,6 @@ ${ctx.t('help.welcome')}
   private async handleOrderTransfer(ctx: BotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.transfer'),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1814,7 +1820,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('orders.channel_view', {
         default: '📺 Channel Information\n\nView details about the associated channel.',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1824,7 +1829,6 @@ ${ctx.t('help.welcome')}
       text: ctx.t('orders.type_selection', {
         default: '📋 Order Type\n\nSelect the type of order you want to create.',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:orders'),
     });
   }
@@ -1854,7 +1858,6 @@ support@motivbuy.com
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1889,7 +1892,6 @@ ${ctx.t('support.report_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1929,7 +1931,6 @@ ${ctx.t('support.report_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -1948,7 +1949,6 @@ ${ctx.t('support.report_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'traffic:sources'),
     });
   }
@@ -1957,7 +1957,9 @@ ${ctx.t('support.report_intro')}
     const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
 
     if (!source) {
-      await ctx.reply(ctx.t('traffic.source_not_found'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
 
       return;
     }
@@ -1987,7 +1989,6 @@ ${ctx.t('support.report_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2002,7 +2003,6 @@ ${ctx.t('support.report_intro')}
       text: ctx.t('traffic.edit_source', {
         default: '<b>✏️ Edit Traffic Source</b>\n\nEnter the new name for this source:\n\n<i>Use /cancel to abort.</i>',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, `traffic:source:view:${sourceId}`),
     });
   }
@@ -2011,7 +2011,9 @@ ${ctx.t('support.report_intro')}
     const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
 
     if (!source) {
-      await ctx.reply(ctx.t('traffic.source_not_found'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
 
       return;
     }
@@ -2022,20 +2024,22 @@ ${ctx.t('support.report_intro')}
 
     await this.em.flush();
 
-    await ctx.answerCallbackQuery(ctx.t('traffic.source_status_toggled'));
+    await this.safeAnswerCallback(ctx, ctx.t('traffic.source_status_toggled'));
 
     // Refresh the view
     await this.handleTrafficSourceView(ctx, sourceId);
   }
 
   private async handleTrafficSourceDelete(ctx: BotContext, sourceId: string): Promise<void> {
-    const keyboard = this.menuHandler.createConfirmationKeyboard(`traffic:source:delete:confirm`, { id: sourceId });
+    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, `traffic:source:delete:confirm`, {
+      id: sourceId,
+    });
+
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('traffic.delete_source_confirm', {
         default:
           '<b>⚠️ Delete Traffic Source</b>\n\nAre you sure you want to delete this traffic source?\n\n<b>This action cannot be undone!</b>',
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2067,7 +2071,6 @@ ${ctx.t('support.suggest_instructions')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2103,7 +2106,6 @@ A: ${ctx.t('help.faq_a6')}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2112,7 +2114,9 @@ A: ${ctx.t('help.faq_a6')}`;
     const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
 
     if (!source) {
-      await ctx.reply(ctx.t('traffic.source_not_found'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
 
       return;
     }
@@ -2140,7 +2144,6 @@ A: ${ctx.t('help.faq_a6')}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, `traffic:source:view:${sourceId}`),
     });
   }
@@ -2180,7 +2183,6 @@ A: ${ctx.t('help.faq_a6')}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2210,7 +2212,6 @@ A: ${ctx.t('help.faq_a6')}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'traffic:targets'),
     });
   }
@@ -2219,7 +2220,9 @@ A: ${ctx.t('help.faq_a6')}`;
     const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
 
     if (!target) {
-      await ctx.reply(ctx.t('traffic.target_not_found'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.target_not_found'),
+      });
 
       return;
     }
@@ -2257,7 +2260,6 @@ A: ${ctx.t('help.faq_a6')}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2272,7 +2274,6 @@ A: ${ctx.t('help.faq_a6')}`;
       text: ctx.t('traffic.edit_target', {
         default: '<b>✏️ Edit Traffic Target</b>\n\nEnter the new name for this target:\n\n<i>Use /cancel to abort.</i>',
       }),
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, `traffic:target:view:${targetId}`),
     });
   }
@@ -2281,7 +2282,9 @@ A: ${ctx.t('help.faq_a6')}`;
     const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
 
     if (!target) {
-      await ctx.reply(ctx.t('traffic.target_not_found'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.target_not_found'),
+      });
 
       return;
     }
@@ -2292,20 +2295,22 @@ A: ${ctx.t('help.faq_a6')}`;
 
     await this.em.flush();
 
-    await ctx.answerCallbackQuery(ctx.t('traffic.target_status_toggled'));
+    await this.safeAnswerCallback(ctx, ctx.t('traffic.target_status_toggled'));
 
     // Refresh the view
     await this.handleTrafficTargetView(ctx, targetId);
   }
 
   private async handleTrafficTargetDelete(ctx: BotContext, targetId: string): Promise<void> {
-    const keyboard = this.menuHandler.createConfirmationKeyboard(`traffic:target:delete:confirm`, { id: targetId });
+    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, `traffic:target:delete:confirm`, {
+      id: targetId,
+    });
+
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('traffic.delete_target_confirm', {
         default:
           '<b>⚠️ Delete Traffic Target</b>\n\nAre you sure you want to delete this traffic target?\n\n<b>This action cannot be undone!</b>',
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2340,7 +2345,6 @@ ${ctx.t('help.create_tip')}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2375,7 +2379,6 @@ ${ctx.t('help.deposit_bonus')}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2413,7 +2416,6 @@ ${ctx.t('help.withdraw_tip')}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2455,7 +2457,6 @@ ${ctx.t('help.stats_tip')}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2497,7 +2498,6 @@ ${ctx.t('help.traffic_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2506,7 +2506,9 @@ ${ctx.t('help.traffic_intro')}
     const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
 
     if (!target) {
-      await ctx.reply(ctx.t('traffic.target_not_found'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.target_not_found'),
+      });
 
       return;
     }
@@ -2534,7 +2536,6 @@ ${ctx.t('help.traffic_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, `traffic:target:view:${targetId}`),
     });
   }
@@ -2569,7 +2570,6 @@ ${ctx.t('help.traffic_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:traffic'),
     });
   }
@@ -2600,7 +2600,6 @@ ${ctx.t('help.traffic_intro')}
         default:
           '<b>💳 Card Deposit</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $10.00 | Maximum: $10,000.00</i>',
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2627,7 +2626,6 @@ ${ctx.t('help.traffic_intro')}
         default:
           '<b>🪙 Crypto Deposit</b>\n\nSelect the cryptocurrency you want to use:\n\n<i>Deposits are processed automatically after network confirmation.</i>',
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2652,7 +2650,6 @@ ${ctx.t('help.traffic_intro')}
         default:
           '<b>🏦 Bank Transfer</b>\n\nSelect or enter the amount you want to deposit:\n\n<i>Minimum: $100.00 | Processing time: 1-3 business days</i>',
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2668,7 +2665,6 @@ ${ctx.t('help.traffic_intro')}
           default:
             '<b>💰 Enter Deposit Amount</b>\n\nPlease enter the amount you want to deposit:\n\n<i>Example: 100.00</i>',
         }),
-        parseMode: 'HTML',
         replyMarkup: this.createBackButton(ctx, 'deposit:methods'),
       });
 
@@ -2676,7 +2672,7 @@ ${ctx.t('help.traffic_intro')}
     }
 
     const method = String(ctx.session?.formData?.method || 'card');
-    const keyboard = this.menuHandler.createConfirmationKeyboard(`deposit:confirm`, { amount, method });
+    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, `deposit:confirm`, { amount, method });
     const methodLabel = method.charAt(0).toUpperCase() + method.slice(1);
 
     await this.messageService.sendOrEditMessage(ctx, {
@@ -2685,7 +2681,6 @@ ${ctx.t('help.traffic_intro')}
         amount,
         method: methodLabel,
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2725,7 +2720,6 @@ ${ctx.t('help.traffic_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }
@@ -2752,7 +2746,6 @@ ${ctx.t('help.traffic_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'deposit:methods'),
     });
   }
@@ -2770,7 +2763,6 @@ ${ctx.t('help.traffic_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'deposit:methods'),
     });
   }
@@ -2801,7 +2793,6 @@ ${ctx.t('help.traffic_intro')}
         default:
           '<b>💸 Withdrawal Amount</b>\n\nSelect or enter the amount you want to withdraw:\n\n<i>Minimum: $10.00 | Fee: 2%</i>',
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2817,7 +2808,6 @@ ${ctx.t('help.traffic_intro')}
           default:
             '<b>💸 Enter Withdrawal Amount</b>\n\nPlease enter the amount you want to withdraw:\n\n<i>Example: 100.00</i>',
         }),
-        parseMode: 'HTML',
         replyMarkup: this.createBackButton(ctx, 'balance:withdraw'),
       });
 
@@ -2827,7 +2817,7 @@ ${ctx.t('help.traffic_intro')}
     const fee = multiply(decimal(amount), '0.02');
     const total = subtract(decimal(amount), fee);
 
-    const keyboard = this.menuHandler.createConfirmationKeyboard(`withdrawal:confirm`, { amount });
+    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, `withdrawal:confirm`, { amount });
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('balance.withdrawal_confirm_prompt', {
@@ -2836,7 +2826,6 @@ ${ctx.t('help.traffic_intro')}
         fee: toDisplayString(fee, 2),
         total: toDisplayString(total, 2),
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2857,7 +2846,6 @@ ${ctx.t('help.traffic_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }
@@ -2885,7 +2873,6 @@ ${ctx.t('help.traffic_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }
@@ -2904,7 +2891,6 @@ ${ctx.t('help.traffic_intro')}
         default:
           '<b>💸 Withdrawal Methods</b>\n\n<b>Available Methods:</b>\n\n💳 <b>Card:</b> 1-3 business days\n🪙 <b>Crypto:</b> 1-24 hours\n🏦 <b>Bank:</b> 3-5 business days\n\n<i>Select your preferred withdrawal method:</i>',
       }),
-      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
@@ -2927,7 +2913,6 @@ ${ctx.t('help.traffic_intro')}
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
-      parseMode: 'HTML',
       replyMarkup: this.createBackButton(ctx, 'menu:balance'),
     });
   }

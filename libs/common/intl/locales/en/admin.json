@@ -1,0 +1,14 @@
+{
+  "title": "🔧 Admin Panel",
+  "description": "Administrative functions",
+  "system_stats": "📈 System Stats",
+  "user_management": "👥 User Management",
+  "system_config": "⚙️ System Config",
+  "logs": "📋 Logs",
+  "users_total": "Total Users",
+  "users_active": "Active Users",
+  "users_new_today": "New Today",
+  "revenue_today": "Today's Revenue",
+  "orders_pending": "Pending Orders",
+  "system_status": "System Status"
+}

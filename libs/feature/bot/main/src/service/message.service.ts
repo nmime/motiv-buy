@@ -39,7 +39,7 @@ export class MessageService {
         // Edit existing message
         this.logger.debug('Editing message', { messageId, chatId });
         await ctx.api.editMessageText(chatId, messageId, options.text, {
-          parse_mode: options.parseMode,
+          parse_mode: options.parseMode ?? 'HTML',
           reply_markup: options.replyMarkup,
         });
 
@@ -65,7 +65,7 @@ export class MessageService {
       if (this.isMessageNotFoundError(error)) {
         this.logger.debug('Message not found, sending new message', { messageId });
         await ctx.reply(options.text, {
-          parse_mode: options.parseMode,
+          parse_mode: options.parseMode ?? 'HTML',
           reply_markup: options.replyMarkup,
           disable_notification: options.disableNotification,
         });

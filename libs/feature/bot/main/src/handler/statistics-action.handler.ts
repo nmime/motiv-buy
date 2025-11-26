@@ -65,7 +65,7 @@ export class StatisticsActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: statsText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
 
@@ -82,7 +82,7 @@ export class StatisticsActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: statsText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
 
@@ -99,7 +99,7 @@ export class StatisticsActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: statsText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
 
@@ -116,7 +116,7 @@ export class StatisticsActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: statsText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
 

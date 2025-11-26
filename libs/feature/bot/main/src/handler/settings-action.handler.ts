@@ -51,7 +51,7 @@ export class SettingsActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: settingsText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
 
@@ -72,7 +72,7 @@ export class SettingsActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: languageText,
-      parseMode: 'HTML',
+
       replyMarkup: languageKeyboard,
     });
   }
@@ -117,7 +117,7 @@ export class SettingsActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: notificationText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
   }
@@ -150,7 +150,7 @@ export class SettingsActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: preferencesText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
   }
@@ -165,7 +165,7 @@ export class SettingsActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: privacyText,
-      parseMode: 'HTML',
+
       replyMarkup: keyboard,
     });
   }
@@ -322,10 +322,16 @@ export class SettingsActionHandler {
    * Format privacy settings
    */
   private formatPrivacySettings(prefs: UserPreferences['privacy'], ctx: AuthenticatedBotContext): string {
+    const publicText = ctx.t('settings.public');
+    const privateText = ctx.t('settings.private');
+
+    const profileStatus = prefs.showProfile ? '✅ ' + publicText : '❌ ' + privateText;
+    const statsStatus = prefs.showStats ? '✅ ' + publicText : '❌ ' + privateText;
+
     return (
       `<b>🔒 ${ctx.t('settings.privacy_title')}</b>\n\n` +
-      `${ctx.t('settings.show_profile')}: ${prefs.showProfile ? '✅ Public' : '❌ Private'}\n` +
-      `${ctx.t('settings.show_statistics')}: ${prefs.showStats ? '✅ Public' : '❌ Private'}\n\n` +
+      `${ctx.t('settings.show_profile')}: ${profileStatus}\n` +
+      `${ctx.t('settings.show_statistics')}: ${statsStatus}\n\n` +
       `<i>${ctx.t('settings.control_visibility')}</i>`
     );
   }

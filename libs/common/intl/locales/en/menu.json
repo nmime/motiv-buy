@@ -1,57 +1,54 @@
 {
-  "menu": {
-    "main": "Main Menu",
-    "orders": "Orders",
-    "referrals": "Referrals",
-    "payments": "Payments",
-    "support": "Support",
-    "help": "Help",
-    "back_to_balance": "Back to Balance",
-    "balance": {
-      "title": "Balance",
-      "history": "📊 Transaction History",
-      "analytics": "📈 Balance Analytics",
-      "deposit": "💳 Deposit",
-      "withdraw": "💸 Withdraw"
-    },
-    "profile": {
-      "title": "Profile",
-      "edit": "✏️ Edit Profile",
-      "stats": "📊 Your Statistics",
-      "security": "🔒 Security Settings",
-      "details": "📋 Detailed Info"
-    },
-    "settings": {
-      "title": "Settings",
-      "notifications": "🔔 Notification Settings",
-      "language": "🌐 Language Settings",
-      "theme": "🎨 Theme Settings",
-      "preferences": "⚙️ Preferences",
-      "privacy": "🔒 Privacy Settings",
-      "export": "📥 Data Export",
-      "reset": "🔄 Reset Options"
-    },
-    "stats": {
-      "title": "Statistics",
-      "overview": "📊 Overview",
-      "detailed": "📈 Detailed Statistics",
-      "traffic": "🎯 Traffic Statistics",
-      "earnings": "💰 Earnings Statistics"
-    },
-    "traffic": {
-      "title": "Traffic",
-      "live": "📡 Live Statistics",
-      "sources": "🎯 Traffic Sources",
-      "analytics": "📊 Traffic Analytics",
-      "optimize": "⚡ Optimization"
-    },
-    "help": {
-      "title": "Help",
-      "faq": "❓ FAQ",
-      "tutorials": "📚 Tutorials",
-      "contact": "📞 Contact Support",
-      "faq_coming_soon": "FAQ section coming soon!"
-    }
+  "main": "Main Menu",
+  "orders": "Orders",
+  "referrals": "Referrals",
+  "payments": "Payments",
+  "support": "Support",
+  "help": "Help",
+  "back_to_balance": "Back to Balance",
+  "balance": {
+    "title": "Balance",
+    "history": "📊 Transaction History",
+    "analytics": "📈 Balance Analytics",
+    "deposit": "💳 Deposit",
+    "withdraw": "💸 Withdraw"
+  },
+  "profile": {
+    "title": "Profile",
+    "stats": "📊 Your Statistics",
+    "security": "🔒 Security Settings",
+    "details": "📋 Detailed Info"
+  },
+  "settings": {
+    "title": "Settings",
+    "notifications": "🔔 Notification Settings",
+    "language": "🌐 Language Settings",
+    "theme": "🎨 Theme Settings",
+    "preferences": "⚙️ Preferences",
+    "privacy": "🔒 Privacy Settings",
+    "export": "📥 Data Export",
+    "reset": "🔄 Reset Options"
+  },
+  "stats": {
+    "title": "Statistics",
+    "overview": "📊 Overview",
+    "detailed": "📈 Detailed Statistics",
+    "traffic": "🎯 Traffic Statistics",
+    "earnings": "💰 Earnings Statistics"
+  },
+  "traffic": {
+    "title": "Traffic",
+    "live": "📡 Live Statistics",
+    "sources": "🎯 Traffic Sources",
+    "analytics": "📊 Traffic Analytics",
+    "optimize": "⚡ Optimization"
+  },
+  "help_menu": {
+    "title": "Help",
+    "faq": "❓ FAQ",
+    "tutorials": "📚 Tutorials",
+    "contact": "📞 Contact Support",
+    "faq_coming_soon": "FAQ section coming soon!"
   },
   "main_menu": {
     "select_action": "💰 Earn by selling traffic from your channels\n🛒 Buy targeted subscribers for your channels\n\nWhat would you like to do?",

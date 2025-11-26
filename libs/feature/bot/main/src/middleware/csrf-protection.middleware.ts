@@ -65,7 +65,7 @@ export class CsrfProtectionMiddleware {
         action,
       });
 
-      await ctx.reply('❌ Security validation failed. Please try again.');
+      await ctx.reply(ctx.t('common.errors.security_validation_failed'));
 
       return false;
     }
@@ -79,7 +79,7 @@ export class CsrfProtectionMiddleware {
         action,
       });
 
-      await ctx.reply('❌ Your session has expired. Please start again.');
+      await ctx.reply(ctx.t('common.errors.session_expired'));
       this.clearToken(ctx);
 
       return false;
@@ -92,7 +92,7 @@ export class CsrfProtectionMiddleware {
         action,
       });
 
-      await ctx.reply('❌ Security validation failed. Please try again.');
+      await ctx.reply(ctx.t('common.errors.security_validation_failed'));
 
       return false;
     }
@@ -105,7 +105,7 @@ export class CsrfProtectionMiddleware {
         expectedAction: storedToken.action,
       });
 
-      await ctx.reply('❌ Invalid action. Please start again.');
+      await ctx.reply(ctx.t('common.errors.invalid_action'));
 
       return false;
     }
@@ -192,7 +192,7 @@ export class CsrfProtectionMiddleware {
     const isValid = await this.validateToken(ctx, token, action);
 
     if (!isValid) {
-      await ctx.answerCallbackQuery('Security validation failed');
+      await ctx.answerCallbackQuery(ctx.t('common.errors.security_failed_short'));
 
       return;
     }

@@ -684,8 +684,6 @@ Customize your bot experience.
 
   private async handleProfileAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
-      case 'edit':
-        return { success: false, message: ctx.t('menu.profile.edit_coming_soon') };
       case 'stats':
         return { success: false, message: ctx.t('menu.profile.stats_coming_soon') };
       case 'security':
@@ -765,14 +763,14 @@ Customize your bot experience.
   private async handleHelpAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
     switch (subAction) {
       case 'faq':
-        return { success: false, message: ctx.t('menu.help.faq_coming_soon') };
+        return { success: false, message: ctx.t('menu.help_menu.faq_coming_soon') };
       case 'contact':
         return {
           success: true,
           message: '📞 Contact support at @motivbuy_support or support@motivbuy.com',
         };
       case 'tutorials':
-        return { success: false, message: ctx.t('menu.help.tutorials_coming_soon') };
+        return { success: false, message: ctx.t('menu.help_menu.tutorials_coming_soon') };
       default:
         return { success: false, message: `Help action "${subAction}" not available.` };
     }

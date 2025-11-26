@@ -434,7 +434,7 @@ export class CommandHandler {
     try {
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user || user.role === UserRole.User) {
-        await ctx.reply('❌ Access denied. Admin privileges required.');
+        await ctx.reply(ctx.t('common.errors.access_denied_admin'));
 
         return;
       }
@@ -446,7 +446,7 @@ export class CommandHandler {
         userId,
       });
 
-      await ctx.reply('❌ Unable to verify admin access. Please try again later.');
+      await ctx.reply(ctx.t('common.errors.admin_verify_error'));
     }
   }
 
@@ -470,9 +470,9 @@ export class CommandHandler {
       });
     }
 
-    await ctx.reply('❌ Operation cancelled.\n\nReturning to main menu...', {
+    await ctx.reply(ctx.t('common.errors.operation_cancelled'), {
       reply_markup: {
-        inline_keyboard: [[{ text: '📋 Main Menu', callback_data: 'menu:main' }]],
+        inline_keyboard: [[{ text: ctx.t('bot.menu.main'), callback_data: 'menu:main' }]],
       },
     });
   }
@@ -714,7 +714,7 @@ Export your data in various formats:
     try {
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user) {
-        await ctx.reply('User not found. Please use /start to register.');
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
 
         return;
       }
@@ -768,7 +768,7 @@ Export your data in various formats:
         userId,
       });
 
-      await ctx.reply('Unable to fetch status information. Please try again later.');
+      await ctx.reply(ctx.t('common.errors.status_fetch_error'));
     }
   }
 
@@ -776,7 +776,7 @@ Export your data in various formats:
    * Handle unknown command
    */
   private async handleUnknownCommand(ctx: BotContext, command: BotCommand): Promise<void> {
-    await ctx.reply(`I don't understand the command "${command}". 🤔\n\n` + 'Here are some commands you can try:', {
+    await ctx.reply(ctx.t('common.errors.unknown_command_help', { command }), {
       reply_markup: {
         inline_keyboard: [
           [
@@ -796,7 +796,7 @@ Export your data in various formats:
    * Send authentication required message
    */
   private async sendAuthenticationRequired(ctx: BotContext): Promise<void> {
-    await ctx.reply('🔒 Authentication required.\n\nPlease use /start to begin.', {
+    await ctx.reply(ctx.t('common.errors.auth_required_start'), {
       reply_markup: {
         inline_keyboard: [[{ text: '🚀 Start Bot', callback_data: 'auth:start' }]],
       },

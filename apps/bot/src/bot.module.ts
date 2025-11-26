@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { BotMainModule } from '@app/feature-bot-main';
 import { TrafficMainModule } from '@app/feature-traffic-main';
 import { NotificationMainModule } from '@app/feature-notification-main';
+import { PaymentMainModule } from '@app/feature-payment-main';
 import { BotService } from './service';
 
 /**
@@ -37,6 +38,9 @@ import { BotService } from './service';
 
     // Traffic domain module - integrates with bot and notification systems
     TrafficMainModule,
+
+    // Payment domain module - enables deposit and withdrawal processing
+    PaymentMainModule,
 
     // Notification module - enables scheduled notification processing
     NotificationMainModule,

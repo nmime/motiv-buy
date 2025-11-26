@@ -1,0 +1,17 @@
+{
+  "title": "🤝 Referral Program",
+  "invite_description": "Earn by inviting others",
+  "my_link": "🔗 My Link",
+  "earnings": "📈 Earnings",
+  "my_referrals": "👥 Referrals",
+  "rewards": "🏆 Rewards",
+  "total_referrals": "Total Referrals",
+  "total_earnings": "Total Earnings",
+  "pending_rewards": "Pending Rewards",
+  "copy_link": "📋 Copy Link",
+  "share": "📤 Share",
+  "link_copied": "✅ Link copied to clipboard!",
+  "no_referrals": "You don't have any referrals yet. Share your link to start earning!",
+  "referral_bonus": "💰 Referral Bonus",
+  "bonus_received": "✅ You received {{amount}} for referring a new user!"
+}
