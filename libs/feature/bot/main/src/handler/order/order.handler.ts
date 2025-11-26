@@ -15,10 +15,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
 import { BotOrderService } from './bot-order.service';
-import { OrderCreationHandler } from './handlers/order.creation.handler';
-import { OrderManagementHandler } from './handlers/order.management.handler';
-import { OrderConfigHandler } from './handlers/order.config.handler';
-import { OrderEditHandler } from './handlers/order.edit.handler';
+import { OrderCreationHandler } from './order.creation.handler';
+import { OrderManagementHandler } from './order.management.handler';
+import { OrderConfigHandler } from './order.config.handler';
+import { OrderEditHandler } from './order.edit.handler';
 
 @Injectable()
 export class OrderHandler {

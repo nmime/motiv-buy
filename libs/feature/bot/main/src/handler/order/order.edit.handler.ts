@@ -11,7 +11,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
-import { BotOrderService } from '../bot-order.service';
+import { BotOrderService } from './bot-order.service';
 
 @Injectable()
 export class OrderEditHandler {
