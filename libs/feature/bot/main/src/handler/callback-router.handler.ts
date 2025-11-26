@@ -1033,31 +1033,31 @@ ${ctx.t('sell_traffic.description')}
     const referralCode = ctx.user.id.substring(0, 8);
     const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
 
-    const text = `<b>🎁 ${ctx.t('referrals.title')}</b>
+    const text = `<b>🎁 ${ctx.t('referral.title')}</b>
 
-${ctx.t('referrals.description')}
+${ctx.t('referral.description')}
 
-<b>💰 ${ctx.t('referrals.rewards_title')}:</b>
-• ${ctx.t('referrals.reward_percent')}
-• ${ctx.t('referrals.reward_lifetime')}
-• ${ctx.t('referrals.reward_unlimited')}
+<b>💰 ${ctx.t('referral.rewards_title')}:</b>
+• ${ctx.t('referral.reward_percent')}
+• ${ctx.t('referral.reward_lifetime')}
+• ${ctx.t('referral.reward_unlimited')}
 
-<b>🔗 ${ctx.t('referrals.link_title')}:</b>
+<b>🔗 ${ctx.t('referral.link_title')}:</b>
 <code>${referralLink}</code>
 
-<b>📊 ${ctx.t('referrals.stats_title')}:</b>
-• ${ctx.t('referrals.invited')}: 0
-• ${ctx.t('referrals.earned')}: $0.00
+<b>📊 ${ctx.t('referral.stats_title')}:</b>
+• ${ctx.t('referral.invited')}: 0
+• ${ctx.t('referral.earned')}: $0.00
 
-<i>${ctx.t('referrals.share_hint')}</i>`;
+<i>${ctx.t('referral.share_hint')}</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('referrals.btn_copy'), 'referral:copy')
+      .text(ctx.t('referral.btn_copy'), 'referral:copy')
       .row()
-      .text(ctx.t('referrals.btn_list'), 'referral:list')
-      .text(ctx.t('referrals.btn_stats'), 'referral:stats')
+      .text(ctx.t('referral.btn_list'), 'referral:list')
+      .text(ctx.t('referral.btn_stats'), 'referral:stats')
       .row()
-      .text(ctx.t('referrals.btn_share'), 'referral:share')
+      .text(ctx.t('referral.btn_share'), 'referral:share')
       .row()
       .text(ctx.t('common.back'), 'menu:main');
 
@@ -1070,32 +1070,32 @@ ${ctx.t('referrals.description')}
   private async handlePaymentsMenu(ctx: AuthenticatedBotContext): Promise<void> {
     const transactionCount = await this.em.count(UserBalanceHistoryEntity, { user: ctx.user.id });
 
-    const text = `<b>💳 ${ctx.t('payments.title')}</b>
+    const text = `<b>💳 ${ctx.t('payment.title')}</b>
 
-${ctx.t('payments.description')}
+${ctx.t('payment.description')}
 
-<b>📊 ${ctx.t('payments.stats_title')}:</b>
-• ${ctx.t('payments.total_transactions')}: ${transactionCount}
+<b>📊 ${ctx.t('payment.stats_title')}:</b>
+• ${ctx.t('payment.total_transactions')}: ${transactionCount}
 
-<b>💰 ${ctx.t('payments.deposit_methods')}:</b>
-• ${ctx.t('payments.method_cards')}
-• ${ctx.t('payments.method_crypto')}
-• ${ctx.t('payments.method_wallets')}
+<b>💰 ${ctx.t('payment.deposit_methods')}:</b>
+• ${ctx.t('payment.method_cards')}
+• ${ctx.t('payment.method_crypto')}
+• ${ctx.t('payment.method_wallets')}
 
-<b>💸 ${ctx.t('payments.withdraw_methods')}:</b>
-• ${ctx.t('payments.withdraw_crypto')}
-• ${ctx.t('payments.withdraw_wallets')}
-• ${ctx.t('payments.withdraw_min')}
+<b>💸 ${ctx.t('payment.withdraw_methods')}:</b>
+• ${ctx.t('payment.withdraw_crypto')}
+• ${ctx.t('payment.withdraw_wallets')}
+• ${ctx.t('payment.withdraw_min')}
 
 <i>${ctx.t('common.select_action')}:</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('payments.btn_deposit'), 'balance:deposit')
-      .text(ctx.t('payments.btn_withdraw'), 'balance:withdraw')
+      .text(ctx.t('payment.btn_deposit'), 'balance:deposit')
+      .text(ctx.t('payment.btn_withdraw'), 'balance:withdraw')
       .row()
-      .text(ctx.t('payments.btn_history'), 'payment:history')
+      .text(ctx.t('payment.btn_history'), 'payment:history')
       .row()
-      .text(ctx.t('payments.btn_methods'), 'payment:methods')
+      .text(ctx.t('payment.btn_methods'), 'payment:methods')
       .row()
       .text(ctx.t('common.back'), 'menu:main');
 

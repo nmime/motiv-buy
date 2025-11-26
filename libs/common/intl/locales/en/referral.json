@@ -13,5 +13,19 @@
   "link_copied": "✅ Link copied to clipboard!",
   "no_referrals": "You don't have any referrals yet. Share your link to start earning!",
   "referral_bonus": "💰 Referral Bonus",
-  "bonus_received": "✅ You received {{amount}} for referring a new user!"
+  "bonus_received": "✅ You received {{amount}} for referring a new user!",
+  "description": "Invite friends and earn rewards! Get a percentage of every purchase made by your referrals.",
+  "rewards_title": "Your Rewards",
+  "reward_percent": "10% from each referral's purchases",
+  "reward_lifetime": "Lifetime commission",
+  "reward_unlimited": "Unlimited referrals",
+  "link_title": "Your Referral Link",
+  "stats_title": "Your Stats",
+  "invited": "Invited",
+  "earned": "Earned",
+  "share_hint": "Share your link with friends to start earning!",
+  "btn_copy": "📋 Copy Link",
+  "btn_list": "👥 My Referrals",
+  "btn_stats": "📊 Statistics",
+  "btn_share": "📤 Share"
 }
