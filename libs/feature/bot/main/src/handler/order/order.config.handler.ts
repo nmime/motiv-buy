@@ -9,14 +9,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
-import { BotOrderService } from '../bot-order.service';
+import { BotOrderService } from './bot-order.service';
 import {
   createAudienceConfigKeyboard,
   createConfigurationKeyboard,
   createGenderKeyboard,
   createLocationKeyboard,
   createTopicsKeyboard,
-} from '../order.keyboards';
+} from './order.keyboards';
 import { OrderDisplayLocation, UserGender } from '@app/feature-order-shared';
 
 @Injectable()

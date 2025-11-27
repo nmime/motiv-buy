@@ -12,7 +12,10 @@ import { Module } from '@nestjs/common';
 import { BotSharedModule } from '@app/feature-bot-shared';
 import { BotOrderService } from './bot-order.service';
 import { OrderHandler } from './order.handler';
-import { OrderConfigHandler, OrderCreationHandler, OrderEditHandler, OrderManagementHandler } from './handlers';
+import { OrderConfigHandler } from './order.config.handler';
+import { OrderCreationHandler } from './order.creation.handler';
+import { OrderEditHandler } from './order.edit.handler';
+import { OrderManagementHandler } from './order.management.handler';
 
 @Module({
   imports: [BotSharedModule],
