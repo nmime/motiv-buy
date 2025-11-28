@@ -27,19 +27,8 @@
   "ignoreDependencies": [
     "@nx/*",
     "@swc/*",
-    "@swc-node/*",
-    "ts-node",
-    "tsconfig-paths",
-    "typescript-transform-paths",
-    "reflect-metadata",
     "@nestjs/schematics",
     "eslint-*",
-    "@typescript-eslint/*",
-    "prettier",
-    "jest",
-    "jest-*",
-    "ts-jest",
-    "@types/*",
     "jiti",
     "@mikro-orm/cli",
     "@mikro-orm/reflection",
@@ -48,8 +37,14 @@
     "@fastify/rate-limit",
     "passport-strategy",
     "ts-morph",
-    "tslib"
+    "tslib",
+    "jest-environment-node",
+    "ts-jest",
+    "typescript-transform-paths"
   ],
+  "rules": {
+    "enumMembers": "off"
+  },
   "compilers": {
     "ts": "typescript"
   },

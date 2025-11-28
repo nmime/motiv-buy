@@ -208,6 +208,3 @@ export class AvailableTrafficDto {
   estimatedDeliveryHours!: number;
 }
 
-// Backward compatibility type aliases for controller imports
-export type TrafficOrderDto = TrafficOrderResponseDto;
-export type TrafficOrderStatusDto = Pick<TrafficOrderResponseDto, 'status' | 'progressPercentage'>;

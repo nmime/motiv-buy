@@ -7,18 +7,18 @@
  * NOTE: Move to database for dynamic management via admin panel
  */
 
-export interface AgeRange {
+interface AgeRange {
   label: string;
   min: number;
   max: number;
 }
 
-export interface Country {
+interface Country {
   code: string;
   name: string;
 }
 
-export interface Language {
+interface Language {
   code: string;
   name: string;
 }
@@ -78,4 +78,3 @@ export const targetingFilters = {
   ] as Language[],
 } as const;
 
-export type TargetingFilters = typeof targetingFilters;

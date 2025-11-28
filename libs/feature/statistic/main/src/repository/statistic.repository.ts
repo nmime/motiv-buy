@@ -2,15 +2,9 @@ import { EntityManager } from '@mikro-orm/core';
 import { Injectable } from '@nestjs/common';
 import { TrafficOrderStatus, UserStatus } from '@app/database';
 
-export interface StatisticDateFilter {
+interface StatisticDateFilter {
   fromDate?: Date;
   endDate?: Date;
-}
-
-export interface AggregatedStats {
-  count: number;
-  sum: number;
-  avg: number;
 }
 
 export interface TimeSeriesData {
