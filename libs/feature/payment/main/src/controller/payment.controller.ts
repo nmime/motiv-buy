@@ -28,11 +28,9 @@ import {
   CreateInvoiceDto,
   CreateTransferDto,
   InvoiceResponseDto,
-  PaymentStatus,
-  PaymentType,
   TransferResponseDto,
 } from '@app/feature-payment-shared';
-import { PaymentTransactionEntity } from '@app/database';
+import { PaymentTransactionEntity, PaymentStatus, PaymentType } from '@app/database';
 
 /**
  * DTO for transaction list query parameters

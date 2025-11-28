@@ -2,15 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { createHash, createHmac } from 'crypto';
 import { AsyncResult, Err, Ok, toError } from '@app/common-shared';
 import {
-  Cryptocurrency,
   IPaymentProvider,
   PaymentBalance,
   PaymentConfigService,
   PaymentInvoice,
-  PaymentStatus,
   PaymentTransaction,
   PaymentTransfer,
 } from '@app/feature-payment-shared';
+import { Cryptocurrency, PaymentStatus } from '@app/database';
 
 /**
  * CryptoBot API Response
