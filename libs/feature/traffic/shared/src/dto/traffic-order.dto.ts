@@ -1,15 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
-
-export enum TrafficOrderStatus {
-  Pending = 'pending',
-  Active = 'active',
-  Paused = 'paused',
-  Completed = 'completed',
-  Cancelled = 'cancelled',
-  Failed = 'failed',
-  InProgress = 'in_progress',
-}
+import { TrafficOrderStatus } from './traffic-purchase.dto';
 
 /**
  * Traffic order DTO representing a traffic purchase order

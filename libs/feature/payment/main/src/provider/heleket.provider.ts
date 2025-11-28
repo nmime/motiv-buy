@@ -2,15 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
 import {
-  Cryptocurrency,
   IPaymentProvider,
   PaymentBalance,
   PaymentInvoice,
-  PaymentStatus,
   PaymentTransaction,
   PaymentTransfer,
   PaymentConfigService,
 } from '@app/feature-payment-shared';
+import { Cryptocurrency, PaymentStatus } from '@app/database';
 
 /**
  * Heleket API Response

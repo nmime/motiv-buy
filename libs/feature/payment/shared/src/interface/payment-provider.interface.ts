@@ -1,5 +1,5 @@
 import { AsyncResult } from '@app/common-shared';
-import { Cryptocurrency, PaymentStatus } from '../enum';
+import { Cryptocurrency, PaymentStatus } from '@app/database';
 
 /**
  * Payment provider invoice data

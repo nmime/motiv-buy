@@ -1,13 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
-import { CurrencyCode } from '@app/database';
+import { CurrencyCode, Cryptocurrency, PaymentStatus } from '@app/database';
 import { CurrencyRateService } from '@app/feature-currency-shared';
 import {
-  Cryptocurrency,
   IPaymentProvider,
   PaymentBalance,
   PaymentInvoice,
-  PaymentStatus,
   PaymentTransaction,
   PaymentTransfer,
   PaymentConfigService,

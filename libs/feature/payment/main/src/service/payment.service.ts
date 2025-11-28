@@ -14,6 +14,7 @@ import {
   PaymentType,
   PaymentProvider,
   PaymentStatus,
+  Cryptocurrency,
 } from '@app/database';
 import {
   CreateInvoiceDto,
@@ -21,7 +22,6 @@ import {
   WebhookUpdateDto,
   InvoiceResponseDto,
   TransferResponseDto,
-  Cryptocurrency,
   PaymentTransfer,
 } from '@app/feature-payment-shared';
 

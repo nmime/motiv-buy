@@ -7,7 +7,15 @@ import { getRepositoryToken } from '@mikro-orm/nestjs';
 import { PaymentService } from '../payment.service';
 import { PaymentProviderFactory } from '../payment-provider.factory';
 import { ProviderRoutingService } from '../provider-routing.service';
-import { PaymentTransactionEntity, Cryptocurrency, CurrencyCode, UserBalanceRepository } from '@app/database';
+import {
+  PaymentTransactionEntity,
+  Cryptocurrency,
+  CurrencyCode,
+  UserBalanceRepository,
+  PaymentProvider,
+  PaymentStatus,
+  PaymentType,
+} from '@app/database';
 import { CryptoBotProvider } from '../../provider/crypto-bot.provider';
 import { Err, Ok } from '@app/common-shared';
 import { I18nService } from 'nestjs-i18n';
@@ -15,10 +23,7 @@ import {
   CreateInvoiceDto,
   CreateTransferDto,
   PaymentInvoice,
-  PaymentProvider,
-  PaymentStatus,
   PaymentTransfer,
-  PaymentType,
   WebhookUpdateDto,
 } from '@app/feature-payment-shared';
 
