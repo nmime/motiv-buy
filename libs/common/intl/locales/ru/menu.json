@@ -11,13 +11,17 @@
     "history": "📊 История транзакций",
     "analytics": "📈 Аналитика баланса",
     "deposit": "💳 Пополнить",
-    "withdraw": "💸 Вывод"
+    "withdraw": "💸 Вывод",
+    "history_coming_soon": "📈 История транзакций скоро!",
+    "analytics_coming_soon": "📊 Аналитика баланса скоро!"
   },
   "profile": {
     "title": "Профиль",
     "stats": "📊 Ваша статистика",
     "security": "🔒 Настройки безопасности",
-    "details": "📋 Подробная информация"
+    "details": "📋 Подробная информация",
+    "stats_coming_soon": "📊 Статистика профиля скоро!",
+    "security_coming_soon": "🔒 Настройки безопасности скоро!"
   },
   "settings": {
     "title": "Настройки",
@@ -27,28 +31,42 @@
     "preferences": "⚙️ Предпочтения",
     "privacy": "🔒 Настройки приватности",
     "export": "📥 Экспорт данных",
-    "reset": "🔄 Сброс настроек"
+    "reset": "🔄 Сброс настроек",
+    "notifications_coming_soon": "🔔 Настройки уведомлений скоро!",
+    "language_coming_soon": "🌍 Настройки языка скоро!",
+    "theme_coming_soon": "🎨 Настройки темы скоро!",
+    "export_coming_soon": "📥 Экспорт данных скоро!",
+    "reset_coming_soon": "🔄 Сброс настроек скоро!"
   },
   "stats": {
     "title": "Статистика",
     "overview": "📊 Обзор",
     "detailed": "📈 Детальная статистика",
     "traffic": "🎯 Статистика трафика",
-    "earnings": "💰 Статистика заработка"
+    "earnings": "💰 Статистика заработка",
+    "overview_coming_soon": "📈 Обзор статистики скоро!",
+    "daily_coming_soon": "📅 Дневная статистика скоро!",
+    "weekly_coming_soon": "📅 Недельная статистика скоро!",
+    "monthly_coming_soon": "📅 Месячная статистика скоро!"
   },
   "traffic": {
     "title": "Трафик",
     "live": "📡 Статистика в реальном времени",
     "sources": "🎯 Источники трафика",
     "analytics": "📊 Аналитика трафика",
-    "optimize": "⚡ Оптимизация"
+    "optimize": "⚡ Оптимизация",
+    "live_coming_soon": "📡 Статистика в реальном времени скоро!",
+    "sources_coming_soon": "🎯 Источники трафика скоро!",
+    "analytics_coming_soon": "📊 Аналитика трафика скоро!",
+    "optimize_coming_soon": "⚡ Оптимизация трафика скоро!"
   },
   "help_menu": {
     "title": "Справка",
     "faq": "❓ FAQ",
     "tutorials": "📚 Уроки",
     "contact": "📞 Связаться с поддержкой",
-    "faq_coming_soon": "Раздел FAQ скоро появится!"
+    "faq_coming_soon": "Раздел FAQ скоро появится!",
+    "tutorials_coming_soon": "📚 Уроки скоро!"
   },
   "main_menu": {
     "select_action": "💰 Зарабатывайте на продаже трафика со своих каналов\n🛒 Покупайте целевых подписчиков для своих каналов\n\nЧто вы хотите сделать?",
@@ -57,5 +75,57 @@
     "btn_profile": "👤 Профиль",
     "btn_balance": "💳 Баланс",
     "btn_support": "🏢 Тех. поддержка"
+  },
+  "errors": {
+    "action_failed": "❌ Действие не удалось. Попробуйте снова.",
+    "menu_load_error": "Извините, произошла ошибка загрузки меню. Попробуйте снова.",
+    "action_error": "Извините, действие не удалось. Попробуйте снова или вернитесь в главное меню."
+  },
+  "buttons": {
+    "main_menu": "🏠 Главное меню",
+    "try_again": "🔄 Попробовать снова",
+    "support": "🆘 Поддержка",
+    "back": "◀️ Назад",
+    "home": "🏠 Главная",
+    "menu_path": "📍 Путь меню",
+    "new_campaign": "🚀 Новая кампания",
+    "view_stats": "📈 Статистика",
+    "check_balance": "💰 Проверить баланс",
+    "quick_withdraw": "💸 Быстрый вывод",
+    "refresh_data": "🔄 Обновить",
+    "dashboard": "📊 Панель управления",
+    "recent_actions": "📋 Недавние действия",
+    "back_to_main": "🔙 Назад в главное",
+    "show_path": "📍 Показать путь",
+    "premium_analytics": "👑 Премиум аналитика",
+    "admin_panel": "🔧 Панель админа",
+    "analytics": "📊 Аналитика"
+  },
+  "quick_actions": {
+    "title": "⚡ Быстрые действия",
+    "description": "Часто используемые действия для ускорения работы"
+  },
+  "greetings": {
+    "welcome": "Добро пожаловать, {{name}}! 🚀",
+    "welcome_back_en": "Welcome back, {{name}}! 🚀",
+    "welcome_back_es": "¡Bienvenido de vuelta, {{name}}! 🚀",
+    "welcome_back_fr": "Bon retour, {{name}}! 🚀",
+    "welcome_back_de": "Willkommen zurück, {{name}}! 🚀",
+    "welcome_back_ru": "С возвращением, {{name}}! 🚀"
+  },
+  "status": {
+    "register_prompt": "Зарегистрируйтесь для доступа ко всем функциям.",
+    "account_active": "Аккаунт активен ✅",
+    "account_restricted": "Аккаунт ограничен ⚠️"
+  },
+  "callback": {
+    "main_menu_loaded": "🏠 Главное меню загружено",
+    "navigated_to": "📱 Переход к {{menu}}",
+    "navigation_path": "📍 Путь навигации:",
+    "at_main_menu": "Вы в главном меню",
+    "action_not_implemented": "Действие \"{{action}}\" еще не реализовано.",
+    "menu_refreshed": "🔄 Меню обновлено",
+    "menu_state_saved": "Состояние меню сохранено",
+    "menu_state_restored": "Состояние меню восстановлено"
   }
 }

@@ -11,13 +11,17 @@
     "history": "📊 Transaction History",
     "analytics": "📈 Balance Analytics",
     "deposit": "💳 Deposit",
-    "withdraw": "💸 Withdraw"
+    "withdraw": "💸 Withdraw",
+    "history_coming_soon": "📈 Transaction history coming soon!",
+    "analytics_coming_soon": "📊 Balance analytics coming soon!"
   },
   "profile": {
     "title": "Profile",
     "stats": "📊 Your Statistics",
     "security": "🔒 Security Settings",
-    "details": "📋 Detailed Info"
+    "details": "📋 Detailed Info",
+    "stats_coming_soon": "📊 Profile stats coming soon!",
+    "security_coming_soon": "🔒 Security settings coming soon!"
   },
   "settings": {
     "title": "Settings",
@@ -27,28 +31,42 @@
     "preferences": "⚙️ Preferences",
     "privacy": "🔒 Privacy Settings",
     "export": "📥 Data Export",
-    "reset": "🔄 Reset Options"
+    "reset": "🔄 Reset Options",
+    "notifications_coming_soon": "🔔 Notification settings coming soon!",
+    "language_coming_soon": "🌍 Language settings coming soon!",
+    "theme_coming_soon": "🎨 Theme settings coming soon!",
+    "export_coming_soon": "📥 Data export coming soon!",
+    "reset_coming_soon": "🔄 Reset options coming soon!"
   },
   "stats": {
     "title": "Statistics",
     "overview": "📊 Overview",
     "detailed": "📈 Detailed Statistics",
     "traffic": "🎯 Traffic Statistics",
-    "earnings": "💰 Earnings Statistics"
+    "earnings": "💰 Earnings Statistics",
+    "overview_coming_soon": "📈 Statistics overview coming soon!",
+    "daily_coming_soon": "📅 Daily statistics coming soon!",
+    "weekly_coming_soon": "📅 Weekly statistics coming soon!",
+    "monthly_coming_soon": "📅 Monthly statistics coming soon!"
   },
   "traffic": {
     "title": "Traffic",
     "live": "📡 Live Statistics",
     "sources": "🎯 Traffic Sources",
     "analytics": "📊 Traffic Analytics",
-    "optimize": "⚡ Optimization"
+    "optimize": "⚡ Optimization",
+    "live_coming_soon": "📡 Live traffic stats coming soon!",
+    "sources_coming_soon": "🎯 Traffic sources coming soon!",
+    "analytics_coming_soon": "📊 Traffic analytics coming soon!",
+    "optimize_coming_soon": "⚡ Traffic optimization coming soon!"
   },
   "help_menu": {
     "title": "Help",
     "faq": "❓ FAQ",
     "tutorials": "📚 Tutorials",
     "contact": "📞 Contact Support",
-    "faq_coming_soon": "FAQ section coming soon!"
+    "faq_coming_soon": "FAQ section coming soon!",
+    "tutorials_coming_soon": "📚 Tutorials coming soon!"
   },
   "main_menu": {
     "select_action": "💰 Earn by selling traffic from your channels\n🛒 Buy targeted subscribers for your channels\n\nWhat would you like to do?",
@@ -57,5 +75,57 @@
     "btn_profile": "👤 Profile",
     "btn_balance": "💳 Balance",
     "btn_support": "🏢 Support"
+  },
+  "errors": {
+    "action_failed": "❌ Action failed. Please try again.",
+    "menu_load_error": "Sorry, there was a problem loading the menu. Please try again.",
+    "action_error": "Sorry, that action failed. Please try again or return to the main menu."
+  },
+  "buttons": {
+    "main_menu": "🏠 Main Menu",
+    "try_again": "🔄 Try Again",
+    "support": "🆘 Support",
+    "back": "◀️ Back",
+    "home": "🏠 Home",
+    "menu_path": "📍 Menu Path",
+    "new_campaign": "🚀 New Campaign",
+    "view_stats": "📈 View Stats",
+    "check_balance": "💰 Check Balance",
+    "quick_withdraw": "💸 Quick Withdraw",
+    "refresh_data": "🔄 Refresh Data",
+    "dashboard": "📊 Dashboard",
+    "recent_actions": "📋 Recent Actions",
+    "back_to_main": "🔙 Back to Main",
+    "show_path": "📍 Show Path",
+    "premium_analytics": "👑 Premium Analytics",
+    "admin_panel": "🔧 Admin Panel",
+    "analytics": "📊 Analytics"
+  },
+  "quick_actions": {
+    "title": "⚡ Quick Actions",
+    "description": "Frequently used actions for faster workflow"
+  },
+  "greetings": {
+    "welcome": "Welcome, {{name}}! 🚀",
+    "welcome_back_en": "Welcome back, {{name}}! 🚀",
+    "welcome_back_es": "¡Bienvenido de vuelta, {{name}}! 🚀",
+    "welcome_back_fr": "Bon retour, {{name}}! 🚀",
+    "welcome_back_de": "Willkommen zurück, {{name}}! 🚀",
+    "welcome_back_ru": "С возвращением, {{name}}! 🚀"
+  },
+  "status": {
+    "register_prompt": "Please register to access all features.",
+    "account_active": "Account active ✅",
+    "account_restricted": "Account restricted ⚠️"
+  },
+  "callback": {
+    "main_menu_loaded": "🏠 Main menu loaded",
+    "navigated_to": "📱 Navigated to {{menu}}",
+    "navigation_path": "📍 Navigation Path:",
+    "at_main_menu": "You are at the main menu",
+    "action_not_implemented": "Action \"{{action}}\" is not implemented yet.",
+    "menu_refreshed": "🔄 Menu refreshed",
+    "menu_state_saved": "Menu state saved",
+    "menu_state_restored": "Menu state restored"
   }
 }

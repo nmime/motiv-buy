@@ -11,7 +11,6 @@ import { InlineKeyboard } from 'grammy';
 import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/feature-bot-shared';
 import {
   UserEntity,
-  UserLastAuthEntity,
   UserBalanceHistoryEntity,
   UserBalanceEntity,
   UserRole,
@@ -191,10 +190,6 @@ export class CallbackRouterHandler {
       ['stats:activity', this.withAuthParams((ctx) => this.statisticsHandler.handleDetailedStatistics(ctx))],
       ['stats:earnings', this.withAuthParams((ctx) => this.statisticsHandler.handleEarningsStatistics(ctx))],
       ['stats:performance', this.withAuthParams((ctx) => this.statisticsHandler.handleTrafficStatistics(ctx))],
-      ['security', this.handleProfileSecurityMenu.bind(this)],
-      ['password', this.handlePasswordChange.bind(this)],
-      ['email_security', this.handleEmailSecurity.bind(this)],
-      ['login_history', this.withAuthParams((ctx) => this.handleLoginHistory(ctx))],
     ]);
 
     this.balanceActionHandlers = new Map([
@@ -1307,82 +1302,6 @@ ${ctx.t('help.welcome')}
     await handler(ctx);
   }
 
-  private async handleProfileSecurityMenu(ctx: BotContext, _params: string[]): Promise<void> {
-    const keyboard = this.menuHandler.createProfileSecurityMenuKeyboard(ctx);
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('profile.security_menu', {
-        default: '🔒 Security Settings\n\nManage your account security options.',
-      }),
-      replyMarkup: keyboard,
-    });
-  }
-
-  private async handlePasswordChange(ctx: BotContext, _params: string[]): Promise<void> {
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('profile.password_change', {
-        default: '🔑 Change Password\n\nTo change your password, please enter your current password:',
-      }),
-    });
-
-    if (ctx.session) {
-      ctx.session.conversationState = 'awaiting_current_password';
-    }
-  }
-
-  private async handleEmailSecurity(ctx: BotContext, _params: string[]): Promise<void> {
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('profile.email_security', {
-        default:
-          '📧 Email Security\n\n✅ Email notifications are enabled\n✅ Two-factor authentication available\n\nUse the buttons below to manage your email settings.',
-      }),
-      replyMarkup: this.createBackButton(ctx, 'menu:profile'),
-    });
-  }
-
-  private async handleLoginHistory(ctx: AuthenticatedBotContext): Promise<void> {
-    const lastAuth = await this.em.findOne(UserLastAuthEntity, { user: ctx.user.id });
-
-    let text = '<b>🔐 Login History</b>\n\n';
-
-    if (lastAuth) {
-      const timeDiff = Date.now() - lastAuth.updatedAt.getTime();
-      const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
-      const minutesAgo = Math.floor(timeDiff / (1000 * 60));
-
-      let timeText = 'just now';
-      if (hoursAgo > 24) {
-        timeText = `${Math.floor(hoursAgo / 24)} day(s) ago`;
-      } else if (hoursAgo > 0) {
-        timeText = `${hoursAgo} hour(s) ago`;
-      } else if (minutesAgo > 0) {
-        timeText = `${minutesAgo} minute(s) ago`;
-      }
-
-      text += `<b>Last Login:</b>\n`;
-      text += `📅 Time: ${timeText}\n`;
-      text += `🕐 Date: ${lastAuth.updatedAt.toLocaleString()}\n`;
-      text += `📍 IP: ${lastAuth.ip || 'Unknown'}\n`;
-
-      if (lastAuth.city || lastAuth.country) {
-        text += `🌍 Location: ${lastAuth.city || ''}${lastAuth.city && lastAuth.country ? ', ' : ''}${lastAuth.country || ''}\n`;
-      }
-
-      if (lastAuth.continent) {
-        text += `🗺 Continent: ${lastAuth.continent}\n`;
-      }
-
-      text += '\n✅ No suspicious activity detected.';
-    } else {
-      text += '📱 No login history available yet.\n';
-      text += 'Login history will be tracked starting from your next login.';
-    }
-
-    await this.messageService.sendOrEditMessage(ctx, {
-      text,
-      replyMarkup: this.createBackButton(ctx, 'profile:security'),
-    });
-  }
-
   private async handleBalanceAnalytics(ctx: AuthenticatedBotContext): Promise<void> {
     // Get all balance history for analytics
     const history = await this.em.find(
@@ -1393,7 +1312,7 @@ ${ctx.t('help.welcome')}
 
     if (history.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
-        text: '📊 <b>Balance Analytics</b>\n\nNo transaction history available yet.\nStart using the platform to see your analytics!',
+        text: `<b>${ctx.t('balance.analytics.title')}</b>\n\n${ctx.t('balance.analytics.no_history')}`,
         replyMarkup: this.createBackButton(ctx, 'menu:balance'),
       });
 
@@ -1436,23 +1355,23 @@ ${ctx.t('help.welcome')}
     const netBalance = subtract(totalIncome, totalExpense);
     const avgTransaction = history.length > 0 ? totalIncome.div(history.length) : decimal(0);
 
-    let text = '<b>📊 Balance Analytics</b>\n\n';
-    text += '<b>💰 All Time:</b>\n';
-    text += `• Total Income: $${toDisplayString(totalIncome, 2)}\n`;
-    text += `• Total Expenses: $${toDisplayString(totalExpense, 2)}\n`;
-    text += `• Net Balance: $${toDisplayString(netBalance, 2)}\n\n`;
+    let text = `<b>${ctx.t('balance.analytics.title')}</b>\n\n`;
+    text += `<b>${ctx.t('balance.analytics.all_time')}</b>\n`;
+    text += `• ${ctx.t('balance.analytics.total_income')} $${toDisplayString(totalIncome, 2)}\n`;
+    text += `• ${ctx.t('balance.analytics.total_expenses')} $${toDisplayString(totalExpense, 2)}\n`;
+    text += `• ${ctx.t('balance.analytics.net_balance')} $${toDisplayString(netBalance, 2)}\n\n`;
 
-    text += '<b>📈 Last 30 Days:</b>\n';
-    text += `• Income: $${toDisplayString(income30Days, 2)}\n`;
-    text += `• Transactions: ${last30Days.length}\n\n`;
+    text += `<b>${ctx.t('balance.analytics.last_30_days')}</b>\n`;
+    text += `• ${ctx.t('balance.analytics.income')} $${toDisplayString(income30Days, 2)}\n`;
+    text += `• ${ctx.t('balance.analytics.transactions')} ${last30Days.length}\n\n`;
 
-    text += '<b>📅 Last 7 Days:</b>\n';
-    text += `• Income: $${toDisplayString(income7Days, 2)}\n`;
-    text += `• Transactions: ${last7Days.length}\n\n`;
+    text += `<b>${ctx.t('balance.analytics.last_7_days')}</b>\n`;
+    text += `• ${ctx.t('balance.analytics.income')} $${toDisplayString(income7Days, 2)}\n`;
+    text += `• ${ctx.t('balance.analytics.transactions')} ${last7Days.length}\n\n`;
 
-    text += '<b>📊 Averages:</b>\n';
-    text += `• Avg Transaction: $${toDisplayString(avgTransaction, 2)}\n`;
-    text += `• Total Transactions: ${history.length}`;
+    text += `<b>${ctx.t('balance.analytics.averages')}</b>\n`;
+    text += `• ${ctx.t('balance.analytics.avg_transaction')} $${toDisplayString(avgTransaction, 2)}\n`;
+    text += `• ${ctx.t('balance.analytics.total_transactions')} ${history.length}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -1464,8 +1383,8 @@ ${ctx.t('help.welcome')}
     // Get user balances
     const balances = await this.em.find(UserBalanceEntity, { user: ctx.user.id }, { populate: ['currency'] });
 
-    let text = '<b>💸 Withdrawal</b>\n\n';
-    text += '<b>Available Balances:</b>\n';
+    let text = `<b>${ctx.t('balance.withdrawal_menu.title')}</b>\n\n`;
+    text += `<b>${ctx.t('balance.withdrawal_menu.available_balances')}</b>\n`;
 
     let hasAvailableBalance = false;
     for (const balance of balances) {
@@ -1483,10 +1402,10 @@ ${ctx.t('help.welcome')}
     }
 
     if (!hasAvailableBalance) {
-      text += '\n<i>No available balance for withdrawal.</i>\n\n';
-      text += 'Minimum withdrawal: $10.00';
+      text += `\n<i>${ctx.t('balance.withdrawal_menu.no_available')}</i>\n\n`;
+      text += ctx.t('balance.withdrawal_menu.minimum');
     } else {
-      text += '\n✅ You can withdraw your funds';
+      text += `\n${ctx.t('balance.withdrawal_menu.can_withdraw')}`;
     }
 
     const keyboard = this.menuHandler.createWithdrawalMenuKeyboard(ctx);
