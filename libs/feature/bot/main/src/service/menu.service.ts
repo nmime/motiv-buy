@@ -454,14 +454,12 @@ export class MenuService {
   private async processMenuAction(ctx: BotContext, action: string, params: string[]): Promise<MenuActionResult> {
     const userId = ctx.from?.id?.toString();
 
-    switch (action) {
-      case 'menu':
-        return {
-          success: true,
-          nextMenu: params[0] as MenuType,
-        };
-
-      case 'back':
+    const actionHandlers: Record<string, () => Promise<MenuActionResult>> = {
+      menu: async () => ({
+        success: true,
+        nextMenu: params[0] as MenuType,
+      }),
+      back: async () => {
         if (userId) {
           const history = await this.getMenuHistory(userId);
           const previousMenu = history.length > 0 ? history[history.length - 1] : MenuType.Main;
@@ -476,14 +474,20 @@ export class MenuService {
           success: true,
           nextMenu: MenuType.Main,
         };
+      },
+    };
 
-      default:
-        // Handle specific action logic here
-        return {
-          success: false,
-          message: ctx.t('common.errors.feature_coming_soon'),
-        };
+    const handler = actionHandlers[action];
+
+    if (handler) {
+      return handler();
     }
+
+    // Default: Handle specific action logic here
+    return {
+      success: false,
+      message: ctx.t('common.errors.feature_coming_soon'),
+    };
   }
 
   private async updateNavigationState(userId: string, menuType: MenuType): Promise<void> {

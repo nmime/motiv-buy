@@ -453,26 +453,18 @@ export class BotValidationUtil {
     input: string,
     type: 'text' | 'email' | 'phone' | 'username' | 'password' | 'numeric',
   ): ValidationResult {
-    switch (type) {
-      case 'email':
-        return this.validateEmail(input);
+    const typeValidators: Record<string, (input: string) => ValidationResult> = {
+      email: (i) => this.validateEmail(i),
+      phone: (i) => this.validatePhone(i),
+      username: (i) => this.validateUsername(i),
+      password: (i) => this.validatePassword(i),
+      numeric: (i) => this.validateNumeric(i),
+      text: () => ({ isValid: true }),
+    };
 
-      case 'phone':
-        return this.validatePhone(input);
+    const validator = typeValidators[type];
 
-      case 'username':
-        return this.validateUsername(input);
-
-      case 'password':
-        return this.validatePassword(input);
-
-      case 'numeric':
-        return this.validateNumeric(input);
-
-      case 'text':
-      default:
-        return { isValid: true };
-    }
+    return validator ? validator(input) : { isValid: true };
   }
 
   /**
