@@ -59,5 +59,27 @@
   "deposit_history_title": "<b>💳 Deposit History</b>\n\n",
   "no_deposits": "<i>No deposits yet.</i>",
   "withdrawal_history_title": "<b>💸 Withdrawal History</b>\n\n",
-  "no_withdrawals": "<i>No withdrawals yet.</i>"
+  "no_withdrawals": "<i>No withdrawals yet.</i>",
+  "analytics": {
+    "title": "📊 Balance Analytics",
+    "no_history": "No transaction history available yet.\nStart using the platform to see your analytics!",
+    "all_time": "💰 All Time:",
+    "total_income": "Total Income:",
+    "total_expenses": "Total Expenses:",
+    "net_balance": "Net Balance:",
+    "last_30_days": "📈 Last 30 Days:",
+    "last_7_days": "📅 Last 7 Days:",
+    "income": "Income:",
+    "transactions": "Transactions:",
+    "averages": "📊 Averages:",
+    "avg_transaction": "Avg Transaction:",
+    "total_transactions": "Total Transactions:"
+  },
+  "withdrawal_menu": {
+    "title": "💸 Withdrawal",
+    "available_balances": "Available Balances:",
+    "no_available": "No available balance for withdrawal.",
+    "minimum": "Minimum withdrawal: $10.00",
+    "can_withdraw": "✅ You can withdraw your funds"
+  }
 }

@@ -59,5 +59,27 @@
   "deposit_history_title": "<b>💳 История пополнений</b>\n\n",
   "no_deposits": "<i>Пока нет пополнений.</i>",
   "withdrawal_history_title": "<b>💸 История выводов</b>\n\n",
-  "no_withdrawals": "<i>Пока нет выводов.</i>"
+  "no_withdrawals": "<i>Пока нет выводов.</i>",
+  "analytics": {
+    "title": "📊 Аналитика баланса",
+    "no_history": "История транзакций пока недоступна.\nНачните использовать платформу, чтобы увидеть аналитику!",
+    "all_time": "💰 За всё время:",
+    "total_income": "Всего доход:",
+    "total_expenses": "Всего расходов:",
+    "net_balance": "Чистый баланс:",
+    "last_30_days": "📈 За 30 дней:",
+    "last_7_days": "📅 За 7 дней:",
+    "income": "Доход:",
+    "transactions": "Транзакции:",
+    "averages": "📊 Средние значения:",
+    "avg_transaction": "Средняя транзакция:",
+    "total_transactions": "Всего транзакций:"
+  },
+  "withdrawal_menu": {
+    "title": "💸 Вывод средств",
+    "available_balances": "Доступные балансы:",
+    "no_available": "Нет доступного баланса для вывода.",
+    "minimum": "Минимальный вывод: $10.00",
+    "can_withdraw": "✅ Вы можете вывести средства"
+  }
 }

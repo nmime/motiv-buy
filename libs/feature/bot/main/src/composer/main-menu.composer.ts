@@ -71,7 +71,7 @@ export class MainMenuComposer {
       return {
         type: MenuType.Main,
         title: greeting,
-        description: this.getMainMenuDescription(user || undefined, balance || undefined),
+        description: this.getMainMenuDescription(ctx, user || undefined, balance || undefined),
         buttons,
         isInline: true,
         metadata: {
@@ -112,12 +112,12 @@ export class MainMenuComposer {
       // Most used actions first
       buttons.push([
         {
-          text: '🚀 New Campaign',
+          text: ctx.t('menu.buttons.new_campaign'),
           callbackData: CallbackUtil.createActionCallback('action', 'new_campaign'),
           metadata: { priority: 'high' },
         },
         {
-          text: '📈 View Stats',
+          text: ctx.t('menu.buttons.view_stats'),
           callbackData: CallbackUtil.createActionCallback('action', 'view_stats'),
           metadata: { priority: 'high' },
         },
@@ -125,20 +125,32 @@ export class MainMenuComposer {
 
       // Financial actions
       buttons.push([
-        { text: '💰 Check Balance', callbackData: CallbackUtil.createActionCallback('action', 'check_balance') },
-        { text: '💸 Quick Withdraw', callbackData: CallbackUtil.createActionCallback('action', 'quick_withdraw') },
+        {
+          text: ctx.t('menu.buttons.check_balance'),
+          callbackData: CallbackUtil.createActionCallback('action', 'check_balance'),
+        },
+        {
+          text: ctx.t('menu.buttons.quick_withdraw'),
+          callbackData: CallbackUtil.createActionCallback('action', 'quick_withdraw'),
+        },
       ]);
 
       // System actions
       buttons.push([
-        { text: '🔄 Refresh Data', callbackData: CallbackUtil.createActionCallback('action', 'refresh_all') },
-        { text: '📊 Dashboard', callbackData: CallbackUtil.createActionCallback('action', 'dashboard') },
+        {
+          text: ctx.t('menu.buttons.refresh_data'),
+          callbackData: CallbackUtil.createActionCallback('action', 'refresh_all'),
+        },
+        {
+          text: ctx.t('menu.buttons.dashboard'),
+          callbackData: CallbackUtil.createActionCallback('action', 'dashboard'),
+        },
       ]);
 
       // Recent actions (if any)
       if (recentActions.length > 0) {
         const recentButton = {
-          text: '📋 Recent Actions',
+          text: ctx.t('menu.buttons.recent_actions'),
           callbackData: CallbackUtil.createActionCallback('action', 'recent_actions'),
         };
 
@@ -146,12 +158,14 @@ export class MainMenuComposer {
       }
 
       // Navigation
-      buttons.push([{ text: '🔙 Back to Main', callbackData: CallbackUtil.createMenuCallback('main', 'navigate') }]);
+      buttons.push([
+        { text: ctx.t('menu.buttons.back_to_main'), callbackData: CallbackUtil.createMenuCallback('main', 'navigate') },
+      ]);
 
       return {
         type: MenuType.Main,
-        title: '⚡ Quick Actions',
-        description: 'Frequently used actions for faster workflow',
+        title: ctx.t('menu.quick_actions.title'),
+        description: ctx.t('menu.quick_actions.description'),
         buttons,
         isInline: true,
         metadata: {
@@ -263,7 +277,7 @@ export class MainMenuComposer {
 
     if (showBack) {
       navigationRow.push({
-        text: '◀️ Back',
+        text: menu.metadata?.backText || '◀️',
         callbackData: customBack || CallbackUtil.createActionCallback('action', 'back'),
         metadata: { action: 'navigation', type: 'back' },
       });
@@ -271,7 +285,7 @@ export class MainMenuComposer {
 
     if (showHome) {
       navigationRow.push({
-        text: '🏠 Home',
+        text: menu.metadata?.homeText || '🏠',
         callbackData: customHome || CallbackUtil.createMenuCallback('main', 'navigate'),
         metadata: { action: 'navigation', type: 'home' },
       });
@@ -279,7 +293,7 @@ export class MainMenuComposer {
 
     if (showBreadcrumb) {
       navigationRow.push({
-        text: '📍 Menu Path',
+        text: menu.metadata?.pathText || '📍',
         callbackData: CallbackUtil.createActionCallback('action', 'breadcrumb'),
         metadata: { action: 'navigation', type: 'breadcrumb' },
       });
@@ -356,7 +370,7 @@ export class MainMenuComposer {
           parse_mode: 'HTML',
         });
 
-        await ctx.answerCallbackQuery('🏠 Main menu loaded');
+        await ctx.answerCallbackQuery(ctx.t('menu.callback.main_menu_loaded'));
       } else {
         await ctx.replyWithHTML(menuText, {
           reply_markup: keyboard,
@@ -374,7 +388,7 @@ export class MainMenuComposer {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('❌ Failed to load menu');
+      await ctx.answerCallbackQuery(ctx.t('menu.errors.action_failed'));
     }
   }
 
@@ -388,7 +402,7 @@ export class MainMenuComposer {
     try {
       // Use the menu service for navigation
       await this.menuService.navigateToMenu(ctx, menuType);
-      await ctx.answerCallbackQuery(`📱 Navigated to ${menuType}`);
+      await ctx.answerCallbackQuery(ctx.t('menu.callback.navigated_to', { menu: menuType }));
     } catch (err: unknown) {
       this.logger.error('Error handling menu navigation', {
         error: unknownToError(err),
@@ -396,7 +410,7 @@ export class MainMenuComposer {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('❌ Navigation failed');
+      await ctx.answerCallbackQuery(ctx.t('menu.errors.action_failed'));
     }
   }
 
@@ -409,7 +423,6 @@ export class MainMenuComposer {
 
     try {
       await this.processQuickAction(ctx, action);
-      await ctx.answerCallbackQuery(`⚡ ${action} executed`);
     } catch (err: unknown) {
       this.logger.error('Error handling quick action', {
         error: unknownToError(err),
@@ -417,7 +430,7 @@ export class MainMenuComposer {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('❌ Action failed');
+      await ctx.answerCallbackQuery(ctx.t('menu.errors.action_failed'));
     }
   }
 
@@ -442,14 +455,14 @@ export class MainMenuComposer {
         await this.menuService.navigateToMenu(ctx, currentMenu as MenuType);
       }
 
-      await ctx.answerCallbackQuery('🔄 Menu refreshed');
+      await ctx.answerCallbackQuery(ctx.t('menu.callback.menu_refreshed'));
     } catch (err: unknown) {
       this.logger.error('Error handling refresh', {
         error: unknownToError(err),
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('❌ Refresh failed');
+      await ctx.answerCallbackQuery(ctx.t('menu.errors.action_failed'));
     }
   }
 
@@ -467,7 +480,9 @@ export class MainMenuComposer {
       const breadcrumb = session?.data.navigationState?.breadcrumb || [];
 
       const breadcrumbText =
-        breadcrumb.length > 0 ? `📍 Navigation Path:\n${breadcrumb.join(' → ')}` : '📍 You are at the main menu';
+        breadcrumb.length > 0
+          ? `${ctx.t('menu.callback.navigation_path')}\n${breadcrumb.join(' → ')}`
+          : ctx.t('menu.callback.at_main_menu');
 
       await ctx.answerCallbackQuery({ text: breadcrumbText, show_alert: true });
     } catch (err: unknown) {
@@ -476,7 +491,7 @@ export class MainMenuComposer {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('❌ Cannot show path');
+      await ctx.answerCallbackQuery(ctx.t('menu.errors.action_failed'));
     }
   }
 
@@ -544,7 +559,7 @@ export class MainMenuComposer {
     // Row 3: Support
     return {
       type: MenuType.Main,
-      title: `Welcome, ${userName}! 🚀`,
+      title: ctx.t('menu.greetings.welcome', { name: userName }),
       description: ctx.t('menu.main_menu.select_action'),
       buttons: [
         [
@@ -561,19 +576,32 @@ export class MainMenuComposer {
     };
   }
 
-  private getDefaultQuickActionsMenu(): MenuConfig {
+  private getDefaultQuickActionsMenu(ctx?: BotContext): MenuConfig {
+    // Note: this method may be called without ctx, so we use fallback strings
     return {
       type: MenuType.Main,
-      title: '⚡ Quick Actions',
-      description: 'Frequently used actions',
+      title: ctx ? ctx.t('menu.quick_actions.title') : '⚡ Quick Actions',
+      description: ctx ? ctx.t('menu.quick_actions.description') : 'Frequently used actions',
       buttons: [
         [
-          { text: '📈 View Stats', callbackData: 'action:view_stats' },
-          { text: '💰 Check Balance', callbackData: 'action:check_balance' },
+          {
+            text: ctx ? ctx.t('menu.buttons.view_stats') : '📈 View Stats',
+            callbackData: 'action:view_stats',
+          },
+          {
+            text: ctx ? ctx.t('menu.buttons.check_balance') : '💰 Check Balance',
+            callbackData: 'action:check_balance',
+          },
         ],
         [
-          { text: '🔄 Refresh', callbackData: 'action:refresh_all' },
-          { text: '🔙 Back to Main', callbackData: 'menu:main' },
+          {
+            text: ctx ? ctx.t('common.buttons.refresh') : '🔄 Refresh',
+            callbackData: 'action:refresh_all',
+          },
+          {
+            text: ctx ? ctx.t('menu.buttons.back_to_main') : '🔙 Back to Main',
+            callbackData: 'menu:main',
+          },
         ],
       ],
       isInline: true,
@@ -581,7 +609,8 @@ export class MainMenuComposer {
   }
 
   private getPersonalizedGreeting(userName: string, language: string): string {
-    const greetings: Record<string, string> = {
+    // Use locale key format for personalized greetings based on language
+    const greetingKeys: Record<string, string> = {
       en: `Welcome back, ${userName}! 🚀`,
       es: `¡Bienvenido de vuelta, ${userName}! 🚀`,
       fr: `Bon retour, ${userName}! 🚀`,
@@ -589,24 +618,24 @@ export class MainMenuComposer {
       ru: `С возвращением, ${userName}! 🚀`,
     };
 
-    return greetings[language] || greetings.en;
+    return greetingKeys[language] || greetingKeys.en;
   }
 
-  private getMainMenuDescription(user?: UserEntity, balance?: BalanceDto): string {
+  private getMainMenuDescription(ctx: BotContext, user?: UserEntity, balance?: BalanceDto): string {
     if (!user) {
-      return 'Please register to access all features.';
+      return ctx.t('menu.status.register_prompt');
     }
 
     const parts = [];
 
     if (balance && balance.availableAmount > 0) {
-      parts.push(`Balance: $${balance.availableAmount.toFixed(2)}`);
+      parts.push(`${ctx.t('balance.title')}: $${balance.availableAmount.toFixed(2)}`);
     }
 
     if (user.status === UserStatus.Active) {
-      parts.push('Account active ✅');
+      parts.push(ctx.t('menu.status.account_active'));
     } else {
-      parts.push('Account restricted ⚠️');
+      parts.push(ctx.t('menu.status.account_restricted'));
     }
 
     return parts.join(' • ');
@@ -622,21 +651,21 @@ export class MainMenuComposer {
   private hasPermissionForButton(button: MenuButton, user: UserEntity): boolean {
     const feature = button.metadata?.feature;
 
-    switch (feature) {
-      case 'withdrawal':
-        return user.status === UserStatus.Active;
-      case 'admin':
-        return user.role !== UserRole.User;
-      default:
-        return true;
-    }
+    const permissionChecks: Record<string, () => boolean> = {
+      withdrawal: () => user.status === UserStatus.Active,
+      admin: () => user.role !== UserRole.User,
+    };
+
+    const check = feature ? permissionChecks[feature] : null;
+
+    return check ? check() : true;
   }
 
-  private addPremiumFeatures(buttons: MenuButton[][]): MenuButton[][] {
+  private addPremiumFeatures(buttons: MenuButton[][], ctx?: BotContext): MenuButton[][] {
     // Add premium-only features
     const premiumRow = [
       {
-        text: '👑 Premium Analytics',
+        text: ctx ? ctx.t('menu.buttons.premium_analytics') : '👑 Premium Analytics',
         callbackData: CallbackUtil.createMenuCallback('premium_analytics', 'navigate'),
         metadata: { feature: 'premium', tier: 'premium' },
       },
@@ -645,11 +674,11 @@ export class MainMenuComposer {
     return [...buttons, premiumRow];
   }
 
-  private addAdminFeatures(buttons: MenuButton[][]): MenuButton[][] {
+  private addAdminFeatures(buttons: MenuButton[][], ctx?: BotContext): MenuButton[][] {
     // Add admin-only features
     const adminRow = [
       {
-        text: '🔧 Admin Panel',
+        text: ctx ? ctx.t('menu.buttons.admin_panel') : '🔧 Admin Panel',
         callbackData: CallbackUtil.createMenuCallback('admin', 'navigate'),
         metadata: { feature: 'admin', restricted: true },
       },
@@ -693,13 +722,17 @@ export class MainMenuComposer {
     return buttons;
   }
 
-  private addBreadcrumbNavigation(buttons: MenuButton[][], navigationState: Record<string, unknown>): MenuButton[][] {
+  private addBreadcrumbNavigation(
+    buttons: MenuButton[][],
+    navigationState: Record<string, unknown>,
+    ctx?: BotContext,
+  ): MenuButton[][] {
     const breadcrumb = navigationState.breadcrumb as string[] | undefined;
 
     if (breadcrumb && breadcrumb.length > 0) {
       const breadcrumbRow = [
         {
-          text: '📍 Show Path',
+          text: ctx ? ctx.t('menu.buttons.show_path') : '📍 Show Path',
           callbackData: CallbackUtil.createActionCallback('action', 'breadcrumb'),
           metadata: { type: 'navigation', breadcrumb: true },
         },
@@ -744,42 +777,45 @@ export class MainMenuComposer {
   }
 
   private async processQuickAction(ctx: BotContext, action: string): Promise<void> {
-    switch (action) {
-      case 'quick_menu': {
+    // Using string literal keys to match callback action values
+    const quickActionHandlers: Record<string, () => Promise<void>> = {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      quick_menu: async () => {
         const quickMenu = await this.composeQuickActionsMenu(ctx);
         const keyboard = this.createInlineKeyboard(quickMenu);
         await ctx.editMessageText(this.formatMenuText(quickMenu), {
           reply_markup: keyboard,
           parse_mode: 'HTML',
         });
-
-        break;
-      }
-
-      case 'refresh_all':
+      },
+      refresh_all: async () => {
         await this.handleRefresh(ctx);
-        break;
-
-      case 'check_balance':
+      },
+      check_balance: async () => {
         await this.menuService.navigateToMenu(ctx, MenuType.Balance);
-        break;
-
-      case 'view_stats':
+      },
+      view_stats: async () => {
         await this.menuService.navigateToMenu(ctx, MenuType.Statistics);
-        break;
+      },
+      /* eslint-enable @typescript-eslint/naming-convention */
+    };
 
-      default:
-        await ctx.reply(`Action "${action}" is not implemented yet.`);
+    const handler = quickActionHandlers[action];
+
+    if (handler) {
+      await handler();
+    } else {
+      await ctx.reply(ctx.t('menu.callback.action_not_implemented', { action }));
     }
   }
 
   private async saveMenuState(ctx: BotContext): Promise<void> {
     // Implementation for saving current menu state
-    await ctx.answerCallbackQuery('Menu state saved');
+    await ctx.answerCallbackQuery(ctx.t('menu.callback.menu_state_saved'));
   }
 
   private async restoreMenuState(ctx: BotContext): Promise<void> {
     // Implementation for restoring saved menu state
-    await ctx.answerCallbackQuery('Menu state restored');
+    await ctx.answerCallbackQuery(ctx.t('menu.callback.menu_state_restored'));
   }
 }

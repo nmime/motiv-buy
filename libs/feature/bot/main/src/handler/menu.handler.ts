@@ -153,9 +153,9 @@ export class MenuHandler {
           await this.handleActionData(ctx, actionResult.data);
         }
       } else {
-        await ctx.reply(actionResult.message || '❌ Action failed. Please try again.', {
+        await ctx.reply(actionResult.message || ctx.t('menu.errors.action_failed'), {
           reply_markup: {
-            inline_keyboard: [[{ text: '📋 Main Menu', callback_data: 'menu:main' }]],
+            inline_keyboard: [[{ text: ctx.t('menu.buttons.main_menu'), callback_data: 'menu:main' }]],
           },
         });
       }
@@ -287,23 +287,28 @@ export class MenuHandler {
       // Get base menu config
       const baseConfig = this.menuService.generateMenu(menuType, ctx);
 
-      // Enhance with dynamic data
-      switch (menuType) {
-        case MenuType.Main:
-          return await this.enhanceMainMenu(ctx, baseConfig);
-        case MenuType.Balance:
-          return await this.enhanceBalanceMenu(ctx, baseConfig);
-        case MenuType.Profile:
-          return await this.enhanceProfileMenu(ctx, baseConfig);
-        case MenuType.Statistics:
-          return await this.enhanceStatisticsMenu(ctx, baseConfig);
-        case MenuType.Traffic:
-          return await this.enhanceTrafficMenu(ctx, baseConfig);
-        case MenuType.Settings:
-          return await this.enhanceSettingsMenu(ctx, baseConfig);
-        default:
-          return baseConfig;
-      }
+      // Enhance with dynamic data using object lookup
+      const menuEnhancers: Record<MenuType, (ctx: BotContext, config: MenuConfig) => Promise<MenuConfig>> = {
+        [MenuType.Main]: (ctx, config) => this.enhanceMainMenu(ctx, config),
+        [MenuType.Balance]: (ctx, config) => this.enhanceBalanceMenu(ctx, config),
+        [MenuType.Profile]: (ctx, config) => this.enhanceProfileMenu(ctx, config),
+        [MenuType.Statistics]: (ctx, config) => this.enhanceStatisticsMenu(ctx, config),
+        [MenuType.Traffic]: (ctx, config) => this.enhanceTrafficMenu(ctx, config),
+        [MenuType.Settings]: (ctx, config) => this.enhanceSettingsMenu(ctx, config),
+        [MenuType.Help]: async (_ctx, config) => config,
+        [MenuType.Campaign]: async (_ctx, config) => config,
+        [MenuType.Withdrawal]: async (_ctx, config) => config,
+        [MenuType.Referral]: async (_ctx, config) => config,
+        [MenuType.Admin]: async (_ctx, config) => config,
+        [MenuType.Notifications]: async (_ctx, config) => config,
+        [MenuType.Verification]: async (_ctx, config) => config,
+        [MenuType.Auth]: async (_ctx, config) => config,
+        [MenuType.Error]: async (_ctx, config) => config,
+      };
+
+      const enhancer = menuEnhancers[menuType];
+
+      return enhancer ? await enhancer(ctx, baseConfig) : baseConfig;
     } catch (err: unknown) {
       this.logger.error('Error generating dynamic menu content', {
         error: unknownToError(err),
@@ -599,98 +604,91 @@ Customize your bot experience.
   private async processMenuAction(ctx: BotContext, action: string, params: string[]): Promise<MenuActionResult> {
     const userId = ctx.from?.id?.toString();
 
-    switch (action) {
-      case 'menu':
-        return {
-          success: true,
-          nextMenu: params[0] as MenuType,
-        };
-
-      case 'back':
+    const actionHandlers: Record<string, () => Promise<MenuActionResult>> = {
+      menu: async () => ({
+        success: true,
+        nextMenu: params[0] as MenuType,
+      }),
+      back: async () => {
         await this.goBack(ctx);
 
         return { success: true };
-
-      case 'refresh': {
+      },
+      refresh: async () => {
         const currentNav = await this.getMenuNavigation(userId || '');
 
         return {
           success: true,
           nextMenu: currentNav?.currentMenu || MenuType.Main,
-          message: '🔄 Menu refreshed',
+          message: ctx.t('menu.callback.menu_refreshed'),
         };
-      }
+      },
+      close: async () => ({
+        success: true,
+        closeMenu: true,
+        message: ctx.t('bot.callback.menu_closed'),
+      }),
+      balance: async () => this.handleBalanceAction(ctx, params[0]),
+      profile: async () => this.handleProfileAction(ctx, params[0]),
+      settings: async () => this.handleSettingsAction(ctx, params[0]),
+      stats: async () => this.handleStatsAction(ctx, params[0]),
+      traffic: async () => this.handleTrafficAction(ctx, params[0]),
+      help: async () => this.handleHelpAction(ctx, params[0]),
+    };
 
-      case 'close':
-        return {
-          success: true,
-          closeMenu: true,
-          message: 'Menu closed.',
-        };
+    const handler = actionHandlers[action];
 
-      // Handle specific menu actions
-      case 'balance':
-        return await this.handleBalanceAction(ctx, params[0]);
-
-      case 'profile':
-        return await this.handleProfileAction(ctx, params[0]);
-
-      case 'settings':
-        return await this.handleSettingsAction(ctx, params[0]);
-
-      case 'stats':
-        return await this.handleStatsAction(ctx, params[0]);
-
-      case 'traffic':
-        return await this.handleTrafficAction(ctx, params[0]);
-
-      case 'help':
-        return await this.handleHelpAction(ctx, params[0]);
-
-      default:
-        this.logger.warn(`Unhandled menu action: ${action}`, {
-          userId,
-          action,
-          params,
-        });
-
-        return {
-          success: false,
-          message: `Action "${action}" is not implemented yet. Please try again or contact support.`,
-        };
+    if (handler) {
+      return handler();
     }
+
+    this.logger.warn(`Unhandled menu action: ${action}`, {
+      userId,
+      action,
+      params,
+    });
+
+    return {
+      success: false,
+      message: ctx.t('menu.callback.action_not_implemented', { action }),
+    };
   }
 
   /**
    * Handle balance-related actions
    */
-
   private async handleBalanceAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    switch (subAction) {
-      case 'current':
-        return { success: true, nextMenu: MenuType.Balance, message: '💰 Balance refreshed' };
-      case 'history':
-        return { success: false, message: ctx.t('menu.balance.history_coming_soon') };
-      case 'analytics':
-        return { success: false, message: ctx.t('menu.balance.analytics_coming_soon') };
-      default:
-        return { success: false, message: `Balance action "${subAction}" not available.` };
+    const balanceActions: Record<string, () => MenuActionResult> = {
+      current: () => ({ success: true, nextMenu: MenuType.Balance, message: ctx.t('balance.balance_updated') }),
+      history: () => ({ success: false, message: ctx.t('menu.balance.history_coming_soon') }),
+      analytics: () => ({ success: false, message: ctx.t('menu.balance.analytics_coming_soon') }),
+    };
+
+    const handler = balanceActions[subAction];
+
+    if (handler) {
+      return handler();
     }
+
+    return { success: false, message: ctx.t('bot.callback.action_unavailable', { action: subAction }) };
   }
 
   /**
    * Handle profile-related actions
    */
-
   private async handleProfileAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    switch (subAction) {
-      case 'stats':
-        return { success: false, message: ctx.t('menu.profile.stats_coming_soon') };
-      case 'security':
-        return { success: false, message: ctx.t('menu.profile.security_coming_soon') };
-      default:
-        return { success: false, message: `Profile action "${subAction}" not available.` };
+    const profileActions: Record<string, () => MenuActionResult> = {
+      stats: () => ({ success: false, message: ctx.t('menu.profile.stats_coming_soon') }),
+      security: () => ({ success: false, message: ctx.t('menu.profile.security_coming_soon') }),
+    };
+
+    const handler = profileActions[subAction];
+
+    if (handler) {
+      return handler();
     }
+
+    return { success: false, message: ctx.t('bot.callback.action_unavailable', { action: subAction }) };
   }
 
   /**
@@ -702,58 +700,61 @@ Customize your bot experience.
       return { success: false, message: ctx.t('auth.authentication_required') };
     }
 
-    switch (subAction) {
-      case 'notifications':
-        return { success: false, message: ctx.t('menu.settings.notifications_coming_soon') };
-      case 'language':
-        return { success: false, message: ctx.t('menu.settings.language_coming_soon') };
-      case 'theme':
-        return { success: false, message: ctx.t('menu.settings.theme_coming_soon') };
-      case 'export':
-        return { success: false, message: ctx.t('menu.settings.export_coming_soon') };
-      case 'reset':
-        return { success: false, message: ctx.t('menu.settings.reset_coming_soon') };
-      default:
-        return { success: false, message: `Settings action "${subAction}" not available.` };
+    const settingsActions: Record<string, () => MenuActionResult> = {
+      notifications: () => ({ success: false, message: ctx.t('menu.settings.notifications_coming_soon') }),
+      language: () => ({ success: false, message: ctx.t('menu.settings.language_coming_soon') }),
+      theme: () => ({ success: false, message: ctx.t('menu.settings.theme_coming_soon') }),
+      export: () => ({ success: false, message: ctx.t('menu.settings.export_coming_soon') }),
+      reset: () => ({ success: false, message: ctx.t('menu.settings.reset_coming_soon') }),
+    };
+
+    const handler = settingsActions[subAction];
+
+    if (handler) {
+      return handler();
     }
+
+    return { success: false, message: ctx.t('bot.callback.action_unavailable', { action: subAction }) };
   }
 
   /**
    * Handle statistics-related actions
    */
-
   private async handleStatsAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    switch (subAction) {
-      case 'overview':
-        return { success: false, message: ctx.t('menu.stats.overview_coming_soon') };
-      case 'daily':
-        return { success: false, message: ctx.t('menu.stats.daily_coming_soon') };
-      case 'weekly':
-        return { success: false, message: ctx.t('menu.stats.weekly_coming_soon') };
-      case 'monthly':
-        return { success: false, message: ctx.t('menu.stats.monthly_coming_soon') };
-      default:
-        return { success: false, message: `Stats action "${subAction}" not available.` };
+    const statsActions: Record<string, () => MenuActionResult> = {
+      overview: () => ({ success: false, message: ctx.t('menu.stats.overview_coming_soon') }),
+      daily: () => ({ success: false, message: ctx.t('menu.stats.daily_coming_soon') }),
+      weekly: () => ({ success: false, message: ctx.t('menu.stats.weekly_coming_soon') }),
+      monthly: () => ({ success: false, message: ctx.t('menu.stats.monthly_coming_soon') }),
+    };
+
+    const handler = statsActions[subAction];
+
+    if (handler) {
+      return handler();
     }
+
+    return { success: false, message: ctx.t('bot.callback.action_unavailable', { action: subAction }) };
   }
 
   /**
    * Handle traffic-related actions
    */
-
   private async handleTrafficAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    switch (subAction) {
-      case 'live':
-        return { success: false, message: ctx.t('menu.traffic.live_coming_soon') };
-      case 'sources':
-        return { success: false, message: ctx.t('menu.traffic.sources_coming_soon') };
-      case 'analytics':
-        return { success: false, message: ctx.t('menu.traffic.analytics_coming_soon') };
-      case 'optimize':
-        return { success: false, message: ctx.t('menu.traffic.optimize_coming_soon') };
-      default:
-        return { success: false, message: `Traffic action "${subAction}" not available.` };
+    const trafficActions: Record<string, () => MenuActionResult> = {
+      live: () => ({ success: false, message: ctx.t('menu.traffic.live_coming_soon') }),
+      sources: () => ({ success: false, message: ctx.t('menu.traffic.sources_coming_soon') }),
+      analytics: () => ({ success: false, message: ctx.t('menu.traffic.analytics_coming_soon') }),
+      optimize: () => ({ success: false, message: ctx.t('menu.traffic.optimize_coming_soon') }),
+    };
+
+    const handler = trafficActions[subAction];
+
+    if (handler) {
+      return handler();
     }
+
+    return { success: false, message: ctx.t('bot.callback.action_unavailable', { action: subAction }) };
   }
 
   /**
@@ -761,19 +762,22 @@ Customize your bot experience.
    */
 
   private async handleHelpAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    switch (subAction) {
-      case 'faq':
-        return { success: false, message: ctx.t('menu.help_menu.faq_coming_soon') };
-      case 'contact':
-        return {
-          success: true,
-          message: '📞 Contact support at @motivbuy_support or support@motivbuy.com',
-        };
-      case 'tutorials':
-        return { success: false, message: ctx.t('menu.help_menu.tutorials_coming_soon') };
-      default:
-        return { success: false, message: `Help action "${subAction}" not available.` };
+    const helpActions: Record<string, () => MenuActionResult> = {
+      faq: () => ({ success: false, message: ctx.t('menu.help_menu.faq_coming_soon') }),
+      contact: () => ({
+        success: true,
+        message: ctx.t('support.contact_title'),
+      }),
+      tutorials: () => ({ success: false, message: ctx.t('menu.help_menu.tutorials_coming_soon') }),
+    };
+
+    const handler = helpActions[subAction];
+
+    if (handler) {
+      return handler();
     }
+
+    return { success: false, message: ctx.t('bot.callback.action_unavailable', { action: subAction }) };
   }
 
   /**
@@ -1006,19 +1010,17 @@ Customize your bot experience.
     });
 
     const errorMessage =
-      process.env.NODE_ENV === 'development'
-        ? `Menu error: ${error.message}`
-        : 'Sorry, there was a problem loading the menu. Please try again.';
+      process.env.NODE_ENV === 'development' ? `Menu error: ${error.message}` : ctx.t('menu.errors.menu_load_error');
 
     try {
       await ctx.reply(errorMessage, {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '🏠 Main Menu', callback_data: 'menu:main' },
-              { text: '🔄 Try Again', callback_data: `menu:${menuType}` },
+              { text: ctx.t('menu.buttons.main_menu'), callback_data: 'menu:main' },
+              { text: ctx.t('menu.buttons.try_again'), callback_data: `menu:${menuType}` },
             ],
-            [{ text: '🆘 Support', callback_data: 'help:contact' }],
+            [{ text: ctx.t('menu.buttons.support'), callback_data: 'help:contact' }],
           ],
         },
       });
@@ -1044,17 +1046,15 @@ Customize your bot experience.
     });
 
     const errorMessage =
-      process.env.NODE_ENV === 'development'
-        ? `Action error: ${error.message}`
-        : 'Sorry, that action failed. Please try again or return to the main menu.';
+      process.env.NODE_ENV === 'development' ? `Action error: ${error.message}` : ctx.t('menu.errors.action_error');
 
     try {
       await ctx.reply(errorMessage, {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '📋 Main Menu', callback_data: 'menu:main' },
-              { text: '🆘 Support', callback_data: 'help:contact' },
+              { text: ctx.t('menu.buttons.main_menu'), callback_data: 'menu:main' },
+              { text: ctx.t('menu.buttons.support'), callback_data: 'help:contact' },
             ],
           ],
         },
