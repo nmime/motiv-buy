@@ -180,32 +180,42 @@ export class BotUserService {
 
         const params: UTMParams = {};
 
+        const keySetters: Record<string, (value: string) => void> = {
+          /* eslint-disable @typescript-eslint/naming-convention */
+          utm_source: (v) => {
+            params.utmSource = decodeURIComponent(v);
+          },
+          utm_medium: (v) => {
+            params.utmMedium = decodeURIComponent(v);
+          },
+          utm_campaign: (v) => {
+            params.utmCampaign = decodeURIComponent(v);
+          },
+          utm_content: (v) => {
+            params.utmContent = decodeURIComponent(v);
+          },
+          ref: (v) => {
+            params.refCode = decodeURIComponent(v);
+          },
+          ref_code: (v) => {
+            params.refCode = decodeURIComponent(v);
+          },
+          link_type: (v) => {
+            params.linkType = decodeURIComponent(v) as LinkType;
+          },
+          link_code: (v) => {
+            params.linkCode = decodeURIComponent(v);
+          },
+          /* eslint-enable @typescript-eslint/naming-convention */
+        };
+
         for (const pair of pairs) {
           const [key, value] = pair.split('=');
           if (key && value) {
-            switch (key) {
-              case 'utm_source':
-                params.utmSource = decodeURIComponent(value);
-                break;
-              case 'utm_medium':
-                params.utmMedium = decodeURIComponent(value);
-                break;
-              case 'utm_campaign':
-                params.utmCampaign = decodeURIComponent(value);
-                break;
-              case 'utm_content':
-                params.utmContent = decodeURIComponent(value);
-                break;
-              case 'ref':
-              case 'ref_code':
-                params.refCode = decodeURIComponent(value);
-                break;
-              case 'link_type':
-                params.linkType = decodeURIComponent(value) as LinkType;
-                break;
-              case 'link_code':
-                params.linkCode = decodeURIComponent(value);
-                break;
+            const setter = keySetters[key];
+
+            if (setter) {
+              setter(value);
             }
           }
         }

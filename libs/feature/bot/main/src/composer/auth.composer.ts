@@ -1012,18 +1012,18 @@ export class AuthComposer {
 
       const currentStep = session?.data.conversationState?.currentStep;
 
-      switch (currentStep) {
-        case 'login_flow':
-          return AuthState.LoginFlow;
-        case 'register_flow':
-          return AuthState.RegisterFlow;
-        case 'verification_flow':
-          return AuthState.VerificationFlow;
-        case 'profile_setup':
-          return AuthState.ProfileSetup;
-        default:
-          return AuthState.Unauthenticated;
+      const stepToAuthState: Record<string, AuthState> = {
+        login_flow: AuthState.LoginFlow,
+        register_flow: AuthState.RegisterFlow,
+        verification_flow: AuthState.VerificationFlow,
+        profile_setup: AuthState.ProfileSetup,
+      };
+
+      if (currentStep && stepToAuthState[currentStep]) {
+        return stepToAuthState[currentStep];
       }
+
+      return AuthState.Unauthenticated;
     } catch (err: unknown) {
       this.logger.error('Error getting auth state', {
         error: unknownToError(err),

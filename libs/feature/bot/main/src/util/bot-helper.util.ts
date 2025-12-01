@@ -168,19 +168,16 @@ export class BotHelperUtil {
       return this.applyCustomTemplate(user, customTemplate);
     }
 
-    switch (displayNameFormat) {
-      case 'first':
-        return user.first_name;
+    const formatHandlers: Record<string, () => string> = {
+      first: () => user.first_name,
+      /* eslint-disable-next-line @typescript-eslint/naming-convention */
+      first_last: () => (user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name),
+      username: () => (user.username ? `@${user.username}` : user.first_name),
+    };
 
-      case 'first_last':
-        return user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
+    const handler = formatHandlers[displayNameFormat];
 
-      case 'username':
-        return user.username ? `@${user.username}` : user.first_name;
-
-      default:
-        return user.first_name;
-    }
+    return handler ? handler() : user.first_name;
   }
 
   /**
@@ -230,18 +227,14 @@ export class BotHelperUtil {
    * @returns Chat type description
    */
   static getChatTypeDescription(chatType: string): string {
-    switch (chatType) {
-      case 'private':
-        return 'private chat';
-      case 'group':
-        return 'group chat';
-      case 'supergroup':
-        return 'supergroup';
-      case 'channel':
-        return 'channel';
-      default:
-        return 'unknown chat type';
-    }
+    const chatTypeDescriptions: Record<string, string> = {
+      private: 'private chat',
+      group: 'group chat',
+      supergroup: 'supergroup',
+      channel: 'channel',
+    };
+
+    return chatTypeDescriptions[chatType] || 'unknown chat type';
   }
 
   /**
@@ -333,36 +326,30 @@ export class BotHelperUtil {
   static formatTimestamp(timestamp: number, format: 'short' | 'long' | 'relative' | 'iso' = 'short'): string {
     const date = new Date(timestamp * 1000);
 
-    switch (format) {
-      case 'short':
-        return (
-          date.toLocaleDateString() +
-          ' ' +
-          date.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        );
-
-      case 'long':
-        return date.toLocaleDateString([], {
+    const timestampFormatHandlers: Record<string, () => string> = {
+      short: () =>
+        date.toLocaleDateString() +
+        ' ' +
+        date.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      long: () =>
+        date.toLocaleDateString([], {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-        });
+        }),
+      relative: () => this.getRelativeTime(timestamp),
+      iso: () => date.toISOString(),
+    };
 
-      case 'relative':
-        return this.getRelativeTime(timestamp);
+    const handler = timestampFormatHandlers[format];
 
-      case 'iso':
-        return date.toISOString();
-
-      default:
-        return date.toString();
-    }
+    return handler ? handler() : date.toString();
   }
 
   /**
