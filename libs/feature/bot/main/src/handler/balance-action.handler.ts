@@ -14,6 +14,7 @@ import {
   ProviderCurrencyRepository,
   ProviderCurrencyEntity,
   CurrencyCode,
+  TransactionType,
 } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { decimal, lessThan, toDisplayString, toError } from '@app/common-shared';
@@ -443,5 +444,130 @@ export class BalanceActionHandler {
     keyboard.text(ctx.t('common.cancel'), 'menu:balance');
 
     return keyboard;
+  }
+
+  // ===== Additional Methods (extracted from callback-router) =====
+
+  async handleWithdrawalMenu(ctx: AuthenticatedBotContext): Promise<void> {
+    const keyboard = this.menuHandler.createWithdrawalMenuKeyboard(ctx);
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_menu'),
+      replyMarkup: keyboard,
+    });
+  }
+
+  async handleWithdrawalCurrency(ctx: AuthenticatedBotContext, currencyId: string): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'withdrawal_amount';
+      ctx.session.formData = { currencyId };
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.enter_withdrawal_amount'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.cancel'), 'menu:balance'),
+    });
+  }
+
+  async handleWithdrawalAmount(ctx: AuthenticatedBotContext, amount: string): Promise<void> {
+    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, 'withdraw:confirm', { amount });
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_confirm', { amount }),
+      replyMarkup: keyboard,
+    });
+  }
+
+  async handleWithdrawalConfirm(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_processing'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:balance'),
+    });
+  }
+
+  async handleWithdrawalHistory(ctx: AuthenticatedBotContext): Promise<void> {
+    const history = await this.em.find(
+      UserBalanceHistoryEntity,
+      { user: ctx.user.id, type: TransactionType.Withdrawal },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
+
+    let text = ctx.t('balance.withdrawal_history_title');
+    if (history.length === 0) {
+      text += ctx.t('balance.no_withdrawal_history');
+    } else {
+      for (const tx of history) {
+        text += `• ${toDisplayString(tx.amount, 2)} - ${tx.createdAt.toLocaleDateString()}\n`;
+      }
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:balance'),
+    });
+  }
+
+  async handleWithdrawalMethods(ctx: AuthenticatedBotContext): Promise<void> {
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_methods'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:balance'),
+    });
+  }
+
+  async handleWithdrawalLimits(ctx: AuthenticatedBotContext): Promise<void> {
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('balance.withdrawal_limits'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:balance'),
+    });
+  }
+
+  async handleDepositHistory(ctx: AuthenticatedBotContext): Promise<void> {
+    const history = await this.em.find(
+      UserBalanceHistoryEntity,
+      { user: ctx.user.id, type: TransactionType.Deposit },
+      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+    );
+
+    let text = ctx.t('balance.deposit_history_title');
+    if (history.length === 0) {
+      text += ctx.t('balance.no_deposit_history');
+    } else {
+      for (const tx of history) {
+        text += `• ${toDisplayString(tx.amount, 2)} - ${tx.createdAt.toLocaleDateString()}\n`;
+      }
+    }
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:balance'),
+    });
+  }
+
+  async handleBalanceAnalytics(ctx: AuthenticatedBotContext): Promise<void> {
+    const history = await this.em.find(
+      UserBalanceHistoryEntity,
+      { user: ctx.user.id },
+      { orderBy: { createdAt: 'DESC' }, limit: 100 },
+    );
+
+    let totalIncome = decimal(0);
+    let totalExpense = decimal(0);
+
+    for (const tx of history) {
+      const amount = decimal(tx.amount);
+      if (amount.greaterThan(0)) {
+        totalIncome = totalIncome.plus(amount);
+      } else {
+        totalExpense = totalExpense.plus(amount.abs());
+      }
+    }
+
+    let text = ctx.t('balance.analytics_title');
+    text += `\n• ${ctx.t('balance.total_income')}: $${toDisplayString(totalIncome, 2)}`;
+    text += `\n• ${ctx.t('balance.total_expense')}: $${toDisplayString(totalExpense, 2)}`;
+    text += `\n• ${ctx.t('balance.transactions_count')}: ${history.length}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:balance'),
+    });
   }
 }

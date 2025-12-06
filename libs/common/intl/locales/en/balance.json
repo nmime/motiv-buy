@@ -7,8 +7,8 @@
   "locked": "🔐 Locked",
   "total": "📈 Total",
   "last_transaction": "📅 Last transaction:",
-  "no_transactions": "No transactions yet",
-  "no_balances_found": "No balances found. Start earning to see your balance here!",
+  "no_transactions": "📭 No transactions yet",
+  "no_balances_found": "💰 No balance available yet.\nStart earning to see your balance!",
   "your_balance": "💰 Your Balance",
   "balance_buttons_hint": "Use the buttons below to manage your balance.",
   "withdrawal_status": "💸 Withdrawal Status",
@@ -57,12 +57,12 @@
   "withdraw_description": "Request and manage withdrawals",
   "payment_methods": "🏦 Payment Methods",
   "deposit_history_title": "<b>💳 Deposit History</b>\n\n",
-  "no_deposits": "<i>No deposits yet.</i>",
+  "no_deposits": "<i>💳 No deposits yet.</i>",
   "withdrawal_history_title": "<b>💸 Withdrawal History</b>\n\n",
-  "no_withdrawals": "<i>No withdrawals yet.</i>",
+  "no_withdrawals": "<i>💸 No withdrawals yet.</i>",
   "analytics": {
     "title": "📊 Balance Analytics",
-    "no_history": "No transaction history available yet.\nStart using the platform to see your analytics!",
+    "no_history": "📊 No transaction history available yet.\nStart using the platform to see your analytics!",
     "all_time": "💰 All Time:",
     "total_income": "Total Income:",
     "total_expenses": "Total Expenses:",
@@ -78,7 +78,7 @@
   "withdrawal_menu": {
     "title": "💸 Withdrawal",
     "available_balances": "Available Balances:",
-    "no_available": "No available balance for withdrawal.",
+    "no_available": "💸 No available balance for withdrawal.",
     "minimum": "Minimum withdrawal: $10.00",
     "can_withdraw": "✅ You can withdraw your funds"
   }

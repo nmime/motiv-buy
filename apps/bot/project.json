@@ -45,12 +45,11 @@
       "dependsOn": ["build"],
       "options": {
         "buildTarget": "bot:build",
-        "runBuildTargetDependencies": true,
         "watch": true
       },
       "configurations": {
         "development": {
-          "buildTarget": "bot:build"
+          "buildTarget": "bot:build:development"
         },
         "production": {
           "buildTarget": "bot:build:production"

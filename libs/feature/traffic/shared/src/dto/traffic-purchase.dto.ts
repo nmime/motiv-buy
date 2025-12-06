@@ -207,4 +207,3 @@ export class AvailableTrafficDto {
   })
   estimatedDeliveryHours!: number;
 }
-

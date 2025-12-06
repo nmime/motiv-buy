@@ -6,6 +6,7 @@ import { TrafficMainModule } from '@app/feature-traffic-main';
 import { NotificationMainModule } from '@app/feature-notification-main';
 import { PaymentMainModule } from '@app/feature-payment-main';
 import { BotService } from './service';
+import { ModerationCallbackHandler } from './handler';
 
 /**
  * Bot Application Module
@@ -32,24 +33,12 @@ import { BotService } from './service';
         limit: 10,
       },
     ]),
-
-    // Bot domain module - contains all business logic and handlers
     BotMainModule,
-
-    // Traffic domain module - integrates with bot and notification systems
     TrafficMainModule,
-
-    // Payment domain module - enables deposit and withdrawal processing
     PaymentMainModule,
-
-    // Notification module - enables scheduled notification processing
     NotificationMainModule,
   ],
-  providers: [
-    // Only the thin wrapper service is provided here
-    // All other services and handlers are provided by BotMainModule
-    BotService,
-  ],
+  providers: [BotService, ModerationCallbackHandler],
   exports: [BotService],
 })
 export class BotModule {}

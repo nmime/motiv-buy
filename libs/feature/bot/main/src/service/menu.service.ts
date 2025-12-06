@@ -277,13 +277,10 @@ export class MenuService {
       title: ctx.t('bot.menu.balance.title'),
       description: ctx.t('balance.view_description'),
       buttons: [
-        [
-          { text: ctx.t('balance.current'), callbackData: 'balance:current' },
-          { text: ctx.t('balance.history_title'), callbackData: 'balance:history' },
-        ],
+        [{ text: ctx.t('balance.history_title'), callbackData: 'balance:history' }],
         [
           { text: ctx.t('balance.withdraw'), callbackData: 'menu:withdrawal' },
-          { text: ctx.t('statistic.title'), callbackData: 'balance:analytics' },
+          { text: ctx.t('balance.deposit'), callbackData: 'balance:deposit' },
         ],
         [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
       ],

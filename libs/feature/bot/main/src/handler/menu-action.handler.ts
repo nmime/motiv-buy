@@ -100,7 +100,6 @@ export class MenuActionHandler {
    */
   createBalanceMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('balance.current'), 'balance:view')
       .text(ctx.t('balance.history'), 'balance:history')
       .row()
       .text(ctx.t('balance.withdraw'), 'balance:withdraw')
@@ -239,7 +238,7 @@ export class MenuActionHandler {
   createTrafficSourceDetailKeyboard(ctx: BotContext, sourceId: string): InlineKeyboard {
     return new InlineKeyboard()
       .text(ctx.t('common.buttons.edit'), `traffic:source:edit:${sourceId}`)
-      .text(ctx.t('traffic.source_status_toggled'), `traffic:source:toggle:${sourceId}`)
+      .text(ctx.t('traffic.toggle_status'), `traffic:source:toggle:${sourceId}`)
       .row()
       .text(ctx.t('common.statistics'), `traffic:source:stats:${sourceId}`)
       .text(ctx.t('common.buttons.delete'), `traffic:source:delete:${sourceId}`)
@@ -253,7 +252,7 @@ export class MenuActionHandler {
   createTrafficTargetDetailKeyboard(ctx: BotContext, targetId: string): InlineKeyboard {
     return new InlineKeyboard()
       .text(ctx.t('common.buttons.edit'), `traffic:target:edit:${targetId}`)
-      .text(ctx.t('traffic.target_status_toggled'), `traffic:target:toggle:${targetId}`)
+      .text(ctx.t('traffic.toggle_status'), `traffic:target:toggle:${targetId}`)
       .row()
       .text(ctx.t('common.statistics'), `traffic:target:stats:${targetId}`)
       .text(ctx.t('common.buttons.delete'), `traffic:target:delete:${targetId}`)

@@ -10,7 +10,7 @@ process.env['DB_PASSWORD'] = 'test_password';
 
 // Set required Redis environment variables for tests
 process.env['REDIS_MODE'] = 'standalone';
-process.env['REDIS_HOSTS'] = 'localhost:6379';
+process.env['REDIS_HOSTS'] = 'localhost:6381';
 
 // Global test setup
 beforeAll(() => {

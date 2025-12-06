@@ -387,4 +387,19 @@ export class SettingsActionHandler {
       .row()
       .text(ctx.t('common.back'), 'menu:settings');
   }
+
+  // ===== Additional Methods (extracted from callback-router) =====
+
+  async handleThemeSettings(ctx: AuthenticatedBotContext): Promise<void> {
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('settings.theme'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:settings'),
+    });
+  }
+
+  async handlePrivacyToggle(ctx: AuthenticatedBotContext, setting: string): Promise<void> {
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('settings.privacy_updated', { setting }),
+    });
+  }
 }

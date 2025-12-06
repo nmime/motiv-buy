@@ -7,6 +7,7 @@
     "build": {
       "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/apps/api",
         "main": "apps/api/src/main.ts",
@@ -27,6 +28,11 @@
         ]
       },
       "configurations": {
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "inspect": false
+        },
         "production": {
           "optimization": true,
           "extractLicenses": true,
@@ -40,12 +46,11 @@
       "dependsOn": ["build"],
       "options": {
         "buildTarget": "api:build",
-        "runBuildTargetDependencies": true,
         "watch": true
       },
       "configurations": {
         "development": {
-          "buildTarget": "api:build"
+          "buildTarget": "api:build:development"
         },
         "production": {
           "buildTarget": "api:build:production"

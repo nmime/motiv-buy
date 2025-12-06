@@ -4,6 +4,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { BotService } from './bot.service';
 import { BotService as BotMainService } from '@app/feature-bot-main';
+import { ModerationCallbackHandler } from '../handler';
+import { ModerationService } from '@app/feature-traffic-main';
+import { TelegramModerationNotifier } from '@app/feature-bot-shared';
 
 /**
  * Bot Service Test Suite
@@ -32,6 +35,25 @@ describe('BotService', () => {
     stop: jest.fn(),
     initialize: jest.fn(),
     shutdown: jest.fn(),
+    registerCallbackInterceptor: jest.fn(),
+  };
+
+  /**
+   * Mock implementation of ModerationService
+   */
+  const mockModerationService = {
+    approveSource: jest.fn(),
+    approveOrder: jest.fn(),
+    declineSource: jest.fn(),
+    declineOrder: jest.fn(),
+  };
+
+  /**
+   * Mock implementation of TelegramModerationNotifier
+   */
+  const mockTelegramNotifier = {
+    updateApproved: jest.fn(),
+    updateDeclined: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -40,9 +62,18 @@ describe('BotService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BotService,
+        ModerationCallbackHandler,
         {
           provide: BotMainService,
           useValue: mockBotMainService,
+        },
+        {
+          provide: ModerationService,
+          useValue: mockModerationService,
+        },
+        {
+          provide: TelegramModerationNotifier,
+          useValue: mockTelegramNotifier,
         },
       ],
     }).compile();
@@ -412,8 +443,14 @@ describe('BotService', () => {
     });
 
     it('should handle service with no BotMainService', async () => {
+      // Create mock handler for this test
+      const mockHandler = new ModerationCallbackHandler(
+        mockModerationService as unknown as ModerationService,
+        mockTelegramNotifier as unknown as TelegramModerationNotifier,
+      );
+
       // Create service without BotMainService
-      const brokenService = new BotService(undefined as unknown as BotMainService);
+      const brokenService = new BotService(undefined as unknown as BotMainService, mockHandler);
 
       await expect(brokenService.start()).rejects.toThrow();
     });

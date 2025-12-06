@@ -108,7 +108,7 @@
     "no_access": "❌ No access to channel. Make sure the channel is public or the link is valid",
     "bot_not_admin": "❌ Bot not found in channel administrators. Please add it and try again",
     "moderation_rejected": "❌ Order rejected by moderation. Reason: {{reason}}",
-    "no_active_orders": "You have no active orders. Create one to get started!"
+    "no_active_orders": "📋 You have no active orders. Create one to get started!"
   },
   "configuration": {
     "title": "Order Settings",

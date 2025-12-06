@@ -45,6 +45,9 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   private bot: Bot<BotSessionContext> | null = null;
   private isRunning = false;
   private webhookMode = false;
+  // Callback interceptors - handlers that process callbacks before the main router
+  // Returns true if handled, false to continue to main router
+  private readonly callbackInterceptors: Array<(ctx: BotContext) => Promise<boolean>> = [];
 
   constructor(
     private readonly botConfigService: BotConfigService,
@@ -100,6 +103,20 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         client: {
           timeoutSeconds: pollingConfig?.timeout || 30,
         },
+      });
+
+      // Log bot info from getMe API
+      const botInfo = await this.bot.api.getMe();
+      this.logger.log('Bot info retrieved', {
+        id: botInfo.id,
+        username: botInfo.username,
+        firstName: botInfo.first_name,
+        isBot: botInfo.is_bot,
+        canJoinGroups: botInfo.can_join_groups,
+        canReadAllGroupMessages: botInfo.can_read_all_group_messages,
+        supportsInlineQueries: botInfo.supports_inline_queries,
+        canConnectToBusiness: botInfo.can_connect_to_business,
+        hasMainWebApp: botInfo.has_main_web_app,
       });
 
       // Install session middleware with Redis storage for persistence
@@ -292,6 +309,18 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         error: unknownToError(err),
       });
     }
+  }
+
+  /**
+   * Register a callback interceptor that handles callbacks before the main router
+   * Interceptors are called in order of registration
+   * If an interceptor returns true, the callback is considered handled and won't reach the main router
+   *
+   * @param interceptor Function that receives BotContext and returns Promise<boolean>
+   */
+  registerCallbackInterceptor(interceptor: (ctx: BotContext) => Promise<boolean>): void {
+    this.callbackInterceptors.push(interceptor);
+    this.logger.log(`Registered callback interceptor (total: ${this.callbackInterceptors.length})`);
   }
 
   /**
@@ -503,7 +532,29 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     this.bot.on(
       'callback_query:data',
       protectHandler(async (ctx) => {
-        await this.callbackRouter.routeCallback(this.mapContextToBotContext(ctx));
+        const botContext = this.mapContextToBotContext(ctx);
+
+        // Check interceptors first (e.g., moderation handlers from app layer)
+        // Sequential execution required - must stop when first interceptor handles it
+        for (const interceptor of this.callbackInterceptors) {
+          // eslint-disable-next-line no-await-in-loop
+          const handled = await interceptor(botContext);
+
+          if (handled) {
+            return;
+          }
+        }
+
+        // Route to main callback router if no interceptor handled it
+        await this.callbackRouter.routeCallback(botContext);
+      }),
+    );
+
+    // Protected text message handlers - require authentication
+    this.bot.on(
+      'message:text',
+      protectHandler(async (ctx) => {
+        await this.callbackRouter.handleTextMessage(this.mapContextToBotContext(ctx));
       }),
     );
   }

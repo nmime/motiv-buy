@@ -77,4 +77,3 @@ export const targetingFilters = {
     { code: 'pl', name: 'Polish' },
   ] as Language[],
 } as const;
-

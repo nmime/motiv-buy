@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PaymentProvider } from '@app/database';
+import { PaymentProvider, CurrencyRepository, CurrencyType } from '@app/database';
 import { IPaymentProvider } from '@app/feature-payment-shared';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';
 import { HeleketProvider } from '../provider/heleket.provider';
@@ -31,6 +31,7 @@ export class PaymentProviderFactory {
     private readonly cryptoBotProvider: CryptoBotProvider,
     private readonly heleketProvider: HeleketProvider,
     private readonly yooKassaProvider: YooKassaProvider,
+    private readonly currencyRepository: CurrencyRepository,
   ) {
     // Initialize provider map with all available providers
     this.providers = new Map<PaymentProvider, IPaymentProvider>([
@@ -91,12 +92,13 @@ export class PaymentProviderFactory {
    * @param currency - The cryptocurrency
    * @returns The recommended payment provider type
    */
-  getProviderForCurrency(currency: string): PaymentProvider {
+  async getProviderForCurrency(currency: string): Promise<PaymentProvider> {
     // CryptoBot is the primary provider for all cryptocurrencies
     // Heleket and YooKassa handle fiat gateways for crypto top-ups via RUB
-    const cryptoCurrencies = ['USDT', 'TON', 'BTC', 'ETH', 'BNB', 'TRX', 'USDC', 'JET'];
+    const cryptoCurrencies = await this.currencyRepository.findByType(CurrencyType.Crypto);
+    const cryptoCurrencyCodes = cryptoCurrencies.map((c) => c.code.toUpperCase());
 
-    if (cryptoCurrencies.includes(currency.toUpperCase())) {
+    if (cryptoCurrencyCodes.includes(currency.toUpperCase())) {
       return PaymentProvider.CryptoBot;
     }
 

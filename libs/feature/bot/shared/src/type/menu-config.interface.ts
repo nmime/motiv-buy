@@ -1,6 +1,47 @@
 import { MenuType } from '../enum';
 
 /**
+ * Menu Configuration Metadata Interface
+ *
+ * Defines metadata properties for menu configuration.
+ */
+export interface MenuConfigMetadata {
+  /** Custom back button text */
+  backText?: string;
+
+  /** Custom home button text */
+  homeText?: string;
+
+  /** Custom breadcrumb/path button text */
+  pathText?: string;
+
+  /** Additional metadata */
+  [key: string]: unknown;
+}
+
+/**
+ * Menu Button Metadata Interface
+ *
+ * Defines metadata properties for menu buttons.
+ */
+export interface MenuButtonMetadata {
+  /** Navigation action type */
+  action?: string;
+
+  /** Navigation type */
+  type?: string;
+
+  /** Feature flag for permission checks */
+  feature?: string;
+
+  /** Premium tier requirement */
+  tier?: string;
+
+  /** Additional metadata */
+  [key: string]: unknown;
+}
+
+/**
  * Menu Configuration Interface
  *
  * Defines the structure for bot menu configurations including
@@ -25,7 +66,7 @@ export interface MenuConfig {
   description?: string;
 
   /** Menu metadata */
-  metadata?: Record<string, unknown>;
+  metadata?: MenuConfigMetadata;
 }
 
 /**
@@ -47,7 +88,7 @@ export interface MenuButton {
   disabled?: boolean;
 
   /** Button metadata */
-  metadata?: Record<string, unknown>;
+  metadata?: MenuButtonMetadata;
 }
 
 /**

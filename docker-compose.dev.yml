@@ -37,7 +37,7 @@ x-db-env: &db-env
 
 x-redis-env: &redis-env
   REDIS_HOST: redis-${ENV}
-  REDIS_PORT: 6379
+  REDIS_PORT: 6381
   REDIS_PASSWORD: ${REDIS_PASSWORD}
 
 x-nats-env: &nats-env
@@ -78,13 +78,13 @@ services:
     <<: *common-defaults
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --port 6381
     volumes:
       - redis-dev-data:/data
     ports:
-      - '${REDIS_PORT_EXTERNAL}:6379'
+      - '${REDIS_PORT_EXTERNAL}:6381'
     healthcheck:
-      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      test: ['CMD', 'redis-cli', '-p', '6381', '-a', '${REDIS_PASSWORD}', 'ping']
       <<: *healthcheck-fast
 
   # NATS JetStream

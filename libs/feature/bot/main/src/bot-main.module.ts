@@ -7,6 +7,7 @@ import { UserSharedModule } from '@app/feature-user-shared';
 import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
+import { PaymentMainModule } from '@app/feature-payment-main';
 import { AppCommonIntlModule } from '@app/common-intl';
 import { BotService, BotUserService, BotSessionService, MenuService, MessageService, SessionService } from './service';
 import { BotConfigModule } from './config';
@@ -19,6 +20,10 @@ import {
   StatisticsActionHandler,
   OrderActionHandler,
   SettingsActionHandler,
+  SupportHandler,
+  HelpHandler,
+  TrafficHandler,
+  MiscMenuHandler,
 } from './handler';
 import { RateLimitMiddleware } from './middleware';
 import { BotWebhookController } from './controller';
@@ -56,6 +61,7 @@ import { BotWebhookController } from './controller';
     TrafficSharedModule,
     // Note: TrafficMainModule removed to prevent circular dependency
     // Traffic services are injected by the app layer
+    PaymentMainModule,
     AppCommonIntlModule,
     OrderModule,
   ],
@@ -75,16 +81,20 @@ import { BotWebhookController } from './controller';
     StatisticsActionHandler,
     OrderActionHandler,
     SettingsActionHandler,
+    SupportHandler,
+    HelpHandler,
+    TrafficHandler,
+    MiscMenuHandler,
     RateLimitMiddleware,
   ],
   exports: [
+    BotSharedModule,
     BotService,
     BotUserService,
     BotSessionService,
     MenuService,
     SessionService,
     MessageService,
-    // Export middleware for use by Bot app
     RateLimitMiddleware,
   ],
 })

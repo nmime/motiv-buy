@@ -4,13 +4,15 @@ import { Migration } from '@mikro-orm/migrations';
  * Rate Provider Currencies Migration
  *
  * Creates rate_provider_currencies table and seeds currency mappings for each provider.
- * Moves hardcoded currency mappings from CurrencyRateService to database.
  *
  * Provider currency mappings:
  * - CoinGecko: Uses coin IDs (bitcoin, ethereum, etc.)
  * - Binance: Uses trading pairs (BTCUSDT, ETHUSDT, etc.)
  * - Kraken: Uses exchange-specific pair names (XXBTZUSD, XETHZUSD, etc.)
- * - ExchangeRate-API/Frankfurter: Uses currency codes (EUR, RUB)
+ * - CoinCodex: Uses lowercase symbols (btc, eth, etc.)
+ * - Huobi: Uses lowercase pairs (btcusdt, ethusdt, etc.)
+ * - OKX: Uses instrument IDs (BTC-USDT, ETH-USDT, etc.)
+ * - ExchangeRate-API/Frankfurter/FreeCurrency/Coinbase/OpenExchangeRates: Uses currency codes (EUR, RUB)
  */
 export class Migration20250105000010RateProviderCurrencies extends Migration {
   async up(): Promise<void> {
@@ -98,30 +100,6 @@ export class Migration20250105000010RateProviderCurrencies extends Migration {
       ON CONFLICT DO NOTHING;
     `);
 
-    // Seed CoinCap currency mappings
-    this.addSql(`
-      INSERT INTO rate_provider_currencies (provider_id, currency_id, provider_symbol, priority)
-      SELECT p.id, c.id, CASE c.code
-        WHEN 'BTC' THEN 'bitcoin'
-        WHEN 'ETH' THEN 'ethereum'
-        WHEN 'USDT' THEN 'tether'
-        WHEN 'USDC' THEN 'usd-coin'
-        WHEN 'BNB' THEN 'binance-coin'
-        WHEN 'TON' THEN 'toncoin'
-        WHEN 'TRX' THEN 'tron'
-        WHEN 'LTC' THEN 'litecoin'
-        WHEN 'DOGE' THEN 'dogecoin'
-        WHEN 'DAI' THEN 'multi-collateral-dai'
-        WHEN 'DASH' THEN 'dash'
-        WHEN 'BCH' THEN 'bitcoin-cash'
-        WHEN 'SOL' THEN 'solana'
-      END, 40
-      FROM currency_rate_providers p, currencies c
-      WHERE p.name = 'coincap'
-        AND c.code IN ('BTC', 'ETH', 'USDT', 'USDC', 'BNB', 'TON', 'TRX', 'LTC', 'DOGE', 'DAI', 'DASH', 'BCH', 'SOL')
-      ON CONFLICT DO NOTHING;
-    `);
-
     // Seed Kraken currency mappings
     this.addSql(`
       INSERT INTO rate_provider_currencies (provider_id, currency_id, provider_symbol, priority)
@@ -170,6 +148,56 @@ export class Migration20250105000010RateProviderCurrencies extends Migration {
       SELECT p.id, c.id, c.code, 30
       FROM currency_rate_providers p, currencies c
       WHERE p.name = 'freecurrency_api'
+        AND c.code IN ('EUR', 'RUB')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    // Seed CoinCodex currency mappings (uses lowercase symbols)
+    this.addSql(`
+      INSERT INTO rate_provider_currencies (provider_id, currency_id, provider_symbol, priority)
+      SELECT p.id, c.id, LOWER(c.code), 50
+      FROM currency_rate_providers p, currencies c
+      WHERE p.name = 'coincodex'
+        AND c.code IN ('BTC', 'ETH', 'USDT', 'USDC', 'BNB', 'TON', 'TRX', 'LTC', 'DOGE', 'DAI', 'DASH', 'BCH', 'SOL')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    // Seed Huobi currency mappings (uses lowercase pairs like btcusdt)
+    this.addSql(`
+      INSERT INTO rate_provider_currencies (provider_id, currency_id, provider_symbol, priority)
+      SELECT p.id, c.id, LOWER(c.code) || 'usdt', 60
+      FROM currency_rate_providers p, currencies c
+      WHERE p.name = 'huobi'
+        AND c.code IN ('BTC', 'ETH', 'BNB', 'TON', 'TRX', 'LTC', 'DOGE', 'SOL', 'BCH', 'DASH', 'DAI', 'USDC')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    // Seed OKX currency mappings (uses instrument IDs like BTC-USDT)
+    this.addSql(`
+      INSERT INTO rate_provider_currencies (provider_id, currency_id, provider_symbol, priority)
+      SELECT p.id, c.id, c.code || '-USDT', 70
+      FROM currency_rate_providers p, currencies c
+      WHERE p.name = 'okx'
+        AND c.code IN ('BTC', 'ETH', 'BNB', 'TON', 'TRX', 'LTC', 'DOGE', 'SOL', 'BCH', 'DASH', 'DAI', 'USDC')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    // Seed Coinbase currency mappings (fiat)
+    this.addSql(`
+      INSERT INTO rate_provider_currencies (provider_id, currency_id, provider_symbol, priority)
+      SELECT p.id, c.id, c.code, 40
+      FROM currency_rate_providers p, currencies c
+      WHERE p.name = 'coinbase'
+        AND c.code IN ('EUR', 'RUB')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    // Seed OpenExchangeRates currency mappings (fiat)
+    this.addSql(`
+      INSERT INTO rate_provider_currencies (provider_id, currency_id, provider_symbol, priority)
+      SELECT p.id, c.id, c.code, 50
+      FROM currency_rate_providers p, currencies c
+      WHERE p.name = 'openexchangerates'
         AND c.code IN ('EUR', 'RUB')
       ON CONFLICT DO NOTHING;
     `);

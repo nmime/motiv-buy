@@ -6,7 +6,7 @@ export const CacheConfigSchema = z.object({
   options: z
     .object({
       host: z.string().default('localhost'),
-      port: z.number().default(6379),
+      port: z.number().default(6381),
       password: z.string().optional(),
       db: z.number().default(2),
       keyPrefix: z.string().default('mikro-orm-cache:'),
@@ -20,9 +20,9 @@ export type CacheConfig = z.infer<typeof CacheConfigSchema>;
 
 export const getCacheConfig = (): CacheConfig => {
   // Parse Redis hosts for multiple host support
-  const redisHosts = process.env['REDIS_HOSTS'] || 'localhost:6379';
+  const redisHosts = process.env['REDIS_HOSTS'] || 'localhost:6381';
   const [host, portStr] = redisHosts.split(':');
-  const port = parseInt(portStr || '6379');
+  const port = parseInt(portStr || '6381');
 
   const config: CacheConfig = {
     enabled: process.env['CACHE_ENABLED'] !== 'false',

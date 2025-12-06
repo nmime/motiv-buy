@@ -6,7 +6,7 @@ process.env['DB_USER'] = 'test_user';
 // eslint-disable-next-line sonarjs/no-hardcoded-passwords
 process.env['DB_PASSWORD'] = 'test_password';
 process.env['REDIS_MODE'] = 'standalone';
-process.env['REDIS_HOSTS'] = 'localhost:6379';
+process.env['REDIS_HOSTS'] = 'localhost:6381';
 
 // Auth environment variables
 process.env['JWT_SECRET'] = 'test-jwt-secret-key-for-testing';

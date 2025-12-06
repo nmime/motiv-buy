@@ -277,7 +277,7 @@ export class MainMenuComposer {
 
     if (showBack) {
       navigationRow.push({
-        text: menu.metadata?.backText || '◀️',
+        text: menu.metadata?.backText ?? '◀️',
         callbackData: customBack || CallbackUtil.createActionCallback('action', 'back'),
         metadata: { action: 'navigation', type: 'back' },
       });
@@ -285,7 +285,7 @@ export class MainMenuComposer {
 
     if (showHome) {
       navigationRow.push({
-        text: menu.metadata?.homeText || '🏠',
+        text: menu.metadata?.homeText ?? '🏠',
         callbackData: customHome || CallbackUtil.createMenuCallback('main', 'navigate'),
         metadata: { action: 'navigation', type: 'home' },
       });
@@ -293,7 +293,7 @@ export class MainMenuComposer {
 
     if (showBreadcrumb) {
       navigationRow.push({
-        text: menu.metadata?.pathText || '📍',
+        text: menu.metadata?.pathText ?? '📍',
         callbackData: CallbackUtil.createActionCallback('action', 'breadcrumb'),
         metadata: { action: 'navigation', type: 'breadcrumb' },
       });
@@ -651,12 +651,16 @@ export class MainMenuComposer {
   private hasPermissionForButton(button: MenuButton, user: UserEntity): boolean {
     const feature = button.metadata?.feature;
 
+    if (!feature) {
+      return true;
+    }
+
     const permissionChecks: Record<string, () => boolean> = {
       withdrawal: () => user.status === UserStatus.Active,
       admin: () => user.role !== UserRole.User,
     };
 
-    const check = feature ? permissionChecks[feature] : null;
+    const check = permissionChecks[feature];
 
     return check ? check() : true;
   }

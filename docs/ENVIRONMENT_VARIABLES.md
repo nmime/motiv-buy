@@ -32,7 +32,7 @@ These **MUST** be configured for the application to run:
 | `JWT_SECRET`         | JWT signing key (64+ chars)       | `openssl rand -base64 64`        | ✅ Yes   |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token                | `123456:ABC-DEF...`              | ✅ Yes   |
 | `REDIS_MODE`         | Redis mode                        | `default`, `cluster`, `sentinel` | ✅ Yes   |
-| `REDIS_HOSTS`        | Redis host:port (comma-separated) | `redis:6379`                     | ✅ Yes   |
+| `REDIS_HOSTS`        | Redis host:port (comma-separated) | `redis:6381`                     | ✅ Yes   |
 
 ---
 
@@ -70,7 +70,7 @@ Redis can be configured in three modes: `default`, `cluster`, or `sentinel`.
 
 ```bash
 REDIS_MODE=default
-REDIS_HOSTS=redis:6379
+REDIS_HOSTS=redis:6381
 REDIS_PASSWORD=your_redis_password
 REDIS_DB=0
 ```
@@ -79,7 +79,7 @@ REDIS_DB=0
 
 ```bash
 REDIS_MODE=cluster
-REDIS_HOSTS=redis1:6379,redis2:6379,redis3:6379
+REDIS_HOSTS=redis1:6381,redis2:6381,redis3:6381
 REDIS_PASSWORD=your_redis_password
 # Note: REDIS_DB is not allowed in cluster mode
 ```

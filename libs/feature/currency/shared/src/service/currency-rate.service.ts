@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { MikroORM, RequestContext } from '@mikro-orm/core';
+import Redlock from 'redlock';
 import {
   CurrencyCode,
   CurrencyRatesHistoryRepository,
@@ -10,68 +11,44 @@ import {
   CurrencyRateProviderRepository,
   RateProviderCurrencyRepository,
   ProviderCurrencyMapping,
-  CurrencyType,
   RateProvider,
 } from '@app/database';
-import { abs, decimal, Decimal, divide, Err, multiply, Ok, Result, subtract, toDbString } from '@app/common-shared';
+import {
+  abs,
+  add,
+  decimal,
+  Decimal,
+  divide,
+  Err,
+  multiply,
+  Ok,
+  Result,
+  subtract,
+  toDbString,
+} from '@app/common-shared';
 
-/**
- * Circuit breaker state for provider health tracking
- */
-interface CircuitBreakerState {
-  failures: number;
-  lastFailure: Date | null;
-  isOpen: boolean;
-  successCount: number;
-}
-
-/**
- * Provider configuration with quota limits
- */
 interface ProviderConfig {
   name: RateProvider;
   reliability: number;
   enabled: boolean;
-  quotaPerMinute?: number;
-  quotaPerMonth?: number;
   requiresAuth: boolean;
 }
 
-/**
- * Production-ready currency rate service
- * - Multi-provider support with minimum 2 providers per currency type
- * - Retry logic with exponential backoff
- * - Circuit breaker pattern for failing providers
- * - Rate limit and quota management
- * - Provider health monitoring
- * - Stablecoin validation
- */
 @Injectable()
 export class CurrencyRateService implements OnModuleInit {
   private readonly logger = new Logger(CurrencyRateService.name);
-  private readonly circuitBreakers = new Map<RateProvider, CircuitBreakerState>();
-  private readonly requestCounts = new Map<RateProvider, { count: number; resetAt: Date }>();
 
-  // Provider configurations loaded from database (cached)
   private providerConfigs: ProviderConfig[] = [];
   private providerConfigsLoaded = false;
 
-  // Currency mappings loaded from database (cached)
   private currencyMappings = new Map<RateProvider, ProviderCurrencyMapping[]>();
   private currencyMappingsLoaded = false;
 
-  // Stablecoin tolerance (3% deviation)
   private readonly stablecoinTolerance = 0.03;
   private readonly stablecoins = [CurrencyCode.Usdt, CurrencyCode.Usdc];
 
-  // Circuit breaker thresholds
-  private readonly circuitBreakerThreshold = 5; // failures before opening
-  private readonly circuitBreakerTimeout = 5 * 60 * 1000; // 5 minutes
-  private readonly circuitBreakerSuccessThreshold = 2; // successes to close
-
-  // Retry configuration
-  private readonly maxRetries = 3;
-  private readonly initialRetryDelay = 2000; // 2 seconds
+  private readonly lockTtl = 60000;
+  private readonly lockKey = 'currency-rate-update';
 
   constructor(
     private readonly orm: MikroORM,
@@ -81,220 +58,45 @@ export class CurrencyRateService implements OnModuleInit {
     private readonly currencyRateProviderRepository: CurrencyRateProviderRepository,
     private readonly rateProviderCurrencyRepository: RateProviderCurrencyRepository,
     private readonly configService: ConfigService,
+    private readonly redlock: Redlock,
   ) {}
 
-  /**
-   * Load provider configurations from database
-   */
   private async loadProviderConfigs(): Promise<void> {
     if (this.providerConfigsLoaded) {
       return;
     }
 
-    try {
-      const providers = await this.currencyRateProviderRepository.findAllEnabled();
+    const providers = await this.currencyRateProviderRepository.findAllEnabled();
 
-      this.providerConfigs = providers.map((p) => ({
-        name: p.name,
-        reliability: p.reliability,
-        enabled: p.isEnabled,
-        quotaPerMinute: p.quotaPerMinute ?? undefined,
-        quotaPerMonth: p.quotaPerMonth ?? undefined,
-        requiresAuth: p.requiresAuth,
-      }));
+    this.providerConfigs = providers.map((p) => ({
+      name: p.name,
+      reliability: p.reliability,
+      enabled: p.isEnabled,
+      requiresAuth: p.requiresAuth,
+    }));
 
-      this.initializeCircuitBreakers();
-      this.providerConfigsLoaded = true;
-      this.logger.log(`Loaded ${this.providerConfigs.length} provider configurations from database`);
-    } catch (error) {
-      this.logger.error(`Failed to load provider configs from database: ${error}`);
-      // Use fallback defaults if DB load fails
-      this.useFallbackConfigs();
-    }
+    this.providerConfigsLoaded = true;
+    this.logger.log('Provider configurations loaded', { count: this.providerConfigs.length });
   }
 
-  /**
-   * Fallback provider configs if database is unavailable
-   */
-  private useFallbackConfigs(): void {
-    this.providerConfigs = [
-      { name: RateProvider.CoinGecko, reliability: 95, enabled: true, quotaPerMinute: 50, requiresAuth: false },
-      { name: RateProvider.Binance, reliability: 90, enabled: true, quotaPerMinute: 2400, requiresAuth: false },
-      { name: RateProvider.CoinCap, reliability: 80, enabled: true, requiresAuth: false },
-      { name: RateProvider.Kraken, reliability: 90, enabled: true, requiresAuth: false },
-      { name: RateProvider.ExchangeRateApi, reliability: 100, enabled: true, quotaPerMonth: 1500, requiresAuth: false },
-      { name: RateProvider.Frankfurter, reliability: 95, enabled: true, requiresAuth: false },
-    ];
-
-    this.initializeCircuitBreakers();
-    this.logger.warn('Using fallback provider configurations');
-  }
-
-  /**
-   * Load currency mappings from database
-   */
   private async loadCurrencyMappings(): Promise<void> {
     if (this.currencyMappingsLoaded) {
       return;
     }
 
-    try {
-      this.currencyMappings = await this.rateProviderCurrencyRepository.findAllEnabled();
-      this.currencyMappingsLoaded = true;
-      this.logger.log(`Loaded currency mappings for ${this.currencyMappings.size} providers from database`);
-    } catch (error) {
-      this.logger.error(`Failed to load currency mappings from database: ${error}`);
-      // Use fallback mappings if DB load fails
-      this.useFallbackCurrencyMappings();
-    }
+    this.currencyMappings = await this.rateProviderCurrencyRepository.findAllEnabled();
+    this.currencyMappingsLoaded = true;
+    this.logger.log('Currency mappings loaded', { providerCount: this.currencyMappings.size });
   }
 
-  /**
-   * Get currency mappings for a specific provider
-   */
   private getCurrencyMappings(provider: RateProvider): ProviderCurrencyMapping[] {
     return this.currencyMappings.get(provider) ?? [];
   }
 
-  /**
-   * Fallback currency mappings if database is unavailable
-   */
-  private useFallbackCurrencyMappings(): void {
-    const allCryptos = [
-      CurrencyCode.Btc,
-      CurrencyCode.Eth,
-      CurrencyCode.Usdt,
-      CurrencyCode.Usdc,
-      CurrencyCode.Bnb,
-      CurrencyCode.Ton,
-      CurrencyCode.Trx,
-      CurrencyCode.Ltc,
-      CurrencyCode.Doge,
-      CurrencyCode.Dai,
-      CurrencyCode.Dash,
-      CurrencyCode.Bch,
-      CurrencyCode.Sol,
-    ];
-
-    // CoinGecko mappings
-    const coingeckoMap: Record<CurrencyCode, string> = {
-      [CurrencyCode.Btc]: 'bitcoin',
-      [CurrencyCode.Eth]: 'ethereum',
-      [CurrencyCode.Usdt]: 'tether',
-      [CurrencyCode.Usdc]: 'usd-coin',
-      [CurrencyCode.Bnb]: 'binancecoin',
-      [CurrencyCode.Ton]: 'the-open-network',
-      [CurrencyCode.Trx]: 'tron',
-      [CurrencyCode.Ltc]: 'litecoin',
-      [CurrencyCode.Doge]: 'dogecoin',
-      [CurrencyCode.Dai]: 'dai',
-      [CurrencyCode.Dash]: 'dash',
-      [CurrencyCode.Bch]: 'bitcoin-cash',
-      [CurrencyCode.Sol]: 'solana',
-      [CurrencyCode.Usd]: 'usd',
-      [CurrencyCode.Eur]: 'eur',
-      [CurrencyCode.Rub]: 'rub',
-    };
-
-    this.currencyMappings.set(
-      RateProvider.CoinGecko,
-      allCryptos.map((code) => ({
-        currencyCode: code,
-        providerSymbol: coingeckoMap[code] ?? code.toLowerCase(),
-        isEnabled: true,
-        priority: 10,
-      })),
-    );
-
-    // Binance mappings
-    const binanceMap: Record<CurrencyCode, string> = {
-      [CurrencyCode.Btc]: 'BTCUSDT',
-      [CurrencyCode.Eth]: 'ETHUSDT',
-      [CurrencyCode.Bnb]: 'BNBUSDT',
-      [CurrencyCode.Ton]: 'TONUSDT',
-      [CurrencyCode.Trx]: 'TRXUSDT',
-      [CurrencyCode.Ltc]: 'LTCUSDT',
-      [CurrencyCode.Doge]: 'DOGEUSDT',
-      [CurrencyCode.Sol]: 'SOLUSDT',
-      [CurrencyCode.Bch]: 'BCHUSDT',
-      [CurrencyCode.Dash]: 'DASHUSDT',
-      [CurrencyCode.Dai]: 'DAIUSDT',
-      [CurrencyCode.Usdc]: 'USDCUSDT',
-      [CurrencyCode.Usdt]: '',
-      [CurrencyCode.Usd]: '',
-      [CurrencyCode.Eur]: '',
-      [CurrencyCode.Rub]: '',
-    };
-
-    this.currencyMappings.set(
-      RateProvider.Binance,
-      allCryptos
-        .filter((code) => binanceMap[code])
-        .map((code) => ({
-          currencyCode: code,
-          providerSymbol: binanceMap[code],
-          isEnabled: true,
-          priority: 20,
-        })),
-    );
-
-    // Kraken mappings
-    const krakenMap: Record<CurrencyCode, string> = {
-      [CurrencyCode.Btc]: 'XXBTZUSD',
-      [CurrencyCode.Eth]: 'XETHZUSD',
-      [CurrencyCode.Ltc]: 'XLTCZUSD',
-      [CurrencyCode.Doge]: 'XDGUSD',
-      [CurrencyCode.Sol]: 'SOLUSD',
-      [CurrencyCode.Bch]: 'BCHUSD',
-      [CurrencyCode.Dash]: 'DASHUSD',
-      [CurrencyCode.Trx]: 'TRXUSD',
-      [CurrencyCode.Dai]: 'DAIUSD',
-      [CurrencyCode.Usdc]: 'USDCUSD',
-      [CurrencyCode.Usdt]: 'USDTZUSD',
-      [CurrencyCode.Bnb]: '',
-      [CurrencyCode.Ton]: '',
-      [CurrencyCode.Usd]: '',
-      [CurrencyCode.Eur]: '',
-      [CurrencyCode.Rub]: '',
-    };
-
-    this.currencyMappings.set(
-      RateProvider.Kraken,
-      allCryptos
-        .filter((code) => krakenMap[code])
-        .map((code) => ({
-          currencyCode: code,
-          providerSymbol: krakenMap[code],
-          isEnabled: true,
-          priority: 50,
-        })),
-    );
-
-    // Fiat provider mappings
-    this.currencyMappings.set(RateProvider.ExchangeRateApi, [
-      { currencyCode: CurrencyCode.Eur, providerSymbol: 'EUR', isEnabled: true, priority: 10 },
-      { currencyCode: CurrencyCode.Rub, providerSymbol: 'RUB', isEnabled: true, priority: 10 },
-    ]);
-
-    this.currencyMappings.set(RateProvider.Frankfurter, [
-      { currencyCode: CurrencyCode.Eur, providerSymbol: 'EUR', isEnabled: true, priority: 20 },
-    ]);
-
-    this.currencyMappingsLoaded = true;
-    this.logger.warn('Using fallback currency mappings');
-  }
-
-  /**
-   * Execute a function within a request context (required for background tasks)
-   * This ensures EntityManager operations have proper context
-   */
   private async executeInContext<T>(fn: () => Promise<T>): Promise<T> {
     return RequestContext.create(this.orm.em, fn);
   }
 
-  /**
-   * Convert amount from one currency to another
-   */
   async convertAmount(amount: string, fromCode: CurrencyCode, toCode: CurrencyCode): Promise<Result<string, Error>> {
     try {
       const amountDecimal = decimal(amount);
@@ -314,15 +116,12 @@ export class CurrencyRateService implements OnModuleInit {
 
       return Ok(toDbString(convertedAmount, decimals));
     } catch (error) {
-      this.logger.error(`Error converting currency: ${error}`);
+      this.logger.error('Currency conversion failed', { error });
 
       return Err(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
-  /**
-   * Get current rate for a currency (to USD)
-   */
   async getCurrentRate(code: CurrencyCode): Promise<Result<string, Error>> {
     try {
       const currencyData = await this.currencyRepository.getCurrencyWithRate(code);
@@ -337,275 +136,91 @@ export class CurrencyRateService implements OnModuleInit {
     }
   }
 
-  /**
-   * Update all rates from all providers
-   */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async updateAllRates(): Promise<void> {
-    await this.executeInContext(async () => {
-      // Ensure provider configs and currency mappings are loaded
-      await this.loadProviderConfigs();
-      await this.loadCurrencyMappings();
+    let lock;
 
-      this.logger.log('🔄 Starting rate update from all providers');
+    try {
+      lock = await this.redlock.acquire([this.lockKey], this.lockTtl);
+    } catch {
+      this.logger.debug('Rate update already in progress, skipping');
 
-      const startTime = Date.now();
-      const results = await Promise.allSettled([
-        // Crypto providers (minimum 2)
-        this.fetchCoinGeckoRates(),
-        this.fetchBinanceRates(),
-        this.fetchCryptoCompareRates(),
-        this.fetchCoinCapRates(),
-        this.fetchKrakenRates(),
-
-        // Fiat providers (minimum 2)
-        this.fetchExchangeRateAPI(),
-        this.fetchFrankfurterRates(),
-        this.fetchFreeCurrencyRates(),
-      ]);
-
-      const duration = Date.now() - startTime;
-      const successful = results.filter((r) => r.status === 'fulfilled').length;
-      const failed = results.filter((r) => r.status === 'rejected').length;
-
-      this.logger.log(
-        `✅ Rate update completed in ${duration}ms - Success: ${successful}, Failed: ${failed}, Total: ${results.length}`,
-      );
-
-      // Check if we have minimum providers
-      await this.verifyMinimumProviders();
-    });
-  }
-
-  /**
-   * Get provider health status
-   */
-  async getProviderHealthStatus(): Promise<
-    Array<{
-      provider: RateProvider;
-      isAvailable: boolean;
-      failures: number;
-      lastFailure: Date | null;
-    }>
-  > {
-    const status = [];
-
-    for (const [provider, breaker] of this.circuitBreakers.entries()) {
-      status.push({
-        provider,
-        isAvailable: !breaker.isOpen,
-        failures: breaker.failures,
-        lastFailure: breaker.lastFailure,
-      });
+      return;
     }
 
-    return status;
+    try {
+      await this.executeInContext(async () => {
+        await this.loadProviderConfigs();
+        await this.loadCurrencyMappings();
+
+        this.logger.log('Rate update started');
+
+        const startTime = Date.now();
+        const results = await Promise.allSettled([
+          this.fetchCoinGeckoRates(),
+          this.fetchBinanceRates(),
+          this.fetchCryptoCompareRates(),
+          this.fetchKrakenRates(),
+          this.fetchCoinCodexRates(),
+          this.fetchHuobiRates(),
+          this.fetchOkxRates(),
+          this.fetchExchangeRateAPI(),
+          this.fetchFrankfurterRates(),
+          this.fetchFreeCurrencyRates(),
+          this.fetchCoinbaseRates(),
+          this.fetchOpenExchangeRates(),
+        ]);
+
+        const duration = Date.now() - startTime;
+        const successful = results.filter((r) => r.status === 'fulfilled').length;
+        const failed = results.filter((r) => r.status === 'rejected').length;
+
+        this.logger.log('Rate update completed', { durationMs: duration, successful, failed });
+
+        await this.verifyMinimumProviders();
+      });
+    } finally {
+      await lock.release();
+    }
   }
 
-  /**
-   * Retry logic with exponential backoff
-   * Note: Sequential await in loop is intentional for retry logic with delays
-   */
-
-  /**
-   * Cleanup old rates daily
-   */
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupOldRates(): Promise<void> {
     await this.executeInContext(async () => {
-      this.logger.log('🧹 Cleaning up old rates');
+      this.logger.log('Cleaning up old rates');
 
       try {
         const deletedCount = await this.currencyRatesHistoryRepository.cleanupOldRates(7);
-        this.logger.log(`✅ Cleaned up ${deletedCount} old rate entries`);
+        this.logger.log('Rate cleanup completed', { deletedCount });
       } catch (error) {
-        this.logger.error(`Error cleaning up rates: ${error}`);
+        this.logger.error('Rate cleanup failed', { error });
       }
     });
   }
 
-  /**
-   * Initialize currencies and fetch initial rates
-   * Note: Database initialization is deferred to avoid EntityManager context issues during module init.
-   * Currency data will be lazily initialized on first use or via cron jobs.
-   */
   async onModuleInit(): Promise<void> {
-    this.logger.log('🚀 Currency rate service initialized (initialization deferred)');
-    // Schedule initial currency load and rate update after a short delay
-    // to ensure EntityManager context is properly established
+    this.logger.log('Currency rate service starting');
     setTimeout(() => {
       this.performInitialization().catch((error) => {
-        this.logger.error(`Deferred initialization failed: ${error}`);
+        this.logger.error('Initialization failed', { error });
       });
     }, 1000);
   }
 
-  /**
-   * Perform deferred initialization (provider configs + currencies + initial rates)
-   */
   private async performInitialization(): Promise<void> {
     await this.executeInContext(async () => {
       try {
-        // Load provider configs from database first
         await this.loadProviderConfigs();
-        this.logger.log('✅ Provider configs loaded from database');
-
-        // Load currency mappings from database
         await this.loadCurrencyMappings();
-        this.logger.log('✅ Currency mappings loaded from database');
-
-        // Initialize currencies
-        await this.initializeCurrencies();
-        this.logger.log('✅ Currencies initialized, starting rate update...');
       } catch (error) {
-        this.logger.error(`Error in deferred initialization: ${error}`);
+        this.logger.error('Deferred initialization error', { error });
       }
     });
 
-    // Rate update is already wrapped in executeInContext
     await this.updateAllRates();
-    this.logger.log('✅ Currency rate service fully initialized');
+    this.logger.log('Currency rate service ready');
   }
 
-  /**
-   * Initialize circuit breakers for all providers
-   */
-  private initializeCircuitBreakers(): void {
-    for (const config of this.providerConfigs) {
-      this.circuitBreakers.set(config.name, {
-        failures: 0,
-        lastFailure: null,
-        isOpen: false,
-        successCount: 0,
-      });
-    }
-  }
-
-  /**
-   * Check if provider is available (circuit breaker and rate limits)
-   */
-  private async isProviderAvailable(provider: RateProvider): Promise<boolean> {
-    const breaker = this.circuitBreakers.get(provider);
-    if (!breaker) {
-      return false;
-    }
-
-    // Check circuit breaker
-    if (breaker.isOpen) {
-      const now = Date.now();
-      const timeSinceLastFailure = breaker.lastFailure ? now - breaker.lastFailure.getTime() : 0;
-
-      if (timeSinceLastFailure > this.circuitBreakerTimeout) {
-        // Try half-open state
-        this.logger.log(`Circuit breaker for ${provider} entering half-open state`);
-        breaker.isOpen = false;
-        breaker.successCount = 0;
-      } else {
-        this.logger.warn(`Circuit breaker for ${provider} is OPEN, skipping`);
-
-        return false;
-      }
-    }
-
-    // Check rate limits
-    const rateLimit = this.requestCounts.get(provider);
-    const config = this.providerConfigs.find((c) => c.name === provider);
-
-    if (config?.quotaPerMinute && rateLimit) {
-      const now = new Date();
-      if (now < rateLimit.resetAt && rateLimit.count >= config.quotaPerMinute) {
-        this.logger.warn(`Rate limit reached for ${provider}, skipping`);
-
-        return false;
-      }
-
-      if (now >= rateLimit.resetAt) {
-        // Reset counter
-        this.requestCounts.set(provider, { count: 0, resetAt: new Date(now.getTime() + 60000) });
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Record provider success
-   */
-  private recordSuccess(provider: RateProvider): void {
-    const breaker = this.circuitBreakers.get(provider);
-    if (breaker) {
-      breaker.failures = 0;
-      breaker.successCount++;
-
-      if (breaker.successCount >= this.circuitBreakerSuccessThreshold) {
-        breaker.isOpen = false;
-        this.logger.log(`Circuit breaker for ${provider} closed after successful requests`);
-      }
-    }
-
-    // Increment request count
-    const rateLimit = this.requestCounts.get(provider);
-    if (rateLimit) {
-      rateLimit.count++;
-    } else {
-      this.requestCounts.set(provider, { count: 1, resetAt: new Date(Date.now() + 60000) });
-    }
-  }
-
-  /**
-   * Record provider failure
-   */
-  private recordFailure(provider: RateProvider, error: Error): void {
-    const breaker = this.circuitBreakers.get(provider);
-    if (breaker) {
-      breaker.failures++;
-      breaker.lastFailure = new Date();
-      breaker.successCount = 0;
-
-      if (breaker.failures >= this.circuitBreakerThreshold) {
-        breaker.isOpen = true;
-        this.logger.error(
-          `Circuit breaker for ${provider} OPENED after ${breaker.failures} failures. Last error: ${error.message}`,
-        );
-      }
-    }
-  }
-
-  /* eslint-disable no-await-in-loop */
-  private async retryWithBackoff<T>(
-    fn: () => Promise<T>,
-    provider: RateProvider,
-    retries = this.maxRetries,
-  ): Promise<T> {
-    let lastError: Error = new Error('Unknown error');
-
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const result = await fn();
-        this.recordSuccess(provider);
-
-        return result;
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-
-        if (attempt < retries) {
-          const delay = this.initialRetryDelay * Math.pow(2, attempt);
-          this.logger.warn(
-            `${provider} attempt ${attempt + 1} failed: ${lastError.message}. Retrying in ${delay}ms...`,
-          );
-
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-      }
-    }
-
-    this.recordFailure(provider, lastError);
-    throw lastError;
-  }
-
-  /**
-   * Fetch with timeout
-   */
   private async fetchWithTimeout(url: string, timeout = 10000): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -621,9 +236,6 @@ export class CurrencyRateService implements OnModuleInit {
     }
   }
 
-  /**
-   * Validate stablecoin rate
-   */
   private validateStablecoinRate(currencyCode: CurrencyCode, rate: Decimal.Value): boolean {
     if (!this.stablecoins.includes(currencyCode)) {
       return true;
@@ -634,271 +246,91 @@ export class CurrencyRateService implements OnModuleInit {
     const isValid = deviation.lessThanOrEqualTo(this.stablecoinTolerance);
 
     if (!isValid) {
-      this.logger.warn(
-        `Stablecoin ${currencyCode} rate ${rateDecimal.toString()} deviates ${toDbString(multiply(deviation, 100), 2)}% from $1.00 peg`,
-      );
+      this.logger.warn('Stablecoin rate deviation detected', {
+        currency: currencyCode,
+        rate: rateDecimal.toString(),
+        deviationPercent: toDbString(multiply(deviation, 100), 2),
+      });
     }
 
     return isValid;
   }
 
-  /**
-   * Fetch rates from CoinGecko API
-   */
   private async fetchCoinGeckoRates(): Promise<void> {
     const provider = RateProvider.CoinGecko;
-    if (!(await this.isProviderAvailable(provider))) {
-      return;
-    }
-
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
-      this.logger.warn(`No currency mappings found for ${provider}`);
-
       return;
     }
 
-    await this.retryWithBackoff(async () => {
+    try {
       const ids = mappings.map((m) => m.providerSymbol).join(',');
       const response = await this.fetchWithTimeout(
         `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
       );
 
       if (!response.ok) {
-        throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
+        throw new Error(`CoinGecko API error: ${response.status}`);
       }
 
       const data = await response.json();
       const config = this.providerConfigs.find((c) => c.name === provider);
 
-      // Process all currencies in parallel
-      const promises = mappings.map(async (mapping) => {
-        if (data[mapping.providerSymbol]?.usd) {
-          const rate = data[mapping.providerSymbol].usd.toString();
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          if (data[mapping.providerSymbol]?.usd) {
+            const rate = data[mapping.providerSymbol].usd.toString();
 
-          // Validate stablecoin rates
-          if (!this.validateStablecoinRate(mapping.currencyCode, rate)) {
-            this.logger.warn(`Skipping suspicious ${mapping.currencyCode} rate from ${provider}: ${rate}`);
-
-            return;
-          }
-
-          const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
-
-          if (currency) {
-            await this.currencyRatesHistoryRepository.createEntry(
-              currency.id,
-              provider,
-              toDbString(rate, 8),
-              config?.reliability ?? 95,
-            );
-
-            await this.updateCurrencyRate(mapping.currencyCode);
-          }
-        }
-      });
-
-      await Promise.all(promises);
-
-      this.logger.log(`✅ Successfully fetched rates from ${provider}`);
-    }, provider);
-  }
-
-  /**
-   * Fetch rates from Binance API
-   */
-  private async fetchBinanceRates(): Promise<void> {
-    const provider = RateProvider.Binance;
-    if (!(await this.isProviderAvailable(provider))) {
-      return;
-    }
-
-    const mappings = this.getCurrencyMappings(provider);
-    if (mappings.length === 0) {
-      this.logger.warn(`No currency mappings found for ${provider}`);
-
-      return;
-    }
-
-    await this.retryWithBackoff(async () => {
-      const config = this.providerConfigs.find((c) => c.name === provider);
-
-      // Process all pairs in parallel
-      const promises = mappings.map(async (mapping) => {
-        const response = await this.fetchWithTimeout(
-          `https://api.binance.com/api/v3/ticker/price?symbol=${mapping.providerSymbol}`,
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const rate = data.price.toString();
-          const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
-
-          if (currency) {
-            await this.currencyRatesHistoryRepository.createEntry(
-              currency.id,
-              provider,
-              toDbString(rate, 8),
-              config?.reliability ?? 90,
-            );
-
-            await this.updateCurrencyRate(mapping.currencyCode);
-          }
-        }
-      });
-
-      await Promise.all(promises);
-
-      this.logger.log(`✅ Successfully fetched rates from ${provider}`);
-    }, provider);
-  }
-
-  /**
-   * Fetch rates from CryptoCompare API
-   */
-  private async fetchCryptoCompareRates(): Promise<void> {
-    const provider = RateProvider.CryptoCompare;
-    if (!(await this.isProviderAvailable(provider))) {
-      return;
-    }
-
-    const apiKey = this.configService.get<string>('CRYPTOCOMPARE_API_KEY');
-    if (!apiKey) {
-      this.logger.warn(`${provider} API key not configured, skipping`);
-
-      return;
-    }
-
-    const mappings = this.getCurrencyMappings(provider);
-    if (mappings.length === 0) {
-      this.logger.warn(`No currency mappings found for ${provider}`);
-
-      return;
-    }
-
-    await this.retryWithBackoff(async () => {
-      const fsyms = mappings.map((m) => m.providerSymbol).join(',');
-      const url = `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${fsyms}&tsyms=USD&api_key=${apiKey}`;
-      const response = await this.fetchWithTimeout(url);
-
-      if (!response.ok) {
-        throw new Error(`CryptoCompare API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const config = this.providerConfigs.find((c) => c.name === provider);
-
-      // Process all symbols in parallel
-      const promises = mappings.map(async (mapping) => {
-        if (data[mapping.providerSymbol]?.USD) {
-          const rate = data[mapping.providerSymbol].USD.toString();
-
-          if (!this.validateStablecoinRate(mapping.currencyCode, rate)) {
-            return;
-          }
-
-          const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
-          if (currency) {
-            await this.currencyRatesHistoryRepository.createEntry(
-              currency.id,
-              provider,
-              toDbString(rate, 8),
-              config?.reliability ?? 85,
-            );
-
-            await this.updateCurrencyRate(mapping.currencyCode);
-          }
-        }
-      });
-
-      await Promise.all(promises);
-
-      this.logger.log(`✅ Successfully fetched rates from ${provider}`);
-    }, provider);
-  }
-
-  /**
-   * Fetch rates from CoinCap API
-   */
-  private async fetchCoinCapRates(): Promise<void> {
-    const provider = RateProvider.CoinCap;
-    if (!(await this.isProviderAvailable(provider))) {
-      return;
-    }
-
-    const mappings = this.getCurrencyMappings(provider);
-    if (mappings.length === 0) {
-      this.logger.warn(`No currency mappings found for ${provider}`);
-
-      return;
-    }
-
-    await this.retryWithBackoff(async () => {
-      const config = this.providerConfigs.find((c) => c.name === provider);
-
-      // Process all currencies in parallel
-      const promises = mappings.map(async (mapping) => {
-        const response = await this.fetchWithTimeout(`https://api.coincap.io/v2/assets/${mapping.providerSymbol}`);
-
-        if (response.ok) {
-          const data = await response.json();
-          const rate = data.data.priceUsd.toString();
-
-          if (!this.validateStablecoinRate(mapping.currencyCode, rate)) {
-            return;
-          }
-
-          const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
-          if (currency) {
-            await this.currencyRatesHistoryRepository.createEntry(
-              currency.id,
-              provider,
-              toDbString(rate, 8),
-              config?.reliability ?? 80,
-            );
-
-            await this.updateCurrencyRate(mapping.currencyCode);
-          }
-        }
-      });
-
-      await Promise.all(promises);
-
-      this.logger.log(`✅ Successfully fetched rates from ${provider}`);
-    }, provider);
-  }
-
-  /**
-   * Fetch rates from Kraken API
-   */
-  private async fetchKrakenRates(): Promise<void> {
-    const provider = RateProvider.Kraken;
-    if (!(await this.isProviderAvailable(provider))) {
-      return;
-    }
-
-    const mappings = this.getCurrencyMappings(provider);
-    if (mappings.length === 0) {
-      this.logger.warn(`No currency mappings found for ${provider}`);
-
-      return;
-    }
-
-    await this.retryWithBackoff(async () => {
-      const config = this.providerConfigs.find((c) => c.name === provider);
-
-      // Process all pairs in parallel
-      const promises = mappings.map(async (mapping) => {
-        const response = await this.fetchWithTimeout(
-          `https://api.kraken.com/0/public/Ticker?pair=${mapping.providerSymbol}`,
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.result?.[mapping.providerSymbol]) {
-            const rate = data.result[mapping.providerSymbol].c[0].toString(); // Last trade price
+            if (!this.validateStablecoinRate(mapping.currencyCode, rate)) {
+              return;
+            }
 
             const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+            if (currency) {
+              await this.currencyRatesHistoryRepository.createEntry(
+                currency.id,
+                provider,
+                toDbString(rate, 8),
+                config?.reliability ?? 95,
+              );
+
+              await this.updateCurrencyRate(mapping.currencyCode);
+            }
+          }
+        }),
+      );
+
+      this.logger.log('Rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
+  }
+
+  private async fetchBinanceRates(): Promise<void> {
+    const provider = RateProvider.Binance;
+    const mappings = this.getCurrencyMappings(provider);
+    if (mappings.length === 0) {
+      return;
+    }
+
+    try {
+      const symbols = mappings.map((m) => `"${m.providerSymbol}"`).join(',');
+      const response = await this.fetchWithTimeout(`https://api4.binance.com/api/v3/ticker/price?symbols=[${symbols}]`);
+
+      if (!response.ok) {
+        throw new Error(`Binance API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const config = this.providerConfigs.find((c) => c.name === provider);
+
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          const ticker = data.find((t: { symbol: string }) => t.symbol === mapping.providerSymbol);
+          if (ticker?.price) {
+            const rate = ticker.price.toString();
+            const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+
             if (currency) {
               await this.currencyRatesHistoryRepository.createEntry(
                 currency.id,
@@ -910,32 +342,275 @@ export class CurrencyRateService implements OnModuleInit {
               await this.updateCurrencyRate(mapping.currencyCode);
             }
           }
-        }
-      });
+        }),
+      );
 
-      await Promise.all(promises);
-
-      this.logger.log(`✅ Successfully fetched rates from ${provider}`);
-    }, provider);
+      this.logger.log('Rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
   }
 
-  /**
-   * Fetch fiat rates from ExchangeRate-API
-   */
-  private async fetchExchangeRateAPI(): Promise<void> {
-    const provider = RateProvider.ExchangeRateApi;
-    if (!(await this.isProviderAvailable(provider))) {
+  private async fetchCryptoCompareRates(): Promise<void> {
+    const provider = RateProvider.CryptoCompare;
+    const apiKey = this.configService.get<string>('CRYPTOCOMPARE_API_KEY');
+    if (!apiKey) {
       return;
     }
 
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
-      this.logger.warn(`No currency mappings found for ${provider}`);
-
       return;
     }
 
-    await this.retryWithBackoff(async () => {
+    try {
+      const fsyms = mappings.map((m) => m.providerSymbol).join(',');
+      const url = `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${fsyms}&tsyms=USD&api_key=${apiKey}`;
+      const response = await this.fetchWithTimeout(url);
+
+      if (!response.ok) {
+        throw new Error(`CryptoCompare API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const config = this.providerConfigs.find((c) => c.name === provider);
+
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          if (data[mapping.providerSymbol]?.USD) {
+            const rate = data[mapping.providerSymbol].USD.toString();
+
+            if (!this.validateStablecoinRate(mapping.currencyCode, rate)) {
+              return;
+            }
+
+            const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+            if (currency) {
+              await this.currencyRatesHistoryRepository.createEntry(
+                currency.id,
+                provider,
+                toDbString(rate, 8),
+                config?.reliability ?? 85,
+              );
+
+              await this.updateCurrencyRate(mapping.currencyCode);
+            }
+          }
+        }),
+      );
+
+      this.logger.log('Rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
+  }
+
+  private async fetchKrakenRates(): Promise<void> {
+    const provider = RateProvider.Kraken;
+    const mappings = this.getCurrencyMappings(provider);
+    if (mappings.length === 0) {
+      return;
+    }
+
+    try {
+      const pairs = mappings.map((m) => m.providerSymbol).join(',');
+      const response = await this.fetchWithTimeout(`https://api.kraken.com/0/public/Ticker?pair=${pairs}`);
+
+      if (!response.ok) {
+        throw new Error(`Kraken API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const config = this.providerConfigs.find((c) => c.name === provider);
+
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          if (data.result?.[mapping.providerSymbol]) {
+            const rate = data.result[mapping.providerSymbol].c[0].toString();
+            const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+
+            if (currency) {
+              await this.currencyRatesHistoryRepository.createEntry(
+                currency.id,
+                provider,
+                toDbString(rate, 8),
+                config?.reliability ?? 90,
+              );
+
+              await this.updateCurrencyRate(mapping.currencyCode);
+            }
+          }
+        }),
+      );
+
+      this.logger.log('Rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
+  }
+
+  private async fetchCoinCodexRates(): Promise<void> {
+    const provider = RateProvider.CoinCodex;
+    const mappings = this.getCurrencyMappings(provider);
+    if (mappings.length === 0) {
+      return;
+    }
+
+    try {
+      const ids = mappings.map((m) => m.providerSymbol).join(',');
+      const response = await this.fetchWithTimeout(`https://coincodex.com/api/coincodex/get_coin_ranges/${ids}`);
+
+      if (!response.ok) {
+        throw new Error(`CoinCodex API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const config = this.providerConfigs.find((c) => c.name === provider);
+
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          const coinData = data[mapping.providerSymbol];
+          if (coinData?.['1H']) {
+            const { min, max } = coinData['1H'];
+            if (min && max) {
+              const rate = toDbString(divide(add(min, max), 2), 8);
+
+              if (!this.validateStablecoinRate(mapping.currencyCode, rate)) {
+                return;
+              }
+
+              const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+              if (currency) {
+                await this.currencyRatesHistoryRepository.createEntry(
+                  currency.id,
+                  provider,
+                  rate,
+                  config?.reliability ?? 85,
+                );
+
+                await this.updateCurrencyRate(mapping.currencyCode);
+              }
+            }
+          }
+        }),
+      );
+
+      this.logger.log('Rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
+  }
+
+  private async fetchHuobiRates(): Promise<void> {
+    const provider = RateProvider.Huobi;
+    const mappings = this.getCurrencyMappings(provider);
+    if (mappings.length === 0) {
+      return;
+    }
+
+    try {
+      const config = this.providerConfigs.find((c) => c.name === provider);
+
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          try {
+            const response = await this.fetchWithTimeout(
+              `https://api.huobi.pro/market/trade?symbol=${mapping.providerSymbol}`,
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data?.tick?.data?.[0]?.price) {
+                const rate = String(data.tick.data[0].price);
+
+                if (!this.validateStablecoinRate(mapping.currencyCode, rate)) {
+                  return;
+                }
+
+                const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+                if (currency) {
+                  await this.currencyRatesHistoryRepository.createEntry(
+                    currency.id,
+                    provider,
+                    toDbString(rate, 8),
+                    config?.reliability ?? 85,
+                  );
+
+                  await this.updateCurrencyRate(mapping.currencyCode);
+                }
+              }
+            }
+          } catch {
+            // Individual symbol fetch failed, continue with others
+          }
+        }),
+      );
+
+      this.logger.log('Rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
+  }
+
+  private async fetchOkxRates(): Promise<void> {
+    const provider = RateProvider.Okx;
+    const mappings = this.getCurrencyMappings(provider);
+    if (mappings.length === 0) {
+      return;
+    }
+
+    try {
+      const config = this.providerConfigs.find((c) => c.name === provider);
+
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          try {
+            const response = await this.fetchWithTimeout(
+              `https://www.okx.com/api/v5/market/ticker?instId=${mapping.providerSymbol}`,
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data?.data?.[0]?.last) {
+                const rate = String(data.data[0].last);
+
+                if (!this.validateStablecoinRate(mapping.currencyCode, rate)) {
+                  return;
+                }
+
+                const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+                if (currency) {
+                  await this.currencyRatesHistoryRepository.createEntry(
+                    currency.id,
+                    provider,
+                    toDbString(rate, 8),
+                    config?.reliability ?? 85,
+                  );
+
+                  await this.updateCurrencyRate(mapping.currencyCode);
+                }
+              }
+            }
+          } catch {
+            // Individual symbol fetch failed, continue with others
+          }
+        }),
+      );
+
+      this.logger.log('Rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
+  }
+
+  private async fetchExchangeRateAPI(): Promise<void> {
+    const provider = RateProvider.ExchangeRateApi;
+    const mappings = this.getCurrencyMappings(provider);
+    if (mappings.length === 0) {
+      return;
+    }
+
+    try {
       const response = await this.fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/USD');
 
       if (!response.ok) {
@@ -945,50 +620,41 @@ export class CurrencyRateService implements OnModuleInit {
       const data = await response.json();
       const config = this.providerConfigs.find((c) => c.name === provider);
 
-      // Process all configured currency mappings
-      const promises = mappings.map(async (mapping) => {
-        const fiatRate = data.rates[mapping.providerSymbol];
-        if (fiatRate) {
-          // Convert from USD/FIAT to FIAT/USD (rate to USD = 1/X)
-          const rateToUsd = toDbString(divide(1, fiatRate), 8);
-          const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          const fiatRate = data.rates[mapping.providerSymbol];
+          if (fiatRate) {
+            const rateToUsd = toDbString(divide(1, fiatRate), 8);
+            const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
 
-          if (currency) {
-            await this.currencyRatesHistoryRepository.createEntry(
-              currency.id,
-              provider,
-              rateToUsd,
-              config?.reliability ?? 100,
-            );
+            if (currency) {
+              await this.currencyRatesHistoryRepository.createEntry(
+                currency.id,
+                provider,
+                rateToUsd,
+                config?.reliability ?? 100,
+              );
 
-            await this.updateCurrencyRate(mapping.currencyCode);
+              await this.updateCurrencyRate(mapping.currencyCode);
+            }
           }
-        }
-      });
+        }),
+      );
 
-      await Promise.all(promises);
-
-      this.logger.log(`✅ Successfully fetched fiat rates from ${provider}`);
-    }, provider);
+      this.logger.log('Fiat rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
   }
 
-  /**
-   * Fetch fiat rates from Frankfurter (ECB data)
-   */
   private async fetchFrankfurterRates(): Promise<void> {
     const provider = RateProvider.Frankfurter;
-    if (!(await this.isProviderAvailable(provider))) {
-      return;
-    }
-
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
-      this.logger.warn(`No currency mappings found for ${provider}`);
-
       return;
     }
 
-    await this.retryWithBackoff(async () => {
+    try {
       const currencies = mappings.map((m) => m.providerSymbol).join(',');
       const response = await this.fetchWithTimeout(`https://api.frankfurter.app/latest?from=USD&to=${currencies}`);
 
@@ -999,57 +665,46 @@ export class CurrencyRateService implements OnModuleInit {
       const data = await response.json();
       const config = this.providerConfigs.find((c) => c.name === provider);
 
-      // Process all configured currency mappings
-      const promises = mappings.map(async (mapping) => {
-        const fiatRate = data.rates[mapping.providerSymbol];
-        if (fiatRate) {
-          // Convert from USD/FIAT to FIAT/USD (rate to USD = 1/X)
-          const rateToUsd = toDbString(divide(1, fiatRate), 8);
-          const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          const fiatRate = data.rates[mapping.providerSymbol];
+          if (fiatRate) {
+            const rateToUsd = toDbString(divide(1, fiatRate), 8);
+            const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
 
-          if (currency) {
-            await this.currencyRatesHistoryRepository.createEntry(
-              currency.id,
-              provider,
-              rateToUsd,
-              config?.reliability ?? 95,
-            );
+            if (currency) {
+              await this.currencyRatesHistoryRepository.createEntry(
+                currency.id,
+                provider,
+                rateToUsd,
+                config?.reliability ?? 95,
+              );
 
-            await this.updateCurrencyRate(mapping.currencyCode);
+              await this.updateCurrencyRate(mapping.currencyCode);
+            }
           }
-        }
-      });
+        }),
+      );
 
-      await Promise.all(promises);
-
-      this.logger.log(`✅ Successfully fetched fiat rates from ${provider}`);
-    }, provider);
+      this.logger.log('Fiat rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
   }
 
-  /**
-   * Fetch fiat rates from FreeCurrency API
-   */
   private async fetchFreeCurrencyRates(): Promise<void> {
     const provider = RateProvider.FreeCurrencyApi;
-    if (!(await this.isProviderAvailable(provider))) {
-      return;
-    }
-
     const apiKey = this.configService.get<string>('FREECURRENCY_API_KEY');
     if (!apiKey) {
-      this.logger.warn(`${provider} API key not configured, skipping`);
-
       return;
     }
 
     const mappings = this.getCurrencyMappings(provider);
     if (mappings.length === 0) {
-      this.logger.warn(`No currency mappings found for ${provider}`);
-
       return;
     }
 
-    await this.retryWithBackoff(async () => {
+    try {
       const currencies = mappings.map((m) => m.providerSymbol).join(',');
       const url = `https://api.freecurrencyapi.com/v1/latest?apikey=${apiKey}&base_currency=USD&currencies=${currencies}`;
       const response = await this.fetchWithTimeout(url);
@@ -1061,36 +716,127 @@ export class CurrencyRateService implements OnModuleInit {
       const data = await response.json();
       const config = this.providerConfigs.find((c) => c.name === provider);
 
-      // Process all configured currency mappings
-      const promises = mappings.map(async (mapping) => {
-        const fiatRate = data.data[mapping.providerSymbol];
-        if (fiatRate) {
-          // Convert from USD/FIAT to FIAT/USD (rate to USD = 1/X)
-          const rateToUsd = toDbString(divide(1, fiatRate), 8);
-          const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          const fiatRate = data.data[mapping.providerSymbol];
+          if (fiatRate) {
+            const rateToUsd = toDbString(divide(1, fiatRate), 8);
+            const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
 
-          if (currency) {
-            await this.currencyRatesHistoryRepository.createEntry(
-              currency.id,
-              provider,
-              rateToUsd,
-              config?.reliability ?? 85,
-            );
+            if (currency) {
+              await this.currencyRatesHistoryRepository.createEntry(
+                currency.id,
+                provider,
+                rateToUsd,
+                config?.reliability ?? 85,
+              );
 
-            await this.updateCurrencyRate(mapping.currencyCode);
+              await this.updateCurrencyRate(mapping.currencyCode);
+            }
           }
-        }
-      });
+        }),
+      );
 
-      await Promise.all(promises);
-
-      this.logger.log(`✅ Successfully fetched fiat rates from ${provider}`);
-    }, provider);
+      this.logger.log('Fiat rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
   }
 
-  /**
-   * Update currency rate with weighted average from providers
-   */
+  private async fetchCoinbaseRates(): Promise<void> {
+    const provider = RateProvider.Coinbase;
+    const mappings = this.getCurrencyMappings(provider);
+    if (mappings.length === 0) {
+      return;
+    }
+
+    try {
+      const response = await this.fetchWithTimeout('https://api.coinbase.com/v2/exchange-rates?currency=USD');
+
+      if (!response.ok) {
+        throw new Error(`Coinbase API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const config = this.providerConfigs.find((c) => c.name === provider);
+
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          const fiatRate = data?.data?.rates?.[mapping.providerSymbol];
+          if (fiatRate) {
+            const rateToUsd = toDbString(divide(1, fiatRate), 8);
+            const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+
+            if (currency) {
+              await this.currencyRatesHistoryRepository.createEntry(
+                currency.id,
+                provider,
+                rateToUsd,
+                config?.reliability ?? 95,
+              );
+
+              await this.updateCurrencyRate(mapping.currencyCode);
+            }
+          }
+        }),
+      );
+
+      this.logger.log('Fiat rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
+  }
+
+  private async fetchOpenExchangeRates(): Promise<void> {
+    const provider = RateProvider.OpenExchangeRates;
+    const apiKey = this.configService.get<string>('OPEN_EXCHANGE_RATES_API_KEY');
+    if (!apiKey) {
+      return;
+    }
+
+    const mappings = this.getCurrencyMappings(provider);
+    if (mappings.length === 0) {
+      return;
+    }
+
+    try {
+      const url = `https://openexchangerates.org/api/latest.json?app_id=${apiKey}`;
+      const response = await this.fetchWithTimeout(url);
+
+      if (!response.ok) {
+        throw new Error(`OpenExchangeRates API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const config = this.providerConfigs.find((c) => c.name === provider);
+
+      await Promise.all(
+        mappings.map(async (mapping) => {
+          const fiatRate = data?.rates?.[mapping.providerSymbol];
+          if (fiatRate) {
+            const rateToUsd = toDbString(divide(1, fiatRate), 8);
+            const currency = await this.currencyRepository.findByCode(mapping.currencyCode);
+
+            if (currency) {
+              await this.currencyRatesHistoryRepository.createEntry(
+                currency.id,
+                provider,
+                rateToUsd,
+                config?.reliability ?? 90,
+              );
+
+              await this.updateCurrencyRate(mapping.currencyCode);
+            }
+          }
+        }),
+      );
+
+      this.logger.log('Fiat rates fetched', { provider });
+    } catch (error) {
+      this.logger.error('Provider fetch failed', { provider, error });
+    }
+  }
+
   private async updateCurrencyRate(code: CurrencyCode): Promise<void> {
     const weightedRate = await this.currencyRatesHistoryRepository.getWeightedAverageRate(code);
 
@@ -1099,120 +845,21 @@ export class CurrencyRateService implements OnModuleInit {
     }
   }
 
-  /**
-   * Verify we have minimum 2 providers for each currency type
-   */
   private async verifyMinimumProviders(): Promise<void> {
-    const cryptoCurrencies = [
-      CurrencyCode.Btc,
-      CurrencyCode.Eth,
-      CurrencyCode.Usdt,
-      CurrencyCode.Usdc,
-      CurrencyCode.Bnb,
-      CurrencyCode.Ton,
-      CurrencyCode.Trx,
-      CurrencyCode.Ltc,
-      CurrencyCode.Doge,
-      CurrencyCode.Dai,
-      CurrencyCode.Dash,
-      CurrencyCode.Bch,
-      CurrencyCode.Sol,
-    ];
+    const allCurrencies = await this.currencyRepository.findAllActive();
 
-    const fiatCurrencies = [CurrencyCode.Eur, CurrencyCode.Rub];
+    await Promise.all(
+      allCurrencies.map(async (currency) => {
+        const rates = await this.currencyRatesHistoryRepository.getLatestRatesByProvider(currency.code);
 
-    // Check all currencies in parallel
-    const checkPromises = [...cryptoCurrencies, ...fiatCurrencies].map(async (code) => {
-      const rates = await this.currencyRatesHistoryRepository.getLatestRatesByProvider(code);
-
-      if (rates.length < 2) {
-        this.logger.warn(`⚠️ Only ${rates.length} provider(s) for ${code}, minimum 2 recommended for redundancy`);
-      } else {
-        this.logger.debug(`✅ ${code} has ${rates.length} active providers`);
-      }
-    });
-
-    await Promise.all(checkPromises);
-  }
-
-  /**
-   * Initialize default currencies in database
-   */
-  private async initializeCurrencies(): Promise<void> {
-    const currencies = [
-      // Fiat
-      { code: CurrencyCode.Usd, name: 'US Dollar', type: CurrencyType.Fiat, rate: '1.0', symbol: '$', decimals: 2 },
-      { code: CurrencyCode.Eur, name: 'Euro', type: CurrencyType.Fiat, rate: '0.92', symbol: '€', decimals: 2 },
-      {
-        code: CurrencyCode.Rub,
-        name: 'Russian Ruble',
-        type: CurrencyType.Fiat,
-        rate: '0.011',
-        symbol: '₽',
-        decimals: 2,
-      },
-
-      // Crypto
-      { code: CurrencyCode.Btc, name: 'Bitcoin', type: CurrencyType.Crypto, rate: '45000', symbol: '₿', decimals: 8 },
-      { code: CurrencyCode.Eth, name: 'Ethereum', type: CurrencyType.Crypto, rate: '2500', symbol: 'Ξ', decimals: 8 },
-      { code: CurrencyCode.Usdt, name: 'Tether', type: CurrencyType.Crypto, rate: '1.0', symbol: '₮', decimals: 6 },
-      {
-        code: CurrencyCode.Usdc,
-        name: 'USD Coin',
-        type: CurrencyType.Crypto,
-        rate: '1.0',
-        symbol: 'USDC',
-        decimals: 6,
-      },
-      {
-        code: CurrencyCode.Bnb,
-        name: 'Binance Coin',
-        type: CurrencyType.Crypto,
-        rate: '300',
-        symbol: 'BNB',
-        decimals: 8,
-      },
-      { code: CurrencyCode.Ton, name: 'Toncoin', type: CurrencyType.Crypto, rate: '2.5', symbol: 'TON', decimals: 8 },
-      { code: CurrencyCode.Trx, name: 'Tron', type: CurrencyType.Crypto, rate: '0.10', symbol: 'TRX', decimals: 6 },
-      { code: CurrencyCode.Ltc, name: 'Litecoin', type: CurrencyType.Crypto, rate: '70', symbol: 'LTC', decimals: 8 },
-      {
-        code: CurrencyCode.Doge,
-        name: 'Dogecoin',
-        type: CurrencyType.Crypto,
-        rate: '0.08',
-        symbol: 'DOGE',
-        decimals: 8,
-      },
-      { code: CurrencyCode.Dai, name: 'DAI', type: CurrencyType.Crypto, rate: '1.0', symbol: 'DAI', decimals: 6 },
-      { code: CurrencyCode.Dash, name: 'Dash', type: CurrencyType.Crypto, rate: '30', symbol: 'DASH', decimals: 8 },
-      {
-        code: CurrencyCode.Bch,
-        name: 'Bitcoin Cash',
-        type: CurrencyType.Crypto,
-        rate: '350',
-        symbol: 'BCH',
-        decimals: 8,
-      },
-      { code: CurrencyCode.Sol, name: 'Solana', type: CurrencyType.Crypto, rate: '100', symbol: 'SOL', decimals: 9 },
-    ];
-
-    // Process currencies in parallel
-    const initPromises = currencies.map(async (curr) => {
-      const existing = await this.currencyRepository.findByCode(curr.code);
-
-      if (!existing) {
-        await this.currencyRepository.upsert(curr.code, curr.name, curr.type, curr.rate, curr.symbol);
-
-        const currency = await this.currencyRepository.findByCode(curr.code);
-        if (currency) {
-          currency.decimalPlaces = curr.decimals;
-          await this.currencyRepository.updateRate(curr.code, curr.rate);
+        if (rates.length < 2) {
+          this.logger.warn('Insufficient providers for currency', {
+            currency: currency.code,
+            count: rates.length,
+            minimum: 2,
+          });
         }
-      }
-    });
-
-    await Promise.all(initPromises);
-
-    this.logger.log('✅ Currencies initialized');
+      }),
+    );
   }
 }

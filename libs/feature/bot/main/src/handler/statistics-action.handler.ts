@@ -336,4 +336,25 @@ export class StatisticsActionHandler {
 
     return text;
   }
+
+  // ===== Additional Methods (extracted from callback-router) =====
+
+  async handleProfileStatsMenu(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    if (!params || params.length === 0) {
+      await this.handleStatisticsOverview(ctx);
+
+      return;
+    }
+
+    const statsHandlers: Record<string, (ctx: AuthenticatedBotContext) => Promise<void>> = {
+      overview: (ctx) => this.handleStatisticsOverview(ctx),
+      activity: (ctx) => this.handleDetailedStatistics(ctx),
+      earnings: (ctx) => this.handleEarningsStatistics(ctx),
+      performance: (ctx) => this.handleTrafficStatistics(ctx),
+    };
+
+    const [statType] = params;
+    const handler = statsHandlers[statType] || statsHandlers.overview;
+    await handler(ctx);
+  }
 }
