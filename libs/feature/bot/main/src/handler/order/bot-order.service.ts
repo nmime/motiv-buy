@@ -8,7 +8,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext, ChannelService } from '@app/feature-bot-shared';
 import { OrderService, IChannelService } from '@app/feature-order-main';
-import { OrderConfiguration, OrderFlowStep, OrderSessionState, defaultOrderConfig } from '@app/feature-order-shared';
+import {
+  OrderConfiguration,
+  OrderCreationOrigin,
+  OrderFlowStep,
+  OrderSessionState,
+  defaultOrderConfig,
+} from '@app/feature-order-shared';
 
 @Injectable()
 export class BotOrderService extends OrderService {
@@ -77,11 +83,12 @@ export class BotOrderService extends OrderService {
   /**
    * Initialize order creation flow
    */
-  initOrderCreation(ctx: BotContext): OrderSessionState {
+  initOrderCreation(ctx: BotContext, origin: OrderCreationOrigin = 'orders_list'): OrderSessionState {
     const state: OrderSessionState = {
       currentStep: OrderFlowStep.EnterChannelLink,
       config: { ...defaultOrderConfig },
       startedAt: new Date(),
+      origin,
     };
 
     this.saveOrderSessionState(ctx, state);
@@ -137,6 +144,7 @@ export class BotOrderService extends OrderService {
 export {
   Order,
   OrderConfiguration,
+  OrderCreationOrigin,
   OrderFlowStep,
   OrderSessionState,
   OrderStatus,

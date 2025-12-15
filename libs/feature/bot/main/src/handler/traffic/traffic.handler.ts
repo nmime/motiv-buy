@@ -101,7 +101,7 @@ ${ctx.t('buy_traffic.description')}
 <i>${ctx.t('buy_traffic.select_action')} 👇</i>`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('buy_traffic.btn_new_order'), 'order:create:start')
+      .text(ctx.t('buy_traffic.btn_new_order'), 'order:create:start:traffic')
       .text(ctx.t('buy_traffic.btn_my_orders'), 'orders:list')
       .row()
       .text(ctx.t('common.back'), 'menu:main');
@@ -338,6 +338,14 @@ ${ctx.t('sell_traffic.description')}
       return;
     }
 
+    // Only allow toggling for approved sources (Active/Inactive)
+    // Pending and Declined sources require moderation
+    if (source.status === TrafficSourceStatus.Pending || source.status === TrafficSourceStatus.Declined) {
+      await this.safeAnswerCallback(ctx, ctx.t('traffic.source_toggle_not_allowed'));
+
+      return;
+    }
+
     source.status =
       source.status === TrafficSourceStatus.Active ? TrafficSourceStatus.Inactive : TrafficSourceStatus.Active;
 
@@ -349,9 +357,11 @@ ${ctx.t('sell_traffic.description')}
   }
 
   async handleTrafficSourceDelete(ctx: BotContext, sourceId: string): Promise<void> {
-    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, `traffic:source:delete:confirm`, {
-      id: sourceId,
-    });
+    // Use shorter callback format to stay within Telegram's 64-byte limit
+    // Format: traf:src:del:Y:<id> (confirm) or traf:src:del:N:<id> (cancel)
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('common.buttons.confirm'), `traf:src:del:Y:${sourceId}`)
+      .text(ctx.t('common.buttons.cancel'), `traf:src:del:N:${sourceId}`);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('traffic.delete_source_confirm', {
@@ -359,6 +369,31 @@ ${ctx.t('sell_traffic.description')}
           '<b>⚠️ Delete Traffic Source</b>\n\nAre you sure you want to delete this traffic source?\n\n<b>This action cannot be undone!</b>',
       }),
       replyMarkup: keyboard,
+    });
+  }
+
+  async handleTrafficSourceDeleteConfirm(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
+
+    if (!source) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
+
+      return;
+    }
+
+    const sourceName = source.name;
+    await this.em.removeAndFlush(source);
+
+    await this.safeAnswerCallback(ctx, ctx.t('traffic.source_deleted'));
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.source_deleted_success', {
+        default: `<b>✅ Traffic Source Deleted</b>\n\nSource "${sourceName}" has been successfully deleted.`,
+        name: sourceName,
+      }),
+      replyMarkup: this.createBackButton(ctx, 'traffic:sources'),
     });
   }
 
@@ -382,17 +417,17 @@ ${ctx.t('sell_traffic.description')}
       this.em.count(TrafficOrderEntity, { trafficSource: source.id, status: TrafficOrderStatus.Completed }),
     ]);
 
-    let text = ctx.t('traffic.source_stats_title', {
-      default: `<b>📊 Source Statistics: ${source.name}</b>\n\n`,
-      name: source.name,
-    });
-
-    text += `<b>Orders:</b>\n`;
-    text += `• Total: ${totalOrders}\n`;
-    text += `• Active: ${activeOrders}\n`;
-    text += `• Completed: ${completedOrders}\n\n`;
-    text += `<b>Created:</b> ${source.createdAt.toLocaleDateString()}\n`;
-    text += `<b>Last Updated:</b> ${source.updatedAt.toLocaleDateString()}`;
+    const text =
+      ctx.t('traffic.source_stats_title', { name: source.name }) +
+      ctx.t('traffic.source_stats_orders', {
+        total: totalOrders,
+        active: activeOrders,
+        completed: completedOrders,
+      }) +
+      ctx.t('traffic.source_stats_dates', {
+        created: source.createdAt.toLocaleDateString(),
+        updated: source.updatedAt.toLocaleDateString(),
+      });
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -542,9 +577,11 @@ ${ctx.t('sell_traffic.description')}
   }
 
   async handleTrafficTargetDelete(ctx: BotContext, targetId: string): Promise<void> {
-    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, `traffic:target:delete:confirm`, {
-      id: targetId,
-    });
+    // Use shorter callback format to stay within Telegram's 64-byte limit
+    // Format: traf:tgt:del:Y:<id> (confirm) or traf:tgt:del:N:<id> (cancel)
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('common.buttons.confirm'), `traf:tgt:del:Y:${targetId}`)
+      .text(ctx.t('common.buttons.cancel'), `traf:tgt:del:N:${targetId}`);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('traffic.delete_target_confirm', {
@@ -552,6 +589,31 @@ ${ctx.t('sell_traffic.description')}
           '<b>⚠️ Delete Traffic Target</b>\n\nAre you sure you want to delete this traffic target?\n\n<b>This action cannot be undone!</b>',
       }),
       replyMarkup: keyboard,
+    });
+  }
+
+  async handleTrafficTargetDeleteConfirm(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
+
+    if (!target) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.target_not_found'),
+      });
+
+      return;
+    }
+
+    const targetName = target.name;
+    await this.em.removeAndFlush(target);
+
+    await this.safeAnswerCallback(ctx, ctx.t('traffic.target_deleted'));
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.target_deleted_success', {
+        default: `<b>✅ Traffic Target Deleted</b>\n\nTarget "${targetName}" has been successfully deleted.`,
+        name: targetName,
+      }),
+      replyMarkup: this.createBackButton(ctx, 'traffic:targets'),
     });
   }
 
@@ -666,9 +728,9 @@ ${ctx.t('sell_traffic.description')}
         .text(ctx.t('sell_traffic.btn_my_sources'), 'traffic:sources')
         .text(ctx.t('common.back'), 'menu:sell_traffic');
 
-      await ctx.reply(text, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        replyMarkup: keyboard,
       });
     } else if (step === 'enter_token') {
       try {
@@ -676,8 +738,8 @@ ${ctx.t('sell_traffic.description')}
         const data = await response.json();
 
         if (!data.ok || !data.result) {
-          await ctx.reply(ctx.t('traffic.invalid_bot_token'), {
-            parse_mode: 'HTML',
+          await this.messageService.sendOrEditMessage(ctx, {
+            text: ctx.t('traffic.invalid_bot_token'),
           });
 
           return;
@@ -711,14 +773,14 @@ ${ctx.t('sell_traffic.description')}
           .text(ctx.t('sell_traffic.btn_my_sources'), 'traffic:sources')
           .text(ctx.t('common.back'), 'menu:sell_traffic');
 
-        await ctx.reply(text, {
-          reply_markup: keyboard,
-          parse_mode: 'HTML',
+        await this.messageService.sendOrEditMessage(ctx, {
+          text,
+          replyMarkup: keyboard,
         });
       } catch (error) {
         this.logger.error('Failed to get bot info from token', { error });
-        await ctx.reply(ctx.t('traffic.invalid_bot_token'), {
-          parse_mode: 'HTML',
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('traffic.invalid_bot_token'),
         });
       }
     }
@@ -738,7 +800,9 @@ ${ctx.t('sell_traffic.description')}
 
     const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
     if (!source) {
-      await ctx.reply(ctx.t('traffic.source_not_found'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
 
       return;
     }
@@ -751,8 +815,8 @@ ${ctx.t('sell_traffic.description')}
       ctx.session.formData = undefined;
     }
 
-    await ctx.reply(ctx.t('traffic.source_updated', { name: input }), {
-      parse_mode: 'HTML',
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.source_updated', { name: input }),
     });
 
     await this.handleTrafficSourceView(ctx, sourceId);
@@ -790,9 +854,9 @@ ${ctx.t('sell_traffic.description')}
         .text(ctx.t('traffic.targets'), 'traffic:targets')
         .text(ctx.t('common.back'), 'menu:sell_traffic');
 
-      await ctx.reply(text, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        replyMarkup: keyboard,
       });
     }
   }
@@ -811,7 +875,9 @@ ${ctx.t('sell_traffic.description')}
 
     const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
     if (!target) {
-      await ctx.reply(ctx.t('traffic.target_not_found'));
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.target_not_found'),
+      });
 
       return;
     }
@@ -824,8 +890,8 @@ ${ctx.t('sell_traffic.description')}
       ctx.session.formData = undefined;
     }
 
-    await ctx.reply(ctx.t('traffic.target_updated', { name: input }), {
-      parse_mode: 'HTML',
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.target_updated', { name: input }),
     });
 
     await this.handleTrafficTargetView(ctx, targetId);

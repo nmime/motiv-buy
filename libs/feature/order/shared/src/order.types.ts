@@ -219,6 +219,11 @@ export interface DailyStats {
 }
 
 /**
+ * Order Creation Origin - tracks where the order creation flow was initiated from
+ */
+export type OrderCreationOrigin = 'buy_traffic' | 'orders_list';
+
+/**
  * Order Session State (temporary data during order creation)
  */
 export interface OrderSessionState {
@@ -234,6 +239,8 @@ export interface OrderSessionState {
   errors?: string[];
   /** Timestamp when flow started */
   startedAt: Date;
+  /** Where order creation was initiated from */
+  origin?: OrderCreationOrigin;
 }
 
 /**

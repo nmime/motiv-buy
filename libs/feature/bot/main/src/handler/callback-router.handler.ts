@@ -139,6 +139,7 @@ export class CallbackRouterHandler {
       ['withdraw', this.routeWithdrawalAction.bind(this)],
       ['withdrawal', this.routeWithdrawalAction.bind(this)],
       ['traffic', this.routeTrafficAction.bind(this)],
+      ['traf', this.routeTrafficShortAction.bind(this)], // Shortened traffic callbacks (64-byte limit workaround)
       // Moderation routing is handled at app layer (apps/bot) to avoid circular dependencies
       // See apps/bot/src/handler/moderation-callback.handler.ts
       ['support', this.routeSupportAction.bind(this)],
@@ -291,6 +292,7 @@ export class CallbackRouterHandler {
       ],
       ['view_channel', this.withAuthParams((ctx, params) => this.orderHandler.handleOrderChannelView(ctx, params))],
       ['type', this.withAuthParams((ctx, params) => this.orderHandler.handleOrderTypeSelection(ctx, params))],
+      ['confirm', this.withAuthParams((ctx, params) => this.orderHandler.handleOrderConfirm(ctx, params))],
     ]);
 
     this.settingsActionHandlers = new Map([
@@ -674,7 +676,26 @@ export class CallbackRouterHandler {
           return;
         }
 
-        const [subAction, sourceId] = params;
+        const [subAction, ...rest] = params;
+
+        // Handle delete confirmation flow
+        // Callback format: traffic:source:delete:confirm:confirm:id=sourceId (user clicked confirm)
+        // Callback format: traffic:source:delete:confirm:cancel:id=sourceId (user clicked cancel)
+        if (subAction === 'delete' && rest[0] === 'confirm') {
+          const confirmAction = rest[1]; // 'confirm' or 'cancel'
+          const idParam = rest.find((p) => p.startsWith('id='));
+          const sourceId = idParam ? idParam.replace('id=', '') : '';
+
+          if (confirmAction === 'confirm' && sourceId) {
+            await this.trafficHandler.handleTrafficSourceDeleteConfirm(ctx, sourceId);
+          } else if (confirmAction === 'cancel' && sourceId) {
+            await this.trafficHandler.handleTrafficSourceView(ctx, sourceId);
+          }
+
+          return;
+        }
+
+        const sourceId = rest[0];
         if (subAction === 'view' && sourceId) {
           await this.trafficHandler.handleTrafficSourceView(ctx, sourceId);
         } else if (subAction === 'edit' && sourceId) {
@@ -698,7 +719,26 @@ export class CallbackRouterHandler {
           return;
         }
 
-        const [subAction, targetId] = params;
+        const [subAction, ...rest] = params;
+
+        // Handle delete confirmation flow
+        // Callback format: traffic:target:delete:confirm:confirm:id=targetId (user clicked confirm)
+        // Callback format: traffic:target:delete:confirm:cancel:id=targetId (user clicked cancel)
+        if (subAction === 'delete' && rest[0] === 'confirm') {
+          const confirmAction = rest[1]; // 'confirm' or 'cancel'
+          const idParam = rest.find((p) => p.startsWith('id='));
+          const targetId = idParam ? idParam.replace('id=', '') : '';
+
+          if (confirmAction === 'confirm' && targetId) {
+            await this.trafficHandler.handleTrafficTargetDeleteConfirm(ctx, targetId);
+          } else if (confirmAction === 'cancel' && targetId) {
+            await this.trafficHandler.handleTrafficTargetView(ctx, targetId);
+          }
+
+          return;
+        }
+
+        const targetId = rest[0];
         if (subAction === 'view' && targetId) {
           await this.trafficHandler.handleTrafficTargetView(ctx, targetId);
         } else if (subAction === 'edit' && targetId) {
@@ -738,6 +778,53 @@ export class CallbackRouterHandler {
       }
 
       await this.trafficHandler.handleSellTrafficMenu(ctx);
+    }
+  }
+
+  /**
+   * Route shortened traffic actions (for delete confirmations within 64-byte callback limit)
+   * Format: traf:src:del:Y:<id> or traf:src:del:N:<id> (source delete confirm/cancel)
+   * Format: traf:tgt:del:Y:<id> or traf:tgt:del:N:<id> (target delete confirm/cancel)
+   */
+  private async routeTrafficShortAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+    if (!isAuthenticated(ctx)) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required'),
+      });
+
+      return;
+    }
+
+    // action = 'src' or 'tgt', params = ['del', 'Y'/'N', '<id>']
+    const [operation, confirmFlag, entityId] = params;
+
+    if (operation !== 'del' || !entityId) {
+      return;
+    }
+
+    const isConfirm = confirmFlag === 'Y';
+
+    const shortActionHandlers: Record<string, () => Promise<void>> = {
+      src: async () => {
+        if (isConfirm) {
+          await this.trafficHandler.handleTrafficSourceDeleteConfirm(ctx, entityId);
+        } else {
+          await this.trafficHandler.handleTrafficSourceView(ctx, entityId);
+        }
+      },
+      tgt: async () => {
+        if (isConfirm) {
+          await this.trafficHandler.handleTrafficTargetDeleteConfirm(ctx, entityId);
+        } else {
+          await this.trafficHandler.handleTrafficTargetView(ctx, entityId);
+        }
+      },
+    };
+
+    const handler = shortActionHandlers[action];
+
+    if (handler) {
+      await handler();
     }
   }
 
@@ -931,6 +1018,9 @@ export class CallbackRouterHandler {
       },
       trafficTargetEdit: async () => {
         await this.trafficHandler.handleTrafficTargetEditInput(ctx, messageText);
+      },
+      order_create: async () => {
+        await this.orderHandler.handleOrderCreateInput(ctx, messageText);
       },
     };
 

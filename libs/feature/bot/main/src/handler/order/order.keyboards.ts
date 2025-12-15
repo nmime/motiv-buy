@@ -7,7 +7,26 @@
 
 import { InlineKeyboard } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
-import { availableTopics, Order, OrderDisplayLocation, OrderStatus, UserGender } from '@app/feature-order-shared';
+import {
+  availableTopics,
+  Order,
+  OrderCreationOrigin,
+  OrderDisplayLocation,
+  OrderStatus,
+  UserGender,
+} from '@app/feature-order-shared';
+
+/**
+ * Get the callback for back navigation based on origin
+ */
+function getBackCallback(origin?: OrderCreationOrigin): string {
+  const callbackMap: Record<OrderCreationOrigin, string> = {
+    buy_traffic: 'menu:buy_traffic',
+    orders_list: 'order:list',
+  };
+
+  return callbackMap[origin || 'orders_list'];
+}
 
 /**
  * Pagination configuration
@@ -124,7 +143,7 @@ export function createOrderListKeyboard(
 /**
  * A2: Channel Link Input Helper Keyboard
  */
-export function createChannelLinkHelpKeyboard(ctx: BotContext): InlineKeyboard {
+export function createChannelLinkHelpKeyboard(ctx: BotContext, origin?: OrderCreationOrigin): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   keyboard
@@ -132,7 +151,7 @@ export function createChannelLinkHelpKeyboard(ctx: BotContext): InlineKeyboard {
     .row()
     .text(ctx.t('orders.help.invite_link_how'), 'order:help:create_invite')
     .row()
-    .text(ctx.t('orders.common.btn_back'), 'order:list');
+    .text(ctx.t('orders.common.btn_back'), getBackCallback(origin));
 
   return keyboard;
 }
@@ -140,7 +159,11 @@ export function createChannelLinkHelpKeyboard(ctx: BotContext): InlineKeyboard {
 /**
  * A3: Add Bot as Admin Keyboard
  */
-export function createAddBotAdminKeyboard(ctx: BotContext, channelUsername?: string): InlineKeyboard {
+export function createAddBotAdminKeyboard(
+  ctx: BotContext,
+  channelUsername?: string,
+  origin?: OrderCreationOrigin,
+): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // Main add button - opens channel selector
@@ -160,7 +183,7 @@ export function createAddBotAdminKeyboard(ctx: BotContext, channelUsername?: str
   keyboard.text(ctx.t('orders.bot_admin.btn_skip'), 'order:bot:skip').row();
 
   // Back button
-  keyboard.text(ctx.t('orders.common.btn_back'), 'order:create:back');
+  keyboard.text(ctx.t('orders.common.btn_back'), getBackCallback(origin));
 
   return keyboard;
 }
@@ -168,7 +191,11 @@ export function createAddBotAdminKeyboard(ctx: BotContext, channelUsername?: str
 /**
  * A4: Moderation Status Keyboard
  */
-export function createModerationKeyboard(ctx: BotContext, orderId: string): InlineKeyboard {
+export function createModerationKeyboard(
+  ctx: BotContext,
+  orderId: string,
+  origin?: OrderCreationOrigin,
+): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // Continue to configuration
@@ -187,7 +214,7 @@ export function createModerationKeyboard(ctx: BotContext, orderId: string): Inli
   keyboard.text(ctx.t('orders.moderation.btn_stop'), `order:stop:${orderId}`).row();
 
   // Back button
-  keyboard.text(ctx.t('orders.common.btn_back'), 'order:list');
+  keyboard.text(ctx.t('orders.common.btn_back'), getBackCallback(origin));
 
   return keyboard;
 }

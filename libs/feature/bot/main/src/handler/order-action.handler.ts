@@ -7,22 +7,39 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthenticatedBotContext } from '@app/feature-bot-shared';
-import { EntityManager } from '@mikro-orm/core';
+import { MikroORM, ref } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
-import { TrafficOrderEntity, TrafficOrderStatus } from '@app/database';
+import {
+  TrafficOrderEntity,
+  TrafficOrderStatus,
+  TrafficOrderType,
+  TrafficSourceEntity,
+  TrafficTargetEntity,
+  TrafficTargetType,
+  TrafficTargetStatus,
+  UserEntity,
+} from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { decimal, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class OrderActionHandler {
   private readonly logger = new Logger(OrderActionHandler.name);
 
   constructor(
-    private readonly em: EntityManager,
+    private readonly orm: MikroORM,
     private readonly menuHandler: MenuActionHandler,
     private readonly messageService: MessageService,
   ) {}
+
+  /**
+   * Get a forked EntityManager for context-safe database operations
+   */
+  private get em() {
+    return this.orm.em.fork();
+  }
 
   /**
    * Handle active orders view
@@ -438,10 +455,317 @@ export class OrderActionHandler {
     });
   }
 
-  async handleOrderTypeSelection(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  /**
+   * Handle order confirmation
+   * params: [type, target, amount]
+   */
+  async handleOrderConfirm(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    if (params.length < 3) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.invalid_order_data', { default: '❌ Invalid order data. Please try again.' }),
+        parseMode: 'HTML',
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    const [orderTypeStr, targetUsername, amountStr] = params;
+    const amount = parseInt(amountStr, 10);
+
+    if (isNaN(amount) || amount < 1) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.invalid_amount', { default: '❌ Invalid amount.' }),
+        parseMode: 'HTML',
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    // Map string to TrafficOrderType
+    const orderTypeMap: Record<string, TrafficOrderType> = {
+      join: TrafficOrderType.Join,
+      leave: TrafficOrderType.Leave,
+      view: TrafficOrderType.View,
+      subscribe: TrafficOrderType.Subscribe,
+      react: TrafficOrderType.React,
+      comment: TrafficOrderType.Comment,
+    };
+
+    const orderType = orderTypeMap[orderTypeStr];
+    if (!orderType) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.invalid_order_type', { default: '❌ Invalid order type.' }),
+        parseMode: 'HTML',
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    // Find user's traffic source
+    const trafficSource = await this.em.findOne(TrafficSourceEntity, {
+      managedBy: ctx.user.id,
+    });
+
+    if (!trafficSource) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.no_traffic_source', {
+          default: '❌ You need to create a traffic source first.\n\nGo to Traffic → Sources to add one.',
+        }),
+        parseMode: 'HTML',
+        replyMarkup: new InlineKeyboard()
+          .text(ctx.t('traffic.sources', { default: '📊 Traffic Sources' }), 'traffic:sources')
+          .row()
+          .text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    // Find or create traffic target
+    let trafficTarget = await this.em.findOne(TrafficTargetEntity, {
+      username: targetUsername,
+    });
+
+    if (!trafficTarget) {
+      trafficTarget = new TrafficTargetEntity({
+        name: `@${targetUsername}`,
+        type: TrafficTargetType.Channel,
+        status: TrafficTargetStatus.PendingVerification,
+        username: targetUsername,
+        managedById: ctx.user.id,
+      });
+      this.em.persist(trafficTarget);
+      await this.em.flush(); // Flush to get the ID
+    }
+
+    // Create the order
+    const pricePerAction = '0.01'; // Default price, should be configurable
+    const totalBudget = decimal(pricePerAction).mul(amount).toString();
+
+    const order = new TrafficOrderEntity({
+      orderId: `ORD-${uuidv4().slice(0, 8).toUpperCase()}`,
+      type: orderType,
+      status: TrafficOrderStatus.Pending,
+      targetCount: amount,
+      pricePerAction,
+      totalBudget,
+      creatorId: ctx.user.id,
+      trafficSourceId: trafficSource.id,
+      trafficTargetId: trafficTarget.id,
+    });
+
+    this.em.persist(order);
+    await this.em.flush();
+
+    // Get localized type name
+    const typeKey = `orders.type_${orderTypeStr}`;
+    const typeName = ctx.t(typeKey);
+
+    // Clear session state
+    if (ctx.session) {
+      ctx.session.conversationState = undefined;
+      ctx.session.formData = undefined;
+    }
+
+    const successText =
+      `✅ <b>${ctx.t('orders.order_created', { default: 'Order Created Successfully!' })}</b>\n\n` +
+      `<b>${ctx.t('orders.order_id', { default: 'Order ID' })}:</b> <code>${order.orderId}</code>\n` +
+      `<b>${ctx.t('orders.type', { default: 'Type' })}:</b> ${typeName}\n` +
+      `<b>${ctx.t('orders.target_label', { default: 'Target' })}:</b> @${targetUsername}\n` +
+      `<b>${ctx.t('orders.amount', { default: 'Amount' })}:</b> ${amount.toLocaleString()} ${ctx.t('orders.users', { default: 'users' })}\n\n` +
+      ctx.t('orders.order_pending', { default: 'Your order is now pending moderation.' });
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.type_selection'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      text: successText,
+      parseMode: 'HTML',
+      replyMarkup: new InlineKeyboard()
+        .text(ctx.t('orders.btn_view_orders', { default: '📋 View My Orders' }), 'menu:orders')
+        .row()
+        .text(ctx.t('orders.btn_create_another', { default: '➕ Create Another' }), 'order:create:start')
+        .row()
+        .text(ctx.t('common.back'), 'menu:main'),
+    });
+
+    this.logger.log('Order created', {
+      userId: ctx.user.id,
+      orderId: order.orderId,
+      orderType,
+      target: targetUsername,
+      amount,
+    });
+  }
+
+  /**
+   * Handle order creation text input
+   */
+  async handleOrderCreateInput(ctx: AuthenticatedBotContext, input: string): Promise<void> {
+    const formData = ctx.session?.formData;
+    if (!formData || typeof formData !== 'object') {
+      return;
+    }
+
+    const step = 'step' in formData ? String(formData.step) : '';
+    const orderType = 'type' in formData ? String(formData.type) : '';
+    const target = 'target' in formData ? String(formData.target) : '';
+
+    const stepHandlers: Record<string, () => Promise<void>> = {
+      enter_target: () => this.handleTargetInput(ctx, input, orderType),
+      enter_amount: () => this.handleAmountInput(ctx, input, orderType, target),
+    };
+
+    const handler = stepHandlers[step];
+    if (handler) {
+      await handler();
+    }
+  }
+
+  /**
+   * Handle target channel/group input
+   */
+  private async handleTargetInput(ctx: AuthenticatedBotContext, input: string, orderType: string): Promise<void> {
+    // Validate input - should be a username or link
+    const trimmedInput = input.trim();
+
+    // Basic validation for Telegram username or link
+    const isValidUsername = /^@?[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(trimmedInput);
+    const isValidLink = /^https?:\/\/(t\.me|telegram\.me)\/[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(trimmedInput);
+
+    if (!isValidUsername && !isValidLink) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.invalid_target', {
+          default: '❌ Invalid target. Please enter a valid channel/group username (e.g., @channelname) or Telegram link (e.g., https://t.me/channelname)',
+        }),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'order:create:start'),
+      });
+
+      return;
+    }
+
+    // Extract username from link if needed
+    const username = isValidLink ? trimmedInput.split('/').pop() || trimmedInput : trimmedInput.replace('@', '');
+
+    // Store target and move to next step
+    if (ctx.session) {
+      ctx.session.formData = {
+        ...ctx.session.formData,
+        step: 'enter_amount',
+        target: username,
+      };
+    }
+
+    const targetText = ctx.t('orders.target_set', { target: username });
+    const enterAmountPrompt = ctx.t('orders.enter_amount_prompt');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: `✅ ${targetText}\n\n${enterAmountPrompt}`,
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'order:type'),
+    });
+  }
+
+  /**
+   * Handle amount input
+   */
+  private async handleAmountInput(
+    ctx: AuthenticatedBotContext,
+    input: string,
+    orderType: string,
+    target: string,
+  ): Promise<void> {
+    const trimmedInput = input.trim();
+    const amount = parseInt(trimmedInput, 10);
+
+    // Validate amount
+    if (isNaN(amount) || amount < 1) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.invalid_amount', { default: '❌ Invalid amount. Please enter a positive number.' }),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'order:type'),
+      });
+
+      return;
+    }
+
+    if (amount > 1000000) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.amount_too_large', { default: '❌ Amount too large. Maximum is 1,000,000 users.' }),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'order:type'),
+      });
+
+      return;
+    }
+
+    // Get localized type name
+    const typeKey = `orders.type_${orderType}`;
+    const typeName = ctx.t(typeKey);
+
+    // Store amount and show confirmation
+    if (ctx.session) {
+      ctx.session.formData = {
+        ...ctx.session.formData,
+        step: 'confirm',
+        amount,
+      };
+    }
+
+    const confirmText =
+      `📋 <b>${ctx.t('orders.confirm_title', { default: 'Order Summary' })}</b>\n\n` +
+      `<b>${ctx.t('orders.type', { default: 'Type' })}:</b> ${typeName}\n` +
+      `<b>${ctx.t('orders.target_label', { default: 'Target' })}:</b> @${target}\n` +
+      `<b>${ctx.t('orders.amount', { default: 'Amount' })}:</b> ${amount.toLocaleString()} ${ctx.t('orders.users', { default: 'users' })}\n\n` +
+      ctx.t('orders.confirm_prompt', { default: 'Confirm to create the order?' });
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: confirmText,
+      parseMode: 'HTML',
+      replyMarkup: new InlineKeyboard()
+        .text(ctx.t('orders.btn_confirm', { default: '✅ Confirm' }), `order:confirm:${orderType}:${target}:${amount}`)
+        .row()
+        .text(ctx.t('common.cancel'), 'menu:orders'),
+    });
+  }
+
+  async handleOrderTypeSelection(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    // If no type selected yet, show the type selection keyboard
+    if (params.length === 0) {
+      const typeKeyboard = this.createOrderTypeKeyboard(ctx);
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: `➕ <b>${ctx.t('orders.create_title')}</b>\n\n${ctx.t('orders.select_type')}`,
+        replyMarkup: typeKeyboard,
+      });
+
+      return;
+    }
+
+    // Handle selected type
+    const [selectedType] = params;
+    const validTypes = ['join', 'view', 'subscribe', 'react', 'comment'];
+
+    if (!validTypes.includes(selectedType)) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.type_selection'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    // Store selected type in session and proceed to next step
+    if (ctx.session) {
+      ctx.session.conversationState = 'order_create';
+      ctx.session.formData = { step: 'enter_target', type: selectedType };
+    }
+
+    // Get localized type name
+    const typeKey = `orders.type_${selectedType}`;
+    const typeName = ctx.t(typeKey);
+
+    // Show the next step (target selection/input)
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: `✅ ${ctx.t('orders.type_selected', { default: `Order type selected: ${typeName}`, type: typeName })}\n\n${ctx.t('orders.enter_target')}`,
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'order:create:start'),
     });
   }
 }
