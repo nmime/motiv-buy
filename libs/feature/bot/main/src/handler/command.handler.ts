@@ -7,7 +7,7 @@ import { UserService } from '@app/feature-user-main';
 import { UserRole, UserStatus } from '@app/database';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
-import { unknownToError, toError } from '@app/common-shared';
+import { unknownToError, toError, toDisplayString } from '@app/common-shared';
 
 /**
  * Command Handler
@@ -206,8 +206,9 @@ export class CommandHandler {
       await ctx.reply(
         ctx.t('bot.commands.welcome_new') +
           `\n\n` +
-          `I'm here to help you manage your traffic campaigns and earnings.\n\n` +
-          `Use /menu to see available options or /help for assistance.`,
+          ctx.t('bot.commands.error_fallback_intro') +
+          `\n\n` +
+          ctx.t('bot.commands.error_fallback_hint'),
       );
     }
   }
@@ -325,16 +326,16 @@ export class CommandHandler {
       const balanceText = `
 <b>💰 Your Balance</b>
 
-<b>💵 Current Balance:</b> $${balance.availableAmount.toFixed(2)}
-<b>🔒 Pending:</b> $${balance.pendingAmount.toFixed(2)}
-<b>📊 Total Earned:</b> $${balance.totalEarned.toFixed(2)}
+<b>💵 Current Balance:</b> $${toDisplayString(balance.availableAmount)}
+<b>🔒 Pending:</b> $${toDisplayString(balance.pendingAmount)}
+<b>📊 Total Earned:</b> $${toDisplayString(balance.totalEarned)}
 
 <b>📈 Recent Activity:</b>
 • Last transaction: ${balance.lastTransactionAt ? new Date(balance.lastTransactionAt).toLocaleDateString() : 'No transactions yet'}
 • Account created: ${new Date(user.createdAt).toLocaleDateString()}
 
 <b>💸 Withdrawal Status:</b>
-• Available for withdrawal: $${balance.availableAmount.toFixed(2)}
+• Available for withdrawal: $${toDisplayString(balance.availableAmount)}
 • Minimum withdrawal: $10.00
 `;
 
@@ -737,8 +738,8 @@ Export your data in various formats:
 • Member since: ${new Date(user.createdAt).toLocaleDateString()}
 
 <b>💰 Financial Status:</b>
-• Current balance: $${balance.availableAmount.toFixed(2)}
-• Total earned: $${balance.totalEarned.toFixed(2)}
+• Current balance: $${toDisplayString(balance.availableAmount)}
+• Total earned: $${toDisplayString(balance.totalEarned)}
 • Last transaction: ${balance.lastTransactionAt ? new Date(balance.lastTransactionAt).toLocaleDateString() : 'None'}
 
 <b>📱 Session Info:</b>
