@@ -289,6 +289,66 @@ Export your data in various formats:
   }
 
   /**
+   * Handle /balance command - show balance information
+   */
+  async handleBalanceCommand(ctx: BotContext): Promise<void> {
+    const userId = ctx.from?.id?.toString();
+    if (!userId) {
+      return;
+    }
+
+    try {
+      const user = await this.authUserService.findByPlatformId(userId);
+      if (!user) {
+        await ctx.reply(ctx.t('common.errors.user_not_found'));
+
+        return;
+      }
+
+      const balance = await this.balanceService.getBalance(user.id);
+
+      const balanceText = `
+<b>💰 Your Balance</b>
+
+<b>💵 Current Balance:</b> $${toDisplayString(balance.availableAmount)}
+<b>🔒 Pending:</b> $${toDisplayString(balance.pendingAmount)}
+<b>📊 Total Earned:</b> $${toDisplayString(balance.totalEarned)}
+
+<b>📈 Recent Activity:</b>
+• Last transaction: ${balance.lastTransactionAt ? new Date(balance.lastTransactionAt).toLocaleDateString() : 'No transactions yet'}
+• Account created: ${new Date(user.createdAt).toLocaleDateString()}
+
+<b>💸 Withdrawal Status:</b>
+• Available for withdrawal: $${toDisplayString(balance.availableAmount)}
+• Minimum withdrawal: $10.00
+`;
+
+      await ctx.replyWithHTML(balanceText, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '💸 Withdraw', callback_data: 'menu:withdrawal' },
+              { text: '📈 History', callback_data: 'balance:history' },
+            ],
+            [
+              { text: '📊 Analytics', callback_data: 'balance:analytics' },
+              { text: '🔄 Refresh', callback_data: 'balance:current' },
+            ],
+            [{ text: '⬅️ Back', callback_data: 'menu:main' }],
+          ],
+        },
+      });
+    } catch (err: unknown) {
+      this.logger.error('Error fetching balance', {
+        error: unknownToError(err),
+        userId,
+      });
+
+      await ctx.reply(ctx.t('common.errors.fetch_failed'));
+    }
+  }
+
+  /**
    * Handle /status command - show account status
    */
   async handleStatusCommand(ctx: BotContext): Promise<void> {
