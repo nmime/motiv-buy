@@ -24,6 +24,7 @@ import {
   HelpHandler,
   TrafficHandler,
   MiscMenuHandler,
+  InformationCommandHandler,
 } from './handler';
 import { RateLimitMiddleware } from './middleware';
 import { BotWebhookController } from './controller';
@@ -85,6 +86,8 @@ import { BotWebhookController } from './controller';
     HelpHandler,
     TrafficHandler,
     MiscMenuHandler,
+    // Command handlers
+    InformationCommandHandler,
     RateLimitMiddleware,
   ],
   exports: [

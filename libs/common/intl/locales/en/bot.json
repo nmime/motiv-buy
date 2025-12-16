@@ -66,7 +66,9 @@
     "btn_balance": "💳 Balance",
     "btn_profile": "👤 Profile",
     "btn_support": "🏢 Support",
-    "btn_help": "❓ Help"
+    "btn_help": "❓ Help",
+    "error_fallback_intro": "I'm here to help you manage your traffic campaigns and earnings.",
+    "error_fallback_hint": "Use /menu to see available options or /help for assistance."
   },
   "order": {
     "main": "📋 Orders",

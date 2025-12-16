@@ -14,6 +14,7 @@
 export * from './command.handler';
 export * from './menu.handler';
 export * from './callback-router.handler';
+export * from './commands';
 
 // Legacy action handlers (backward compatibility - to be deprecated)
 export * from './menu-action.handler';
