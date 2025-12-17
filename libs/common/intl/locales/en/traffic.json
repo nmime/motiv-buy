@@ -10,6 +10,11 @@
   "order_number": "Order #{{id}}",
   "source_name": "Source Name",
   "source_type": "Source Type",
+  "source_status": "Status",
+  "source_description": "Description",
+  "bot_username": "Bot Username",
+  "total_orders_label": "Total Orders",
+  "created_at": "Created",
   "target_name": "Target Name",
   "target_type": "Target Type",
   "purchase_count": "Purchase Count",
@@ -68,5 +73,18 @@
   "type_bot_with_token": "🔑 Bot with Token",
   "enter_bot_username": "<b>📝 Enter Bot Username</b>\n\n<i>Please enter the username of your bot (without @):</i>\n\nExample: MyAwesomeBot",
   "enter_bot_token": "<b>🔐 Enter Bot Token</b>\n\n<i>Please enter your bot token from @BotFather:</i>\n\nExample: 123456789:ABCdefGhIjKlMnOpQrStUvWxYz",
-  "enter_bot_username_for_token": "<b>📝 Enter Bot Username</b>\n\n<i>Please enter the username of your bot (without @):</i>\n\nExample: MyAwesomeBot"
+  "enter_bot_username_for_token": "<b>📝 Enter Bot Username</b>\n\n<i>Please enter the username of your bot (without @):</i>\n\nExample: MyAwesomeBot",
+  "moderation": {
+    "approved": "✅ {{entity}} approved successfully",
+    "declined": "❌ {{entity}} declined",
+    "pending": "⏳ Pending moderation",
+    "under_review": "Under review"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "pending_verification": "Pending Verification",
+    "declined": "Declined"
+  }
 }

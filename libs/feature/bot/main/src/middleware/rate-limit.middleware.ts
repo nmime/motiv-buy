@@ -47,7 +47,7 @@ export class RateLimitMiddleware {
       windowMs: 60 * 60 * 1000, // 1 hour
       blockDurationMs: 30 * 60 * 1000, // 30 minutes
     },
-    order_create: {
+    orderCreate: {
       maxRequests: 10,
       windowMs: 60 * 60 * 1000, // 1 hour
     },

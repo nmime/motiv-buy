@@ -146,11 +146,11 @@ export class CsrfProtectionMiddleware {
   requiresCsrfProtection(action: string): boolean {
     const protectedActions = [
       'withdrawal',
-      'order_create',
-      'order_cancel',
-      'settings_update',
-      'profile_edit',
-      'payment_confirm',
+      'orderCreate',
+      'orderCancel',
+      'settingsUpdate',
+      'profileEdit',
+      'paymentConfirm',
     ];
 
     return protectedActions.some((pa) => action.startsWith(pa));

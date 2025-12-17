@@ -466,7 +466,7 @@ export class CallbackRouterHandler {
       trafficTargetEdit: async () => {
         await this.trafficHandler.handleTrafficTargetEditInput(ctx, messageText);
       },
-      order_create: async () => {
+      orderCreate: async () => {
         await this.orderHandler.handleOrderCreateInput(ctx, messageText);
       },
     };

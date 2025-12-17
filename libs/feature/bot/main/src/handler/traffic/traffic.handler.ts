@@ -220,10 +220,14 @@ ${ctx.t('sell_traffic.description')}
 
       sources.forEach((source) => {
         const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
-        const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
+        const typeLabel =
+          source.type === TrafficSourceType.Bot ? ctx.t('traffic.type_bot') : ctx.t('traffic.type_bot_with_token');
+
+        const statusLabel = ctx.t(`traffic.status.${source.status}`);
+
         text += `${statusEmoji} <b>${source.name}</b>\n`;
-        text += `   Type: ${typeLabel}\n`;
-        text += `   Status: ${source.status}\n\n`;
+        text += `   ${ctx.t('traffic.source_type')}: ${typeLabel}\n`;
+        text += `   ${ctx.t('traffic.source_status')}: ${statusLabel}\n\n`;
       });
     }
 
@@ -286,24 +290,27 @@ ${ctx.t('sell_traffic.description')}
 
     const ordersCount = await this.em.count(TrafficOrderEntity, { trafficSource: source.id });
     const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
-    const typeLabel = source.type === TrafficSourceType.Bot ? '🤖 Bot' : '🔑 Bot with Token';
+    const typeLabel =
+      source.type === TrafficSourceType.Bot ? ctx.t('traffic.type_bot') : ctx.t('traffic.type_bot_with_token');
+
+    const statusLabel = ctx.t(`traffic.status.${source.status}`);
 
     let text = ctx.t('traffic.source_details_title');
-    text += `<b>Name:</b> ${source.name}\n`;
-    text += `<b>Type:</b> ${typeLabel}\n`;
-    text += `<b>Status:</b> ${statusEmoji} ${source.status}\n`;
+    text += `<b>${ctx.t('traffic.source_name')}:</b> ${source.name}\n`;
+    text += `<b>${ctx.t('traffic.source_type')}:</b> ${typeLabel}\n`;
+    text += `<b>${ctx.t('traffic.source_status')}:</b> ${statusEmoji} ${statusLabel}\n`;
 
     if (source.botUsername) {
-      text += `<b>Bot Username:</b> @${source.botUsername}\n`;
+      text += `<b>${ctx.t('traffic.bot_username')}:</b> @${source.botUsername}\n`;
     }
 
     if (source.description) {
-      text += `<b>Description:</b> ${source.description}\n`;
+      text += `<b>${ctx.t('traffic.source_description')}:</b> ${source.description}\n`;
     }
 
-    text += `\n<b>Statistics:</b>\n`;
-    text += `• Total Orders: ${ordersCount}\n`;
-    text += `• Created: ${source.createdAt.toLocaleDateString()}\n`;
+    text += `\n<b>${ctx.t('common.statistics')}:</b>\n`;
+    text += `• ${ctx.t('traffic.total_orders_label')}: ${ordersCount}\n`;
+    text += `• ${ctx.t('traffic.created_at')}: ${source.createdAt.toLocaleDateString()}\n`;
 
     const keyboard = this.menuHandler.createTrafficSourceDetailKeyboard(ctx, sourceId);
 

@@ -7,7 +7,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthenticatedBotContext } from '@app/feature-bot-shared';
-import { MikroORM, ref } from '@mikro-orm/core';
+import { MikroORM } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
 import {
   TrafficOrderEntity,
@@ -17,7 +17,6 @@ import {
   TrafficTargetEntity,
   TrafficTargetType,
   TrafficTargetStatus,
-  UserEntity,
 } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { decimal, toDisplayString } from '@app/common-shared';
@@ -146,7 +145,7 @@ export class OrderActionHandler {
    */
   async handleCreateOrderStart(ctx: AuthenticatedBotContext): Promise<void> {
     if (ctx.session) {
-      ctx.session.conversationState = 'order_create';
+      ctx.session.conversationState = 'orderCreate';
       ctx.session.formData = { step: 'select_type' };
     }
 
@@ -351,58 +350,250 @@ export class OrderActionHandler {
     });
   }
 
-  async handleOrderToggle(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderToggle(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    if (!params || params.length === 0) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.not_found'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    const [orderId] = params;
+    const order = await this.em.findOne(TrafficOrderEntity, {
+      orderId,
+      creator: ctx.user.id,
+    });
+
+    if (!order) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.not_found'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    // Toggle between Active and Paused (InProgress stays as is)
+    const statusToggleMap: Record<TrafficOrderStatus, TrafficOrderStatus> = {
+      [TrafficOrderStatus.Active]: TrafficOrderStatus.Cancelled,
+      [TrafficOrderStatus.InProgress]: TrafficOrderStatus.Cancelled,
+      [TrafficOrderStatus.Cancelled]: TrafficOrderStatus.Active,
+      [TrafficOrderStatus.Pending]: TrafficOrderStatus.Pending, // Can't toggle pending
+      [TrafficOrderStatus.Completed]: TrafficOrderStatus.Completed, // Can't toggle completed
+      [TrafficOrderStatus.Failed]: TrafficOrderStatus.Active, // Restart failed
+    };
+
+    const newStatus = statusToggleMap[order.status];
+
+    if (newStatus === order.status) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.toggle_not_allowed'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), `order:details:${orderId}`),
+      });
+
+      return;
+    }
+
+    order.status = newStatus;
+    await this.em.flush();
+
+    this.logger.log('Order status toggled', { orderId, newStatus, userId: ctx.user.id });
+
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.toggled'),
     });
+
+    // Show updated order details
+    await this.handleOrderDetails(ctx, orderId);
   }
 
-  async handleOrderDelete(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
-    const keyboard = this.menuHandler.createConfirmationKeyboard(ctx, 'order:delete', { id: _params[0] || '' });
+  async handleOrderDelete(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    if (!params || params.length === 0) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.not_found'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    // Check if this is a confirmation action
+    if (params[0] === 'confirm') {
+      // Extract orderId from params (format: confirm:id=orderId)
+      const idParam = params.find((p) => p.startsWith('id='));
+      const orderId = idParam ? idParam.replace('id=', '') : '';
+
+      if (!orderId) {
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('orders.not_found'),
+          replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        });
+
+        return;
+      }
+
+      // Perform actual deletion (soft delete by setting status to Cancelled)
+      const order = await this.em.findOne(TrafficOrderEntity, {
+        orderId,
+        creator: ctx.user.id,
+      });
+
+      if (!order) {
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('orders.not_found'),
+          replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        });
+
+        return;
+      }
+
+      order.status = TrafficOrderStatus.Cancelled;
+      order.completedAt = new Date();
+      await this.em.flush();
+
+      this.logger.log('Order deleted', { orderId, userId: ctx.user.id });
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.deleted_success'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('orders.btn_view_orders'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    // Check if this is a cancel action
+    if (params[0] === 'cancel') {
+      const idParam = params.find((p) => p.startsWith('id='));
+      const orderId = idParam ? idParam.replace('id=', '') : '';
+
+      if (orderId) {
+        await this.handleOrderDetails(ctx, orderId);
+      } else {
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('common.errors.operation_cancelled'),
+          replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        });
+      }
+
+      return;
+    }
+
+    // Show confirmation dialog
+    const [orderId] = params;
+    const order = await this.em.findOne(TrafficOrderEntity, {
+      orderId,
+      creator: ctx.user.id,
+    });
+
+    if (!order) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.not_found'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('orders.delete.btn_confirm'), `order:delete:confirm:id=${orderId}`)
+      .text(ctx.t('orders.delete.btn_cancel'), `order:delete:cancel:id=${orderId}`);
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.delete_confirm'),
+      text: `${ctx.t('orders.delete_confirm')}\n\n<b>${ctx.t('orders.order_id')}:</b> <code>${orderId}</code>`,
+      parseMode: 'HTML',
       replyMarkup: keyboard,
     });
   }
 
-  async handleOrderDownload(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderDownload(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const orderId = params.length > 0 ? params[0] : '';
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.download_preparing'),
+      text: ctx.t('orders.download_coming_soon'),
+      replyMarkup: orderId
+        ? new InlineKeyboard().text(ctx.t('common.back'), `order:details:${orderId}`)
+        : new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
     });
   }
 
-  async handleOrderBotManagement(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderBotManagement(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const orderId = params.length > 0 ? params[0] : '';
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('orders.bot_admin.btn_add_to_channel'), `order:bot:add:${orderId}`)
+      .row()
+      .text(ctx.t('orders.bot_admin.btn_added_confirm'), `order:bot:confirm:${orderId}`)
+      .row()
+      .text(ctx.t('common.back'), orderId ? `order:details:${orderId}` : 'menu:orders');
+
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.bot_management'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      replyMarkup: keyboard,
     });
   }
 
-  async handleOrderAudienceTargeting(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderAudienceTargeting(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const orderId = params.length > 0 ? params[0] : '';
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('orders.audience.btn_gender'), `order:gender:${orderId}`)
+      .text(ctx.t('orders.audience.btn_region'), `order:location:${orderId}`)
+      .row()
+      .text(ctx.t('orders.audience.btn_age'), `order:audience:age:${orderId}`)
+      .text(ctx.t('orders.audience.btn_activity'), `order:audience:activity:${orderId}`)
+      .row()
+      .text(ctx.t('common.back'), orderId ? `order:details:${orderId}` : 'menu:orders');
+
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.audience_targeting'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      replyMarkup: keyboard,
     });
   }
 
-  async handleOrderGenderSelection(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderGenderSelection(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const orderId = params.length > 0 ? params[0] : '';
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('orders.gender.any'), `order:gender:set:any:${orderId}`)
+      .row()
+      .text(ctx.t('orders.gender.male'), `order:gender:set:male:${orderId}`)
+      .text(ctx.t('orders.gender.female'), `order:gender:set:female:${orderId}`)
+      .row()
+      .text(ctx.t('common.back'), orderId ? `order:audience:${orderId}` : 'menu:orders');
+
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.gender_selection'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      replyMarkup: keyboard,
     });
   }
 
-  async handleOrderTopicSelection(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderTopicSelection(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const orderId = params.length > 0 ? params[0] : '';
+    const backCallback = orderId ? `order:details:${orderId}` : 'menu:orders';
+
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.topic_selection'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), backCallback),
     });
   }
 
-  async handleOrderLocationSelection(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderLocationSelection(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const orderId = params.length > 0 ? params[0] : '';
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('orders.location.my_bots_only'), `order:location:set:my:${orderId}`)
+      .row()
+      .text(ctx.t('orders.location.other_bots_only'), `order:location:set:other:${orderId}`)
+      .row()
+      .text(ctx.t('orders.location.both'), `order:location:set:both:${orderId}`)
+      .row()
+      .text(ctx.t('common.back'), orderId ? `order:audience:${orderId}` : 'menu:orders');
+
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.location_selection'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      replyMarkup: keyboard,
     });
   }
 
@@ -414,8 +605,8 @@ export class OrderActionHandler {
         (o) => o.status === TrafficOrderStatus.Active || o.status === TrafficOrderStatus.InProgress,
       ).length;
 
-      let text = ctx.t('orders.statistics_title');
-      text += `\n• ${ctx.t('orders.total_orders')}: ${totalOrders}`;
+      let text = ctx.t('orders.stats_title');
+      text += `\n• ${ctx.t('orders.total')}: ${totalOrders}`;
       text += `\n• ${ctx.t('orders.active')}: ${activeOrders}`;
 
       await this.messageService.sendOrEditMessage(ctx, {
@@ -428,30 +619,135 @@ export class OrderActionHandler {
     }
   }
 
-  async handleOrderDuplicate(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderDuplicate(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    if (!params || params.length === 0) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.not_found'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    const [orderId] = params;
+    const originalOrder = await this.em.findOne(
+      TrafficOrderEntity,
+      { orderId, creator: ctx.user.id },
+      { populate: ['trafficSource', 'trafficTarget'] },
+    );
+
+    if (!originalOrder) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.not_found'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    // Create a duplicate order
+    const newOrderId = `ORD-${uuidv4().slice(0, 8).toUpperCase()}`;
+    const duplicateOrder = new TrafficOrderEntity({
+      orderId: newOrderId,
+      type: originalOrder.type,
+      status: TrafficOrderStatus.Pending,
+      targetCount: originalOrder.targetCount,
+      pricePerAction: originalOrder.pricePerAction,
+      totalBudget: originalOrder.totalBudget,
+      description: originalOrder.description,
+      creatorId: ctx.user.id,
+      trafficSourceId: originalOrder.trafficSource.id,
+      trafficTargetId: originalOrder.trafficTarget.id,
+    });
+
+    this.em.persist(duplicateOrder);
+    await this.em.flush();
+
+    this.logger.log('Order duplicated', {
+      originalOrderId: orderId,
+      newOrderId,
+      userId: ctx.user.id,
+    });
+
+    const successText =
+      `✅ <b>${ctx.t('orders.duplicated')}</b>\n\n` +
+      `<b>${ctx.t('orders.duplicate_new_id')}:</b> <code>${newOrderId}</code>\n\n` +
+      `<i>${ctx.t('orders.duplicate_hint')}</i>`;
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.duplicated'),
+      text: successText,
+      parseMode: 'HTML',
+      replyMarkup: new InlineKeyboard()
+        .text(ctx.t('orders.view.btn_settings'), `order:config:${newOrderId}`)
+        .row()
+        .text(ctx.t('orders.btn_view_orders'), 'menu:orders'),
     });
   }
 
-  async handleOrderIntegration(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderIntegration(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const orderId = params.length > 0 ? params[0] : '';
+    const backCallback = orderId ? `order:details:${orderId}` : 'menu:orders';
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.integration'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      text: ctx.t('orders.integration_coming_soon'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), backCallback),
     });
   }
 
-  async handleOrderTransfer(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderTransfer(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const orderId = params.length > 0 ? params[0] : '';
+    const backCallback = orderId ? `order:details:${orderId}` : 'menu:orders';
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.transfer'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      text: ctx.t('orders.transfer_coming_soon'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), backCallback),
     });
   }
 
-  async handleOrderChannelView(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
+  async handleOrderChannelView(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    if (!params || params.length === 0) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.not_found'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    const [orderId] = params;
+    const order = await this.em.findOne(TrafficOrderEntity, { orderId }, { populate: ['trafficTarget'] });
+
+    if (!order) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.not_found'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      });
+
+      return;
+    }
+
+    const target = await order.trafficTarget.load();
+
+    if (!target) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.details_not_found'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), `order:details:${orderId}`),
+      });
+
+      return;
+    }
+
+    const channelInfo =
+      `📺 <b>${ctx.t('orders.channel_view')}</b>\n\n` +
+      `<b>${ctx.t('orders.target_label')}:</b> ${target.name}\n` +
+      (target.username ? `<b>Username:</b> @${target.username}\n` : '') +
+      `<b>${ctx.t('orders.type')}:</b> ${target.type}\n` +
+      `<b>Status:</b> ${target.status}`;
+
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('orders.channel_view'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      text: channelInfo,
+      parseMode: 'HTML',
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), `order:details:${orderId}`),
     });
   }
 
@@ -537,6 +833,7 @@ export class OrderActionHandler {
         username: targetUsername,
         managedById: ctx.user.id,
       });
+
       this.em.persist(trafficTarget);
       await this.em.flush(); // Flush to get the ID
     }
@@ -611,32 +908,36 @@ export class OrderActionHandler {
     const orderType = 'type' in formData ? String(formData.type) : '';
     const target = 'target' in formData ? String(formData.target) : '';
 
-    const stepHandlers: Record<string, () => Promise<void>> = {
-      enter_target: () => this.handleTargetInput(ctx, input, orderType),
-      enter_amount: () => this.handleAmountInput(ctx, input, orderType, target),
+    // Map step names to handler functions (using snake_case from session state)
+    const stepMap: Record<string, string> = {
+      enter_target: 'enterTarget',
+      enter_amount: 'enterAmount',
     };
 
-    const handler = stepHandlers[step];
-    if (handler) {
-      await handler();
+    const mappedStep = stepMap[step];
+    if (mappedStep === 'enterTarget') {
+      await this.handleTargetInput(ctx, input);
+    } else if (mappedStep === 'enterAmount') {
+      await this.handleAmountInput(ctx, input, orderType, target);
     }
   }
 
   /**
    * Handle target channel/group input
    */
-  private async handleTargetInput(ctx: AuthenticatedBotContext, input: string, orderType: string): Promise<void> {
+  private async handleTargetInput(ctx: AuthenticatedBotContext, input: string): Promise<void> {
     // Validate input - should be a username or link
     const trimmedInput = input.trim();
 
     // Basic validation for Telegram username or link
-    const isValidUsername = /^@?[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(trimmedInput);
-    const isValidLink = /^https?:\/\/(t\.me|telegram\.me)\/[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(trimmedInput);
+    const isValidUsername = /^@?[a-zA-Z]\w{4,31}$/.test(trimmedInput);
+    const isValidLink = /^https?:\/\/(t\.me|telegram\.me)\/[a-zA-Z]\w{4,31}$/.test(trimmedInput);
 
     if (!isValidUsername && !isValidLink) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.invalid_target', {
-          default: '❌ Invalid target. Please enter a valid channel/group username (e.g., @channelname) or Telegram link (e.g., https://t.me/channelname)',
+          default:
+            '❌ Invalid target. Please enter a valid channel/group username (e.g., @channelname) or Telegram link (e.g., https://t.me/channelname)',
         }),
         replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'order:create:start'),
       });
@@ -754,17 +1055,21 @@ export class OrderActionHandler {
 
     // Store selected type in session and proceed to next step
     if (ctx.session) {
-      ctx.session.conversationState = 'order_create';
+      ctx.session.conversationState = 'orderCreate';
       ctx.session.formData = { step: 'enter_target', type: selectedType };
     }
 
     // Get localized type name
     const typeKey = `orders.type_${selectedType}`;
     const typeName = ctx.t(typeKey);
+    const defaultMsg = 'Order type selected: ' + typeName;
+    const typeSelectedMsg = ctx.t('orders.type_selected', { default: defaultMsg, type: typeName });
+    const enterTargetMsg = ctx.t('orders.enter_target');
+    const fullMessage = `✅ ${typeSelectedMsg}\n\n${enterTargetMsg}`;
 
     // Show the next step (target selection/input)
     await this.messageService.sendOrEditMessage(ctx, {
-      text: `✅ ${ctx.t('orders.type_selected', { default: `Order type selected: ${typeName}`, type: typeName })}\n\n${ctx.t('orders.enter_target')}`,
+      text: fullMessage,
       replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'order:create:start'),
     });
   }

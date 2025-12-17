@@ -143,35 +143,54 @@ export class TrafficRoutingHandler {
     const [subAction, ...rest] = params;
 
     // Handle delete confirmation flow
-    // Callback format: traffic:source:delete:confirm:confirm:id=sourceId (user clicked confirm)
-    // Callback format: traffic:source:delete:confirm:cancel:id=sourceId (user clicked cancel)
     if (subAction === 'delete' && rest[0] === 'confirm') {
-      const confirmAction = rest[1]; // 'confirm' or 'cancel'
-      const idParam = rest.find((p) => p.startsWith('id='));
-      const sourceId = idParam ? idParam.replace('id=', '') : '';
-
-      if (confirmAction === 'confirm' && sourceId) {
-        await this.trafficHandler.handleTrafficSourceDeleteConfirm(ctx, sourceId);
-      } else if (confirmAction === 'cancel' && sourceId) {
-        await this.trafficHandler.handleTrafficSourceView(ctx, sourceId);
-      }
+      await this.handleSourceDeleteConfirmation(ctx, rest);
 
       return;
     }
 
-    const sourceId = rest[0];
-    if (subAction === 'view' && sourceId) {
-      await this.trafficHandler.handleTrafficSourceView(ctx, sourceId);
-    } else if (subAction === 'edit' && sourceId) {
-      await this.trafficHandler.handleTrafficSourceEdit(ctx, sourceId);
-    } else if (subAction === 'toggle' && sourceId) {
-      await this.trafficHandler.handleTrafficSourceToggle(ctx, sourceId);
-    } else if (subAction === 'delete' && sourceId) {
-      await this.trafficHandler.handleTrafficSourceDelete(ctx, sourceId);
-    } else if (subAction === 'stats' && sourceId) {
-      await this.trafficHandler.handleTrafficSourceStats(ctx, sourceId);
-    } else if (subAction === 'type' && sourceId) {
-      await this.trafficHandler.handleTrafficSourceTypeSelect(ctx, sourceId as 'bot' | 'bot_with_token');
+    const [sourceId] = rest;
+
+    if (!sourceId) {
+      return;
+    }
+
+    type SourceActionHandler = (ctx: AuthenticatedBotContext, id: string) => Promise<void>;
+
+    const sourceActionHandlers: Record<string, SourceActionHandler> = {
+      view: (c, id) => this.trafficHandler.handleTrafficSourceView(c, id),
+      edit: (c, id) => this.trafficHandler.handleTrafficSourceEdit(c, id),
+      toggle: (c, id) => this.trafficHandler.handleTrafficSourceToggle(c, id),
+      delete: (c, id) => this.trafficHandler.handleTrafficSourceDelete(c, id),
+      stats: (c, id) => this.trafficHandler.handleTrafficSourceStats(c, id),
+      type: (c, id) => this.trafficHandler.handleTrafficSourceTypeSelect(c, id as 'bot' | 'bot_with_token'),
+    };
+
+    const handler = sourceActionHandlers[subAction];
+
+    if (handler) {
+      await handler(ctx, sourceId);
+    }
+  }
+
+  private async handleSourceDeleteConfirmation(ctx: AuthenticatedBotContext, rest: string[]): Promise<void> {
+    const [, confirmAction] = rest;
+    const idParam = rest.find((p) => p.startsWith('id='));
+    const sourceId = idParam ? idParam.replace('id=', '') : '';
+
+    if (!sourceId) {
+      return;
+    }
+
+    const confirmationHandlers: Record<string, () => Promise<void>> = {
+      confirm: () => this.trafficHandler.handleTrafficSourceDeleteConfirm(ctx, sourceId),
+      cancel: () => this.trafficHandler.handleTrafficSourceView(ctx, sourceId),
+    };
+
+    const handler = confirmationHandlers[confirmAction];
+
+    if (handler) {
+      await handler();
     }
   }
 
@@ -179,33 +198,53 @@ export class TrafficRoutingHandler {
     const [subAction, ...rest] = params;
 
     // Handle delete confirmation flow
-    // Callback format: traffic:target:delete:confirm:confirm:id=targetId (user clicked confirm)
-    // Callback format: traffic:target:delete:confirm:cancel:id=targetId (user clicked cancel)
     if (subAction === 'delete' && rest[0] === 'confirm') {
-      const confirmAction = rest[1]; // 'confirm' or 'cancel'
-      const idParam = rest.find((p) => p.startsWith('id='));
-      const targetId = idParam ? idParam.replace('id=', '') : '';
-
-      if (confirmAction === 'confirm' && targetId) {
-        await this.trafficHandler.handleTrafficTargetDeleteConfirm(ctx, targetId);
-      } else if (confirmAction === 'cancel' && targetId) {
-        await this.trafficHandler.handleTrafficTargetView(ctx, targetId);
-      }
+      await this.handleTargetDeleteConfirmation(ctx, rest);
 
       return;
     }
 
-    const targetId = rest[0];
-    if (subAction === 'view' && targetId) {
-      await this.trafficHandler.handleTrafficTargetView(ctx, targetId);
-    } else if (subAction === 'edit' && targetId) {
-      await this.trafficHandler.handleTrafficTargetEdit(ctx, targetId);
-    } else if (subAction === 'toggle' && targetId) {
-      await this.trafficHandler.handleTrafficTargetToggle(ctx, targetId);
-    } else if (subAction === 'delete' && targetId) {
-      await this.trafficHandler.handleTrafficTargetDelete(ctx, targetId);
-    } else if (subAction === 'stats' && targetId) {
-      await this.trafficHandler.handleTrafficTargetStats(ctx, targetId);
+    const [targetId] = rest;
+
+    if (!targetId) {
+      return;
+    }
+
+    type TargetActionHandler = (ctx: AuthenticatedBotContext, id: string) => Promise<void>;
+
+    const targetActionHandlers: Record<string, TargetActionHandler> = {
+      view: (c, id) => this.trafficHandler.handleTrafficTargetView(c, id),
+      edit: (c, id) => this.trafficHandler.handleTrafficTargetEdit(c, id),
+      toggle: (c, id) => this.trafficHandler.handleTrafficTargetToggle(c, id),
+      delete: (c, id) => this.trafficHandler.handleTrafficTargetDelete(c, id),
+      stats: (c, id) => this.trafficHandler.handleTrafficTargetStats(c, id),
+    };
+
+    const handler = targetActionHandlers[subAction];
+
+    if (handler) {
+      await handler(ctx, targetId);
+    }
+  }
+
+  private async handleTargetDeleteConfirmation(ctx: AuthenticatedBotContext, rest: string[]): Promise<void> {
+    const [, confirmAction] = rest;
+    const idParam = rest.find((p) => p.startsWith('id='));
+    const targetId = idParam ? idParam.replace('id=', '') : '';
+
+    if (!targetId) {
+      return;
+    }
+
+    const confirmationHandlers: Record<string, () => Promise<void>> = {
+      confirm: () => this.trafficHandler.handleTrafficTargetDeleteConfirm(ctx, targetId),
+      cancel: () => this.trafficHandler.handleTrafficTargetView(ctx, targetId),
+    };
+
+    const handler = confirmationHandlers[confirmAction];
+
+    if (handler) {
+      await handler();
     }
   }
 

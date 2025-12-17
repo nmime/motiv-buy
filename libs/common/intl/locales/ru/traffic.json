@@ -10,6 +10,11 @@
   "order_number": "Заказ #{{id}}",
   "source_name": "Название источника",
   "source_type": "Тип источника",
+  "source_status": "Статус",
+  "source_description": "Описание",
+  "bot_username": "Имя бота",
+  "total_orders_label": "Всего заказов",
+  "created_at": "Создан",
   "target_name": "Название целевого показателя",
   "target_type": "Тип целевого показателя",
   "purchase_count": "Количество покупок",
@@ -68,5 +73,18 @@
   "type_bot_with_token": "🔑 Бот с токеном",
   "enter_bot_username": "<b>📝 Введите имя пользователя бота</b>\n\n<i>Пожалуйста, введите имя пользователя вашего бота (без @):</i>\n\nПример: MyAwesomeBot",
   "enter_bot_token": "<b>🔐 Введите токен бота</b>\n\n<i>Пожалуйста, введите токен вашего бота от @BotFather:</i>\n\nПример: 123456789:ABCdefGhIjKlMnOpQrStUvWxYz",
-  "enter_bot_username_for_token": "<b>📝 Введите имя пользователя бота</b>\n\n<i>Пожалуйста, введите имя пользователя вашего бота (без @):</i>\n\nПример: MyAwesomeBot"
+  "enter_bot_username_for_token": "<b>📝 Введите имя пользователя бота</b>\n\n<i>Пожалуйста, введите имя пользователя вашего бота (без @):</i>\n\nПример: MyAwesomeBot",
+  "moderation": {
+    "approved": "✅ {{entity}} одобрен(а)",
+    "declined": "❌ {{entity}} отклонен(а)",
+    "pending": "⏳ На модерации",
+    "under_review": "На рассмотрении"
+  },
+  "status": {
+    "active": "Активен",
+    "inactive": "Неактивен",
+    "pending": "В ожидании",
+    "pending_verification": "Ожидает проверки",
+    "declined": "Отклонён"
+  }
 }
