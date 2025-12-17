@@ -201,16 +201,13 @@ ${ctx.t('payment.description')}
 
     const totalSources = await this.em.count(TrafficSourceEntity);
 
-    let text = '<b>🔧 Admin Panel</b>\n\n';
-    text += '<b>👥 Users:</b>\n';
-    text += `• Total: ${totalUsers}\n`;
-    text += `• Active: ${activeUsers}\n\n`;
-    text += '<b>📋 Orders:</b>\n';
-    text += `• Total: ${totalOrders}\n`;
-    text += `• Active: ${activeOrders}\n\n`;
-    text += '<b>🎯 Traffic Sources:</b>\n';
-    text += `• Total: ${totalSources}\n\n`;
-    text += '<i>Select an action below to manage the system.</i>';
+    const text = ctx.t('admin.panel_text', {
+      totalUsers,
+      activeUsers,
+      totalOrders,
+      activeOrders,
+      totalSources,
+    });
 
     const keyboard = this.menuActionHandler.createAdminMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
@@ -226,18 +223,10 @@ ${ctx.t('payment.description')}
       this.em.count(UserBalanceHistoryEntity, { user: ctx.user.id }),
     ]);
 
-    let text = '<b>📥 Data Export</b>\n\n';
-    text += '<b>Available Data:</b>\n';
-    text += `• Profile Information\n`;
-    text += `• Orders: ${ordersCount} records\n`;
-    text += `• Transactions: ${transactionsCount} records\n`;
-    text += `• Statistics & Analytics\n\n`;
-    text += '<b>Export Formats:</b>\n';
-    text += '• JSON (raw data)\n';
-    text += '• CSV (spreadsheet)\n';
-    text += '• PDF (formatted report)\n\n';
-    text += '<i>Select what you want to export below.</i>\n\n';
-    text += '⚠️ Export may take a few moments for large datasets.';
+    const text = ctx.t('settings.export.text', {
+      ordersCount,
+      transactionsCount,
+    });
 
     const keyboard = this.menuActionHandler.createExportMenuKeyboard(ctx);
     await this.messageService.sendOrEditMessage(ctx, {
@@ -247,18 +236,7 @@ ${ctx.t('payment.description')}
   }
 
   async handleResetMenu(ctx: AuthenticatedBotContext): Promise<void> {
-    let text = '<b>🔄 Reset Account</b>\n\n';
-    text += '⚠️ <b>WARNING:</b> This action will reset:\n\n';
-    text += '❌ All settings to default\n';
-    text += '❌ Notification preferences\n';
-    text += '❌ Display preferences\n';
-    text += '❌ Language settings\n\n';
-    text += '✅ <b>Will NOT affect:</b>\n';
-    text += '• Your balance\n';
-    text += '• Order history\n';
-    text += '• Transaction history\n\n';
-    text += '⚡️ <b>This action is IRREVERSIBLE!</b>\n\n';
-    text += 'Are you absolutely sure you want to continue?';
+    const text = ctx.t('settings.reset.text');
 
     const keyboard = this.menuActionHandler.createConfirmationKeyboard(ctx, 'reset');
     await this.messageService.sendOrEditMessage(ctx, {

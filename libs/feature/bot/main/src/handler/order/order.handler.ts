@@ -117,26 +117,22 @@ export class OrderHandler {
 
     let helpMessage = '';
 
-    if (callbackData.includes('invite_link')) {
-      helpMessage = ctx.t('help.invite_link_why', {
-        default:
-          '<b>Why do I need an invite link?</b>\n\nAn invite link is needed so that new subscribers can join your channel/chat. Without it, ad display is not possible.',
-      });
-    } else if (callbackData.includes('create_invite')) {
-      helpMessage = ctx.t('help.invite_link_how', {
-        default:
-          '<b>How to create an invite link?</b>\n\n1. Open your channel/chat settings\n2. Go to "Invite links" section\n3. Create a new link or copy an existing one\n4. Send the link to the bot',
-      });
-    } else if (callbackData.includes('troubleshoot')) {
-      helpMessage = ctx.t('help.order_troubleshoot', {
-        default:
-          '<b>Why is my order not working?</b>\n\nPossible reasons:\n\n• Order is under moderation\n• Insufficient balance\n• Channel is blocked\n• Bot is not an admin\n• Price per subscriber is too low\n\nTry:\n1. Check your balance\n2. Increase the price\n3. Add the bot as admin\n4. Contact support',
-      });
-    } else {
-      helpMessage = ctx.t('help.general', {
-        default: '<b>Help</b>\n\nFor help, use the "Support" section in the main menu.',
-      });
-    }
+    const helpMessageHandlers: Record<string, () => string> = {
+      inviteLink: () => ctx.t('help.order.invite_link_why'),
+      createInvite: () => ctx.t('help.order.invite_link_how'),
+      troubleshoot: () => ctx.t('help.order.troubleshoot'),
+    };
+
+    // Map callback data patterns to handler keys
+    const callbackToKeyMap: Record<string, string> = {
+      invite_link: 'inviteLink',
+      create_invite: 'createInvite',
+      troubleshoot: 'troubleshoot',
+    };
+
+    const matchedPattern = Object.keys(callbackToKeyMap).find((pattern) => callbackData.includes(pattern));
+    const handlerKey = matchedPattern ? callbackToKeyMap[matchedPattern] : undefined;
+    helpMessage = handlerKey ? helpMessageHandlers[handlerKey]() : ctx.t('help.order.default');
 
     await ctx.answerCallbackQuery({
       text: helpMessage,

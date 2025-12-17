@@ -42,5 +42,22 @@
   "date_format": "Date format",
   "coming_soon": "These settings are coming soon!",
   "public": "Public",
-  "private": "Private"
+  "private": "Private",
+  "export": {
+    "title": "📥 Data Export",
+    "text": "<b>📥 Data Export</b>\n\n<b>Available Data:</b>\n• Profile Information\n• Orders: {{ordersCount}} records\n• Transactions: {{transactionsCount}} records\n• Statistics & Analytics\n\n<b>Export Formats:</b>\n• JSON (raw data)\n• CSV (spreadsheet)\n• PDF (formatted report)\n\n<i>Select what you want to export below.</i>\n\n⚠️ Export may take a few moments for large datasets.",
+    "btn_profile": "📋 Profile",
+    "btn_orders": "📦 Orders",
+    "btn_transactions": "💳 Transactions",
+    "btn_all_data": "📁 All Data",
+    "btn_json": "JSON",
+    "btn_csv": "CSV",
+    "btn_pdf": "PDF"
+  },
+  "reset": {
+    "title": "🔄 Reset Account",
+    "text": "<b>🔄 Reset Account</b>\n\n⚠️ <b>WARNING:</b> This action will reset:\n\n❌ All settings to default\n❌ Notification preferences\n❌ Display preferences\n❌ Language settings\n\n✅ <b>Will NOT affect:</b>\n• Your balance\n• Order history\n• Transaction history\n\n⚡️ <b>This action is IRREVERSIBLE!</b>\n\nAre you absolutely sure you want to continue?",
+    "btn_confirm": "⚠️ Yes, Reset Everything",
+    "btn_cancel": "❌ Cancel"
+  }
 }

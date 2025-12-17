@@ -15,7 +15,7 @@ type SettingsParamsHandler = (ctx: BotContext, params: string[]) => Promise<void
 
 @Injectable()
 export class SettingsRoutingHandler {
-  private settingsActionHandlers: Map<string, SettingsParamsHandler>;
+  private settingsActionHandlers!: Map<string, SettingsParamsHandler>;
 
   constructor(
     private readonly settingsHandler: SettingsActionHandler,

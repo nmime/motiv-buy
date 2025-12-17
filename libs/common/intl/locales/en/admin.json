@@ -10,5 +10,12 @@
   "users_new_today": "New Today",
   "revenue_today": "Today's Revenue",
   "orders_pending": "Pending Orders",
-  "system_status": "System Status"
+  "system_status": "System Status",
+  "panel_text": "<b>🔧 Admin Panel</b>\n\n<b>👥 Users:</b>\n• Total: {{totalUsers}}\n• Active: {{activeUsers}}\n\n<b>📋 Orders:</b>\n• Total: {{totalOrders}}\n• Active: {{activeOrders}}\n\n<b>🎯 Traffic Sources:</b>\n• Total: {{totalSources}}\n\n<i>Select an action below to manage the system.</i>",
+  "no_permission": "❌ Access denied. Admin privileges required.",
+  "btn_users": "👥 Users",
+  "btn_orders": "📋 Orders",
+  "btn_sources": "🎯 Sources",
+  "btn_stats": "📊 Statistics",
+  "btn_settings": "⚙️ Settings"
 }

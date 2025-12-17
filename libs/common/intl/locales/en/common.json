@@ -123,6 +123,18 @@
     "created": "Created successfully",
     "completed": "Completed"
   },
+  "days": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun"
+  },
+  "days_suffix": "days",
+  "disabled": "Disabled",
+  "enabled": "Enabled",
   "pagination": {
     "previous": "« Previous",
     "next": "Next »",

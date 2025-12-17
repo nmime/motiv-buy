@@ -16,7 +16,7 @@ type OrderParamsHandler = (ctx: BotContext, params: string[]) => Promise<void>;
 
 @Injectable()
 export class OrderRoutingHandler {
-  private orderActionHandlers: Map<string, OrderParamsHandler>;
+  private orderActionHandlers!: Map<string, OrderParamsHandler>;
 
   constructor(
     private readonly orderHandler: OrderActionHandler,

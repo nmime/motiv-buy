@@ -15,7 +15,7 @@ type BalanceParamsHandler = (ctx: AuthenticatedBotContext, params: string[]) => 
 
 @Injectable()
 export class BalanceRoutingHandler {
-  private balanceActionHandlers: Map<string, (ctx: BotContext, params: string[]) => Promise<void>>;
+  private balanceActionHandlers!: Map<string, (ctx: BotContext, params: string[]) => Promise<void>>;
 
   constructor(
     private readonly balanceHandler: BalanceActionHandler,

@@ -23,9 +23,9 @@ type ProfileParamsHandler = (ctx: BotContext, params: string[]) => Promise<void>
 
 @Injectable()
 export class MenuRoutingHandler {
-  private menuActionHandlers: Map<string, MenuHandler>;
-  private profileActionHandlers: Map<string, ProfileParamsHandler>;
-  private statsActionHandlers: Map<string, MenuHandler>;
+  private menuActionHandlers!: Map<string, MenuHandler>;
+  private profileActionHandlers!: Map<string, ProfileParamsHandler>;
+  private statsActionHandlers!: Map<string, MenuHandler>;
 
   constructor(
     private readonly profileHandler: ProfileActionHandler,

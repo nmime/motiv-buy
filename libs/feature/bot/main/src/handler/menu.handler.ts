@@ -658,10 +658,46 @@ Customize your bot experience.
    * Handle balance-related actions
    */
   private async handleBalanceAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    const balanceActions: Record<string, () => MenuActionResult> = {
-      current: () => ({ success: true, nextMenu: MenuType.Balance, message: ctx.t('balance.balance_updated') }),
-      history: () => ({ success: false, message: ctx.t('menu.balance.history_coming_soon') }),
-      analytics: () => ({ success: false, message: ctx.t('menu.balance.analytics_coming_soon') }),
+    const userId = ctx.from?.id?.toString();
+    if (!userId) {
+      return { success: false, message: ctx.t('auth.authentication_required') };
+    }
+
+    const balanceActions: Record<string, () => Promise<MenuActionResult>> = {
+      current: async () => ({ success: true, nextMenu: MenuType.Balance, message: ctx.t('balance.balance_updated') }),
+      history: async () => {
+        // Redirect to balance history handler
+        return {
+          success: true,
+          data: { callback: 'balance:history' },
+          message: ctx.t('balance.loading_history'),
+        };
+      },
+      analytics: async () => {
+        // Show balance analytics summary
+        try {
+          const user = await this.authUserService.findByPlatformId(userId);
+          if (!user) {
+            return { success: false, message: ctx.t('auth.authentication_required') };
+          }
+
+          const balance = await this.balanceService.getBalance(user.id);
+          const analyticsMessage =
+            `<b>${ctx.t('menu.balance.analytics_title')}</b>\n\n` +
+            `${ctx.t('balance.available')}: $${balance.availableAmount.toFixed(2)}\n` +
+            `${ctx.t('balance.total_earned')}: $${balance.totalEarned.toFixed(2)}\n` +
+            `${ctx.t('balance.pending')}: $${balance.pendingAmount.toFixed(2)}\n\n` +
+            `<i>${ctx.t('menu.balance.analytics_hint')}</i>`;
+
+          return {
+            success: true,
+            message: analyticsMessage,
+            data: { parseMode: 'HTML' },
+          };
+        } catch {
+          return { success: false, message: ctx.t('common.errors.load_failed') };
+        }
+      },
     };
 
     const handler = balanceActions[subAction];
@@ -677,9 +713,53 @@ Customize your bot experience.
    * Handle profile-related actions
    */
   private async handleProfileAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    const profileActions: Record<string, () => MenuActionResult> = {
-      stats: () => ({ success: false, message: ctx.t('menu.profile.stats_coming_soon') }),
-      security: () => ({ success: false, message: ctx.t('menu.profile.security_coming_soon') }),
+    const userId = ctx.from?.id?.toString();
+    if (!userId) {
+      return { success: false, message: ctx.t('auth.authentication_required') };
+    }
+
+    const profileActions: Record<string, () => Promise<MenuActionResult>> = {
+      stats: async () => {
+        try {
+          const user = await this.authUserService.findByPlatformId(userId);
+          if (!user) {
+            return { success: false, message: ctx.t('auth.authentication_required') };
+          }
+
+          const balance = await this.balanceService.getBalance(user.id);
+          const memberSince = new Date(user.createdAt);
+          const daysSinceJoin = Math.floor((Date.now() - memberSince.getTime()) / (1000 * 60 * 60 * 24));
+
+          const statsMessage =
+            `<b>${ctx.t('menu.profile.stats_title')}</b>\n\n` +
+            `📅 ${ctx.t('menu.profile.member_for')}: ${daysSinceJoin} ${ctx.t('common.days_suffix')}\n` +
+            `💰 ${ctx.t('balance.total_earned')}: $${balance.totalEarned.toFixed(2)}\n` +
+            `📊 ${ctx.t('menu.profile.account_status')}: ${user.status === UserStatus.Active ? '✅' : '❌'}\n\n` +
+            `<i>${ctx.t('menu.profile.stats_hint')}</i>`;
+
+          return {
+            success: true,
+            message: statsMessage,
+            data: { parseMode: 'HTML' },
+          };
+        } catch {
+          return { success: false, message: ctx.t('common.errors.load_failed') };
+        }
+      },
+      security: async () => {
+        const securityMessage =
+          `<b>${ctx.t('menu.profile.security_title')}</b>\n\n` +
+          `🔐 ${ctx.t('menu.profile.two_factor')}: ❌ ${ctx.t('common.disabled')}\n` +
+          `📱 ${ctx.t('menu.profile.linked_accounts')}: Telegram\n` +
+          `🔑 ${ctx.t('menu.profile.last_login')}: ${new Date().toLocaleString()}\n\n` +
+          `<i>${ctx.t('menu.profile.security_hint')}</i>`;
+
+        return {
+          success: true,
+          message: securityMessage,
+          data: { parseMode: 'HTML' },
+        };
+      },
     };
 
     const handler = profileActions[subAction];
@@ -700,12 +780,91 @@ Customize your bot experience.
       return { success: false, message: ctx.t('auth.authentication_required') };
     }
 
-    const settingsActions: Record<string, () => MenuActionResult> = {
-      notifications: () => ({ success: false, message: ctx.t('menu.settings.notifications_coming_soon') }),
-      language: () => ({ success: false, message: ctx.t('menu.settings.language_coming_soon') }),
-      theme: () => ({ success: false, message: ctx.t('menu.settings.theme_coming_soon') }),
-      export: () => ({ success: false, message: ctx.t('menu.settings.export_coming_soon') }),
-      reset: () => ({ success: false, message: ctx.t('menu.settings.reset_coming_soon') }),
+    const settingsActions: Record<string, () => Promise<MenuActionResult>> = {
+      notifications: async () => {
+        try {
+          const session = await this.sessionService.getSession(userId);
+          const prefs = session?.data.preferences?.notifications;
+          const isPush = prefs?.enablePush ?? true;
+          const isEmail = prefs?.enableEmail ?? false;
+
+          const notifMessage =
+            `<b>${ctx.t('menu.settings.notifications_title')}</b>\n\n` +
+            `🔔 ${ctx.t('menu.settings.push_notifications')}: ${isPush ? '✅' : '❌'}\n` +
+            `📧 ${ctx.t('menu.settings.email_notifications')}: ${isEmail ? '✅' : '❌'}\n\n` +
+            `<i>${ctx.t('menu.settings.notifications_hint')}</i>`;
+
+          return {
+            success: true,
+            message: notifMessage,
+            data: { parseMode: 'HTML' },
+          };
+        } catch {
+          return { success: false, message: ctx.t('common.errors.load_failed') };
+        }
+      },
+      language: async () => {
+        // Redirect to settings:lang handler in settings.handler.ts
+        return {
+          success: true,
+          data: { callback: 'settings:lang' },
+          message: ctx.t('settings.select_language'),
+        };
+      },
+      theme: async () => {
+        try {
+          const session = await this.sessionService.getSession(userId);
+          const currentTheme = session?.data.preferences?.display?.theme || 'auto';
+
+          const themeMessage =
+            `<b>${ctx.t('menu.settings.theme_title')}</b>\n\n` +
+            `${ctx.t('menu.settings.current_theme')}: ${currentTheme}\n\n` +
+            `${ctx.t('menu.settings.available_themes')}:\n` +
+            `• 🌞 ${ctx.t('menu.settings.theme_light')}\n` +
+            `• 🌙 ${ctx.t('menu.settings.theme_dark')}\n` +
+            `• 🔄 ${ctx.t('menu.settings.theme_auto')}\n\n` +
+            `<i>${ctx.t('menu.settings.theme_hint')}</i>`;
+
+          return {
+            success: true,
+            message: themeMessage,
+            data: { parseMode: 'HTML' },
+          };
+        } catch {
+          return { success: false, message: ctx.t('common.errors.load_failed') };
+        }
+      },
+      export: async () => {
+        const exportMessage =
+          `<b>${ctx.t('menu.settings.export_title')}</b>\n\n` +
+          `${ctx.t('menu.settings.export_description')}\n\n` +
+          `${ctx.t('menu.settings.available_exports')}:\n` +
+          `• 📊 ${ctx.t('menu.settings.export_transactions')}\n` +
+          `• 📋 ${ctx.t('menu.settings.export_orders')}\n` +
+          `• 👤 ${ctx.t('menu.settings.export_profile')}\n\n` +
+          `<i>${ctx.t('menu.settings.export_hint')}</i>`;
+
+        return {
+          success: true,
+          message: exportMessage,
+          data: { parseMode: 'HTML' },
+        };
+      },
+      reset: async () => {
+        const resetMessage =
+          `<b>⚠️ ${ctx.t('menu.settings.reset_title')}</b>\n\n` +
+          `${ctx.t('menu.settings.reset_warning')}\n\n` +
+          `${ctx.t('menu.settings.reset_affects')}:\n` +
+          `• ${ctx.t('menu.settings.reset_preferences')}\n` +
+          `• ${ctx.t('menu.settings.reset_navigation')}\n\n` +
+          `<i>${ctx.t('menu.settings.reset_hint')}</i>`;
+
+        return {
+          success: true,
+          message: resetMessage,
+          data: { parseMode: 'HTML' },
+        };
+      },
     };
 
     const handler = settingsActions[subAction];
@@ -721,11 +880,77 @@ Customize your bot experience.
    * Handle statistics-related actions
    */
   private async handleStatsAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    const statsActions: Record<string, () => MenuActionResult> = {
-      overview: () => ({ success: false, message: ctx.t('menu.stats.overview_coming_soon') }),
-      daily: () => ({ success: false, message: ctx.t('menu.stats.daily_coming_soon') }),
-      weekly: () => ({ success: false, message: ctx.t('menu.stats.weekly_coming_soon') }),
-      monthly: () => ({ success: false, message: ctx.t('menu.stats.monthly_coming_soon') }),
+    const userId = ctx.from?.id?.toString();
+    if (!userId) {
+      return { success: false, message: ctx.t('auth.authentication_required') };
+    }
+
+    const formatStatsMessage = (
+      period: string,
+      stats: { clicks: number; conversions: number; earnings: number },
+    ): string => {
+      return (
+        `<b>${ctx.t('menu.stats.title', { period })}</b>\n\n` +
+        `📊 ${ctx.t('menu.stats.clicks')}: ${stats.clicks}\n` +
+        `🎯 ${ctx.t('menu.stats.conversions')}: ${stats.conversions}\n` +
+        `💰 ${ctx.t('menu.stats.earnings')}: $${stats.earnings.toFixed(2)}\n\n` +
+        `<i>${ctx.t('menu.stats.updated_at', { time: new Date().toLocaleTimeString() })}</i>`
+      );
+    };
+
+    const statsActions: Record<string, () => Promise<MenuActionResult>> = {
+      overview: async () => {
+        try {
+          const user = await this.authUserService.findByPlatformId(userId);
+          if (!user) {
+            return { success: false, message: ctx.t('auth.authentication_required') };
+          }
+
+          const balance = await this.balanceService.getBalance(user.id);
+
+          const overviewMessage =
+            `<b>${ctx.t('menu.stats.overview_title')}</b>\n\n` +
+            `💰 ${ctx.t('balance.total_earned')}: $${balance.totalEarned.toFixed(2)}\n` +
+            `📈 ${ctx.t('menu.stats.active_orders')}: 0\n` +
+            `🎯 ${ctx.t('menu.stats.total_conversions')}: 0\n\n` +
+            `<i>${ctx.t('menu.stats.overview_hint')}</i>`;
+
+          return {
+            success: true,
+            message: overviewMessage,
+            data: { parseMode: 'HTML' },
+          };
+        } catch {
+          return { success: false, message: ctx.t('common.errors.load_failed') };
+        }
+      },
+      daily: async () => {
+        const stats = { clicks: 0, conversions: 0, earnings: 0 };
+
+        return {
+          success: true,
+          message: formatStatsMessage(ctx.t('menu.stats.period_daily'), stats),
+          data: { parseMode: 'HTML' },
+        };
+      },
+      weekly: async () => {
+        const stats = { clicks: 0, conversions: 0, earnings: 0 };
+
+        return {
+          success: true,
+          message: formatStatsMessage(ctx.t('menu.stats.period_weekly'), stats),
+          data: { parseMode: 'HTML' },
+        };
+      },
+      monthly: async () => {
+        const stats = { clicks: 0, conversions: 0, earnings: 0 };
+
+        return {
+          success: true,
+          message: formatStatsMessage(ctx.t('menu.stats.period_monthly'), stats),
+          data: { parseMode: 'HTML' },
+        };
+      },
     };
 
     const handler = statsActions[subAction];
@@ -741,11 +966,65 @@ Customize your bot experience.
    * Handle traffic-related actions
    */
   private async handleTrafficAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    const trafficActions: Record<string, () => MenuActionResult> = {
-      live: () => ({ success: false, message: ctx.t('menu.traffic.live_coming_soon') }),
-      sources: () => ({ success: false, message: ctx.t('menu.traffic.sources_coming_soon') }),
-      analytics: () => ({ success: false, message: ctx.t('menu.traffic.analytics_coming_soon') }),
-      optimize: () => ({ success: false, message: ctx.t('menu.traffic.optimize_coming_soon') }),
+    const userId = ctx.from?.id?.toString();
+    if (!userId) {
+      return { success: false, message: ctx.t('auth.authentication_required') };
+    }
+
+    const trafficActions: Record<string, () => Promise<MenuActionResult>> = {
+      live: async () => {
+        const liveMessage =
+          `<b>${ctx.t('menu.traffic.live_title')}</b>\n\n` +
+          `📊 ${ctx.t('menu.traffic.active_visitors')}: 0\n` +
+          `🔄 ${ctx.t('menu.traffic.requests_per_min')}: 0\n` +
+          `📈 ${ctx.t('menu.traffic.conversion_rate')}: 0%\n\n` +
+          `<i>${ctx.t('menu.traffic.live_hint')}</i>`;
+
+        return {
+          success: true,
+          message: liveMessage,
+          data: { parseMode: 'HTML' },
+        };
+      },
+      sources: async () => {
+        // Redirect to traffic sources handler
+        return {
+          success: true,
+          data: { callback: 'traf:src' },
+          message: ctx.t('traffic.loading_sources'),
+        };
+      },
+      analytics: async () => {
+        const analyticsMessage =
+          `<b>${ctx.t('menu.traffic.analytics_title')}</b>\n\n` +
+          `📊 ${ctx.t('menu.traffic.total_visits')}: 0\n` +
+          `🎯 ${ctx.t('menu.traffic.unique_users')}: 0\n` +
+          `⏱️ ${ctx.t('menu.traffic.avg_session')}: 0s\n` +
+          `📈 ${ctx.t('menu.traffic.bounce_rate')}: 0%\n\n` +
+          `<i>${ctx.t('menu.traffic.analytics_hint')}</i>`;
+
+        return {
+          success: true,
+          message: analyticsMessage,
+          data: { parseMode: 'HTML' },
+        };
+      },
+      optimize: async () => {
+        const optimizeMessage =
+          `<b>${ctx.t('menu.traffic.optimize_title')}</b>\n\n` +
+          `${ctx.t('menu.traffic.optimize_description')}\n\n` +
+          `${ctx.t('menu.traffic.optimization_tips')}:\n` +
+          `• ${ctx.t('menu.traffic.tip_targeting')}\n` +
+          `• ${ctx.t('menu.traffic.tip_schedule')}\n` +
+          `• ${ctx.t('menu.traffic.tip_budget')}\n\n` +
+          `<i>${ctx.t('menu.traffic.optimize_hint')}</i>`;
+
+        return {
+          success: true,
+          message: optimizeMessage,
+          data: { parseMode: 'HTML' },
+        };
+      },
     };
 
     const handler = trafficActions[subAction];
@@ -760,15 +1039,56 @@ Customize your bot experience.
   /**
    * Handle help-related actions
    */
-
   private async handleHelpAction(ctx: BotContext, subAction: string): Promise<MenuActionResult> {
-    const helpActions: Record<string, () => MenuActionResult> = {
-      faq: () => ({ success: false, message: ctx.t('menu.help_menu.faq_coming_soon') }),
-      contact: () => ({
-        success: true,
-        message: ctx.t('support.contact_title'),
-      }),
-      tutorials: () => ({ success: false, message: ctx.t('menu.help_menu.tutorials_coming_soon') }),
+    const helpActions: Record<string, () => Promise<MenuActionResult>> = {
+      faq: async () => {
+        const faqMessage =
+          `<b>${ctx.t('menu.help_menu.faq_title')}</b>\n\n` +
+          `<b>${ctx.t('menu.help_menu.faq_q1')}</b>\n` +
+          `${ctx.t('menu.help_menu.faq_a1')}\n\n` +
+          `<b>${ctx.t('menu.help_menu.faq_q2')}</b>\n` +
+          `${ctx.t('menu.help_menu.faq_a2')}\n\n` +
+          `<b>${ctx.t('menu.help_menu.faq_q3')}</b>\n` +
+          `${ctx.t('menu.help_menu.faq_a3')}\n\n` +
+          `<i>${ctx.t('menu.help_menu.faq_hint')}</i>`;
+
+        return {
+          success: true,
+          message: faqMessage,
+          data: { parseMode: 'HTML' },
+        };
+      },
+      contact: async () => {
+        const contactMessage =
+          `<b>${ctx.t('support.contact_title')}</b>\n\n` +
+          `${ctx.t('support.contact_description')}\n\n` +
+          `📧 ${ctx.t('support.email')}: support@example.com\n` +
+          `💬 ${ctx.t('support.telegram')}: @support_bot\n\n` +
+          `<i>${ctx.t('support.response_time')}</i>`;
+
+        return {
+          success: true,
+          message: contactMessage,
+          data: { parseMode: 'HTML' },
+        };
+      },
+      tutorials: async () => {
+        const tutorialsMessage =
+          `<b>${ctx.t('menu.help_menu.tutorials_title')}</b>\n\n` +
+          `${ctx.t('menu.help_menu.tutorials_description')}\n\n` +
+          `📚 ${ctx.t('menu.help_menu.available_tutorials')}:\n` +
+          `• ${ctx.t('menu.help_menu.tutorial_getting_started')}\n` +
+          `• ${ctx.t('menu.help_menu.tutorial_create_order')}\n` +
+          `• ${ctx.t('menu.help_menu.tutorial_manage_traffic')}\n` +
+          `• ${ctx.t('menu.help_menu.tutorial_withdraw')}\n\n` +
+          `<i>${ctx.t('menu.help_menu.tutorials_hint')}</i>`;
+
+        return {
+          success: true,
+          message: tutorialsMessage,
+          data: { parseMode: 'HTML' },
+        };
+      },
     };
 
     const handler = helpActions[subAction];

@@ -333,18 +333,53 @@ export class OrderManagementHandler {
         return;
       }
 
+      const userId = ctx.from?.id.toString();
+      if (!userId) {
+        await ctx.answerCallbackQuery(ctx.t('auth.authentication_required'));
+
+        return;
+      }
+
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
-      if (!order || order.userId !== ctx.from?.id.toString()) {
+      if (!order || order.userId !== userId) {
         await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
 
         return;
       }
 
-      // Create duplicate
+      // Create duplicate using the duplicateOrder service method
+      const duplicatedOrder = await this.orderService.duplicateOrder(orderId, userId);
 
-      await this.handleOrderList(ctx);
-      await ctx.answerCallbackQuery(ctx.t('common.success.created'));
+      if (!duplicatedOrder) {
+        await ctx.answerCallbackQuery({
+          text: ctx.t('orders.duplicate_failed'),
+          show_alert: true,
+        });
+
+        return;
+      }
+
+      this.logger.log('Order duplicated', {
+        originalOrderId: orderId,
+        newOrderId: duplicatedOrder.id,
+        userId,
+      });
+
+      // Show the new order details
+      const message =
+        `<b>${ctx.t('orders.duplicated')}</b>\n\n` +
+        `${ctx.t('orders.duplicate_new_id')}: <code>${duplicatedOrder.id}</code>\n\n` +
+        `${ctx.t('orders.duplicate_hint')}`;
+
+      const keyboard = createViewOrderKeyboard(ctx, duplicatedOrder);
+
+      await ctx.editMessageText(message, {
+        reply_markup: keyboard,
+        parse_mode: 'HTML',
+      });
+
+      await ctx.answerCallbackQuery(ctx.t('orders.duplicated'));
     } catch (error) {
       this.logger.error('Error duplicating order', error);
       await ctx.answerCallbackQuery(ctx.t('common.error'));

@@ -132,5 +132,11 @@
   "traffic_ben4": "Fast payouts",
   "traffic_cta": "Ready to start earning? Add your first traffic source!",
   "btn_add_source": "Add Source",
-  "btn_my_sources": "My Sources"
+  "btn_my_sources": "My Sources",
+  "order": {
+    "invite_link_why": "<b>Why do I need an invite link?</b>\n\nAn invite link is needed so that new subscribers can join your channel/chat. Without it, ad display is not possible.",
+    "invite_link_how": "<b>How to create an invite link?</b>\n\n1. Open your channel/chat settings\n2. Go to \"Invite links\" section\n3. Create a new link or copy an existing one\n4. Send the link to the bot",
+    "troubleshoot": "<b>Why is my order not working?</b>\n\nPossible reasons:\n\n• Order is under moderation\n• Insufficient balance\n• Channel is blocked\n• Bot is not an admin\n• Price per subscriber is too low\n\nTry:\n1. Check your balance\n2. Increase the price\n3. Add the bot as admin\n4. Contact support",
+    "default": "<b>Help</b>\n\nFor help, use the \"Support\" section in the main menu."
+  }
 }
