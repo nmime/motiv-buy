@@ -5,6 +5,8 @@ import { BotMainModule } from '@app/feature-bot-main';
 import { TrafficMainModule } from '@app/feature-traffic-main';
 import { NotificationMainModule } from '@app/feature-notification-main';
 import { PaymentMainModule } from '@app/feature-payment-main';
+import { BalanceMainModule } from '@app/feature-balance-main';
+import { AuthSharedModule } from '@app/feature-auth-shared';
 import { BotService } from './service';
 import { ModerationCallbackHandler } from './handler';
 
@@ -18,6 +20,7 @@ import { ModerationCallbackHandler } from './handler';
  * - All handlers and services are provided by BotMainModule
  * - This module only provides the thin wrapper BotService
  * - Follows proper NestJS module architecture with no duplicate providers
+ * - BalanceMainModule provides BALANCE_SERVICE_TOKEN for handlers
  *
  * Integrates notification system for scheduled notifications and event processing.
  */
@@ -36,6 +39,8 @@ import { ModerationCallbackHandler } from './handler';
     BotMainModule,
     TrafficMainModule,
     PaymentMainModule,
+    BalanceMainModule,
+    AuthSharedModule,
     NotificationMainModule,
   ],
   providers: [BotService, ModerationCallbackHandler],

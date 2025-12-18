@@ -19,6 +19,7 @@ import { OrderCreationHandler } from './order.creation.handler';
 import { OrderManagementHandler } from './order.management.handler';
 import { OrderConfigHandler } from './order.config.handler';
 import { OrderEditHandler } from './order.edit.handler';
+import { MessageService } from '../../service/message.service';
 
 @Injectable()
 export class OrderHandler {
@@ -31,12 +32,15 @@ export class OrderHandler {
   private configHandler: OrderConfigHandler;
   private editHandler: OrderEditHandler;
 
-  constructor(private readonly orderService: BotOrderService) {
+  constructor(
+    private readonly orderService: BotOrderService,
+    private readonly messageService: MessageService,
+  ) {
     // Initialize sub-handlers
-    this.creationHandler = new OrderCreationHandler(orderService);
-    this.managementHandler = new OrderManagementHandler(orderService);
-    this.configHandler = new OrderConfigHandler(orderService);
-    this.editHandler = new OrderEditHandler(orderService);
+    this.creationHandler = new OrderCreationHandler(orderService, messageService);
+    this.managementHandler = new OrderManagementHandler(orderService, messageService);
+    this.configHandler = new OrderConfigHandler(orderService, messageService);
+    this.editHandler = new OrderEditHandler(orderService, messageService);
 
     // Create main composer
     this.composer = new Composer<BotContext>();
@@ -97,9 +101,10 @@ export class OrderHandler {
         .row()
         .text(ctx.t('menu.main_menu.btn_support'), 'menu:support');
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();

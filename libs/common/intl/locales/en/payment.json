@@ -8,7 +8,7 @@
   "created_at": "Created",
   "updated_at": "Updated",
   "invoice": "Invoice",
-  "invoice_number": "Invoice #{{id}}",
+  "invoice_number": "Invoice #{id}",
   "total": "Total",
   "paid": "✅ Paid",
   "pending": "🔄 Pending",

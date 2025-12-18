@@ -10,6 +10,7 @@ import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
 import { SettingType, UserEntity, UserSettingsEntity } from '@app/database';
+import { defaultLanguage } from '@app/common-shared';
 import { MenuActionHandler } from './menu-action.handler';
 import { BotValidationUtil } from '../util/bot-validation.util';
 import { MessageService } from '../service/message.service';
@@ -62,7 +63,7 @@ export class SettingsActionHandler {
    * Handle language settings
    */
   async handleLanguageSettings(ctx: AuthenticatedBotContext): Promise<void> {
-    const currentLang = ctx.user.languageCode || 'en';
+    const currentLang = ctx.user.languageCode || defaultLanguage;
     const languageText =
       `🌐 <b>${ctx.t('settings.language_title')}</b>\n\n` +
       `${ctx.t('settings.current_language')}: ${this.getLanguageName(currentLang)}\n\n` +
@@ -89,7 +90,7 @@ export class SettingsActionHandler {
     });
 
     if (!validation.isValid || !this.supportedLanguages.includes(validation.sanitized as string)) {
-      await ctx.reply(ctx.t('common.errors.invalid_input'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.invalid_input') });
 
       return;
     }
@@ -97,12 +98,12 @@ export class SettingsActionHandler {
     ctx.user.languageCode = validation.sanitized as string;
     await this.em.persistAndFlush(ctx.user);
 
-    await ctx.reply(
-      ctx.t('settings.language_changed', {
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('settings.language_changed', {
         default: `✅ Language changed to ${this.getLanguageName(validation.sanitized as string)}!`,
         language: this.getLanguageName(validation.sanitized as string),
       }),
-    );
+    });
 
     this.logger.log('Language changed', { userId: ctx.user.id, language: validation.sanitized });
   }
@@ -186,7 +187,7 @@ export class SettingsActionHandler {
     );
 
     return {
-      language: user?.languageCode || 'en',
+      language: user?.languageCode || defaultLanguage,
       notifications: {
         balance: settingsMap['notification_balance'] !== false,
         trade: settingsMap['notification_trade'] !== false,

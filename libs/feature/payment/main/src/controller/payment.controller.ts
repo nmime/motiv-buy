@@ -23,8 +23,9 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUserId, JwtAuthGuard } from '@app/feature-auth-shared';
-import { PaymentService, TransactionQueryOptions } from '../service/payment.service';
 import {
+  PaymentService,
+  TransactionQueryOptions,
   CreateInvoiceDto,
   CreateTransferDto,
   InvoiceResponseDto,

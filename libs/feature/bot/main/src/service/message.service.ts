@@ -3,6 +3,7 @@
  *
  * Provides unified interface for sending and editing messages.
  * Automatically handles message editing vs sending based on context.
+ * Includes date/time formatting with locale support.
  */
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -16,6 +17,14 @@ interface MessageOptions {
   replyMarkup?: InlineKeyboard;
   disableNotification?: boolean;
 }
+
+/**
+ * Locale to Intl locale mapping
+ */
+const LocaleMap: Record<string, string> = {
+  en: 'en-US',
+  ru: 'ru-RU',
+};
 
 @Injectable()
 export class MessageService {
@@ -175,5 +184,95 @@ export class MessageService {
     const message = error instanceof Error ? error.message : String(error);
 
     return message.includes('message to edit not found') || message.includes('message not found');
+  }
+
+  /**
+   * Get user's locale from context
+   * Checks session language, from.language_code, or falls back to 'en'
+   */
+  private getLocale(ctx: BotContext): string {
+    const sessionLang = ctx.session?.language;
+    const fromLang = ctx.from?.language_code;
+    const baseLang = sessionLang ?? fromLang ?? 'en';
+
+    return LocaleMap[baseLang] ?? LocaleMap['en'];
+  }
+
+  /**
+   * Format date using user's locale
+   * @param ctx - Bot context to get locale from
+   * @param date - Date to format (handles undefined gracefully)
+   * @returns Formatted date string (e.g., "Dec 17, 2025" for en-US, "17 дек. 2025 г." for ru-RU)
+   */
+  formatDate(ctx: BotContext, date: Date | undefined): string {
+    if (!date) {
+      return ctx.t('common.unknown');
+    }
+
+    const locale = this.getLocale(ctx);
+
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(date);
+  }
+
+  /**
+   * Format date and time using user's locale
+   * @param ctx - Bot context to get locale from
+   * @param date - Date to format (handles undefined gracefully)
+   * @returns Formatted date/time string (e.g., "Dec 17, 2025, 10:30 PM")
+   */
+  formatDateTime(ctx: BotContext, date: Date | undefined): string {
+    if (!date) {
+      return ctx.t('common.unknown');
+    }
+
+    const locale = this.getLocale(ctx);
+
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+
+  /**
+   * Format relative time (e.g., "2 hours ago", "in 3 days")
+   * @param ctx - Bot context to get locale from
+   * @param date - Date to calculate relative time from
+   * @returns Formatted relative time string
+   */
+  formatRelativeTime(ctx: BotContext, date: Date | undefined): string {
+    if (!date) {
+      return ctx.t('common.unknown');
+    }
+
+    const locale = this.getLocale(ctx);
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    const diffSecs = Math.round(diffMs / 1000);
+    const diffMins = Math.round(diffSecs / 60);
+    const diffHours = Math.round(diffMins / 60);
+    const diffDays = Math.round(diffHours / 24);
+
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+
+    if (Math.abs(diffDays) >= 1) {
+      return rtf.format(diffDays, 'day');
+    }
+
+    if (Math.abs(diffHours) >= 1) {
+      return rtf.format(diffHours, 'hour');
+    }
+
+    if (Math.abs(diffMins) >= 1) {
+      return rtf.format(diffMins, 'minute');
+    }
+
+    return rtf.format(diffSecs, 'second');
   }
 }

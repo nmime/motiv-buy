@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
 import { BotContext, CallbackUtil, MenuButton, MenuConfig, MenuType } from '@app/feature-bot-shared';
 import { SessionService } from '../service/session.service';
+import { MessageService } from '../service/message.service';
 import { AuthService } from '@app/feature-auth-main';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { UserService } from '@app/feature-user-main';
@@ -45,6 +46,7 @@ export class AuthComposer {
 
   constructor(
     private readonly sessionService: SessionService,
+    private readonly messageService: MessageService,
     private readonly authService: AuthService,
     private readonly authUserService: AuthUserService,
     private readonly userService: UserService,
@@ -647,18 +649,16 @@ export class AuthComposer {
     try {
       const menuConfig = await this.composeWelcomeMenu(ctx);
       const keyboard = this.createInlineKeyboard(menuConfig);
-
       const menuText = this.formatMenuText(menuConfig);
 
-      if (ctx.callbackQuery) {
-        await ctx.editMessageText(menuText, {
-          reply_markup: keyboard,
-          parse_mode: 'HTML',
-        });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: menuText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
 
-        await ctx.answerCallbackQuery('🎉 Welcome!');
-      } else {
-        await ctx.replyWithHTML(menuText, { reply_markup: keyboard });
+      if (ctx.callbackQuery) {
+        await ctx.answerCallbackQuery(ctx.t('auth.welcome'));
       }
 
       // Update auth state
@@ -672,7 +672,7 @@ export class AuthComposer {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('❌ Failed to start authentication');
+      await ctx.answerCallbackQuery(ctx.t('auth.errors.start_failed'));
     }
   }
 
@@ -684,12 +684,13 @@ export class AuthComposer {
       const menuConfig = await this.composeLoginMenu(ctx);
       const keyboard = this.createInlineKeyboard(menuConfig);
 
-      await ctx.editMessageText(this.formatMenuText(menuConfig), {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: this.formatMenuText(menuConfig),
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
-      await ctx.answerCallbackQuery('🔐 Login options');
+      await ctx.answerCallbackQuery(ctx.t('auth.login_options'));
 
       const userId = ctx.from?.id?.toString();
       if (userId) {
@@ -701,7 +702,7 @@ export class AuthComposer {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('❌ Login failed');
+      await ctx.answerCallbackQuery(ctx.t('auth.errors.login_failed'));
     }
   }
 
@@ -713,12 +714,13 @@ export class AuthComposer {
       const menuConfig = await this.composeRegistrationMenu(ctx);
       const keyboard = this.createInlineKeyboard(menuConfig);
 
-      await ctx.editMessageText(this.formatMenuText(menuConfig), {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: this.formatMenuText(menuConfig),
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
-      await ctx.answerCallbackQuery('📝 Registration options');
+      await ctx.answerCallbackQuery(ctx.t('auth.registration_options'));
 
       const userId = ctx.from?.id?.toString();
       if (userId) {
@@ -730,7 +732,7 @@ export class AuthComposer {
         userId: ctx.from?.id,
       });
 
-      await ctx.answerCallbackQuery('❌ Registration failed');
+      await ctx.answerCallbackQuery(ctx.t('auth.errors.registration_failed'));
     }
   }
 
@@ -740,7 +742,7 @@ export class AuthComposer {
   private async handleQuickRegister(ctx: BotContext): Promise<void> {
     const userId = ctx.from?.id?.toString();
     if (!userId || !ctx.from) {
-      await ctx.answerCallbackQuery('❌ User information not available');
+      await ctx.answerCallbackQuery(ctx.t('auth.errors.user_info_unavailable'));
 
       return;
     }
@@ -754,12 +756,13 @@ export class AuthComposer {
         const welcomeMenu = await this.composeAlreadyRegisteredMenu(ctx, existingUser);
         const keyboard = this.createInlineKeyboard(welcomeMenu);
 
-        await ctx.editMessageText(this.formatMenuText(welcomeMenu), {
-          reply_markup: keyboard,
-          parse_mode: 'HTML',
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: this.formatMenuText(welcomeMenu),
+          parseMode: 'HTML',
+          replyMarkup: keyboard,
         });
 
-        await ctx.answerCallbackQuery('✅ Account already exists');
+        await ctx.answerCallbackQuery(ctx.t('auth.account_exists'));
 
         return;
       }
@@ -793,12 +796,13 @@ export class AuthComposer {
         const postAuthMenu = await this.composePostAuthMenu(ctx, true);
         const keyboard = this.createInlineKeyboard(postAuthMenu);
 
-        await ctx.editMessageText(this.formatMenuText(postAuthMenu), {
-          reply_markup: keyboard,
-          parse_mode: 'HTML',
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: this.formatMenuText(postAuthMenu),
+          parseMode: 'HTML',
+          replyMarkup: keyboard,
         });
 
-        await ctx.answerCallbackQuery('🎉 Account created successfully!');
+        await ctx.answerCallbackQuery(ctx.t('auth.account_created'));
 
         // Update auth state
         await this.updateAuthState(userId, AuthState.Authenticated);
@@ -811,19 +815,18 @@ export class AuthComposer {
         userId,
       });
 
-      await ctx.reply('❌ Registration failed. Please try again or use manual registration.', {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '🔄 Try Again', callback_data: 'auth:quick_register' },
-              { text: '📝 Manual Registration', callback_data: 'auth:register' },
-            ],
-            [{ text: '🆘 Contact Support', callback_data: 'auth:contact_support' }],
-          ],
-        },
+      const errorKeyboard = new InlineKeyboard()
+        .text(ctx.t('common.buttons.try_again'), 'auth:quick_register')
+        .text(ctx.t('auth.manual_registration'), 'auth:register')
+        .row()
+        .text(ctx.t('common.buttons.contact_support'), 'auth:contact_support');
+
+      await this.messageService.sendNewMessage(ctx, {
+        text: ctx.t('auth.errors.registration_failed_retry'),
+        replyMarkup: errorKeyboard,
       });
 
-      await ctx.answerCallbackQuery('❌ Registration failed');
+      await ctx.answerCallbackQuery(ctx.t('auth.errors.registration_failed'));
     }
   }
 
@@ -843,22 +846,17 @@ export class AuthComposer {
       await this.sessionService.deleteSession(userId);
 
       // Show logged out message
-      await ctx.editMessageText(
-        '👋 <b>Successfully Logged Out</b>\n\nThank you for using MotivBuy! Your data has been saved securely.\n\nUse /start to login again anytime.',
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: '🚀 Login Again', callback_data: 'auth:start' },
-                { text: '📱 Contact Support', callback_data: 'auth:contact_support' },
-              ],
-            ],
-          },
-          parse_mode: 'HTML',
-        },
-      );
+      const keyboard = new InlineKeyboard()
+        .text(ctx.t('auth.login_again'), 'auth:start')
+        .text(ctx.t('common.buttons.contact_support'), 'auth:contact_support');
 
-      await ctx.answerCallbackQuery('👋 Logged out successfully');
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('auth.logout_success_message'),
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+
+      await ctx.answerCallbackQuery(ctx.t('auth.logout_success'));
 
       // Update auth state
       await this.updateAuthState(userId, AuthState.Unauthenticated);
@@ -868,7 +866,7 @@ export class AuthComposer {
         userId,
       });
 
-      await ctx.answerCallbackQuery('❌ Logout failed');
+      await ctx.answerCallbackQuery(ctx.t('auth.errors.logout_failed'));
     }
   }
 
@@ -922,12 +920,13 @@ export class AuthComposer {
     const menuConfig = await this.composeLogoutMenu(ctx);
     const keyboard = this.createInlineKeyboard(menuConfig);
 
-    await ctx.editMessageText(this.formatMenuText(menuConfig), {
-      reply_markup: keyboard,
-      parse_mode: 'HTML',
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: this.formatMenuText(menuConfig),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
 
-    await ctx.answerCallbackQuery('🚪 Logout confirmation');
+    await ctx.answerCallbackQuery(ctx.t('auth.logout_confirmation'));
   }
 
   private async handleDeleteAccount(ctx: BotContext): Promise<void> {
@@ -961,23 +960,19 @@ export class AuthComposer {
   }
 
   private async handleContactSupport(ctx: BotContext): Promise<void> {
-    await ctx.reply(
-      '🆘 <b>Contact Support</b>\n\nIf you need help with authentication:\n\n• Email: support@motivbuy.com\n• Telegram: @motivbuy_support\n• Response time: Usually within 24 hours',
-      {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '📧 Email Support', url: 'mailto:support@motivbuy.com' },
-              { text: '💬 Telegram Support', url: 'https://t.me/motivbuy_support' },
-            ],
-            [{ text: '◀️ Back', callback_data: 'auth:start' }],
-          ],
-        },
-      },
-    );
+    const keyboard = new InlineKeyboard()
+      .url(ctx.t('support.email_support'), 'mailto:support@motivbuy.com')
+      .url(ctx.t('support.telegram_support'), 'https://t.me/motivbuy_support')
+      .row()
+      .text(ctx.t('common.buttons.back'), 'auth:start');
 
-    await ctx.answerCallbackQuery('🆘 Support contacts shown');
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('support.contact_message'),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+
+    await ctx.answerCallbackQuery(ctx.t('support.contacts_shown'));
   }
 
   private async handleForgotPassword(ctx: BotContext): Promise<void> {

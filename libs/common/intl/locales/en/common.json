@@ -17,7 +17,7 @@
   "unknown": "Unknown",
   "unknown_error": "Unknown error occurred",
   "server_error": "Server error. Please try again later.",
-  "page": "Page {{page}} of {{total}}",
+  "page": "Page {page} of {total}",
   "select_action": "Select an action below:",
   "cancel_hint": "Send /cancel to abort.",
   "overview": "Overview",
@@ -63,8 +63,8 @@
     "invalid_input": "Invalid input",
     "unauthorized": "Unauthorized",
     "rate_limit": "Too many requests. Please try again later.",
-    "rate_limit_wait": "Rate limit exceeded. Please wait {{seconds}} second(s) before trying again.",
-    "user_blocked": "You have been temporarily blocked due to excessive requests.\nPlease try again in {{minutes}} minutes.",
+    "rate_limit_wait": "Rate limit exceeded. Please wait {seconds} second(s) before trying again.",
+    "user_blocked": "You have been temporarily blocked due to excessive requests.\nPlease try again in {minutes} minutes.",
     "unknown_action": "Unknown action",
     "unknown_action_help": "Unknown action. Please try again or use /menu.",
     "unknown_menu_action": "Unknown menu action",
@@ -110,7 +110,7 @@
     "admin_verify_error": "❌ Unable to verify admin access. Please try again later.",
     "operation_cancelled": "❌ Operation cancelled.\n\nReturning to main menu...",
     "status_fetch_error": "Unable to fetch status information. Please try again later.",
-    "unknown_command_help": "I don't understand the command \"{{command}}\". 🤔\n\nHere are some commands you can try:",
+    "unknown_command_help": "I don't understand the command \"{command}\". 🤔\n\nHere are some commands you can try:",
     "auth_required_start": "🔒 Authentication required.\n\nPlease use /start to begin.",
     "invalid_moderation_request": "❌ Invalid moderation request",
     "invalid_entity_type": "❌ Invalid entity type",
@@ -138,7 +138,7 @@
   "pagination": {
     "previous": "« Previous",
     "next": "Next »",
-    "page_info": "{{current}}/{{total}}"
+    "page_info": "{current}/{total}"
   },
   "refresh": "🔄 Refresh",
   "statistics": "📊 Statistics",

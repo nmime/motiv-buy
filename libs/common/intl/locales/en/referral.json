@@ -13,7 +13,7 @@
   "link_copied": "✅ Link copied to clipboard!",
   "no_referrals": "You don't have any referrals yet. Share your link to start earning!",
   "referral_bonus": "💰 Referral Bonus",
-  "bonus_received": "✅ You received {{amount}} for referring a new user!",
+  "bonus_received": "✅ You received {amount} for referring a new user!",
   "description": "Invite friends and earn rewards! Get a percentage of every purchase made by your referrals.",
   "rewards_title": "Your Rewards",
   "reward_percent": "10% from each referral's purchases",

@@ -34,3 +34,6 @@ export * from './help';
 export * from './traffic';
 export * from './menu';
 export * from './order';
+
+// Routing handlers (extracted from CallbackRouterHandler for file size reduction)
+export * from './routing';

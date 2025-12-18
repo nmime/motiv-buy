@@ -18,13 +18,17 @@ import {
   createTopicsKeyboard,
 } from './order.keyboards';
 import { OrderDisplayLocation, UserGender } from '@app/feature-order-shared';
+import { MessageService } from '../../service/message.service';
 
 @Injectable()
 export class OrderConfigHandler {
   private readonly logger = new Logger(OrderConfigHandler.name);
   private composer: Composer<BotContext>;
 
-  constructor(private readonly orderService: BotOrderService) {
+  constructor(
+    private readonly orderService: BotOrderService,
+    private readonly messageService: MessageService,
+  ) {
     this.composer = new Composer<BotContext>();
     this.setupHandlers();
   }
@@ -89,9 +93,10 @@ export class OrderConfigHandler {
       const message = `${ctx.t('bot.configuration.title')}\n\n${ctx.t('bot.configuration.basic_settings')}\n${ctx.t('bot.configuration.name')} ${order.config.name || ''}\n${ctx.t('bot.configuration.link')} ${order.config.channelLink || ''}`;
       const keyboard = createConfigurationKeyboard(ctx, orderId);
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery(ctx.t('bot.configuration.title'));
@@ -158,9 +163,10 @@ export class OrderConfigHandler {
       const keyboard = createAudienceConfigKeyboard(ctx, orderId);
       const message = `<b>${ctx.t('bot.configuration.targeting')}</b>\n\n${ctx.t('bot.configuration.targeting')}:`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();
@@ -195,9 +201,10 @@ export class OrderConfigHandler {
       const keyboard = createGenderKeyboard(ctx, orderId);
       const message = `<b>${ctx.t('bot.configuration.gender')}:</b>`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();
@@ -276,9 +283,10 @@ export class OrderConfigHandler {
       const keyboard = createTopicsKeyboard(ctx, orderId, order.config.excludedTopics);
       const message = `<b>${ctx.t('bot.configuration.excluded_topics')}</b>\n\n${ctx.t('bot.configuration.excluded_topics')}:`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();
@@ -365,9 +373,10 @@ export class OrderConfigHandler {
       const keyboard = createLocationKeyboard(ctx, orderId);
       const message = `<b>${ctx.t('bot.configuration.display_locations')}</b>\n\n${ctx.t('bot.configuration.display_locations')}:`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();

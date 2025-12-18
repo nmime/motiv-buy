@@ -7,7 +7,7 @@ import { UserSharedModule } from '@app/feature-user-shared';
 import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
-import { PaymentMainModule } from '@app/feature-payment-main';
+import { PaymentSharedModule } from '@app/feature-payment-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
 import { BotService, BotUserService, BotSessionService, MenuService, MessageService, SessionService } from './service';
 import { BotConfigModule } from './config';
@@ -25,6 +25,12 @@ import {
   TrafficHandler,
   MiscMenuHandler,
   InformationCommandHandler,
+  // Routing handlers
+  TrafficRoutingHandler,
+  BalanceRoutingHandler,
+  OrderRoutingHandler,
+  SettingsRoutingHandler,
+  MenuRoutingHandler,
 } from './handler';
 import { RateLimitMiddleware } from './middleware';
 import { BotWebhookController } from './controller';
@@ -60,9 +66,7 @@ import { BotWebhookController } from './controller';
     BalanceSharedModule,
     StatisticSharedModule,
     TrafficSharedModule,
-    // Note: TrafficMainModule removed to prevent circular dependency
-    // Traffic services are injected by the app layer
-    PaymentMainModule,
+    PaymentSharedModule,
     AppCommonIntlModule,
     OrderModule,
   ],
@@ -75,7 +79,6 @@ import { BotWebhookController } from './controller';
     SessionService,
     MessageService,
     CallbackRouterHandler,
-    // Action handlers required by CallbackRouterHandler
     MenuActionHandler,
     ProfileActionHandler,
     BalanceActionHandler,
@@ -86,8 +89,12 @@ import { BotWebhookController } from './controller';
     HelpHandler,
     TrafficHandler,
     MiscMenuHandler,
-    // Command handlers
     InformationCommandHandler,
+    TrafficRoutingHandler,
+    BalanceRoutingHandler,
+    OrderRoutingHandler,
+    SettingsRoutingHandler,
+    MenuRoutingHandler,
     RateLimitMiddleware,
   ],
   exports: [
@@ -98,6 +105,7 @@ import { BotWebhookController } from './controller';
     MenuService,
     SessionService,
     MessageService,
+    InformationCommandHandler,
     RateLimitMiddleware,
   ],
 })

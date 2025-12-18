@@ -310,7 +310,7 @@ ${ctx.t('sell_traffic.description')}
 
     text += `\n<b>${ctx.t('common.statistics')}:</b>\n`;
     text += `• ${ctx.t('traffic.total_orders_label')}: ${ordersCount}\n`;
-    text += `• ${ctx.t('traffic.created_at')}: ${source.createdAt.toLocaleDateString()}\n`;
+    text += `• ${ctx.t('traffic.created_at')}: ${this.messageService.formatDate(ctx, source.createdAt)}\n`;
 
     const keyboard = this.menuHandler.createTrafficSourceDetailKeyboard(ctx, sourceId);
 
@@ -432,8 +432,8 @@ ${ctx.t('sell_traffic.description')}
         completed: completedOrders,
       }) +
       ctx.t('traffic.source_stats_dates', {
-        created: source.createdAt.toLocaleDateString(),
-        updated: source.updatedAt.toLocaleDateString(),
+        created: this.messageService.formatDate(ctx, source.createdAt),
+        updated: this.messageService.formatDate(ctx, source.updatedAt),
       });
 
     await this.messageService.sendOrEditMessage(ctx, {
@@ -536,9 +536,9 @@ ${ctx.t('sell_traffic.description')}
       text += `<b>Price per Member:</b> $${toDisplayString(target.pricePerMember, 2)}\n`;
     }
 
-    text += `\n<b>Statistics:</b>\n`;
-    text += `• Total Orders: ${ordersCount}\n`;
-    text += `• Created: ${target.createdAt.toLocaleDateString()}\n`;
+    text += `\n<b>${ctx.t('common.statistics')}:</b>\n`;
+    text += `• ${ctx.t('traffic.total_orders_label')}: ${ordersCount}\n`;
+    text += `• ${ctx.t('traffic.created_at')}: ${this.messageService.formatDate(ctx, target.createdAt)}\n`;
 
     const keyboard = this.menuHandler.createTrafficTargetDetailKeyboard(ctx, targetId);
 
@@ -649,12 +649,12 @@ ${ctx.t('sell_traffic.description')}
       name: target.name,
     });
 
-    text += `<b>Orders:</b>\n`;
-    text += `• Total: ${totalOrders}\n`;
-    text += `• Active: ${activeOrders}\n`;
-    text += `• Completed: ${completedOrders}\n\n`;
-    text += `<b>Created:</b> ${target.createdAt.toLocaleDateString()}\n`;
-    text += `<b>Last Updated:</b> ${target.updatedAt.toLocaleDateString()}`;
+    text += `<b>${ctx.t('traffic.orders')}:</b>\n`;
+    text += `• ${ctx.t('orders.total')}: ${totalOrders}\n`;
+    text += `• ${ctx.t('orders.active')}: ${activeOrders}\n`;
+    text += `• ${ctx.t('orders.completed')}: ${completedOrders}\n\n`;
+    text += `<b>${ctx.t('traffic.created_at')}:</b> ${this.messageService.formatDate(ctx, target.createdAt)}\n`;
+    text += `<b>${ctx.t('traffic.last_updated')}:</b> ${this.messageService.formatDate(ctx, target.updatedAt)}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,

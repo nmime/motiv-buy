@@ -33,12 +33,10 @@ export class BotAuthMiddleware {
    * Create requireAuth middleware that blocks unauthenticated users
    * Use this before handlers that require authentication
    */
-  static createRequireAuth(
-    errorMessage = '🔐 Authentication required. Please use /start to register.',
-  ): (ctx: BotContext, next: () => Promise<void>) => Promise<void> {
+  static createRequireAuth(): (ctx: BotContext, next: () => Promise<void>) => Promise<void> {
     return async (ctx: BotContext, next: () => Promise<void>) => {
       if (!ctx.user || !ctx.isAuthenticated) {
-        await ctx.reply(errorMessage);
+        await ctx.reply(ctx.t('common.errors.auth_required'));
 
         return;
       }

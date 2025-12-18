@@ -209,13 +209,15 @@ export class BalanceActionHandler {
 
       const amountNum = parseFloat(amount);
       if (isNaN(amountNum) || amountNum <= 0) {
-        await ctx.reply(ctx.t('balance.deposit_amount_invalid'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('balance.deposit_amount_invalid') });
 
         return;
       }
 
       if (amountNum < 1) {
-        await ctx.reply(ctx.t('balance.deposit_amount_too_low', { min: '1', currency }));
+        await this.messageService.sendNewMessage(ctx, {
+          text: ctx.t('balance.deposit_amount_too_low', { min: '1', currency }),
+        });
 
         return;
       }
@@ -228,7 +230,7 @@ export class BalanceActionHandler {
 
       if (result.err) {
         this.logger.error('Failed to create deposit invoice', { error: result.val, userId: ctx.user.id });
-        await ctx.reply(ctx.t('balance.deposit_error'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('balance.deposit_error') });
 
         return;
       }
@@ -259,7 +261,7 @@ export class BalanceActionHandler {
       });
     } catch (error) {
       this.logger.error('Error handling deposit amount', { error: toError(error) });
-      await ctx.reply(ctx.t('balance.deposit_error'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('balance.deposit_error') });
     }
   }
 
@@ -413,7 +415,7 @@ export class BalanceActionHandler {
       text +=
         `${emoji} <b>${tx.type}</b>\n` +
         `  ${ctx.t('balance.amount')}: ${amountText} ${currencyCode}\n` +
-        `  ${ctx.t('balance.date')}: ${tx.createdAt.toLocaleString()}\n` +
+        `  ${ctx.t('balance.date')}: ${this.messageService.formatDateTime(ctx, tx.createdAt)}\n` +
         (tx.description ? `  ${ctx.t('balance.note')}: ${tx.description}\n` : '') +
         `\n`;
     }
@@ -495,7 +497,7 @@ export class BalanceActionHandler {
       text += ctx.t('balance.no_withdrawal_history');
     } else {
       for (const tx of history) {
-        text += `• ${toDisplayString(tx.amount, 2)} - ${tx.createdAt.toLocaleDateString()}\n`;
+        text += `• ${toDisplayString(tx.amount, 2)} - ${this.messageService.formatDate(ctx, tx.createdAt)}\n`;
       }
     }
 
@@ -531,7 +533,7 @@ export class BalanceActionHandler {
       text += ctx.t('balance.no_deposit_history');
     } else {
       for (const tx of history) {
-        text += `• ${toDisplayString(tx.amount, 2)} - ${tx.createdAt.toLocaleDateString()}\n`;
+        text += `• ${toDisplayString(tx.amount, 2)} - ${this.messageService.formatDate(ctx, tx.createdAt)}\n`;
       }
     }
 

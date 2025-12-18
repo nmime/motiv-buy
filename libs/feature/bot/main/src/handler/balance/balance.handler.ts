@@ -294,13 +294,15 @@ export class BalanceHandler {
 
       const amountNum = parseFloat(amount);
       if (isNaN(amountNum) || amountNum <= 0) {
-        await ctx.reply(ctx.t('balance.deposit_amount_invalid'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('balance.deposit_amount_invalid') });
 
         return;
       }
 
       if (amountNum < 1) {
-        await ctx.reply(ctx.t('balance.deposit_amount_too_low', { min: '1', currency }));
+        await this.messageService.sendNewMessage(ctx, {
+          text: ctx.t('balance.deposit_amount_too_low', { min: '1', currency }),
+        });
 
         return;
       }
@@ -313,7 +315,7 @@ export class BalanceHandler {
 
       if (result.err) {
         this.logger.error('Failed to create deposit invoice', { error: result.val, userId: ctx.user.id });
-        await ctx.reply(ctx.t('balance.deposit_error'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('balance.deposit_error') });
 
         return;
       }
@@ -341,7 +343,7 @@ export class BalanceHandler {
       });
     } catch (error) {
       this.logger.error('Error handling deposit amount', { error: toError(error) });
-      await ctx.reply(ctx.t('balance.deposit_error'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('balance.deposit_error') });
     }
   }
 
@@ -443,7 +445,7 @@ export class BalanceHandler {
       text +=
         `${emoji} <b>${tx.type}</b>\n` +
         `  ${ctx.t('balance.amount')}: ${amountText} ${currencyCode}\n` +
-        `  ${ctx.t('balance.date')}: ${tx.createdAt.toLocaleString()}\n` +
+        `  ${ctx.t('balance.date')}: ${this.messageService.formatDateTime(ctx, tx.createdAt)}\n` +
         (tx.description ? `  ${ctx.t('balance.note')}: ${tx.description}\n` : '') +
         `\n`;
     }
@@ -456,6 +458,6 @@ export class BalanceHandler {
    */
   private async handleError(ctx: BotContext, error: Error): Promise<void> {
     this.logger.error('Balance handler error', { error: error.message, stack: error.stack });
-    await ctx.reply(ctx.t('common.errors.operation_failed'));
+    await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.operation_failed') });
   }
 }

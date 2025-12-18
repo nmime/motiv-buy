@@ -6,13 +6,11 @@
 // Module
 export * from './payment-main.module';
 
-// Services
+// Services (re-exports from shared + main-specific)
 export * from './service';
 
-// Providers
-export * from './provider/crypto-bot.provider';
-export * from './provider/heleket.provider';
-export * from './provider/yookassa.provider';
+// Providers (re-export from shared for backwards compatibility)
+export { CryptoBotProvider, HeleketProvider, YooKassaProvider } from '@app/feature-payment-shared';
 
 // Controllers
 export * from './controller/payment.controller';

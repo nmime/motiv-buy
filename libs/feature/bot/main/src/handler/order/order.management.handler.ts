@@ -20,13 +20,17 @@ import {
   createStatsKeyboard,
   createViewOrderKeyboard,
 } from './order.keyboards';
+import { MessageService } from '../../service/message.service';
 
 @Injectable()
 export class OrderManagementHandler {
   private readonly logger = new Logger(OrderManagementHandler.name);
   private composer: Composer<BotContext>;
 
-  constructor(private readonly orderService: BotOrderService) {
+  constructor(
+    private readonly orderService: BotOrderService,
+    private readonly messageService: MessageService,
+  ) {
     this.composer = new Composer<BotContext>();
     this.setupHandlers();
   }
@@ -71,9 +75,10 @@ export class OrderManagementHandler {
       const message = `<b>${ctx.t('bot.order.list_title')}</b>\n\n${ctx.t('bot.order.total_count', { count: activeOrders.length })}`;
       const keyboard = createOrderListKeyboard(ctx, activeOrders, false, page);
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();
@@ -110,9 +115,10 @@ export class OrderManagementHandler {
       const message = `<b>${ctx.t('bot.buttons.show_deleted')}</b>\n\n${ctx.t('bot.order.total_count', { count: deletedOrders.length })}`;
       const keyboard = createOrderListKeyboard(ctx, deletedOrders, true);
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();
@@ -153,9 +159,10 @@ export class OrderManagementHandler {
       const message = `${ctx.t('bot.order.order_number', { id: order.id })}\n\n${ctx.t('bot.view_order.users_section')}\n${ctx.t('bot.view_order.total')} ${order.stats.totalSubscribers || 0}\n${ctx.t('bot.view_order.today')} ${order.stats.subscribersToday || 0}`;
       const keyboard = createViewOrderKeyboard(ctx, order);
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();
@@ -190,9 +197,10 @@ export class OrderManagementHandler {
       const message = `${ctx.t('bot.stats.title', { id: order.id })}\n\n${ctx.t('bot.stats.detailed')}\n${ctx.t('bot.stats.today', { count: order.stats.subscribersToday || 0 })}`;
       const keyboard = createStatsKeyboard(ctx, orderId);
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();
@@ -274,9 +282,10 @@ export class OrderManagementHandler {
       const keyboard = createDeleteConfirmKeyboard(ctx, orderId);
       const message = `<b>${ctx.t('common.buttons.delete_order')}</b>\n\n${ctx.t('common.confirm')}?`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();
@@ -374,9 +383,10 @@ export class OrderManagementHandler {
 
       const keyboard = createViewOrderKeyboard(ctx, duplicatedOrder);
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery(ctx.t('orders.duplicated'));

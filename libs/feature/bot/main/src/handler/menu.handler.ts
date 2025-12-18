@@ -15,6 +15,7 @@ import { StatisticService } from '@app/feature-statistic-main';
 import { UserStatus } from '@app/database';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
+import { MessageService } from '../service/message.service';
 import { InlineKeyboard } from 'grammy';
 
 /**
@@ -38,6 +39,7 @@ export class MenuHandler {
     private readonly statisticService: StatisticService,
     private readonly sessionService: SessionService,
     private readonly menuService: MenuService,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -65,7 +67,7 @@ export class MenuHandler {
       });
 
       if (!ctx.from?.id) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('auth.authentication_required') });
 
         return;
       }
@@ -117,7 +119,7 @@ export class MenuHandler {
       });
 
       if (!ctx.from?.id) {
-        await ctx.reply(ctx.t('auth.authentication_required'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('auth.authentication_required') });
 
         return;
       }
@@ -135,7 +137,7 @@ export class MenuHandler {
         }
 
         if (actionResult.message) {
-          await ctx.reply(actionResult.message);
+          await this.messageService.sendNewMessage(ctx, { text: actionResult.message });
         }
 
         if (actionResult.closeMenu) {
@@ -153,10 +155,10 @@ export class MenuHandler {
           await this.handleActionData(ctx, actionResult.data);
         }
       } else {
-        await ctx.reply(actionResult.message || ctx.t('menu.errors.action_failed'), {
-          reply_markup: {
-            inline_keyboard: [[{ text: ctx.t('menu.buttons.main_menu'), callback_data: 'menu:main' }]],
-          },
+        const keyboard = new InlineKeyboard().text(ctx.t('menu.buttons.main_menu'), 'menu:main');
+        await this.messageService.sendNewMessage(ctx, {
+          text: actionResult.message || ctx.t('menu.errors.action_failed'),
+          replyMarkup: keyboard,
         });
       }
 
@@ -212,7 +214,7 @@ export class MenuHandler {
    */
   async goBack(ctx: BotContext): Promise<void> {
     if (!ctx.from?.id) {
-      await ctx.reply(ctx.t('auth.authentication_required'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('auth.authentication_required') });
 
       return;
     }
@@ -440,7 +442,7 @@ Last updated: ${new Date().toLocaleTimeString()}
 Name: ${user.firstName} ${user.lastName || ''}
 Username: ${user.username || 'Not set'}
 Status: ${user.status === UserStatus.Active ? '✅ Active' : '❌ Inactive'}
-Member since: ${new Date(user.createdAt).toLocaleDateString()}
+Member since: ${this.messageService.formatDate(ctx, user.createdAt)}
 `;
 
       return {
@@ -751,7 +753,7 @@ Customize your bot experience.
           `<b>${ctx.t('menu.profile.security_title')}</b>\n\n` +
           `🔐 ${ctx.t('menu.profile.two_factor')}: ❌ ${ctx.t('common.disabled')}\n` +
           `📱 ${ctx.t('menu.profile.linked_accounts')}: Telegram\n` +
-          `🔑 ${ctx.t('menu.profile.last_login')}: ${new Date().toLocaleString()}\n\n` +
+          `🔑 ${ctx.t('menu.profile.last_login')}: ${this.messageService.formatDateTime(ctx, new Date())}\n\n` +
           `<i>${ctx.t('menu.profile.security_hint')}</i>`;
 
         return {
@@ -1244,37 +1246,13 @@ Customize your bot experience.
     ctx: BotContext,
     text: string,
     keyboard: InlineKeyboard,
-    config: MenuConfig,
+    _config: MenuConfig,
   ): Promise<void> {
-    const options = {
-      reply_markup: keyboard,
-      parse_mode: 'HTML' as const,
-    };
-
-    try {
-      if (ctx.callbackQuery && ctx.callbackQuery.message) {
-        // Edit existing message
-        await ctx.editMessageText(text, options);
-      } else {
-        // Send new message
-        await ctx.replyWithHTML(text, options);
-      }
-    } catch (err: unknown) {
-      this.logger.error('Error sending menu message', {
-        error: unknownToError(err),
-        menuType: config.type,
-        userId: ctx.from?.id,
-      });
-
-      // Fallback to regular reply if edit fails
-      try {
-        await ctx.replyWithHTML(text, options);
-      } catch (fallbackError) {
-        this.logger.error('Fallback menu message also failed', {
-          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
-        });
-      }
-    }
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
   }
 
   /**
@@ -1333,16 +1311,15 @@ Customize your bot experience.
       process.env.NODE_ENV === 'development' ? `Menu error: ${error.message}` : ctx.t('menu.errors.menu_load_error');
 
     try {
-      await ctx.reply(errorMessage, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: ctx.t('menu.buttons.main_menu'), callback_data: 'menu:main' },
-              { text: ctx.t('menu.buttons.try_again'), callback_data: `menu:${menuType}` },
-            ],
-            [{ text: ctx.t('menu.buttons.support'), callback_data: 'help:contact' }],
-          ],
-        },
+      const keyboard = new InlineKeyboard()
+        .text(ctx.t('menu.buttons.main_menu'), 'menu:main')
+        .text(ctx.t('menu.buttons.try_again'), `menu:${menuType}`)
+        .row()
+        .text(ctx.t('menu.buttons.support'), 'help:contact');
+
+      await this.messageService.sendNewMessage(ctx, {
+        text: errorMessage,
+        replyMarkup: keyboard,
       });
     } catch (replyError) {
       this.logger.error('Failed to send menu error message', {
@@ -1369,15 +1346,13 @@ Customize your bot experience.
       process.env.NODE_ENV === 'development' ? `Action error: ${error.message}` : ctx.t('menu.errors.action_error');
 
     try {
-      await ctx.reply(errorMessage, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: ctx.t('menu.buttons.main_menu'), callback_data: 'menu:main' },
-              { text: ctx.t('menu.buttons.support'), callback_data: 'help:contact' },
-            ],
-          ],
-        },
+      const keyboard = new InlineKeyboard()
+        .text(ctx.t('menu.buttons.main_menu'), 'menu:main')
+        .text(ctx.t('menu.buttons.support'), 'help:contact');
+
+      await this.messageService.sendNewMessage(ctx, {
+        text: errorMessage,
+        replyMarkup: keyboard,
       });
     } catch (replyError) {
       this.logger.error('Failed to send action error message', {

@@ -8,7 +8,7 @@
   "created_at": "Создано",
   "updated_at": "Обновлено",
   "invoice": "Счет",
-  "invoice_number": "Счет #{{id}}",
+  "invoice_number": "Счет #{id}",
   "total": "Итого",
   "paid": "✅ Оплачено",
   "pending": "🔄 В ожидании",

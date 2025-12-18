@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InlineKeyboard } from 'grammy';
 import { BotContext, MenuActionResult, MenuButton, MenuConfig, MenuType } from '@app/feature-bot-shared';
 import { SessionService } from './session.service';
+import { MessageService } from './message.service';
 
 /**
  * Menu Service
@@ -18,7 +19,10 @@ export class MenuService {
   private readonly maxHistoryLength = 10;
   private readonly menuGenerators: Map<MenuType, (ctx: BotContext) => MenuConfig>;
 
-  constructor(private readonly sessionService: SessionService) {
+  constructor(
+    private readonly sessionService: SessionService,
+    private readonly messageService: MessageService,
+  ) {
     this.menuGenerators = new Map([
       [MenuType.Main, (ctx) => this.generateMainMenu(ctx)],
       [MenuType.Profile, (ctx) => this.generateProfileMenu(ctx)],
@@ -75,10 +79,12 @@ export class MenuService {
         }
 
         if (actionResult.message) {
-          await ctx.reply(actionResult.message);
+          await this.messageService.sendNewMessage(ctx, { text: actionResult.message });
         }
       } else {
-        await ctx.reply(actionResult.message || ctx.t('common.errors.operation_failed'));
+        await this.messageService.sendNewMessage(ctx, {
+          text: actionResult.message || ctx.t('common.errors.operation_failed'),
+        });
       }
     } catch (err: unknown) {
       this.logger.error(`Error handling menu action: ${callbackData}`, {
@@ -87,7 +93,7 @@ export class MenuService {
         callbackData,
       });
 
-      await ctx.reply(ctx.t('common.errors.operation_failed'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.operation_failed') });
     }
   }
 
@@ -106,7 +112,7 @@ export class MenuService {
       });
 
       if (!ctx.from?.id) {
-        await ctx.reply(ctx.t('common.errors.authentication_required'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.authentication_required') });
 
         return;
       }
@@ -123,16 +129,11 @@ export class MenuService {
       // Send or edit message with menu
       const menuText = this.formatMenuText(menuConfig);
 
-      if (ctx.callbackQuery) {
-        await ctx.editMessageText(menuText, {
-          reply_markup: keyboard,
-          parse_mode: 'HTML',
-        });
-      } else {
-        await ctx.replyWithHTML(menuText, {
-          reply_markup: keyboard,
-        });
-      }
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: menuText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
     } catch (err: unknown) {
       this.logger.error(`Error navigating to menu: ${menuType}`, {
         error: unknownToError(err),
@@ -140,7 +141,7 @@ export class MenuService {
         menuType,
       });
 
-      await ctx.reply(ctx.t('common.errors.operation_failed'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.operation_failed') });
     }
   }
 
@@ -178,7 +179,7 @@ export class MenuService {
    */
   async goBack(ctx: BotContext): Promise<void> {
     if (!ctx.from?.id) {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.authentication_required') });
 
       return;
     }

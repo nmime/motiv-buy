@@ -13,13 +13,17 @@ import { BotContext } from '@app/feature-bot-shared';
 import { BotOrderService } from './bot-order.service';
 import { OrderCreationOrigin, OrderFlowStep } from '@app/feature-order-shared';
 import { createAddBotAdminKeyboard, createChannelLinkHelpKeyboard, createModerationKeyboard } from './order.keyboards';
+import { MessageService } from '../../service/message.service';
 
 @Injectable()
 export class OrderCreationHandler {
   private readonly logger = new Logger(OrderCreationHandler.name);
   private composer: Composer<BotContext>;
 
-  constructor(private readonly orderService: BotOrderService) {
+  constructor(
+    private readonly orderService: BotOrderService,
+    private readonly messageService: MessageService,
+  ) {
     this.composer = new Composer<BotContext>();
     this.setupHandlers();
   }
@@ -60,9 +64,10 @@ export class OrderCreationHandler {
       const message = `${ctx.t('bot.order.creation')}\n${ctx.t('bot.order.step', { current: 1, total: 3 })}\n\n${ctx.t('bot.order.channel_link_instruction')}\n\n${ctx.t('bot.order.examples_title')}\n${ctx.t('bot.order.example1')}\n${ctx.t('bot.order.example2')}`;
       const keyboard = createChannelLinkHelpKeyboard(ctx, origin);
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery(ctx.t('bot.order.channel_link_instruction'));
@@ -103,7 +108,7 @@ export class OrderCreationHandler {
       }
     } catch (error) {
       this.logger.error('Error handling text message', error);
-      await ctx.reply(ctx.t('common.error'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.error') });
     }
   }
 
@@ -114,7 +119,7 @@ export class OrderCreationHandler {
     // Validate link format
     const validation = await this.orderService.validateChannelLink(link);
     if (!validation.valid) {
-      await ctx.reply(ctx.t('bot.order.invalid_link'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('bot.order.invalid_link') });
 
       return;
     }
@@ -122,7 +127,7 @@ export class OrderCreationHandler {
     // Get channel info
     const channel = await this.orderService.getChannelInfo(link);
     if (!channel) {
-      await ctx.reply(ctx.t('bot.order.channel_not_found'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('bot.order.channel_not_found') });
 
       return;
     }
@@ -141,9 +146,10 @@ export class OrderCreationHandler {
     const message = `${ctx.t('bot.order.channel_found')}\n\n${ctx.t('bot.order.channel_name')} ${channel.title}\n${ctx.t('bot.order.channel_subscribers')} ${channel.subscriberCount || 0}\n\n${ctx.t('bot.order.bot_admin_instruction')}\n@${ctx.me.username}\n\n${ctx.t('bot.order.requirement')}`;
     const keyboard = createAddBotAdminKeyboard(ctx, channel.username, state?.origin);
 
-    await ctx.reply(message, {
-      reply_markup: keyboard,
-      parse_mode: 'HTML',
+    await this.messageService.sendNewMessage(ctx, {
+      text: message,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -235,9 +241,10 @@ export class OrderCreationHandler {
     const message = `${ctx.t('bot.order.moderation_submitted')}\n\n${ctx.t('bot.order.channel')} ${state.channel?.title}\n${ctx.t('bot.order.link')} ${state.config.channelLink}\n${ctx.t('bot.order.status_label')} ${ctx.t('bot.order.status_pending')}\n\n${botIsAdmin ? ctx.t('bot.order.bot_added') : ctx.t('bot.order.bot_not_added')}\n\n${ctx.t('bot.order.time_estimate')}`;
     const keyboard = createModerationKeyboard(ctx, order.id, state.origin);
 
-    await ctx.editMessageText(message, {
-      reply_markup: keyboard,
-      parse_mode: 'HTML',
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: message,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 

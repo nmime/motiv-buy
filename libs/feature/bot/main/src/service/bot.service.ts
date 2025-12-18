@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Bot, Context, Middleware, session, SessionFlavor } from 'grammy';
+import { Bot, Context, Middleware, session, SessionFlavor, InlineKeyboard } from 'grammy';
 import { RedisAdapter } from '@grammyjs/storage-redis';
 import type { Update } from 'grammy/types';
 import type { Redis, Cluster } from 'ioredis';
@@ -14,6 +14,7 @@ import { BotAuthMiddleware } from '../middleware';
 import { BotUserService, BotSessionService } from './auth';
 import { protectHandler } from '../util';
 import { RedisInjectToken } from '@app/common-redis';
+import { MessageService } from './message.service';
 
 /**
  * Extended Grammy Context with session and i18n support
@@ -58,6 +59,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     private readonly botSessionService: BotSessionService,
     private readonly telegramModerationNotifier: TelegramModerationNotifier,
     @Inject(RedisInjectToken) private readonly redis: Redis | Cluster,
+    private readonly messageService: MessageService,
   ) {
     // Note: ProfileActionHandler, SettingsActionHandler, BalanceActionHandler, and MenuActionHandler
     // cannot be injected here because they depend on services that are not available in bot.service.ts scope.
@@ -447,12 +449,12 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         userId: ctx?.from?.id,
       });
 
-      if (ctx?.reply) {
+      if (ctx) {
         const errorMessage = this.botConfigService.isDevelopment()
           ? `Error: ${error.message}`
           : ctx.t('common.errors.something_went_wrong');
 
-        await ctx.reply(errorMessage);
+        await this.messageService.sendNewMessage(ctx, { text: errorMessage });
       }
     } catch (replyError) {
       this.logger.error('Failed to send error message', {
@@ -707,20 +709,19 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     // Row 1: Sell Traffic | Buy Traffic
     // Row 2: Profile | Balance
     // Row 3: Support
-    await ctx.replyWithHTML(message, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: ctx.t('menu.main_menu.btn_sell_traffic'), callback_data: 'menu:sell_traffic' },
-            { text: ctx.t('menu.main_menu.btn_buy_traffic'), callback_data: 'menu:buy_traffic' },
-          ],
-          [
-            { text: ctx.t('menu.main_menu.btn_profile'), callback_data: 'profile:view' },
-            { text: ctx.t('menu.main_menu.btn_balance'), callback_data: 'balance:view' },
-          ],
-          [{ text: ctx.t('menu.main_menu.btn_support'), callback_data: 'menu:support' }],
-        ],
-      },
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('menu.main_menu.btn_sell_traffic'), 'menu:sell_traffic')
+      .text(ctx.t('menu.main_menu.btn_buy_traffic'), 'menu:buy_traffic')
+      .row()
+      .text(ctx.t('menu.main_menu.btn_profile'), 'profile:view')
+      .text(ctx.t('menu.main_menu.btn_balance'), 'balance:view')
+      .row()
+      .text(ctx.t('menu.main_menu.btn_support'), 'menu:support');
+
+    await this.messageService.sendNewMessage(ctx, {
+      text: message,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -746,7 +747,7 @@ ${ctx.t('help.cmd_help')}
 ${ctx.t('help.support_hint')}
 `;
 
-    await ctx.replyWithMarkdown(helpText);
+    await this.messageService.sendNewMessage(ctx, { text: helpText, parseMode: 'Markdown' });
   }
 
   private async handleProfileCommand(ctx: BotContext): Promise<void> {
@@ -817,10 +818,10 @@ ${ctx.t('help.support_hint')}
   }
 
   private async handleUnknownCommand(ctx: BotContext): Promise<void> {
-    await ctx.reply(ctx.t('common.errors.unknown_command'));
+    await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.unknown_command') });
   }
 
   private async sendAuthenticationRequired(ctx: BotContext): Promise<void> {
-    await ctx.reply(ctx.t('common.errors.please_authenticate'));
+    await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.please_authenticate') });
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SessionData, SessionInterface } from '@app/feature-bot-shared';
 import { RedisCacheService } from '@app/common-redis';
-import { unknownToError } from '@app/common-shared';
+import { defaultLanguage, unknownToError } from '@app/common-shared';
 
 /**
  * Session Service
@@ -52,7 +52,7 @@ export class SessionService {
             startedAt: now,
           },
           preferences: initialData?.preferences || {
-            language: 'en',
+            language: defaultLanguage,
             notifications: {
               enablePush: true,
               enableEmail: false,

@@ -57,21 +57,6 @@ export class ProfileActionHandler {
   }
 
   /**
-   * Format date safely (handles undefined from session cache)
-   */
-  private formatDate(
-    ctx: AuthenticatedBotContext,
-    date: Date | undefined,
-    format: 'date' | 'datetime' = 'datetime',
-  ): string {
-    if (!date) {
-      return ctx.t('profile.na');
-    }
-
-    return format === 'date' ? date.toLocaleDateString() : date.toLocaleString();
-  }
-
-  /**
    * Format profile view text
    */
   private formatProfileView(ctx: AuthenticatedBotContext, user: Partial<UserEntity>): string {
@@ -89,7 +74,7 @@ export class ProfileActionHandler {
       `<b>${ctx.t('profile.username')}:</b> ${user.username || ctx.t('profile.not_set')}\n` +
       `<b>${ctx.t('profile.status')}:</b> ${statusEmoji} ${user.status || ctx.t('profile.unknown')}\n` +
       `<b>${ctx.t('profile.referrals')}:</b> ${user.referralCount ?? 0}\n` +
-      `<b>${ctx.t('profile.member_since')}:</b> ${this.formatDate(ctx, user.createdAt, 'date')}\n\n` +
+      `<b>${ctx.t('profile.member_since')}:</b> ${this.messageService.formatDate(ctx, user.createdAt)}\n\n` +
       `<i>${ctx.t('profile.manage_hint')}</i>`
     );
   }
@@ -117,8 +102,8 @@ export class ProfileActionHandler {
       `• ${ctx.t('profile.total_referrals')}: ${user.referralCount ?? 0}\n` +
       `• ${ctx.t('profile.referred_by')}: ${user.referredBy || ctx.t('profile.none')}\n\n` +
       `<b>${ctx.t('profile.timestamps')}:</b>\n` +
-      `• ${ctx.t('profile.created')}: ${this.formatDate(ctx, user.createdAt)}\n` +
-      `• ${ctx.t('profile.last_active')}: ${this.formatDate(ctx, user.lastActiveAt)}`
+      `• ${ctx.t('profile.created')}: ${this.messageService.formatDateTime(ctx, user.createdAt)}\n` +
+      `• ${ctx.t('profile.last_active')}: ${this.messageService.formatDateTime(ctx, user.lastActiveAt)}`
     );
   }
 }

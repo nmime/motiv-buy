@@ -1,11 +1,12 @@
-import { unknownToError } from '@app/common-shared';
+import { defaultLanguage, unknownToError } from '@app/common-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
 import { BotContext, CallbackUtil, MenuButton, MenuConfig, MenuType, SessionInterface } from '@app/feature-bot-shared';
 import { SessionService } from '../service/session.service';
+import { MessageService } from '../service/message.service';
 import { MenuService } from '../service/menu.service';
 import { AuthUserService } from '@app/feature-auth-shared';
-import { BalanceDto, BalanceService } from '@app/feature-balance-main';
+import { BalanceDto, BalanceQueryService } from '@app/feature-balance-shared';
 import { UserEntity, UserRole, UserStatus } from '@app/database';
 
 /**
@@ -24,9 +25,10 @@ export class MainMenuComposer {
 
   constructor(
     private readonly sessionService: SessionService,
+    private readonly messageService: MessageService,
     private readonly menuService: MenuService,
     private readonly authUserService: AuthUserService,
-    private readonly balanceService: BalanceService,
+    private readonly balanceQueryService: BalanceQueryService,
   ) {
     this.composer = new Composer<BotContext>();
     this.setupComposer();
@@ -59,11 +61,11 @@ export class MainMenuComposer {
       // Get user data and session
       const session = await this.sessionService.getOrCreateSession(userId);
       const user = await this.authUserService.findByPlatformId(userId);
-      const balance = user ? await this.balanceService.getBalance(user.id) : null;
+      const balance = user ? await this.balanceQueryService.getBalance(user.id) : null;
 
       // Personalize greeting
       const userName = ctx.from?.first_name || 'User';
-      const greeting = this.getPersonalizedGreeting(userName, session?.data.preferences?.language || 'en');
+      const greeting = this.getPersonalizedGreeting(userName, session?.data.preferences?.language || defaultLanguage);
 
       // Build dynamic menu based on user status
       const buttons = await this.buildMainMenuButtons(ctx, user || undefined, balance || undefined, session);
@@ -361,20 +363,16 @@ export class MainMenuComposer {
     try {
       const menuConfig = await this.composeMainMenu(ctx);
       const keyboard = this.createInlineKeyboard(menuConfig);
-
       const menuText = this.formatMenuText(menuConfig);
 
-      if (ctx.callbackQuery) {
-        await ctx.editMessageText(menuText, {
-          reply_markup: keyboard,
-          parse_mode: 'HTML',
-        });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: menuText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
 
+      if (ctx.callbackQuery) {
         await ctx.answerCallbackQuery(ctx.t('menu.callback.main_menu_loaded'));
-      } else {
-        await ctx.replyWithHTML(menuText, {
-          reply_markup: keyboard,
-        });
       }
 
       // Update navigation state
@@ -787,9 +785,10 @@ export class MainMenuComposer {
       quick_menu: async () => {
         const quickMenu = await this.composeQuickActionsMenu(ctx);
         const keyboard = this.createInlineKeyboard(quickMenu);
-        await ctx.editMessageText(this.formatMenuText(quickMenu), {
-          reply_markup: keyboard,
-          parse_mode: 'HTML',
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: this.formatMenuText(quickMenu),
+          parseMode: 'HTML',
+          replyMarkup: keyboard,
         });
       },
       refresh_all: async () => {
@@ -809,7 +808,9 @@ export class MainMenuComposer {
     if (handler) {
       await handler();
     } else {
-      await ctx.reply(ctx.t('menu.callback.action_not_implemented', { action }));
+      await this.messageService.sendNewMessage(ctx, {
+        text: ctx.t('menu.callback.action_not_implemented', { action }),
+      });
     }
   }
 

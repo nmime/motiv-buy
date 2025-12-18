@@ -1,8 +1,7 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { PaymentProviderFactory } from './payment-provider.factory';
-import { PaymentConfigService, PaymentUpdateStrategy } from '@app/feature-payment-shared';
+import { PaymentProviderFactory, PaymentConfigService, PaymentUpdateStrategy } from '@app/feature-payment-shared';
 import { PaymentTransactionEntity, PaymentType, PaymentStatus, PaymentProvider } from '@app/database';
 import { toError } from '@app/common-shared';
 

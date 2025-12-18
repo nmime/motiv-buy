@@ -8,10 +8,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { AuthUserService } from '@app/feature-auth-shared';
-import { BalanceService } from '@app/feature-balance-main';
+import { BalanceQueryService } from '@app/feature-balance-shared';
 import { UserRole, UserStatus } from '@app/database';
-import { unknownToError, toDisplayString } from '@app/common-shared';
+import { defaultLanguage, unknownToError, toDisplayString } from '@app/common-shared';
 import { SessionService } from '../../service/session.service';
+import { MessageService } from '../../service/message.service';
+import { InlineKeyboard } from 'grammy';
 
 @Injectable()
 export class InformationCommandHandler {
@@ -19,8 +21,9 @@ export class InformationCommandHandler {
 
   constructor(
     private readonly authUserService: AuthUserService,
-    private readonly balanceService: BalanceService,
+    private readonly balanceQueryService: BalanceQueryService,
     private readonly sessionService: SessionService,
+    private readonly messageService: MessageService,
   ) {}
 
   /**
@@ -70,19 +73,19 @@ export class InformationCommandHandler {
 • Check our FAQ in the help menu
 • Contact support: @motivbuy_support
 
-<i>Version 1.0 | Last updated: ${new Date().toLocaleDateString()}</i>
+<i>Version 1.0 | Last updated: ${this.messageService.formatDate(ctx, new Date())}</i>
 `;
 
-    await ctx.replyWithHTML(helpText, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '📞 Contact Support', callback_data: 'help:contact' },
-            { text: '📚 FAQ', callback_data: 'help:faq' },
-          ],
-          [{ text: '📋 Main Menu', callback_data: 'menu:main' }],
-        ],
-      },
+    const keyboard = new InlineKeyboard()
+      .text('📞 Contact Support', 'help:contact')
+      .text('📚 FAQ', 'help:faq')
+      .row()
+      .text('📋 Main Menu', 'menu:main');
+
+    await this.messageService.sendNewMessage(ctx, {
+      text: helpText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -116,17 +119,18 @@ Weekend: Limited support available
 <i>We're here to help you succeed! 🚀</i>
 `;
 
-    await ctx.replyWithHTML(supportText, {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💬 Contact Support', url: 'https://t.me/motivbuy_support' }],
-          [
-            { text: '📚 FAQ', callback_data: 'help:faq' },
-            { text: '🐛 Report Bug', callback_data: 'help:bug_report' },
-          ],
-          [{ text: '⬅️ Back', callback_data: 'menu:main' }],
-        ],
-      },
+    const keyboard = new InlineKeyboard()
+      .url('💬 Contact Support', 'https://t.me/motivbuy_support')
+      .row()
+      .text('📚 FAQ', 'help:faq')
+      .text('🐛 Report Bug', 'help:bug_report')
+      .row()
+      .text('⬅️ Back', 'menu:main');
+
+    await this.messageService.sendNewMessage(ctx, {
+      text: supportText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -142,24 +146,22 @@ Select your preferred language:
 <i>Currently supported languages:</i>
 `;
 
-    await ctx.replyWithHTML(languageText, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '🇺🇸 English', callback_data: 'settings:language:en' },
-            { text: '🇪🇸 Español', callback_data: 'settings:language:es' },
-          ],
-          [
-            { text: '🇫🇷 Français', callback_data: 'settings:language:fr' },
-            { text: '🇩🇪 Deutsch', callback_data: 'settings:language:de' },
-          ],
-          [
-            { text: '🇷🇺 Русский', callback_data: 'settings:language:ru' },
-            { text: '🇨🇳 中文', callback_data: 'settings:language:zh' },
-          ],
-          [{ text: '⬅️ Back to Settings', callback_data: 'menu:settings' }],
-        ],
-      },
+    const keyboard = new InlineKeyboard()
+      .text('🇺🇸 English', 'settings:language:en')
+      .text('🇪🇸 Español', 'settings:language:es')
+      .row()
+      .text('🇫🇷 Français', 'settings:language:fr')
+      .text('🇩🇪 Deutsch', 'settings:language:de')
+      .row()
+      .text('🇷🇺 Русский', 'settings:language:ru')
+      .text('🇨🇳 中文', 'settings:language:zh')
+      .row()
+      .text('⬅️ Back to Settings', 'menu:settings');
+
+    await this.messageService.sendNewMessage(ctx, {
+      text: languageText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -191,17 +193,18 @@ Verify your account to unlock all features:
 • Email confirmation
 `;
 
-    await ctx.replyWithHTML(verificationText, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '📧 Verify Email', callback_data: 'verify:email' },
-            { text: '📱 Verify Phone', callback_data: 'verify:phone' },
-          ],
-          [{ text: '🆔 Identity Verification', callback_data: 'verify:identity' }],
-          [{ text: '⬅️ Back', callback_data: 'menu:profile' }],
-        ],
-      },
+    const keyboard = new InlineKeyboard()
+      .text('📧 Verify Email', 'verify:email')
+      .text('📱 Verify Phone', 'verify:phone')
+      .row()
+      .text('🆔 Identity Verification', 'verify:identity')
+      .row()
+      .text('⬅️ Back', 'menu:profile');
+
+    await this.messageService.sendNewMessage(ctx, {
+      text: verificationText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -229,21 +232,21 @@ Export your data in various formats:
 <i>Exported files will be sent as documents to this chat.</i>
 `;
 
-    await ctx.replyWithHTML(exportText, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '💰 Transactions', callback_data: 'export:transactions' },
-            { text: '📈 Analytics', callback_data: 'export:analytics' },
-          ],
-          [
-            { text: '🎯 Traffic Reports', callback_data: 'export:traffic' },
-            { text: '📋 Account Summary', callback_data: 'export:summary' },
-          ],
-          [{ text: '📦 Full Archive', callback_data: 'export:full' }],
-          [{ text: '⬅️ Back', callback_data: 'menu:settings' }],
-        ],
-      },
+    const keyboard = new InlineKeyboard()
+      .text('💰 Transactions', 'export:transactions')
+      .text('📈 Analytics', 'export:analytics')
+      .row()
+      .text('🎯 Traffic Reports', 'export:traffic')
+      .text('📋 Account Summary', 'export:summary')
+      .row()
+      .text('📦 Full Archive', 'export:full')
+      .row()
+      .text('⬅️ Back', 'menu:settings');
+
+    await this.messageService.sendNewMessage(ctx, {
+      text: exportText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -273,18 +276,20 @@ Export your data in various formats:
 <i>Choose what you want to reset:</i>
 `;
 
-    await ctx.replyWithHTML(resetText, {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🗂️ Reset Session Data', callback_data: 'reset:session' }],
-          [
-            { text: '🔔 Reset Notifications', callback_data: 'reset:notifications' },
-            { text: '⚙️ Reset Preferences', callback_data: 'reset:preferences' },
-          ],
-          [{ text: '🧹 Clear Cache', callback_data: 'reset:cache' }],
-          [{ text: '❌ Cancel', callback_data: 'menu:settings' }],
-        ],
-      },
+    const keyboard = new InlineKeyboard()
+      .text('🗂️ Reset Session Data', 'reset:session')
+      .row()
+      .text('🔔 Reset Notifications', 'reset:notifications')
+      .text('⚙️ Reset Preferences', 'reset:preferences')
+      .row()
+      .text('🧹 Clear Cache', 'reset:cache')
+      .row()
+      .text('❌ Cancel', 'menu:settings');
+
+    await this.messageService.sendNewMessage(ctx, {
+      text: resetText,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -300,12 +305,12 @@ Export your data in various formats:
     try {
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.user_not_found') });
 
         return;
       }
 
-      const balance = await this.balanceService.getBalance(user.id);
+      const balance = await this.balanceQueryService.getBalance(user.id);
 
       const balanceText = `
 <b>💰 Your Balance</b>
@@ -315,28 +320,27 @@ Export your data in various formats:
 <b>📊 Total Earned:</b> $${toDisplayString(balance.totalEarned)}
 
 <b>📈 Recent Activity:</b>
-• Last transaction: ${balance.lastTransactionAt ? new Date(balance.lastTransactionAt).toLocaleDateString() : 'No transactions yet'}
-• Account created: ${new Date(user.createdAt).toLocaleDateString()}
+• Last transaction: ${balance.lastTransactionAt ? this.messageService.formatDate(ctx, new Date(balance.lastTransactionAt)) : 'No transactions yet'}
+• Account created: ${this.messageService.formatDate(ctx, user.createdAt)}
 
 <b>💸 Withdrawal Status:</b>
 • Available for withdrawal: $${toDisplayString(balance.availableAmount)}
 • Minimum withdrawal: $10.00
 `;
 
-      await ctx.replyWithHTML(balanceText, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '💸 Withdraw', callback_data: 'menu:withdrawal' },
-              { text: '📈 History', callback_data: 'balance:history' },
-            ],
-            [
-              { text: '📊 Analytics', callback_data: 'balance:analytics' },
-              { text: '🔄 Refresh', callback_data: 'balance:current' },
-            ],
-            [{ text: '⬅️ Back', callback_data: 'menu:main' }],
-          ],
-        },
+      const keyboard = new InlineKeyboard()
+        .text('💸 Withdraw', 'menu:withdrawal')
+        .text('📈 History', 'balance:history')
+        .row()
+        .text('📊 Analytics', 'balance:analytics')
+        .text('🔄 Refresh', 'balance:current')
+        .row()
+        .text('⬅️ Back', 'menu:main');
+
+      await this.messageService.sendNewMessage(ctx, {
+        text: balanceText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
     } catch (err: unknown) {
       this.logger.error('Error fetching balance', {
@@ -344,7 +348,7 @@ Export your data in various formats:
         userId,
       });
 
-      await ctx.reply(ctx.t('common.errors.fetch_failed'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.fetch_failed') });
     }
   }
 
@@ -360,13 +364,13 @@ Export your data in various formats:
     try {
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user) {
-        await ctx.reply(ctx.t('common.errors.user_not_found'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.user_not_found') });
 
         return;
       }
 
       const session = await this.sessionService.getSession(userId);
-      const balance = await this.balanceService.getBalance(user.id);
+      const balance = await this.balanceQueryService.getBalance(user.id);
 
       const statusText = `
 <b>📊 Account Status</b>
@@ -380,33 +384,33 @@ Export your data in various formats:
 <b>🔐 Account Status:</b>
 • Status: ${user.status === UserStatus.Active ? '✅ Active' : '❌ Inactive'}
 • Role: ${user.role !== UserRole.User ? '✅ Admin' : '❌ User'}
-• Member since: ${new Date(user.createdAt).toLocaleDateString()}
+• Member since: ${this.messageService.formatDate(ctx, user.createdAt)}
 
 <b>💰 Financial Status:</b>
 • Current balance: $${toDisplayString(balance.availableAmount)}
 • Total earned: $${toDisplayString(balance.totalEarned)}
-• Last transaction: ${balance.lastTransactionAt ? new Date(balance.lastTransactionAt).toLocaleDateString() : 'None'}
+• Last transaction: ${balance.lastTransactionAt ? this.messageService.formatDate(ctx, new Date(balance.lastTransactionAt)) : 'None'}
 
 <b>📱 Session Info:</b>
 • Session active: ${session ? '✅ Yes' : '❌ No'}
-• Last active: ${session ? new Date(session.updatedAt).toLocaleString() : 'Unknown'}
+• Last active: ${session ? this.messageService.formatDateTime(ctx, new Date(session.updatedAt)) : 'Unknown'}
 • Current location: ${session?.data.navigationState?.currentLocation || 'Unknown'}
 
 <b>🔔 Notifications:</b>
 • Push notifications: ${session?.data.preferences?.notifications?.enablePush ? '✅ Enabled' : '❌ Disabled'}
-• Language: ${session?.data.preferences?.language || 'en'}
+• Language: ${session?.data.preferences?.language || defaultLanguage}
 `;
 
-      await ctx.replyWithHTML(statusText, {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '🔄 Refresh Status', callback_data: 'status:refresh' }],
-            [
-              { text: '⚙️ Settings', callback_data: 'menu:settings' },
-              { text: '📋 Main Menu', callback_data: 'menu:main' },
-            ],
-          ],
-        },
+      const keyboard = new InlineKeyboard()
+        .text(ctx.t('common.buttons.refresh'), 'status:refresh')
+        .row()
+        .text(ctx.t('settings.title'), 'menu:settings')
+        .text(ctx.t('bot.menu.main'), 'menu:main');
+
+      await this.messageService.sendNewMessage(ctx, {
+        text: statusText,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
     } catch (err: unknown) {
       this.logger.error('Error fetching status', {
@@ -414,7 +418,7 @@ Export your data in various formats:
         userId,
       });
 
-      await ctx.reply(ctx.t('common.errors.status_fetch_error'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.status_fetch_error') });
     }
   }
 }

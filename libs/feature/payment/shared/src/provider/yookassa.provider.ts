@@ -2,14 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Err, Ok, AsyncResult, toError } from '@app/common-shared';
 import { CurrencyCode, Cryptocurrency, PaymentStatus } from '@app/database';
 import { CurrencyRateService } from '@app/feature-currency-shared';
-import {
-  IPaymentProvider,
-  PaymentBalance,
-  PaymentInvoice,
-  PaymentTransaction,
-  PaymentTransfer,
-  PaymentConfigService,
-} from '@app/feature-payment-shared';
+import { IPaymentProvider, PaymentBalance, PaymentInvoice, PaymentTransaction, PaymentTransfer } from '../interface';
+import { PaymentConfigService } from '../config';
 
 /**
  * YooKassa API Response

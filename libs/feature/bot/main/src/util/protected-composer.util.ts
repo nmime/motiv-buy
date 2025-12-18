@@ -16,7 +16,6 @@ import { BotContext } from '@app/feature-bot-shared';
  * if ctx.user exists before execution. Unauthenticated requests are
  * blocked with an error message.
  *
- * @param errorMessage - Message to send to unauthenticated users
  * @returns Composer with auth protection
  *
  * @example
@@ -30,15 +29,13 @@ import { BotContext } from '@app/feature-bot-shared';
  * });
  * ```
  */
-export function createProtectedComposer(
-  errorMessage = '🔐 Authentication required. Please use /start to register.',
-): Composer<BotContext> {
+export function createProtectedComposer(): Composer<BotContext> {
   const composer = new Composer<BotContext>();
 
   // Add authentication guard middleware
   composer.use(async (ctx, next) => {
     if (!ctx.user || !ctx.isAuthenticated) {
-      await ctx.reply(errorMessage);
+      await ctx.reply(ctx.t('common.errors.auth_required'));
 
       return;
     }
@@ -58,7 +55,6 @@ export function createProtectedComposer(
  * After this middleware runs, ctx.user is guaranteed to exist.
  *
  * @param handler - The handler function to protect
- * @param errorMessage - Message to send to unauthenticated users
  * @returns Protected handler function
  *
  * @example
@@ -70,16 +66,13 @@ export function createProtectedComposer(
  * bot.command('profile', protectHandler(handleProfile));
  * ```
  */
-export function protectHandler<T>(
-  handler: (ctx: T) => Promise<void>,
-  errorMessage = '🔐 Authentication required. Please use /start to register.',
-): (ctx: T) => Promise<void> {
+export function protectHandler<T>(handler: (ctx: T) => Promise<void>): (ctx: T) => Promise<void> {
   return async (ctx: T) => {
     // Type guard to check if context has user property
     const botCtx = ctx as unknown as BotContext;
 
     if (!botCtx.user || !botCtx.isAuthenticated) {
-      await botCtx.reply(errorMessage);
+      await botCtx.reply(botCtx.t('common.errors.auth_required'));
 
       return;
     }

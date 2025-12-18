@@ -6,8 +6,10 @@ import { UserService } from '@app/feature-user-main';
 import { UserRole } from '@app/database';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
+import { MessageService } from '../service/message.service';
 import { unknownToError, toError } from '@app/common-shared';
 import { InformationCommandHandler } from './commands';
+import { InlineKeyboard } from 'grammy';
 
 /**
  * Command Handler
@@ -31,6 +33,7 @@ export class CommandHandler {
     private readonly userService: UserService,
     private readonly sessionService: SessionService,
     private readonly menuService: MenuService,
+    private readonly messageService: MessageService,
     private readonly informationCommandHandler: InformationCommandHandler,
   ) {
     this.initializeCommandHandlers();
@@ -122,8 +125,18 @@ export class CommandHandler {
 
         if (existingUser) {
           // Existing user - welcome back
-          await ctx.replyWithHTML(
-            `<b>${ctx.t('bot.commands.welcome_back', { name: userName })}</b>\n\n` +
+          const welcomeBackKeyboard = new InlineKeyboard()
+            .text(ctx.t('bot.commands.btn_sell_traffic'), 'menu:sell_traffic')
+            .text(ctx.t('bot.commands.btn_buy_traffic'), 'menu:buy_traffic')
+            .row()
+            .text(ctx.t('bot.commands.btn_balance'), 'balance:view')
+            .text(ctx.t('bot.commands.btn_profile'), 'profile:view')
+            .row()
+            .text(ctx.t('bot.commands.btn_support'), 'menu:support');
+
+          await this.messageService.sendNewMessage(ctx, {
+            text:
+              `<b>${ctx.t('bot.commands.welcome_back', { name: userName })}</b>\n\n` +
               ctx.t('bot.commands.welcome_back_message') +
               `\n\n` +
               ctx.t('bot.commands.account_status') +
@@ -132,26 +145,23 @@ export class CommandHandler {
               `\n` +
               `${ctx.t('bot.commands.user_id')} ${userId}\n\n` +
               ctx.t('bot.commands.use_menu'),
-            {
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    { text: ctx.t('bot.commands.btn_sell_traffic'), callback_data: 'menu:sell_traffic' },
-                    { text: ctx.t('bot.commands.btn_buy_traffic'), callback_data: 'menu:buy_traffic' },
-                  ],
-                  [
-                    { text: ctx.t('bot.commands.btn_balance'), callback_data: 'balance:view' },
-                    { text: ctx.t('bot.commands.btn_profile'), callback_data: 'profile:view' },
-                  ],
-                  [{ text: ctx.t('bot.commands.btn_support'), callback_data: 'menu:support' }],
-                ],
-              },
-            },
-          );
+            parseMode: 'HTML',
+            replyMarkup: welcomeBackKeyboard,
+          });
         } else {
           // New user - registration flow
-          await ctx.replyWithHTML(
-            `<b>${ctx.t('bot.commands.welcome_new')}</b>\n\n` +
+          const welcomeNewKeyboard = new InlineKeyboard()
+            .text(ctx.t('bot.commands.btn_complete_setup'), 'auth:register')
+            .row()
+            .text(ctx.t('bot.commands.btn_sell_traffic'), 'menu:sell_traffic')
+            .text(ctx.t('bot.commands.btn_buy_traffic'), 'menu:buy_traffic')
+            .row()
+            .text(ctx.t('bot.commands.btn_balance'), 'balance:view')
+            .text(ctx.t('bot.commands.btn_help'), 'menu:help');
+
+          await this.messageService.sendNewMessage(ctx, {
+            text:
+              `<b>${ctx.t('bot.commands.welcome_new')}</b>\n\n` +
               `${ctx.t('bot.commands.welcome_new_intro')}\n\n` +
               `<b>${ctx.t('bot.commands.help_features')}</b>\n\n` +
               ctx.t('bot.commands.feature_track') +
@@ -165,22 +175,9 @@ export class CommandHandler {
               ctx.t('bot.commands.feature_withdraw') +
               `\n` +
               ctx.t('bot.commands.feature_optimize'),
-            {
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: ctx.t('bot.commands.btn_complete_setup'), callback_data: 'auth:register' }],
-                  [
-                    { text: ctx.t('bot.commands.btn_sell_traffic'), callback_data: 'menu:sell_traffic' },
-                    { text: ctx.t('bot.commands.btn_buy_traffic'), callback_data: 'menu:buy_traffic' },
-                  ],
-                  [
-                    { text: ctx.t('bot.commands.btn_balance'), callback_data: 'balance:view' },
-                    { text: ctx.t('bot.commands.btn_help'), callback_data: 'menu:help' },
-                  ],
-                ],
-              },
-            },
-          );
+            parseMode: 'HTML',
+            replyMarkup: welcomeNewKeyboard,
+          });
         }
 
         // Create or update session
@@ -203,13 +200,14 @@ export class CommandHandler {
         userId,
       });
 
-      await ctx.reply(
-        ctx.t('bot.commands.welcome_new') +
+      await this.messageService.sendNewMessage(ctx, {
+        text:
+          ctx.t('bot.commands.welcome_new') +
           `\n\n` +
           ctx.t('bot.commands.error_fallback_intro') +
           `\n\n` +
           ctx.t('bot.commands.error_fallback_hint'),
-      );
+      });
     }
   }
 
@@ -306,7 +304,7 @@ export class CommandHandler {
     try {
       const user = await this.authUserService.findByPlatformId(userId);
       if (!user || user.role === UserRole.User) {
-        await ctx.reply(ctx.t('common.errors.access_denied_admin'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.access_denied_admin') });
 
         return;
       }
@@ -318,7 +316,7 @@ export class CommandHandler {
         userId,
       });
 
-      await ctx.reply(ctx.t('common.errors.admin_verify_error'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.admin_verify_error') });
     }
   }
 
@@ -342,10 +340,10 @@ export class CommandHandler {
       });
     }
 
-    await ctx.reply(ctx.t('common.errors.operation_cancelled'), {
-      reply_markup: {
-        inline_keyboard: [[{ text: ctx.t('bot.menu.main'), callback_data: 'menu:main' }]],
-      },
+    const keyboard = new InlineKeyboard().text(ctx.t('bot.menu.main'), 'menu:main');
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('common.errors.operation_cancelled'),
+      replyMarkup: keyboard,
     });
   }
 
@@ -360,19 +358,16 @@ export class CommandHandler {
    * Handle unknown command
    */
   private async handleUnknownCommand(ctx: BotContext, command: BotCommand): Promise<void> {
-    await ctx.reply(ctx.t('common.errors.unknown_command_help', { command }), {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '❓ Help', callback_data: 'menu:help' },
-            { text: '📋 Main Menu', callback_data: 'menu:main' },
-          ],
-          [
-            { text: '💰 Balance', callback_data: 'menu:balance' },
-            { text: '📈 Statistics', callback_data: 'menu:statistics' },
-          ],
-        ],
-      },
+    const keyboard = new InlineKeyboard()
+      .text('❓ Help', 'menu:help')
+      .text('📋 Main Menu', 'menu:main')
+      .row()
+      .text('💰 Balance', 'menu:balance')
+      .text('📈 Statistics', 'menu:statistics');
+
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('common.errors.unknown_command_help', { command }),
+      replyMarkup: keyboard,
     });
   }
 
@@ -380,10 +375,10 @@ export class CommandHandler {
    * Send authentication required message
    */
   private async sendAuthenticationRequired(ctx: BotContext): Promise<void> {
-    await ctx.reply(ctx.t('common.errors.auth_required_start'), {
-      reply_markup: {
-        inline_keyboard: [[{ text: '🚀 Start Bot', callback_data: 'auth:start' }]],
-      },
+    const keyboard = new InlineKeyboard().text('🚀 Start Bot', 'auth:start');
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('common.errors.auth_required_start'),
+      replyMarkup: keyboard,
     });
   }
 
@@ -408,16 +403,15 @@ export class CommandHandler {
         : 'Sorry, something went wrong processing your request. Please try again or contact support if the problem persists.';
 
     try {
-      await ctx.reply(errorMessage, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '🔄 Try Again', callback_data: `command:${command}` },
-              { text: '📋 Main Menu', callback_data: 'menu:main' },
-            ],
-            [{ text: '🆘 Support', callback_data: 'help:contact' }],
-          ],
-        },
+      const keyboard = new InlineKeyboard()
+        .text('🔄 Try Again', `command:${command}`)
+        .text('📋 Main Menu', 'menu:main')
+        .row()
+        .text('🆘 Support', 'help:contact');
+
+      await this.messageService.sendNewMessage(ctx, {
+        text: errorMessage,
+        replyMarkup: keyboard,
       });
     } catch (replyError) {
       this.logger.error('Failed to send error message', {

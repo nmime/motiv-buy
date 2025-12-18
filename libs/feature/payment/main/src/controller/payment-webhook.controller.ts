@@ -12,11 +12,14 @@ import {
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
-import { CryptoBotProvider } from '../provider/crypto-bot.provider';
-import { HeleketProvider } from '../provider/heleket.provider';
-import { YooKassaProvider } from '../provider/yookassa.provider';
-import { PaymentService } from '../service/payment.service';
-import { WebhookUpdateDto, PaymentConfigService } from '@app/feature-payment-shared';
+import {
+  CryptoBotProvider,
+  HeleketProvider,
+  YooKassaProvider,
+  PaymentService,
+  PaymentConfigService,
+  WebhookUpdateDto,
+} from '@app/feature-payment-shared';
 
 /**
  * Controller for handling payment webhook callbacks

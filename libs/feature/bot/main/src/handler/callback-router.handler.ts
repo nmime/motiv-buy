@@ -441,7 +441,7 @@ export class CallbackRouterHandler {
 
     // Check if context is authenticated - use isAuthenticated helper
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(ctx.t('common.errors.authentication_required'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.authentication_required') });
 
       return;
     }

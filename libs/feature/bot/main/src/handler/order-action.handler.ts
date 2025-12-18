@@ -273,8 +273,10 @@ export class OrderActionHandler {
       `<b>${ctx.t('orders.source')}:</b> ${source.name}\n` +
       `<b>${ctx.t('orders.target_label')}:</b> ${target.name}\n\n` +
       (order.description ? `<b>${ctx.t('orders.description')}:</b>\n${order.description}\n\n` : '') +
-      `<b>${ctx.t('orders.created')}:</b> ${order.createdAt.toLocaleString()}\n` +
-      (order.completedAt ? `<b>${ctx.t('orders.completed')}:</b> ${order.completedAt.toLocaleString()}` : '')
+      `<b>${ctx.t('orders.created')}:</b> ${this.messageService.formatDateTime(ctx, order.createdAt)}\n` +
+      (order.completedAt
+        ? `<b>${ctx.t('orders.completed')}:</b> ${this.messageService.formatDateTime(ctx, order.completedAt)}`
+        : '')
     );
   }
 

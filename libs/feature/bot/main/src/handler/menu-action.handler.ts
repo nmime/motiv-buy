@@ -9,6 +9,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BotContext, isAuthenticated } from '@app/feature-bot-shared';
 import { InlineKeyboard } from 'grammy';
 import { BotValidationUtil } from '../util/bot-validation.util';
+import { MessageService } from '../service/message.service';
 
 export interface MenuAction {
   action: string;
@@ -21,6 +22,8 @@ export interface MenuAction {
 @Injectable()
 export class MenuActionHandler {
   private readonly logger = new Logger(MenuActionHandler.name);
+
+  constructor(private readonly messageService: MessageService) {}
 
   /**
    * Parse callback data into action and parameters
@@ -430,11 +433,11 @@ export class MenuActionHandler {
    */
   async validateMenuAccess(ctx: BotContext, requiredRole?: string): Promise<boolean> {
     if (!isAuthenticated(ctx)) {
-      await ctx.reply(
-        ctx.t('common.errors.authentication_required', {
+      await this.messageService.sendNewMessage(ctx, {
+        text: ctx.t('common.errors.authentication_required', {
           default: 'Authentication required. Please use /start to begin.',
         }),
-      );
+      });
 
       return false;
     }
@@ -454,7 +457,7 @@ export class MenuActionHandler {
     const hasRequiredRole = ctx.user.role === requiredRole;
 
     if (!hasRequiredRole) {
-      await ctx.reply(ctx.t('common.errors.no_permission'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.no_permission') });
     }
 
     return hasRequiredRole;
@@ -470,7 +473,7 @@ export class MenuActionHandler {
       userId: ctx.from?.id,
     });
 
-    await ctx.reply(ctx.t('common.errors.operation_failed'));
+    await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.operation_failed') });
   }
 
   /**

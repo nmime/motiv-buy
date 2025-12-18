@@ -74,7 +74,7 @@
     "reset_coming_soon": "🔄 Сброс настроек скоро!"
   },
   "stats": {
-    "title": "Статистика за {{period}}",
+    "title": "Статистика за {period}",
     "overview": "📊 Обзор",
     "overview_title": "Обзор статистики",
     "overview_hint": "Подробная статистика в разделе Статистика",
@@ -86,7 +86,7 @@
     "period_daily": "Сегодня",
     "period_weekly": "Эта неделя",
     "period_monthly": "Этот месяц",
-    "updated_at": "Обновлено: {{time}}",
+    "updated_at": "Обновлено: {time}",
     "detailed": "📈 Детальная статистика",
     "traffic": "🎯 Статистика трафика",
     "earnings_stat": "💰 Статистика заработка",
@@ -186,12 +186,12 @@
     "description": "Часто используемые действия для ускорения работы"
   },
   "greetings": {
-    "welcome": "Добро пожаловать, {{name}}! 🚀",
-    "welcome_back_en": "Welcome back, {{name}}! 🚀",
-    "welcome_back_es": "¡Bienvenido de vuelta, {{name}}! 🚀",
-    "welcome_back_fr": "Bon retour, {{name}}! 🚀",
-    "welcome_back_de": "Willkommen zurück, {{name}}! 🚀",
-    "welcome_back_ru": "С возвращением, {{name}}! 🚀"
+    "welcome": "Добро пожаловать, {name}! 🚀",
+    "welcome_back_en": "Welcome back, {name}! 🚀",
+    "welcome_back_es": "¡Bienvenido de vuelta, {name}! 🚀",
+    "welcome_back_fr": "Bon retour, {name}! 🚀",
+    "welcome_back_de": "Willkommen zurück, {name}! 🚀",
+    "welcome_back_ru": "С возвращением, {name}! 🚀"
   },
   "status": {
     "register_prompt": "Зарегистрируйтесь для доступа ко всем функциям.",
@@ -200,10 +200,10 @@
   },
   "callback": {
     "main_menu_loaded": "🏠 Главное меню загружено",
-    "navigated_to": "📱 Переход к {{menu}}",
+    "navigated_to": "📱 Переход к {menu}",
     "navigation_path": "📍 Путь навигации:",
     "at_main_menu": "Вы в главном меню",
-    "action_not_implemented": "Действие \"{{action}}\" еще не реализовано.",
+    "action_not_implemented": "Действие \"{action}\" еще не реализовано.",
     "menu_refreshed": "🔄 Меню обновлено",
     "menu_state_saved": "Состояние меню сохранено",
     "menu_state_restored": "Состояние меню восстановлено"

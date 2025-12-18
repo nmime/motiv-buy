@@ -1,21 +1,7 @@
 import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PaymentSharedModule } from '@app/feature-payment-shared';
-import {
-  DatabaseModule,
-  PaymentTransactionEntity,
-  PaymentProviderRepository,
-  ProviderCurrencyRepository,
-  ProviderRoutingRepository,
-} from '@app/database';
-import { CurrencySharedModule } from '@app/feature-currency-shared';
+import { DatabaseModule } from '@app/database';
 import { AppCommonIntlModule } from '@app/common-intl';
-import { CryptoBotProvider } from './provider/crypto-bot.provider';
-import { HeleketProvider } from './provider/heleket.provider';
-import { YooKassaProvider } from './provider/yookassa.provider';
-import { PaymentProviderFactory } from './service/payment-provider.factory';
-import { PaymentService } from './service/payment.service';
-import { ProviderRoutingService } from './service/provider-routing.service';
 import { PaymentPollingService } from './service/payment-polling.service';
 import { PaymentController } from './controller/payment.controller';
 import { PaymentWebhookController } from './controller/payment-webhook.controller';
@@ -27,8 +13,8 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
  * including top-ups, withdrawals, invoice management, webhook and polling processing.
  *
  * Features:
- * - Multiple payment provider integrations (CryptoBot, Heleket, YooKassa)
- * - Smart routing system for dynamic provider selection
+ * - Multiple payment provider integrations (CryptoBot, Heleket, YooKassa) - from PaymentSharedModule
+ * - Smart routing system for dynamic provider selection - from PaymentSharedModule
  * - Each provider has isolated context and configuration
  * - Invoice creation and management
  * - Transfer/withdrawal processing
@@ -38,38 +24,26 @@ import { PaymentWebhookController } from './controller/payment-webhook.controlle
  * - Balance integration for user credits
  * - Internationalization support
  * - Centralized configuration via PaymentConfigModule
+ *
+ * Note: Core payment providers and services are now in PaymentSharedModule.
+ * This module adds controllers, polling service, and webhooks.
  */
 @Module({
   imports: [
-    MikroOrmModule.forFeature([PaymentTransactionEntity]),
-    PaymentSharedModule, // Includes PaymentConfigModule
+    PaymentSharedModule, // Core providers, services, and config
     DatabaseModule, // For repository access
-    CurrencySharedModule, // For CurrencyRateService
     AppCommonIntlModule, // For I18n support
   ],
   controllers: [PaymentController, PaymentWebhookController],
   providers: [
-    // Payment providers
-    CryptoBotProvider,
-    HeleketProvider,
-    YooKassaProvider,
-    // Services
-    PaymentProviderFactory,
-    PaymentService,
-    ProviderRoutingService,
+    // Only main-specific services
     PaymentPollingService,
-    // Repositories for routing
-    PaymentProviderRepository,
-    ProviderCurrencyRepository,
-    ProviderRoutingRepository,
   ],
   exports: [
-    PaymentService,
-    PaymentProviderFactory,
+    // Note: PaymentService, PaymentProviderFactory, and providers
+    // are exported from @Global() PaymentSharedModule and are
+    // automatically available everywhere
     PaymentPollingService,
-    CryptoBotProvider,
-    HeleketProvider,
-    YooKassaProvider,
   ],
 })
 export class PaymentMainModule {}

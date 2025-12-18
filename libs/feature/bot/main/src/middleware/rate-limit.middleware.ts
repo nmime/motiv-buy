@@ -69,10 +69,7 @@ export class RateLimitMiddleware {
       const blockedUntil = this.blockedUsers.get(userId);
       if (blockedUntil) {
         const remainingMinutes = Math.ceil((blockedUntil - Date.now()) / 1000 / 60);
-        await ctx.reply(
-          `⚠️ You have been temporarily blocked due to excessive requests.\n` +
-            `Please try again in ${remainingMinutes} minute(s).`,
-        );
+        await ctx.reply(ctx.t('common.errors.user_blocked', { minutes: remainingMinutes }));
       }
 
       return false;

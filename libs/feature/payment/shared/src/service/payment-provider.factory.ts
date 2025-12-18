@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PaymentProvider, CurrencyRepository, CurrencyType } from '@app/database';
-import { IPaymentProvider } from '@app/feature-payment-shared';
+import { IPaymentProvider } from '../interface';
 import { CryptoBotProvider } from '../provider/crypto-bot.provider';
 import { HeleketProvider } from '../provider/heleket.provider';
 import { YooKassaProvider } from '../provider/yookassa.provider';

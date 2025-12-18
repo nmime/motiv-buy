@@ -15,6 +15,7 @@ import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/featu
 import { decimal, greaterThan, lessThan, toNumber } from '@app/common-shared';
 import { BotOrderService } from './bot-order.service';
 import { createConfigurationKeyboard } from './order.keyboards';
+import { MessageService } from '../../service/message.service';
 
 /** Edit field types supported by this handler */
 type OrderEditField = 'name' | 'link' | 'daily' | 'total' | 'price' | 'startTime' | 'schedule';
@@ -31,7 +32,10 @@ export class OrderEditHandler {
   private readonly logger = new Logger(OrderEditHandler.name);
   private composer: Composer<BotContext>;
 
-  constructor(private readonly orderService: BotOrderService) {
+  constructor(
+    private readonly orderService: BotOrderService,
+    private readonly messageService: MessageService,
+  ) {
     this.composer = new Composer<BotContext>();
     this.setupHandlers();
   }
@@ -142,9 +146,10 @@ export class OrderEditHandler {
         `${ctx.t('orders.edit.name_prompt')}\n\n` +
         `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: this.createBackKeyboard(ctx, orderId),
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: this.createBackKeyboard(ctx, orderId),
       });
 
       await ctx.answerCallbackQuery();
@@ -189,9 +194,10 @@ export class OrderEditHandler {
         `${ctx.t('bot.order.example2')}\n\n` +
         `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: this.createBackKeyboard(ctx, orderId),
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: this.createBackKeyboard(ctx, orderId),
       });
 
       await ctx.answerCallbackQuery();
@@ -234,9 +240,10 @@ export class OrderEditHandler {
         `<i>${ctx.t('orders.edit.numeric_hint')}</i>\n` +
         `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: this.createBackKeyboard(ctx, orderId),
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: this.createBackKeyboard(ctx, orderId),
       });
 
       await ctx.answerCallbackQuery();
@@ -279,9 +286,10 @@ export class OrderEditHandler {
         `<i>${ctx.t('orders.edit.numeric_hint')}</i>\n` +
         `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: this.createBackKeyboard(ctx, orderId),
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: this.createBackKeyboard(ctx, orderId),
       });
 
       await ctx.answerCallbackQuery();
@@ -324,9 +332,10 @@ export class OrderEditHandler {
         `<i>${ctx.t('orders.edit.price_hint')}</i>\n` +
         `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: this.createBackKeyboard(ctx, orderId),
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: this.createBackKeyboard(ctx, orderId),
       });
 
       await ctx.answerCallbackQuery();
@@ -362,7 +371,7 @@ export class OrderEditHandler {
       this.setEditSession(ctx, orderId, 'startTime');
 
       const currentStartTime = order.config.startTime
-        ? new Date(order.config.startTime).toLocaleString()
+        ? this.messageService.formatDateTime(ctx, new Date(order.config.startTime))
         : ctx.t('orders.edit.immediate');
 
       const message =
@@ -376,9 +385,10 @@ export class OrderEditHandler {
         `• <code>+30m</code> - ${ctx.t('orders.edit.start_relative_minutes')}\n\n` +
         `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
 
-      await ctx.editMessageText(message, {
-        reply_markup: this.createBackKeyboard(ctx, orderId),
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: this.createBackKeyboard(ctx, orderId),
       });
 
       await ctx.answerCallbackQuery();
@@ -424,9 +434,10 @@ export class OrderEditHandler {
 
       const keyboard = this.createScheduleKeyboard(ctx, orderId, daysEnabled);
 
-      await ctx.editMessageText(message, {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
 
       await ctx.answerCallbackQuery();
@@ -559,9 +570,10 @@ export class OrderEditHandler {
       // Return to configuration screen
       const keyboard = createConfigurationKeyboard(ctx, orderId);
 
-      await ctx.editMessageText(ctx.t('orders.edit_prompt'), {
-        reply_markup: keyboard,
-        parse_mode: 'HTML',
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.edit_prompt'),
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
       });
     } catch (error) {
       this.logger.error('Error saving schedule', error);
@@ -589,7 +601,7 @@ export class OrderEditHandler {
       // Authorization check
       const order = await this.orderService.getOrderById(orderId);
       if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.reply(ctx.t('common.errors.access_denied'));
+        await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.access_denied') });
         this.clearEditSession(ctx);
 
         return;
@@ -612,7 +624,7 @@ export class OrderEditHandler {
       }
     } catch (error) {
       this.logger.error('Error processing edit input', { error, orderId, field });
-      await ctx.reply(ctx.t('common.error'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.error') });
       this.clearEditSession(ctx);
     }
   }
@@ -624,13 +636,13 @@ export class OrderEditHandler {
     const name = input.trim();
 
     if (name.length === 0) {
-      await ctx.reply(ctx.t('orders.edit.name_empty'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.name_empty') });
 
       return;
     }
 
     if (name.length > 100) {
-      await ctx.reply(ctx.t('orders.edit.name_too_long'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.name_too_long') });
 
       return;
     }
@@ -638,13 +650,14 @@ export class OrderEditHandler {
     await this.orderService.updateOrderConfig(orderId, { name });
     this.clearEditSession(ctx);
 
-    await ctx.reply(ctx.t('orders.edit.name_updated', { name }));
+    await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.name_updated', { name }) });
 
     // Show configuration menu
     const keyboard = createConfigurationKeyboard(ctx, orderId);
-    await ctx.reply(ctx.t('orders.edit_prompt'), {
-      reply_markup: keyboard,
-      parse_mode: 'HTML',
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('orders.edit_prompt'),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -657,7 +670,7 @@ export class OrderEditHandler {
     // Validate link format
     const validation = await this.orderService.validateChannelLink(link);
     if (!validation.valid) {
-      await ctx.reply(ctx.t('bot.order.invalid_link'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('bot.order.invalid_link') });
 
       return;
     }
@@ -665,7 +678,7 @@ export class OrderEditHandler {
     // Verify channel exists
     const channel = await this.orderService.getChannelInfo(link);
     if (!channel) {
-      await ctx.reply(ctx.t('bot.order.channel_not_found'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('bot.order.channel_not_found') });
 
       return;
     }
@@ -673,13 +686,14 @@ export class OrderEditHandler {
     await this.orderService.updateOrderConfig(orderId, { channelLink: link });
     this.clearEditSession(ctx);
 
-    await ctx.reply(ctx.t('orders.edit.link_updated', { link }));
+    await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.link_updated', { link }) });
 
     // Show configuration menu
     const keyboard = createConfigurationKeyboard(ctx, orderId);
-    await ctx.reply(ctx.t('orders.edit_prompt'), {
-      reply_markup: keyboard,
-      parse_mode: 'HTML',
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('orders.edit_prompt'),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -695,13 +709,13 @@ export class OrderEditHandler {
     const value = parseInt(input.trim(), 10);
 
     if (isNaN(value) || value < 0) {
-      await ctx.reply(ctx.t('orders.edit.invalid_number'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.invalid_number') });
 
       return;
     }
 
     if (value > 1000000) {
-      await ctx.reply(ctx.t('orders.edit.number_too_large'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.number_too_large') });
 
       return;
     }
@@ -710,13 +724,14 @@ export class OrderEditHandler {
     this.clearEditSession(ctx);
 
     const messageKey = fieldName === 'usersPerDay' ? 'orders.edit.daily_updated' : 'orders.edit.total_updated';
-    await ctx.reply(ctx.t(messageKey, { value }));
+    await this.messageService.sendNewMessage(ctx, { text: ctx.t(messageKey, { value }) });
 
     // Show configuration menu
     const keyboard = createConfigurationKeyboard(ctx, orderId);
-    await ctx.reply(ctx.t('orders.edit_prompt'), {
-      reply_markup: keyboard,
-      parse_mode: 'HTML',
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('orders.edit_prompt'),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -728,13 +743,13 @@ export class OrderEditHandler {
     const price = decimal(cleanInput);
 
     if (price.isNaN() || lessThan(price, decimal(0))) {
-      await ctx.reply(ctx.t('orders.edit.invalid_price'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.invalid_price') });
 
       return;
     }
 
     if (greaterThan(price, decimal(1000))) {
-      await ctx.reply(ctx.t('orders.edit.price_too_high'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.price_too_high') });
 
       return;
     }
@@ -743,13 +758,14 @@ export class OrderEditHandler {
     await this.orderService.updateOrderConfig(orderId, { pricePerSubscriber: priceValue });
     this.clearEditSession(ctx);
 
-    await ctx.reply(ctx.t('orders.edit.price_updated', { price: priceValue }));
+    await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.price_updated', { price: priceValue }) });
 
     // Show configuration menu
     const keyboard = createConfigurationKeyboard(ctx, orderId);
-    await ctx.reply(ctx.t('orders.edit_prompt'), {
-      reply_markup: keyboard,
-      parse_mode: 'HTML',
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('orders.edit_prompt'),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 
@@ -785,13 +801,13 @@ export class OrderEditHandler {
     }
 
     if (!startTime) {
-      await ctx.reply(ctx.t('orders.edit.invalid_time_format'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.invalid_time_format') });
 
       return;
     }
 
     if (startTime < new Date()) {
-      await ctx.reply(ctx.t('orders.edit.time_in_past'));
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('orders.edit.time_in_past') });
 
       return;
     }
@@ -799,13 +815,16 @@ export class OrderEditHandler {
     await this.orderService.updateOrderConfig(orderId, { startTime });
     this.clearEditSession(ctx);
 
-    await ctx.reply(ctx.t('orders.edit.start_time_updated', { time: startTime.toLocaleString() }));
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('orders.edit.start_time_updated', { time: this.messageService.formatDateTime(ctx, startTime) }),
+    });
 
     // Show configuration menu
     const keyboard = createConfigurationKeyboard(ctx, orderId);
-    await ctx.reply(ctx.t('orders.edit_prompt'), {
-      reply_markup: keyboard,
-      parse_mode: 'HTML',
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('orders.edit_prompt'),
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
     });
   }
 }

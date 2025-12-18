@@ -16,14 +16,8 @@ import {
   PaymentStatus,
   Cryptocurrency,
 } from '@app/database';
-import {
-  CreateInvoiceDto,
-  CreateTransferDto,
-  WebhookUpdateDto,
-  InvoiceResponseDto,
-  TransferResponseDto,
-  PaymentTransfer,
-} from '@app/feature-payment-shared';
+import { CreateInvoiceDto, CreateTransferDto, WebhookUpdateDto, InvoiceResponseDto, TransferResponseDto } from '../dto';
+import { PaymentTransfer } from '../interface';
 
 /**
  * Transaction query filter options

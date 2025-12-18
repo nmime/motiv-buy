@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { UserSettingsEntity, SettingType } from '@app/database';
+import { defaultLanguage } from '@app/common-shared';
 import { UpdateSettingsDto, UserSettingsResponseDto, ThemePreference } from '../dto';
 
 /**
@@ -24,7 +25,7 @@ export class SettingsService {
     }
 
     return {
-      language: (settingsMap.get('language') as string) ?? 'en',
+      language: (settingsMap.get('language') as string) ?? defaultLanguage,
       theme: (settingsMap.get('theme') as ThemePreference) ?? ThemePreference.Auto,
       showBalance: (settingsMap.get('showBalance') as boolean) ?? true,
       showReferrals: (settingsMap.get('showReferrals') as boolean) ?? true,

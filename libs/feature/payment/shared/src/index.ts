@@ -14,3 +14,9 @@ export * from './interface';
 
 // DTOs
 export * from './dto';
+
+// Providers
+export * from './provider';
+
+// Services
+export * from './service';
