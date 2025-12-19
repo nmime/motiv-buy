@@ -143,8 +143,7 @@ export class OrderEditHandler {
       const message =
         `<b>${ctx.t('orders.edit.name_title')}</b>\n\n` +
         `${ctx.t('orders.edit.current_value')}: <code>${currentName}</code>\n\n` +
-        `${ctx.t('orders.edit.name_prompt')}\n\n` +
-        `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
+        ctx.t('orders.edit.name_prompt');
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: message,
@@ -191,8 +190,7 @@ export class OrderEditHandler {
         `${ctx.t('orders.edit.link_prompt')}\n\n` +
         `${ctx.t('bot.order.examples_title')}\n` +
         `${ctx.t('bot.order.example1')}\n` +
-        `${ctx.t('bot.order.example2')}\n\n` +
-        `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
+        ctx.t('bot.order.example2');
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: message,
@@ -237,8 +235,7 @@ export class OrderEditHandler {
         `<b>${ctx.t('orders.edit.daily_title')}</b>\n\n` +
         `${ctx.t('orders.edit.current_value')}: <code>${currentDaily}</code>\n\n` +
         `${ctx.t('orders.edit.daily_prompt')}\n\n` +
-        `<i>${ctx.t('orders.edit.numeric_hint')}</i>\n` +
-        `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
+        `<i>${ctx.t('orders.edit.numeric_hint')}</i>`;
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: message,
@@ -283,8 +280,7 @@ export class OrderEditHandler {
         `<b>${ctx.t('orders.edit.total_title')}</b>\n\n` +
         `${ctx.t('orders.edit.current_value')}: <code>${currentTotal}</code>\n\n` +
         `${ctx.t('orders.edit.total_prompt')}\n\n` +
-        `<i>${ctx.t('orders.edit.numeric_hint')}</i>\n` +
-        `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
+        `<i>${ctx.t('orders.edit.numeric_hint')}</i>`;
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: message,
@@ -329,8 +325,7 @@ export class OrderEditHandler {
         `<b>${ctx.t('orders.edit.price_title')}</b>\n\n` +
         `${ctx.t('orders.edit.current_value')}: <code>$${currentPrice}</code>\n\n` +
         `${ctx.t('orders.edit.price_prompt')}\n\n` +
-        `<i>${ctx.t('orders.edit.price_hint')}</i>\n` +
-        `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
+        `<i>${ctx.t('orders.edit.price_hint')}</i>`;
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: message,
@@ -382,8 +377,7 @@ export class OrderEditHandler {
         `• <code>now</code> - ${ctx.t('orders.edit.start_now')}\n` +
         `• <code>2024-12-25 14:00</code> - ${ctx.t('orders.edit.start_specific')}\n` +
         `• <code>+2h</code> - ${ctx.t('orders.edit.start_relative_hours')}\n` +
-        `• <code>+30m</code> - ${ctx.t('orders.edit.start_relative_minutes')}\n\n` +
-        `<i>${ctx.t('orders.edit.cancel_hint')}</i>`;
+        `• <code>+30m</code> - ${ctx.t('orders.edit.start_relative_minutes')}`;
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: message,

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { URL } from 'url';
-import { v4 as uuidV4 } from 'uuid';
+import { v7 as uuidV7 } from 'uuid';
 import { checkSignature, validateWebAppData } from '@grammyjs/validator';
 import { AsyncResult } from '@app/common-shared';
 import { Err, Ok } from 'ts-results';
@@ -258,8 +258,8 @@ export class AuthService {
     return new AuthJwtPayloadDto({
       app,
       userId,
-      uniqueKey: uuidV4(),
-      jti: uuidV4(),
+      uniqueKey: uuidV7(),
+      jti: uuidV7(),
       iat: now,
       exp: expiresIn24Hours,
     });

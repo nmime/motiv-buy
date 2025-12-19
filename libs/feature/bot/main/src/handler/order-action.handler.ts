@@ -21,7 +21,7 @@ import {
 import { MenuActionHandler } from './menu-action.handler';
 import { decimal, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class OrderActionHandler {
@@ -202,10 +202,8 @@ export class OrderActionHandler {
     }
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text:
-        `🔍 <b>${ctx.t('orders.search_title')}</b>\n\n` +
-        `${ctx.t('orders.search_prompt')}\n\n` +
-        `<i>${ctx.t('common.cancel_hint')}</i>`,
+      text: `🔍 <b>${ctx.t('orders.search_title')}</b>\n\n` + ctx.t('orders.search_prompt'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
     });
   }
 
@@ -648,7 +646,7 @@ export class OrderActionHandler {
     }
 
     // Create a duplicate order
-    const newOrderId = `ORD-${uuidv4().slice(0, 8).toUpperCase()}`;
+    const newOrderId = `ORD-${uuidv7().slice(0, 8).toUpperCase()}`;
     const duplicateOrder = new TrafficOrderEntity({
       orderId: newOrderId,
       type: originalOrder.type,
@@ -836,8 +834,10 @@ export class OrderActionHandler {
         managedById: ctx.user.id,
       });
 
+      // Generate UUIDv7 to match database defaultRaw: 'uuidv7()'
+      trafficTarget.id = uuidv7();
       this.em.persist(trafficTarget);
-      await this.em.flush(); // Flush to get the ID
+      await this.em.flush();
     }
 
     // Create the order
@@ -845,7 +845,7 @@ export class OrderActionHandler {
     const totalBudget = decimal(pricePerAction).mul(amount).toString();
 
     const order = new TrafficOrderEntity({
-      orderId: `ORD-${uuidv4().slice(0, 8).toUpperCase()}`,
+      orderId: `ORD-${uuidv7().slice(0, 8).toUpperCase()}`,
       type: orderType,
       status: TrafficOrderStatus.Pending,
       targetCount: amount,

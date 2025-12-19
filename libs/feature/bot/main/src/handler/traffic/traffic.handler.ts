@@ -327,9 +327,7 @@ ${ctx.t('sell_traffic.description')}
     }
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('traffic.edit_source', {
-        default: '<b>✏️ Edit Traffic Source</b>\n\nEnter the new name for this source:\n\n<i>Use /cancel to abort.</i>',
-      }),
+      text: ctx.t('traffic.edit_source'),
       replyMarkup: this.createBackButton(ctx, `traffic:source:view:${sourceId}`),
     });
   }
@@ -489,10 +487,7 @@ ${ctx.t('sell_traffic.description')}
       ctx.session.formData = { step: 'enter_name' };
     }
 
-    let text = ctx.t('traffic.add_target_title');
-    text += ctx.t('traffic.add_target_instructions', {
-      default: 'Please enter the name for your new traffic target:\n\n<i>Use /cancel to abort.</i>',
-    });
+    const text = ctx.t('traffic.add_target_title') + ctx.t('traffic.add_target_instructions');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -555,9 +550,7 @@ ${ctx.t('sell_traffic.description')}
     }
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ctx.t('traffic.edit_target', {
-        default: '<b>✏️ Edit Traffic Target</b>\n\nEnter the new name for this target:\n\n<i>Use /cancel to abort.</i>',
-      }),
+      text: ctx.t('traffic.edit_target'),
       replyMarkup: this.createBackButton(ctx, `traffic:target:view:${targetId}`),
     });
   }

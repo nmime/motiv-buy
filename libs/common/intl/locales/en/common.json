@@ -19,7 +19,6 @@
   "server_error": "Server error. Please try again later.",
   "page": "Page {page} of {total}",
   "select_action": "Select an action below:",
-  "cancel_hint": "Send /cancel to abort.",
   "overview": "Overview",
   "statistics": "Statistics",
   "completed": "Completed",

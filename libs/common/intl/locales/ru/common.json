@@ -19,7 +19,6 @@
   "server_error": "Ошибка сервера. Пожалуйста, попробуйте позже.",
   "page": "Страница {page} из {total}",
   "select_action": "Выберите действие:",
-  "cancel_hint": "Отправьте /cancel для отмены.",
   "overview": "Обзор",
   "statistics": "Статистика",
   "completed": "Завершено",

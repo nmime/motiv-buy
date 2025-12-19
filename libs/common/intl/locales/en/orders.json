@@ -71,7 +71,6 @@
     "schedule_prompt": "Select the days when this order should run:",
     "schedule_hint": "Tap a day to toggle it on/off",
     "current_value": "Current value",
-    "cancel_hint": "Tap ◀️ Back to cancel",
     "numeric_hint": "Enter a whole number (e.g., 100)",
     "invalid_number": "Invalid number. Please enter a positive whole number.",
     "number_too_large": "Number is too large. Maximum is 1,000,000."

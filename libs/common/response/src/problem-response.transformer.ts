@@ -27,7 +27,7 @@ import {
   ProblemKindMapper,
 } from '@app/common-exception';
 import { HttpArgumentsHost } from '@nestjs/common/interfaces';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { getLang, Language, OptionalClassConstructor } from '@app/common-shared';
 import { I18nService } from 'nestjs-i18n';
 
@@ -73,7 +73,7 @@ export class ProblemResponseTransformer implements NestInterceptor, ExceptionFil
   }
 
   private generateTraceId(): string {
-    return uuidv4();
+    return uuidv7();
   }
 
   private localize(translationKey: string | undefined, fallbackText: string, lang: Language): string {
