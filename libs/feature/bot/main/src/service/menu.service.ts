@@ -232,18 +232,7 @@ export class MenuService {
     return {
       type: MenuType.Profile,
       title: ctx.t('profile.title'),
-      description: ctx.t('profile.manage_hint'),
-      buttons: [
-        [
-          { text: ctx.t('profile.details_title'), callbackData: 'profile:details' },
-          { text: ctx.t('profile.referrals'), callbackData: 'profile:stats' },
-        ],
-        [
-          { text: ctx.t('profile.security_menu'), callbackData: 'profile:security' },
-          { text: ctx.t('settings.notifications'), callbackData: 'menu:notifications' },
-        ],
-        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
-      ],
+      buttons: [[{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }]],
       isInline: true,
     };
   }

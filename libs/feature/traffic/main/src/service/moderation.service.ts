@@ -1,13 +1,18 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
+import { EntityManager, ref } from '@mikro-orm/core';
 import { getErrorMessage } from '@app/common-shared';
 import {
   ModerationRequestEntity,
   ModerationRequestRepository,
   ModerationEntityType,
+  ModerationStatus,
   TrafficSourceRepository,
+  TrafficSourceEntity,
+  TrafficSourceStatus,
   TrafficOrderRepository,
+  TrafficOrderEntity,
   TrafficOrderStatus,
+  UserEntity,
 } from '@app/database';
 
 /**
@@ -93,16 +98,25 @@ export class ModerationService {
     this.logger.log(`Approving source moderation request: ${requestId}`);
 
     try {
-      await this.em.transactional(async () => {
-        // Update moderation request
-        const request = await this.moderationRequestRepository.approve(requestId, reviewedByUserId, reviewNote);
+      await this.em.transactional(async (txEm) => {
+        // Find and update moderation request using transactional EM
+        const request = await txEm.findOne(ModerationRequestEntity, { id: requestId });
 
         if (!request) {
           throw new NotFoundException('Moderation request not found');
         }
 
-        // Approve the traffic source (sets status=Active, isActive=true)
-        await this.trafficSourceRepository.approveSource(request.entityId);
+        request.status = ModerationStatus.Approved;
+        request.reviewedAt = new Date();
+        request.reviewNote = reviewNote;
+        request.reviewedBy = ref(txEm.getReference(UserEntity, reviewedByUserId));
+
+        // Approve the traffic source (sets status=Active)
+        const source = await txEm.findOne(TrafficSourceEntity, { id: request.entityId });
+
+        if (source) {
+          source.status = TrafficSourceStatus.Active;
+        }
 
         this.logger.log(`Source approved: ${request.entityId}`);
       });
@@ -120,16 +134,25 @@ export class ModerationService {
     this.logger.log(`Declining source moderation request: ${requestId}`);
 
     try {
-      await this.em.transactional(async () => {
-        // Update moderation request
-        const request = await this.moderationRequestRepository.decline(requestId, reviewedByUserId, reviewNote);
+      await this.em.transactional(async (txEm) => {
+        // Find and update moderation request using transactional EM
+        const request = await txEm.findOne(ModerationRequestEntity, { id: requestId });
 
         if (!request) {
           throw new NotFoundException('Moderation request not found');
         }
 
-        // Decline the traffic source (sets status=Declined, isActive=false)
-        await this.trafficSourceRepository.declineSource(request.entityId);
+        request.status = ModerationStatus.Declined;
+        request.reviewedAt = new Date();
+        request.reviewNote = reviewNote;
+        request.reviewedBy = ref(txEm.getReference(UserEntity, reviewedByUserId));
+
+        // Decline the traffic source (sets status=Declined)
+        const source = await txEm.findOne(TrafficSourceEntity, { id: request.entityId });
+
+        if (source) {
+          source.status = TrafficSourceStatus.Declined;
+        }
 
         this.logger.log(`Source declined: ${request.entityId}`);
       });
@@ -147,20 +170,24 @@ export class ModerationService {
     this.logger.log(`Approving order moderation request: ${requestId}`);
 
     try {
-      await this.em.transactional(async () => {
-        // Update moderation request
-        const request = await this.moderationRequestRepository.approve(requestId, reviewedByUserId, reviewNote);
+      await this.em.transactional(async (txEm) => {
+        // Find and update moderation request using transactional EM
+        const request = await txEm.findOne(ModerationRequestEntity, { id: requestId });
 
         if (!request) {
           throw new NotFoundException('Moderation request not found');
         }
 
+        request.status = ModerationStatus.Approved;
+        request.reviewedAt = new Date();
+        request.reviewNote = reviewNote;
+        request.reviewedBy = ref(txEm.getReference(UserEntity, reviewedByUserId));
+
         // Activate the traffic order
-        const order = await this.trafficOrderRepository.findOne({ id: request.entityId });
+        const order = await txEm.findOne(TrafficOrderEntity, { id: request.entityId });
 
         if (order) {
           order.status = TrafficOrderStatus.Active;
-          await this.em.flush();
         }
 
         this.logger.log(`Order approved: ${request.entityId}`);
@@ -179,20 +206,24 @@ export class ModerationService {
     this.logger.log(`Declining order moderation request: ${requestId}`);
 
     try {
-      await this.em.transactional(async () => {
-        // Update moderation request
-        const request = await this.moderationRequestRepository.decline(requestId, reviewedByUserId, reviewNote);
+      await this.em.transactional(async (txEm) => {
+        // Find and update moderation request using transactional EM
+        const request = await txEm.findOne(ModerationRequestEntity, { id: requestId });
 
         if (!request) {
           throw new NotFoundException('Moderation request not found');
         }
 
+        request.status = ModerationStatus.Declined;
+        request.reviewedAt = new Date();
+        request.reviewNote = reviewNote;
+        request.reviewedBy = ref(txEm.getReference(UserEntity, reviewedByUserId));
+
         // Cancel the traffic order
-        const order = await this.trafficOrderRepository.findOne({ id: request.entityId });
+        const order = await txEm.findOne(TrafficOrderEntity, { id: request.entityId });
 
         if (order) {
           order.status = TrafficOrderStatus.Cancelled;
-          await this.em.flush();
         }
 
         this.logger.log(`Order declined: ${request.entityId}`);

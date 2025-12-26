@@ -4,13 +4,15 @@
  * App-layer handler for moderation callbacks (approve/decline).
  * Uses ModerationService from traffic-main for business logic.
  *
- * Callback format: moderation:approve:traffic_source:requestId
- * or: moderation:decline:traffic_order:requestId
+ * Callback format (shortened to fit Telegram's 64-byte limit):
+ * - mod:a:src:requestId (approve traffic source)
+ * - mod:d:ord:requestId (decline traffic order)
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import { MikroORM } from '@mikro-orm/core';
 import { BotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
-import { ModerationEntityType } from '@app/database';
+import { ModerationEntityType, UserEntity } from '@app/database';
 import { ModerationService } from '@app/feature-traffic-main';
 import { getErrorMessage } from '@app/common-shared';
 
@@ -20,10 +22,17 @@ type ModerationAction = 'approve' | 'decline';
 export class ModerationCallbackHandler {
   private readonly logger = new Logger(ModerationCallbackHandler.name);
 
-  // Map string to ModerationEntityType for O(1) lookup
+  // Map shortened string to ModerationEntityType for O(1) lookup
+  // src = traffic_source, ord = traffic_order
   private readonly entityTypeMap: Record<string, ModerationEntityType> = {
-    traffic_source: ModerationEntityType.TrafficSource,
-    traffic_order: ModerationEntityType.TrafficOrder,
+    src: ModerationEntityType.TrafficSource,
+    ord: ModerationEntityType.TrafficOrder,
+  };
+
+  // Map shortened action to full action
+  private readonly actionMap: Record<string, ModerationAction> = {
+    a: 'approve',
+    d: 'decline',
   };
 
   // Map entity types to display names
@@ -42,6 +51,7 @@ export class ModerationCallbackHandler {
   >;
 
   constructor(
+    private readonly orm: MikroORM,
     private readonly moderationService: ModerationService,
     private readonly telegramModerationNotifier: TelegramModerationNotifier,
   ) {
@@ -64,12 +74,12 @@ export class ModerationCallbackHandler {
    * Check if this handler should process the callback
    */
   canHandle(callbackData: string): boolean {
-    return callbackData.startsWith('moderation:');
+    return callbackData.startsWith('mod:');
   }
 
   /**
    * Route moderation callback to appropriate handler
-   * Format: moderation:action:entityType:requestId
+   * Format: mod:a:src:requestId or mod:d:ord:requestId
    */
   async handleCallback(ctx: BotContext): Promise<boolean> {
     const data = ctx.callbackQuery?.data;
@@ -78,21 +88,23 @@ export class ModerationCallbackHandler {
       return false;
     }
 
-    const [, action, entityTypeStr, requestId] = data.split(':');
+    const [, actionShort, entityTypeShort, requestId] = data.split(':');
 
-    // Validate action
-    if (action !== 'approve' && action !== 'decline') {
-      this.logger.warn('Unknown moderation action', { action, data });
+    // Validate and map action
+    const action = this.actionMap[actionShort];
+
+    if (!action) {
+      this.logger.warn('Unknown moderation action', { actionShort, data });
       await ctx.answerCallbackQuery(ctx.t('common.errors.unknown_action'));
 
       return true;
     }
 
     // Validate entity type
-    const entityType = this.entityTypeMap[entityTypeStr];
+    const entityType = this.entityTypeMap[entityTypeShort];
 
     if (!entityType) {
-      this.logger.warn('Unknown entity type', { entityTypeStr, data });
+      this.logger.warn('Unknown entity type', { entityTypeShort, data });
       await ctx.answerCallbackQuery(ctx.t('common.errors.invalid_input'));
 
       return true;
@@ -122,27 +134,41 @@ export class ModerationCallbackHandler {
    */
   private async handleApprove(ctx: BotContext, entityType: ModerationEntityType, requestId: string): Promise<void> {
     try {
-      const userId = ctx.from?.id.toString();
+      const telegramId = ctx.from?.id.toString();
       const username = ctx.from?.username ?? 'Unknown';
 
-      if (!userId) {
+      if (!telegramId) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.unauthorized'));
+
+        return;
+      }
+
+      // Look up user by Telegram ID to get database UUID
+      const em = this.orm.em.fork();
+      const user = await em.findOne(UserEntity, { telegramId });
+
+      if (!user) {
+        this.logger.warn('User not found for moderation action', { telegramId });
         await ctx.answerCallbackQuery(ctx.t('common.errors.unauthorized'));
 
         return;
       }
 
       const approveHandler = this.approveHandlers[entityType];
-      await approveHandler(requestId, userId);
+      await approveHandler(requestId, user.id);
 
       const entityName = this.entityDisplayNames[entityType];
       this.logger.log(`${entityName} approved by ${username}: ${requestId}`);
 
-      // Update Telegram message
+      // Update Telegram message with original content preserved
       const chatId = ctx.chat?.id.toString();
       const messageId = ctx.callbackQuery?.message?.message_id;
+      const originalText = ctx.callbackQuery?.message && 'text' in ctx.callbackQuery.message
+        ? ctx.callbackQuery.message.text
+        : undefined;
 
       if (chatId && messageId) {
-        await this.telegramModerationNotifier.updateApproved(chatId, messageId, entityType, username);
+        await this.telegramModerationNotifier.updateApproved(chatId, messageId, entityType, username, originalText);
       }
 
       await ctx.answerCallbackQuery(ctx.t('traffic.moderation.approved', { entity: entityName }));
@@ -157,10 +183,21 @@ export class ModerationCallbackHandler {
    */
   private async handleDecline(ctx: BotContext, entityType: ModerationEntityType, requestId: string): Promise<void> {
     try {
-      const userId = ctx.from?.id.toString();
+      const telegramId = ctx.from?.id.toString();
       const username = ctx.from?.username ?? 'Unknown';
 
-      if (!userId) {
+      if (!telegramId) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.unauthorized'));
+
+        return;
+      }
+
+      // Look up user by Telegram ID to get database UUID
+      const em = this.orm.em.fork();
+      const user = await em.findOne(UserEntity, { telegramId });
+
+      if (!user) {
+        this.logger.warn('User not found for moderation action', { telegramId });
         await ctx.answerCallbackQuery(ctx.t('common.errors.unauthorized'));
 
         return;
@@ -168,17 +205,20 @@ export class ModerationCallbackHandler {
 
       const reviewNote = undefined;
       const declineHandler = this.declineHandlers[entityType];
-      await declineHandler(requestId, userId, reviewNote);
+      await declineHandler(requestId, user.id, reviewNote);
 
       const entityName = this.entityDisplayNames[entityType];
       this.logger.log(`${entityName} declined by ${username}: ${requestId}`);
 
-      // Update Telegram message
+      // Update Telegram message with original content preserved
       const chatId = ctx.chat?.id.toString();
       const messageId = ctx.callbackQuery?.message?.message_id;
+      const originalText = ctx.callbackQuery?.message && 'text' in ctx.callbackQuery.message
+        ? ctx.callbackQuery.message.text
+        : undefined;
 
       if (chatId && messageId) {
-        await this.telegramModerationNotifier.updateDeclined(chatId, messageId, entityType, username, reviewNote);
+        await this.telegramModerationNotifier.updateDeclined(chatId, messageId, entityType, username, reviewNote, originalText);
       }
 
       await ctx.answerCallbackQuery(ctx.t('traffic.moderation.declined', { entity: entityName }));

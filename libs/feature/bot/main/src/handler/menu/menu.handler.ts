@@ -45,7 +45,7 @@ export class MiscMenuHandler {
     const [active, completed, total] = await Promise.all([
       this.em.count(TrafficOrderEntity, {
         creator: ctx.user.id,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
       }),
       this.em.count(TrafficOrderEntity, {
         creator: ctx.user.id,
@@ -195,7 +195,7 @@ ${ctx.t('payment.description')}
     const [totalOrders, activeOrders] = await Promise.all([
       this.em.count(TrafficOrderEntity),
       this.em.count(TrafficOrderEntity, {
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
       }),
     ]);
 
@@ -269,7 +269,7 @@ ${ctx.t('payment.description')}
     const [activeCount, completedCount, totalCount] = await Promise.all([
       this.em.count(TrafficOrderEntity, {
         creator: ctx.user.id,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
       }),
       this.em.count(TrafficOrderEntity, {
         creator: ctx.user.id,

@@ -1,12 +1,11 @@
 {
   "title": "👤 Your Profile",
-  "details_title": "📋 Detailed Profile Information",
+  "details": "Details",
   "name": "Name",
   "username": "Username",
   "status": "Status",
   "referrals": "Referrals",
   "member_since": "Member since",
-  "manage_hint": "Use the buttons below to manage your profile.",
   "user_id": "User ID",
   "telegram_id": "Telegram ID",
   "language": "Language",

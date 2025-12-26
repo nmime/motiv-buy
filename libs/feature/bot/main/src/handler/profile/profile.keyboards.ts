@@ -12,17 +12,7 @@ import { BotContext } from '@app/feature-bot-shared';
  * Create profile menu keyboard
  */
 export function createProfileMenuKeyboard(ctx: BotContext): InlineKeyboard {
-  return new InlineKeyboard()
-    .text(ctx.t('menu.profile.details'), 'profile:details')
-    .row()
-    .text(ctx.t('common.back'), 'menu:main');
-}
-
-/**
- * Create back to profile keyboard
- */
-export function createBackToProfileKeyboard(ctx: BotContext): InlineKeyboard {
-  return new InlineKeyboard().text(ctx.t('common.back'), 'profile:view');
+  return new InlineKeyboard().text(ctx.t('common.back'), 'menu:main');
 }
 
 /**

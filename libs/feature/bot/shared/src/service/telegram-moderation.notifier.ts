@@ -132,12 +132,14 @@ export class TelegramModerationNotifier {
 
   /**
    * Update message after approval
+   * Keeps original message content, replaces header with approval status, removes buttons
    */
   async updateApproved(
     chatId: string,
     messageId: number,
     entityType: ModerationEntityType,
     reviewerUsername: string,
+    originalText?: string,
   ): Promise<void> {
     try {
       if (!this.bot) {
@@ -146,10 +148,21 @@ export class TelegramModerationNotifier {
         return;
       }
 
-      const statusMessage = `\n\n✅ <b>Approved</b> by @${reviewerUsername}`;
-      const entityName = entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order';
+      const statusLine = `✅ <b>Approved</b> by @${reviewerUsername}`;
+      let updatedText: string;
 
-      await this.bot.api.editMessageText(chatId, messageId, `${entityName} approved${statusMessage}`, {
+      if (originalText) {
+        // Replace the header and remove the "Please review" line
+        updatedText = originalText
+          .replace(/🤖 <b>New Traffic Source - Awaiting Moderation<\/b>/, `🤖 <b>Traffic Source - ${statusLine}</b>`)
+          .replace(/📋 <b>New Traffic Order - Awaiting Moderation<\/b>/, `📋 <b>Traffic Order - ${statusLine}</b>`)
+          .replace(/\n\n⏰ Please review and approve\/decline this (traffic source|order)\./, '');
+      } else {
+        const entityName = entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order';
+        updatedText = `${entityName} approved\n\n${statusLine}`;
+      }
+
+      await this.bot.api.editMessageText(chatId, messageId, updatedText, {
         parse_mode: 'HTML',
       });
 
@@ -161,6 +174,7 @@ export class TelegramModerationNotifier {
 
   /**
    * Update message after decline
+   * Keeps original message content, replaces header with decline status, removes buttons
    */
   async updateDeclined(
     chatId: string,
@@ -168,6 +182,7 @@ export class TelegramModerationNotifier {
     entityType: ModerationEntityType,
     reviewerUsername: string,
     reviewNote?: string,
+    originalText?: string,
   ): Promise<void> {
     try {
       if (!this.bot) {
@@ -176,11 +191,22 @@ export class TelegramModerationNotifier {
         return;
       }
 
-      const note = reviewNote ? `\n<i>Note: ${reviewNote}</i>` : '';
-      const statusMessage = `\n\n❌ <b>Declined</b> by @${reviewerUsername}${note}`;
-      const entityName = entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order';
+      const note = reviewNote ? ` - ${reviewNote}` : '';
+      const statusLine = `❌ <b>Declined</b> by @${reviewerUsername}${note}`;
+      let updatedText: string;
 
-      await this.bot.api.editMessageText(chatId, messageId, `${entityName} declined${statusMessage}`, {
+      if (originalText) {
+        // Replace the header and remove the "Please review" line
+        updatedText = originalText
+          .replace(/🤖 <b>New Traffic Source - Awaiting Moderation<\/b>/, `🤖 <b>Traffic Source - ${statusLine}</b>`)
+          .replace(/📋 <b>New Traffic Order - Awaiting Moderation<\/b>/, `📋 <b>Traffic Order - ${statusLine}</b>`)
+          .replace(/\n\n⏰ Please review and approve\/decline this (traffic source|order)\./, '');
+      } else {
+        const entityName = entityType === ModerationEntityType.TrafficSource ? 'Source' : 'Order';
+        updatedText = `${entityName} declined\n\n${statusLine}`;
+      }
+
+      await this.bot.api.editMessageText(chatId, messageId, updatedText, {
         parse_mode: 'HTML',
       });
 
@@ -247,11 +273,15 @@ export class TelegramModerationNotifier {
 
   /**
    * Create inline keyboard with approve/decline buttons
+   * Uses shortened callback format to stay within Telegram's 64-byte limit:
+   * - mod:a:src:<id> for approve traffic_source
+   * - mod:d:ord:<id> for decline traffic_order
    */
   private createModerationKeyboard(moderationRequestId: string, entityType: ModerationEntityType): InlineKeyboard {
+    const typeShort = entityType === ModerationEntityType.TrafficSource ? 'src' : 'ord';
     const keyboard = new InlineKeyboard()
-      .text('✅ Approve', `moderation:approve:${entityType}:${moderationRequestId}`)
-      .text('❌ Decline', `moderation:decline:${entityType}:${moderationRequestId}`);
+      .text('✅ Approve', `mod:a:${typeShort}:${moderationRequestId}`)
+      .text('❌ Decline', `mod:d:${typeShort}:${moderationRequestId}`);
 
     return keyboard;
   }

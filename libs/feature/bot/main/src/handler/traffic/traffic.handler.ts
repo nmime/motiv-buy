@@ -11,9 +11,9 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
+import { EntityManager, MikroORM } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, AuthenticatedBotContext } from '@app/feature-bot-shared';
+import { BotContext, AuthenticatedBotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import {
   UserBalanceEntity,
   TrafficSourceEntity,
@@ -24,10 +24,14 @@ import {
   TrafficTargetType,
   TrafficOrderEntity,
   TrafficOrderStatus,
+  ModerationRequestEntity,
+  ModerationStatus,
+  ModerationEntityType,
 } from '@app/database';
 import { decimal, sum, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../../service/message.service';
 import { MenuActionHandler } from '../menu-action.handler';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class TrafficHandler {
@@ -37,6 +41,7 @@ export class TrafficHandler {
     private readonly orm: MikroORM,
     private readonly messageService: MessageService,
     private readonly menuHandler: MenuActionHandler,
+    private readonly moderationNotifier: TelegramModerationNotifier,
   ) {}
 
   /**
@@ -705,85 +710,130 @@ ${ctx.t('sell_traffic.description')}
     const step = 'step' in formData ? String(formData.step) : '';
 
     if (step === 'enter_username') {
-      const newSource = new TrafficSourceEntity({
-        name: input,
-        botUsername: input,
-        managedById: ctx.user.id,
-        type: TrafficSourceType.Bot,
-        status: TrafficSourceStatus.Pending,
-      });
-
-      await this.em.persistAndFlush(newSource);
-
-      if (ctx.session) {
-        ctx.session.conversationState = undefined;
-        ctx.session.formData = undefined;
-      }
-
-      const text = ctx.t('traffic.source_created', { name: input });
-
-      const keyboard = new InlineKeyboard()
-        .text(ctx.t('traffic.view_source'), `traffic:source:view:${newSource.id}`)
-        .row()
-        .text(ctx.t('sell_traffic.btn_my_sources'), 'traffic:sources')
-        .text(ctx.t('common.back'), 'menu:sell_traffic');
-
-      await this.messageService.sendOrEditMessage(ctx, {
-        text,
-        replyMarkup: keyboard,
-      });
+      await this.createSourceFromUsername(ctx, input);
     } else if (step === 'enter_token') {
-      try {
-        const response = await fetch(`https://api.telegram.org/bot${input}/getMe`);
-        const data = await response.json();
+      await this.createSourceFromToken(ctx, input);
+    }
+  }
 
-        if (!data.ok || !data.result) {
-          await this.messageService.sendOrEditMessage(ctx, {
-            text: ctx.t('traffic.invalid_bot_token'),
-          });
+  /**
+   * Create traffic source from bot username
+   */
+  private async createSourceFromUsername(ctx: AuthenticatedBotContext, input: string): Promise<void> {
+    const { em } = this;
 
-          return;
-        }
+    const newSource = new TrafficSourceEntity({
+      name: input,
+      botUsername: input.replace('@', ''),
+      managedById: ctx.user.id,
+      type: TrafficSourceType.Bot,
+      status: TrafficSourceStatus.Pending,
+    });
 
-        const botInfo = data.result;
-        const botUsername = botInfo.username;
-        const botName = botInfo.first_name;
+    // Generate ID manually since we need it for the moderation request before flush
+    newSource.id = uuidv7();
 
-        const newSource = new TrafficSourceEntity({
-          name: botName,
-          botUsername,
-          botToken: input,
-          managedById: ctx.user.id,
-          type: TrafficSourceType.BotWithToken,
-          status: TrafficSourceStatus.Pending,
-        });
+    await this.persistSourceWithModeration(em, newSource);
+    this.clearSessionState(ctx);
+    await this.showSourceCreatedMessage(ctx, newSource, input);
+  }
 
-        await this.em.persistAndFlush(newSource);
+  /**
+   * Create traffic source from bot token
+   */
+  private async createSourceFromToken(ctx: AuthenticatedBotContext, input: string): Promise<void> {
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${input}/getMe`);
+      const data = await response.json();
 
-        if (ctx.session) {
-          ctx.session.conversationState = undefined;
-          ctx.session.formData = undefined;
-        }
-
-        const text = ctx.t('traffic.source_created', { name: botUsername });
-
-        const keyboard = new InlineKeyboard()
-          .text(ctx.t('traffic.view_source'), `traffic:source:view:${newSource.id}`)
-          .row()
-          .text(ctx.t('sell_traffic.btn_my_sources'), 'traffic:sources')
-          .text(ctx.t('common.back'), 'menu:sell_traffic');
-
-        await this.messageService.sendOrEditMessage(ctx, {
-          text,
-          replyMarkup: keyboard,
-        });
-      } catch (error) {
-        this.logger.error('Failed to get bot info from token', { error });
+      if (!data.ok || !data.result) {
         await this.messageService.sendOrEditMessage(ctx, {
           text: ctx.t('traffic.invalid_bot_token'),
         });
+
+        return;
       }
+
+      const botInfo = data.result;
+      const { em } = this;
+
+      const newSource = new TrafficSourceEntity({
+        name: botInfo.first_name,
+        botUsername: botInfo.username,
+        botToken: input,
+        managedById: ctx.user.id,
+        type: TrafficSourceType.BotWithToken,
+        status: TrafficSourceStatus.Pending,
+      });
+
+      // Generate ID manually since we need it for the moderation request before flush
+      newSource.id = uuidv7();
+
+      await this.persistSourceWithModeration(em, newSource);
+      this.clearSessionState(ctx);
+      await this.showSourceCreatedMessage(ctx, newSource, botInfo.username);
+    } catch (error) {
+      this.logger.error('Failed to get bot info from token', { error });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.invalid_bot_token'),
+      });
     }
+  }
+
+  /**
+   * Persist source and create moderation request
+   */
+  private async persistSourceWithModeration(em: EntityManager, source: TrafficSourceEntity): Promise<void> {
+    em.persist(source);
+
+    const moderationRequest = new ModerationRequestEntity({
+      entityType: ModerationEntityType.TrafficSource,
+      entityId: source.id,
+      status: ModerationStatus.Pending,
+    });
+
+    em.persist(moderationRequest);
+    await em.flush();
+
+    const notificationResult = await this.moderationNotifier.notifySourceCreated(source, moderationRequest);
+
+    if (notificationResult) {
+      moderationRequest.telegramChatId = notificationResult.chatId;
+      moderationRequest.telegramMessageId = notificationResult.messageId.toString();
+      await em.flush();
+    }
+  }
+
+  /**
+   * Clear session state after source creation
+   */
+  private clearSessionState(ctx: AuthenticatedBotContext): void {
+    if (ctx.session) {
+      ctx.session.conversationState = undefined;
+      ctx.session.formData = undefined;
+    }
+  }
+
+  /**
+   * Show source created success message
+   */
+  private async showSourceCreatedMessage(
+    ctx: AuthenticatedBotContext,
+    source: TrafficSourceEntity,
+    displayName: string,
+  ): Promise<void> {
+    const text = ctx.t('traffic.source_created', { name: displayName });
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('traffic.view_source'), `traffic:source:view:${source.id}`)
+      .row()
+      .text(ctx.t('sell_traffic.btn_my_sources'), 'traffic:sources')
+      .text(ctx.t('common.back'), 'menu:sell_traffic');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
   }
 
   async handleTrafficSourceEditInput(ctx: AuthenticatedBotContext, input: string): Promise<void> {

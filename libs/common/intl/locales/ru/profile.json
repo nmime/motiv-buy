@@ -1,12 +1,11 @@
 {
   "title": "👤 Ваш профиль",
-  "details_title": "📋 Подробная информация о профиле",
+  "details": "Подробности",
   "name": "Имя",
   "username": "Имя пользователя",
   "status": "Статус",
   "referrals": "Рефералы",
   "member_since": "Участник с",
-  "manage_hint": "Используйте кнопки ниже для управления профилем.",
   "user_id": "ID пользователя",
   "telegram_id": "Telegram ID",
   "language": "Язык",

@@ -92,10 +92,7 @@ export class MenuActionHandler {
    * Create profile menu keyboard
    */
   createProfileMenuKeyboard(ctx: BotContext): InlineKeyboard {
-    return new InlineKeyboard()
-      .text(ctx.t('menu.profile.details'), 'profile:details')
-      .row()
-      .text(ctx.t('common.back'), 'menu:main');
+    return new InlineKeyboard().text(ctx.t('common.back'), 'menu:main');
   }
 
   /**

@@ -64,7 +64,6 @@ export class MenuRoutingHandler {
 
     this.profileActionHandlers = new Map([
       ['view', this.withAuthParams((ctx) => this.profileHandler.handleProfileView(ctx))],
-      ['details', this.withAuthParams((ctx) => this.profileHandler.handleProfileDetails(ctx))],
       ['stats', this.withAuthParams((ctx, params) => this.statisticsHandler.handleProfileStatsMenu(ctx, params))],
       ['stats:overview', this.withAuthParams((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
       ['stats:activity', this.withAuthParams((ctx) => this.statisticsHandler.handleDetailedStatistics(ctx))],

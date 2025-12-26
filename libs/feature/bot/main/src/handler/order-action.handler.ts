@@ -51,7 +51,7 @@ export class OrderActionHandler {
       TrafficOrderEntity,
       {
         creator: ctx.user.id,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
       },
       {
         orderBy: { createdAt: 'DESC' },
@@ -232,8 +232,6 @@ export class OrderActionHandler {
         `${ctx.t('orders.status.active')}: ${order.status}\n\n`;
     }
 
-    text += `<i>${ctx.t('orders.view.btn_back_to_list')}</i>`;
-
     return text;
   }
 
@@ -360,8 +358,11 @@ export class OrderActionHandler {
       return;
     }
 
+    // Use a single forked EntityManager for the entire transaction
+    const { em } = this;
+
     const [orderId] = params;
-    const order = await this.em.findOne(TrafficOrderEntity, {
+    const order = await em.findOne(TrafficOrderEntity, {
       orderId,
       creator: ctx.user.id,
     });
@@ -397,7 +398,7 @@ export class OrderActionHandler {
     }
 
     order.status = newStatus;
-    await this.em.flush();
+    await em.flush();
 
     this.logger.log('Order status toggled', { orderId, newStatus, userId: ctx.user.id });
 
@@ -434,8 +435,11 @@ export class OrderActionHandler {
         return;
       }
 
+      // Use a single forked EntityManager for the entire transaction
+      const { em } = this;
+
       // Perform actual deletion (soft delete by setting status to Cancelled)
-      const order = await this.em.findOne(TrafficOrderEntity, {
+      const order = await em.findOne(TrafficOrderEntity, {
         orderId,
         creator: ctx.user.id,
       });
@@ -451,7 +455,7 @@ export class OrderActionHandler {
 
       order.status = TrafficOrderStatus.Cancelled;
       order.completedAt = new Date();
-      await this.em.flush();
+      await em.flush();
 
       this.logger.log('Order deleted', { orderId, userId: ctx.user.id });
 
@@ -629,8 +633,11 @@ export class OrderActionHandler {
       return;
     }
 
+    // Use a single forked EntityManager for the entire transaction
+    const { em } = this;
+
     const [orderId] = params;
-    const originalOrder = await this.em.findOne(
+    const originalOrder = await em.findOne(
       TrafficOrderEntity,
       { orderId, creator: ctx.user.id },
       { populate: ['trafficSource', 'trafficTarget'] },
@@ -660,8 +667,8 @@ export class OrderActionHandler {
       trafficTargetId: originalOrder.trafficTarget.id,
     });
 
-    this.em.persist(duplicateOrder);
-    await this.em.flush();
+    em.persist(duplicateOrder);
+    await em.flush();
 
     this.logger.log('Order duplicated', {
       originalOrderId: orderId,
@@ -800,8 +807,11 @@ export class OrderActionHandler {
       return;
     }
 
+    // Use a single forked EntityManager for the entire transaction
+    const { em } = this;
+
     // Find user's traffic source
-    const trafficSource = await this.em.findOne(TrafficSourceEntity, {
+    const trafficSource = await em.findOne(TrafficSourceEntity, {
       managedBy: ctx.user.id,
     });
 
@@ -821,7 +831,7 @@ export class OrderActionHandler {
     }
 
     // Find or create traffic target
-    let trafficTarget = await this.em.findOne(TrafficTargetEntity, {
+    let trafficTarget = await em.findOne(TrafficTargetEntity, {
       username: targetUsername,
     });
 
@@ -836,8 +846,7 @@ export class OrderActionHandler {
 
       // Generate UUIDv7 to match database defaultRaw: 'uuidv7()'
       trafficTarget.id = uuidv7();
-      this.em.persist(trafficTarget);
-      await this.em.flush();
+      em.persist(trafficTarget);
     }
 
     // Create the order
@@ -856,8 +865,8 @@ export class OrderActionHandler {
       trafficTargetId: trafficTarget.id,
     });
 
-    this.em.persist(order);
-    await this.em.flush();
+    em.persist(order);
+    await em.flush();
 
     // Get localized type name
     const typeKey = `orders.type_${orderTypeStr}`;
