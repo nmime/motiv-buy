@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Joi from 'joi';
+import { CurrencyCode } from '@app/database';
 import {
   PaymentConfig,
   CryptoBotConfig,
@@ -12,61 +13,47 @@ import {
 } from './payment-config.interface';
 
 /**
- * Payment Configuration Service
- *
- * Centralized configuration management for payment system.
- * Validates environment variables and provides type-safe access to config values.
+ * Payment configuration service with Joi validation.
+ * Provides type-safe access to payment-related environment variables.
  */
 @Injectable()
 export class PaymentConfigService {
-  /**
-   * Joi validation schema for payment environment variables
-   */
   static readonly validationSchema: Joi.ObjectSchema = Joi.object({
-    // CryptoPay Configuration
-    // Optional: Can be configured in environment
-    CRYPTO_BOT_API_TOKEN: Joi.string().optional().messages({
-      'string.empty': 'CRYPTO_BOT_API_TOKEN cannot be empty',
-    }),
+    // CryptoBot
+    CRYPTO_BOT_API_TOKEN: Joi.string().optional(),
     CRYPTO_BOT_API_URL: Joi.string().uri().optional(),
     CRYPTO_BOT_TESTNET: Joi.boolean().default(false),
     CRYPTO_BOT_TIMEOUT: Joi.number().min(1000).max(30000).default(10000),
     CRYPTO_BOT_MAX_RETRIES: Joi.number().min(0).max(5).default(3),
+    CRYPTO_BOT_UPDATE_STRATEGY: Joi.string().valid('WEBHOOK', 'POLLING', 'HYBRID').default('HYBRID'),
+    CRYPTO_BOT_WEBHOOK_URL: Joi.string().uri().optional(),
+    CRYPTO_BOT_WEBHOOK_SECRET: Joi.string().optional(),
+    CRYPTO_BOT_WEBHOOK_TIMEOUT: Joi.number().min(5).max(60).default(30),
+    CRYPTO_BOT_WEBHOOK_VERIFY: Joi.boolean().default(true),
 
-    // Heleket Configuration
-    // Optional: Can be configured in environment
-    HELEKET_API_TOKEN: Joi.string().optional().messages({
-      'string.empty': 'HELEKET_API_TOKEN cannot be empty',
-    }),
-    HELEKET_MERCHANT_ID: Joi.string().optional().messages({
-      'string.empty': 'HELEKET_MERCHANT_ID cannot be empty',
-    }),
+    // Heleket
+    HELEKET_API_TOKEN: Joi.string().optional(),
+    HELEKET_MERCHANT_ID: Joi.string().optional(),
     HELEKET_API_URL: Joi.string().uri().default('https://api.heleket.com/v1'),
     HELEKET_TEST_MODE: Joi.boolean().default(false),
     HELEKET_TIMEOUT: Joi.number().min(1000).max(30000).default(10000),
     HELEKET_MAX_RETRIES: Joi.number().min(0).max(5).default(3),
     HELEKET_SUCCESS_URL: Joi.string().uri().optional(),
     HELEKET_FAIL_URL: Joi.string().uri().optional(),
+    HELEKET_UPDATE_STRATEGY: Joi.string().valid('WEBHOOK', 'POLLING', 'HYBRID').default('HYBRID'),
+    HELEKET_WEBHOOK_URL: Joi.string().uri().optional(),
 
-    // YooKassa Configuration
-    // Optional: Can be configured in environment
-    YOOKASSA_SHOP_ID: Joi.string().optional().messages({
-      'string.empty': 'YOOKASSA_SHOP_ID cannot be empty',
-    }),
-    YOOKASSA_SECRET_KEY: Joi.string().optional().messages({
-      'string.empty': 'YOOKASSA_SECRET_KEY cannot be empty',
-    }),
+    // YooKassa
+    YOOKASSA_SHOP_ID: Joi.string().optional(),
+    YOOKASSA_SECRET_KEY: Joi.string().optional(),
     YOOKASSA_API_URL: Joi.string().uri().default('https://api.yookassa.ru/v3'),
     YOOKASSA_TEST_MODE: Joi.boolean().default(false),
     YOOKASSA_TIMEOUT: Joi.number().min(1000).max(30000).default(10000),
     YOOKASSA_MAX_RETRIES: Joi.number().min(0).max(5).default(3),
     YOOKASSA_RETURN_URL: Joi.string().uri().optional(),
-
-    // Webhook Configuration
-    CRYPTO_BOT_WEBHOOK_URL: Joi.string().uri().optional(),
-    CRYPTO_BOT_WEBHOOK_SECRET: Joi.string().optional(),
-    CRYPTO_BOT_WEBHOOK_TIMEOUT: Joi.number().min(5).max(60).default(30),
-    CRYPTO_BOT_WEBHOOK_VERIFY: Joi.boolean().default(true),
+    YOOKASSA_UPDATE_STRATEGY: Joi.string().valid('WEBHOOK', 'POLLING', 'HYBRID').default('HYBRID'),
+    YOOKASSA_WEBHOOK_URL: Joi.string().uri().optional(),
+    YOOKASSA_WEBHOOK_IPS: Joi.string().optional(),
 
     // Payment Limits
     PAYMENT_MIN_TOPUP: Joi.string()
@@ -84,6 +71,9 @@ export class PaymentConfigService {
     PAYMENT_INVOICE_EXPIRATION: Joi.number().min(60).max(2678400).default(86400),
     PAYMENT_MAX_TX_PER_DAY: Joi.number().min(1).max(1000).default(100),
 
+    // Base Currency (for balance storage and display)
+    PAYMENT_BASE_CURRENCY: Joi.string().valid('USD', 'EUR', 'RUB').default('USD'),
+
     // Feature Flags
     PAYMENT_FEATURE_TOPUP: Joi.boolean().default(true),
     PAYMENT_FEATURE_WITHDRAWAL: Joi.boolean().default(true),
@@ -91,7 +81,7 @@ export class PaymentConfigService {
     PAYMENT_FEATURE_AUTO_CREDIT: Joi.boolean().default(true),
     PAYMENT_FEATURE_TESTNET: Joi.boolean().default(false),
 
-    // Polling Configuration
+    // Polling
     PAYMENT_POLLING_ENABLED: Joi.boolean().default(true),
     PAYMENT_POLLING_INTERVAL: Joi.number().min(5000).max(300000).default(30000),
     PAYMENT_POLLING_MAX_PENDING_AGE: Joi.number().min(1).max(10080).default(1440),
@@ -99,25 +89,21 @@ export class PaymentConfigService {
     PAYMENT_POLLING_CRYPTOBOT: Joi.boolean().default(true),
     PAYMENT_POLLING_HELEKE: Joi.boolean().default(true),
     PAYMENT_POLLING_YOOKASSA: Joi.boolean().default(true),
-
-    // Update Strategies
-    CRYPTO_BOT_UPDATE_STRATEGY: Joi.string().valid('WEBHOOK', 'POLLING', 'HYBRID').default('HYBRID'),
-    HELEKET_UPDATE_STRATEGY: Joi.string().valid('WEBHOOK', 'POLLING', 'HYBRID').default('HYBRID'),
-    YOOKASSA_UPDATE_STRATEGY: Joi.string().valid('WEBHOOK', 'POLLING', 'HYBRID').default('HYBRID'),
-
-    // Webhook URLs
-    HELEKET_WEBHOOK_URL: Joi.string().uri().optional(),
-    YOOKASSA_WEBHOOK_URL: Joi.string().uri().optional(),
-
-    // YooKassa webhook IP whitelist (comma-separated)
-    YOOKASSA_WEBHOOK_IPS: Joi.string().optional(),
   });
 
   constructor(private readonly configService: ConfigService<Record<string, unknown>, true>) {}
 
-  /**
-   * Get complete payment configuration
-   */
+  private parseUpdateStrategy(value: string | undefined): PaymentUpdateStrategy {
+    const normalized = (value ?? 'hybrid').toLowerCase();
+    const validStrategies: Record<string, PaymentUpdateStrategy> = {
+      webhook: PaymentUpdateStrategy.Webhook,
+      polling: PaymentUpdateStrategy.Polling,
+      hybrid: PaymentUpdateStrategy.Hybrid,
+    };
+
+    return validStrategies[normalized] ?? PaymentUpdateStrategy.Hybrid;
+  }
+
   getPaymentConfig(): PaymentConfig {
     return {
       cryptoBot: this.getCryptoBotConfig(),
@@ -130,38 +116,36 @@ export class PaymentConfigService {
     };
   }
 
-  /**
-   * Get CryptoPay API token (optional, configured via environment)
-   */
   getCryptoBotApiToken(): string | undefined {
     return this.configService.get<string>('CRYPTO_BOT_API_TOKEN');
   }
 
-  /**
-   * Get CryptoBot configuration
-   */
-  getCryptoBotConfig(): CryptoBotConfig {
-    const strategyStr = this.configService.get<string>('CRYPTO_BOT_UPDATE_STRATEGY') ?? 'HYBRID';
-    const updateStrategy = strategyStr as PaymentUpdateStrategy;
+  getCryptoBotApiUrl(): string {
+    const explicitUrl = this.configService.get<string>('CRYPTO_BOT_API_URL');
+    if (explicitUrl) {
+      return explicitUrl;
+    }
 
+    return this.isTestnet() ? 'https://testnet-pay.crypt.bot/api' : 'https://pay.crypt.bot/api';
+  }
+
+  isTestnet(): boolean {
+    return this.configService.get<boolean>('CRYPTO_BOT_TESTNET') ?? false;
+  }
+
+  getCryptoBotConfig(): CryptoBotConfig {
     return {
       apiToken: this.getCryptoBotApiToken() ?? undefined,
-      apiUrl: this.configService.get<string>('CRYPTO_BOT_API_URL'),
-      testnet: this.configService.get<boolean>('CRYPTO_BOT_TESTNET') ?? false,
+      apiUrl: this.getCryptoBotApiUrl(),
+      testnet: this.isTestnet(),
       timeout: this.configService.get<number>('CRYPTO_BOT_TIMEOUT') ?? 10000,
       maxRetries: this.configService.get<number>('CRYPTO_BOT_MAX_RETRIES') ?? 3,
-      updateStrategy,
+      updateStrategy: this.parseUpdateStrategy(this.configService.get<string>('CRYPTO_BOT_UPDATE_STRATEGY')),
       webhookUrl: this.configService.get<string>('CRYPTO_BOT_WEBHOOK_URL'),
     };
   }
 
-  /**
-   * Get Heleket configuration
-   */
   getHelekeConfig(): HelekeConfiguration {
-    const strategyStr = this.configService.get<string>('HELEKET_UPDATE_STRATEGY') ?? 'HYBRID';
-    const updateStrategy = strategyStr as PaymentUpdateStrategy;
-
     return {
       apiToken: this.configService.get<string>('HELEKET_API_TOKEN') ?? undefined,
       merchantId: this.configService.get<string>('HELEKET_MERCHANT_ID') ?? undefined,
@@ -171,21 +155,13 @@ export class PaymentConfigService {
       maxRetries: this.configService.get<number>('HELEKET_MAX_RETRIES') ?? 3,
       successUrl: this.configService.get<string>('HELEKET_SUCCESS_URL'),
       failUrl: this.configService.get<string>('HELEKET_FAIL_URL'),
-      updateStrategy,
+      updateStrategy: this.parseUpdateStrategy(this.configService.get<string>('HELEKET_UPDATE_STRATEGY')),
       webhookUrl: this.configService.get<string>('HELEKET_WEBHOOK_URL'),
     };
   }
 
-  /**
-   * Get YooKassa configuration
-   */
   getYooKassaConfig(): YooKassaConfig {
-    const strategyStr = this.configService.get<string>('YOOKASSA_UPDATE_STRATEGY') ?? 'HYBRID';
-    const updateStrategy = strategyStr as PaymentUpdateStrategy;
-
-    // Parse comma-separated IP list
     const ipString = this.configService.get<string>('YOOKASSA_WEBHOOK_IPS');
-    const allowedWebhookIps = ipString ? ipString.split(',').map((ip) => ip.trim()) : undefined;
 
     return {
       shopId: this.configService.get<string>('YOOKASSA_SHOP_ID') ?? undefined,
@@ -195,32 +171,24 @@ export class PaymentConfigService {
       timeout: this.configService.get<number>('YOOKASSA_TIMEOUT') ?? 10000,
       maxRetries: this.configService.get<number>('YOOKASSA_MAX_RETRIES') ?? 3,
       returnUrl: this.configService.get<string>('YOOKASSA_RETURN_URL'),
-      updateStrategy,
+      updateStrategy: this.parseUpdateStrategy(this.configService.get<string>('YOOKASSA_UPDATE_STRATEGY')),
       webhookUrl: this.configService.get<string>('YOOKASSA_WEBHOOK_URL'),
-      allowedWebhookIps,
+      allowedWebhookIps: ipString ? ipString.split(',').map((ip) => ip.trim()) : undefined,
     };
   }
 
-  /**
-   * Get webhook configuration
-   */
   getWebhookConfig(): PaymentWebhookConfig {
-    // Parse comma-separated IP list
     const yooKassaIpString = this.configService.get<string>('YOOKASSA_WEBHOOK_IPS');
-    const yooKassaAllowedIps = yooKassaIpString ? yooKassaIpString.split(',').map((ip) => ip.trim()) : undefined;
 
     return {
       url: this.configService.get<string>('CRYPTO_BOT_WEBHOOK_URL'),
       secret: this.configService.get<string>('CRYPTO_BOT_WEBHOOK_SECRET'),
       timeout: this.configService.get<number>('CRYPTO_BOT_WEBHOOK_TIMEOUT') ?? 30,
       verifySignature: this.configService.get<boolean>('CRYPTO_BOT_WEBHOOK_VERIFY') ?? true,
-      yooKassaAllowedIps,
+      yooKassaAllowedIps: yooKassaIpString ? yooKassaIpString.split(',').map((ip) => ip.trim()) : undefined,
     };
   }
 
-  /**
-   * Get polling configuration
-   */
   getPollingConfig(): PaymentPollingConfig {
     return {
       enabled: this.configService.get<boolean>('PAYMENT_POLLING_ENABLED') ?? true,
@@ -235,9 +203,6 @@ export class PaymentConfigService {
     };
   }
 
-  /**
-   * Get payment feature flags
-   */
   getFeatureFlags() {
     return {
       topup: this.configService.get<boolean>('PAYMENT_FEATURE_TOPUP') ?? true,
@@ -248,9 +213,6 @@ export class PaymentConfigService {
     };
   }
 
-  /**
-   * Get payment limits configuration
-   */
   getLimitsConfig() {
     return {
       minTopupAmount: this.configService.get<string>('PAYMENT_MIN_TOPUP') ?? '1.00',
@@ -262,38 +224,49 @@ export class PaymentConfigService {
     };
   }
 
-  /**
-   * Check if testnet mode is enabled
-   */
-  isTestnet(): boolean {
-    return this.configService.get<boolean>('CRYPTO_BOT_TESTNET') ?? false;
-  }
-
-  /**
-   * Check if webhook signature verification is enabled
-   */
   isWebhookVerificationEnabled(): boolean {
     return this.configService.get<boolean>('CRYPTO_BOT_WEBHOOK_VERIFY') ?? true;
   }
 
-  /**
-   * Check if top-up feature is enabled
-   */
   isTopupEnabled(): boolean {
     return this.configService.get<boolean>('PAYMENT_FEATURE_TOPUP') ?? true;
   }
 
-  /**
-   * Check if withdrawal feature is enabled
-   */
   isWithdrawalEnabled(): boolean {
     return this.configService.get<boolean>('PAYMENT_FEATURE_WITHDRAWAL') ?? true;
   }
 
-  /**
-   * Check if auto-credit is enabled
-   */
   isAutoCreditEnabled(): boolean {
     return this.configService.get<boolean>('PAYMENT_FEATURE_AUTO_CREDIT') ?? true;
+  }
+
+  /**
+   * Get base currency for balance storage and display
+   * All deposits are converted to this currency
+   * All withdrawals are deducted from this currency balance
+   */
+  getBaseCurrency(): CurrencyCode {
+    const currency = this.configService.get<string>('PAYMENT_BASE_CURRENCY') ?? 'USD';
+    const currencyMap: Record<string, CurrencyCode> = {
+      USD: CurrencyCode.Usd,
+      EUR: CurrencyCode.Eur,
+      RUB: CurrencyCode.Rub,
+    };
+
+    return currencyMap[currency] ?? CurrencyCode.Usd;
+  }
+
+  /**
+   * Get currency symbol for base currency
+   */
+  getBaseCurrencySymbol(): string {
+    const currency = this.configService.get<string>('PAYMENT_BASE_CURRENCY') ?? 'USD';
+    const symbolMap: Record<string, string> = {
+      USD: '$',
+      EUR: '€',
+      RUB: '₽',
+    };
+
+    return symbolMap[currency] ?? '$';
   }
 }

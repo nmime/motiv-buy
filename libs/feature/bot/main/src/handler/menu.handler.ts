@@ -17,6 +17,7 @@ import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { MessageService } from '../service/message.service';
 import { InlineKeyboard } from 'grammy';
+import { PaymentConfigService } from '@app/feature-payment-shared';
 
 /**
  * Menu Handler
@@ -40,7 +41,12 @@ export class MenuHandler {
     private readonly sessionService: SessionService,
     private readonly menuService: MenuService,
     private readonly messageService: MessageService,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {}
+
+  private get currencySymbol(): string {
+    return this.paymentConfigService.getBaseCurrencySymbol();
+  }
 
   /**
    * Handle menu navigation request
@@ -357,7 +363,7 @@ export class MenuHandler {
       const hasNotifications = false;
 
       // Update title with balance info
-      const enhancedTitle = `${baseConfig.title}\n💰 Balance: $${balance.availableAmount.toFixed(2)}${hasNotifications ? '\n🔔 New notifications' : ''}`;
+      const enhancedTitle = `${baseConfig.title}\n💰 Balance: ${this.currencySymbol}${balance.availableAmount.toFixed(2)}${hasNotifications ? '\n🔔 New notifications' : ''}`;
 
       return {
         ...baseConfig,
@@ -396,10 +402,11 @@ export class MenuHandler {
       const balance = await this.balanceService.getBalance(user.id);
 
       // Update description with current balance info
+      const symbol = this.currencySymbol;
       const enhancedDescription = `
-Current Balance: $${balance.availableAmount.toFixed(2)}
-Total Earned: $${balance.totalEarned.toFixed(2)}
-Pending: $${balance.pendingAmount.toFixed(2)}
+Current Balance: ${symbol}${balance.availableAmount.toFixed(2)}
+Total Earned: ${symbol}${balance.totalEarned.toFixed(2)}
+Pending: ${symbol}${balance.pendingAmount.toFixed(2)}
 
 Last updated: ${new Date().toLocaleTimeString()}
 `;
@@ -489,7 +496,7 @@ Member since: ${this.messageService.formatDate(ctx, user.createdAt)}
 📊 Today's Performance:
 • Clicks: ${todayStats.clicks}
 • Conversions: ${todayStats.conversions}
-• Earnings: $${todayStats.earnings.toFixed(2)}
+• Earnings: ${this.currencySymbol}${todayStats.earnings.toFixed(2)}
 
 Last updated: ${new Date().toLocaleTimeString()}
 `;
@@ -684,11 +691,12 @@ Customize your bot experience.
           }
 
           const balance = await this.balanceService.getBalance(user.id);
+          const symbol = this.currencySymbol;
           const analyticsMessage =
             `<b>${ctx.t('menu.balance.analytics_title')}</b>\n\n` +
-            `${ctx.t('balance.available')}: $${balance.availableAmount.toFixed(2)}\n` +
-            `${ctx.t('balance.total_earned')}: $${balance.totalEarned.toFixed(2)}\n` +
-            `${ctx.t('balance.pending')}: $${balance.pendingAmount.toFixed(2)}\n\n` +
+            `${ctx.t('balance.available')}: ${symbol}${balance.availableAmount.toFixed(2)}\n` +
+            `${ctx.t('balance.total_earned')}: ${symbol}${balance.totalEarned.toFixed(2)}\n` +
+            `${ctx.t('balance.pending')}: ${symbol}${balance.pendingAmount.toFixed(2)}\n\n` +
             `<i>${ctx.t('menu.balance.analytics_hint')}</i>`;
 
           return {
@@ -735,7 +743,7 @@ Customize your bot experience.
           const statsMessage =
             `<b>${ctx.t('menu.profile.stats_title')}</b>\n\n` +
             `📅 ${ctx.t('menu.profile.member_for')}: ${daysSinceJoin} ${ctx.t('common.days_suffix')}\n` +
-            `💰 ${ctx.t('balance.total_earned')}: $${balance.totalEarned.toFixed(2)}\n` +
+            `💰 ${ctx.t('balance.total_earned')}: ${this.currencySymbol}${balance.totalEarned.toFixed(2)}\n` +
             `📊 ${ctx.t('menu.profile.account_status')}: ${user.status === UserStatus.Active ? '✅' : '❌'}\n\n` +
             `<i>${ctx.t('menu.profile.stats_hint')}</i>`;
 
@@ -895,7 +903,7 @@ Customize your bot experience.
         `<b>${ctx.t('menu.stats.title', { period })}</b>\n\n` +
         `📊 ${ctx.t('menu.stats.clicks')}: ${stats.clicks}\n` +
         `🎯 ${ctx.t('menu.stats.conversions')}: ${stats.conversions}\n` +
-        `💰 ${ctx.t('menu.stats.earnings')}: $${stats.earnings.toFixed(2)}\n\n` +
+        `💰 ${ctx.t('menu.stats.earnings')}: ${this.currencySymbol}${stats.earnings.toFixed(2)}\n\n` +
         `<i>${ctx.t('menu.stats.updated_at', { time: new Date().toLocaleTimeString() })}</i>`
       );
     };
@@ -912,7 +920,7 @@ Customize your bot experience.
 
           const overviewMessage =
             `<b>${ctx.t('menu.stats.overview_title')}</b>\n\n` +
-            `💰 ${ctx.t('balance.total_earned')}: $${balance.totalEarned.toFixed(2)}\n` +
+            `💰 ${ctx.t('balance.total_earned')}: ${this.currencySymbol}${balance.totalEarned.toFixed(2)}\n` +
             `📈 ${ctx.t('menu.stats.active_orders')}: 0\n` +
             `🎯 ${ctx.t('menu.stats.total_conversions')}: 0\n\n` +
             `<i>${ctx.t('menu.stats.overview_hint')}</i>`;

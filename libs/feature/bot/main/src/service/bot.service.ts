@@ -477,6 +477,38 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Send a direct message to a user by their Telegram chat ID
+   * Used for notifications, alerts, and system messages
+   *
+   * @param chatId - Telegram chat ID (can be string or number)
+   * @param text - Message text (HTML formatting supported)
+   * @param options - Optional keyboard and other settings
+   */
+  async sendDirectMessage(
+    chatId: string | number,
+    text: string,
+    options?: { keyboard?: InlineKeyboard; disableNotification?: boolean },
+  ): Promise<void> {
+    if (!this.bot) {
+      this.logger.warn('Cannot send direct message: bot not initialized');
+
+      return;
+    }
+
+    try {
+      await this.bot.api.sendMessage(chatId, text, {
+        parse_mode: 'HTML',
+        reply_markup: options?.keyboard,
+        disable_notification: options?.disableNotification,
+      });
+
+      this.logger.debug(`Direct message sent to ${chatId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send direct message to ${chatId}`, toError(error));
+    }
+  }
+
+  /**
    * Register command handlers
    */
   private registerCommandHandlers(): void {

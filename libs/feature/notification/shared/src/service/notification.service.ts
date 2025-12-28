@@ -44,7 +44,8 @@ export class NotificationService {
       status: NotificationStatus.Pending,
     });
 
-    await this.em.persistAndFlush(notification);
+    const em = this.em.fork();
+    await em.persistAndFlush(notification);
 
     return {
       id: notification.id,
@@ -95,7 +96,8 @@ export class NotificationService {
       });
     });
 
-    await this.em.persistAndFlush(entities);
+    const em = this.em.fork();
+    await em.persistAndFlush(entities);
 
     return entities.map((n) => ({
       id: n.id,

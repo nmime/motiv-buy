@@ -202,8 +202,6 @@ export class MessageService {
     messageId: number,
     options: MessageOptions,
   ): Promise<void> {
-    this.logger.debug('Editing message', { messageId, chatId });
-
     await ctx.api.editMessageText(chatId, messageId, options.text, {
       parse_mode: options.parseMode ?? defaultParseMode,
       reply_markup: options.replyMarkup,
@@ -223,8 +221,6 @@ export class MessageService {
       await this.editMessageText(ctx, chatId, messageId, options);
     } catch (error) {
       if (this.isMessageNotModifiedError(error)) {
-        this.logger.debug('Message not modified, skipping edit');
-
         return;
       }
 
@@ -246,7 +242,7 @@ export class MessageService {
   private isMessageNotModifiedError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error);
 
-    return message.includes('message is not modified') || message.includes('400');
+    return message.includes('message is not modified') || message.includes('Bad Request: message is not modified');
   }
 
   /**

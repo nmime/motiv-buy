@@ -16,7 +16,9 @@ export class ProviderCurrencyRepository {
    * Find all currencies supported by a provider
    */
   async findByProvider(provider: PaymentProvider): Promise<ProviderCurrencyEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       ProviderCurrencyEntity,
       {
         provider: { provider },
@@ -33,7 +35,9 @@ export class ProviderCurrencyRepository {
    * Find all providers that support a specific currency
    */
   async findByCurrency(currencyCode: CurrencyCode): Promise<ProviderCurrencyEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       ProviderCurrencyEntity,
       {
         currency: { code: currencyCode },
@@ -54,6 +58,7 @@ export class ProviderCurrencyRepository {
     currencyCode: CurrencyCode,
     network?: NetworkType,
   ): Promise<ProviderCurrencyEntity | null> {
+    const em = this.em.fork();
     const conditions: {
       provider: { provider: PaymentProvider };
       currency: { code: CurrencyCode };
@@ -67,7 +72,7 @@ export class ProviderCurrencyRepository {
       conditions['network'] = network;
     }
 
-    return this.em.findOne(ProviderCurrencyEntity, conditions, {
+    return em.findOne(ProviderCurrencyEntity, conditions, {
       populate: ['provider', 'currency'],
     });
   }
@@ -79,7 +84,9 @@ export class ProviderCurrencyRepository {
     provider: PaymentProvider,
     currencyCode: CurrencyCode,
   ): Promise<ProviderCurrencyEntity | null> {
-    return this.em.findOne(
+    const em = this.em.fork();
+
+    return em.findOne(
       ProviderCurrencyEntity,
       {
         provider: { provider },
@@ -97,7 +104,9 @@ export class ProviderCurrencyRepository {
    * Find all providers that support deposits for a currency
    */
   async findDepositProviders(currencyCode: CurrencyCode): Promise<ProviderCurrencyEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       ProviderCurrencyEntity,
       {
         currency: { code: currencyCode },
@@ -115,7 +124,9 @@ export class ProviderCurrencyRepository {
    * Find all providers that support withdrawals for a currency
    */
   async findWithdrawalProviders(currencyCode: CurrencyCode): Promise<ProviderCurrencyEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       ProviderCurrencyEntity,
       {
         currency: { code: currencyCode },
@@ -136,6 +147,7 @@ export class ProviderCurrencyRepository {
     currencyCode: CurrencyCode,
     criteria: 'lowest_fee' | 'fastest' | 'most_reliable',
   ): Promise<ProviderCurrencyEntity | null> {
+    const em = this.em.fork();
     const orderByMap: Record<typeof criteria, Partial<Record<keyof ProviderCurrencyEntity, 'ASC' | 'DESC'>>> = {
       lowest_fee: { networkFeeEstimate: 'ASC' },
       fastest: { avgConfirmationTimeSeconds: 'ASC' },
@@ -144,7 +156,7 @@ export class ProviderCurrencyRepository {
 
     const orderBy = orderByMap[criteria];
 
-    const results = await this.em.find(
+    const results = await em.find(
       ProviderCurrencyEntity,
       {
         currency: { code: currencyCode },
@@ -164,7 +176,8 @@ export class ProviderCurrencyRepository {
    * Check if provider supports currency
    */
   async supportsProviderCurrency(provider: PaymentProvider, currencyCode: CurrencyCode): Promise<boolean> {
-    const count = await this.em.count(ProviderCurrencyEntity, {
+    const em = this.em.fork();
+    const count = await em.count(ProviderCurrencyEntity, {
       provider: { provider },
       currency: { code: currencyCode },
       isEnabled: true,
@@ -180,9 +193,10 @@ export class ProviderCurrencyRepository {
     data: Required<Pick<ProviderCurrencyEntity, 'provider' | 'currency'>> &
       Partial<Omit<ProviderCurrencyEntity, 'provider' | 'currency'>>,
   ): Promise<ProviderCurrencyEntity> {
+    const em = this.em.fork();
     const network = data.network || NetworkType.Native;
 
-    let entity = await this.em.findOne(ProviderCurrencyEntity, {
+    let entity = await em.findOne(ProviderCurrencyEntity, {
       provider: data.provider,
       currency: data.currency,
       network,
@@ -190,7 +204,7 @@ export class ProviderCurrencyRepository {
 
     if (entity) {
       // Update existing
-      this.em.assign(entity, data);
+      em.assign(entity, data);
     } else {
       // Create new using entity constructor which properly handles defaults and relations
       entity = new ProviderCurrencyEntity({
@@ -198,10 +212,10 @@ export class ProviderCurrencyRepository {
         network,
       } as ConstructorParameters<typeof ProviderCurrencyEntity>[0]);
 
-      this.em.persist(entity);
+      em.persist(entity);
     }
 
-    await this.em.flush();
+    await em.flush();
 
     return entity;
   }
@@ -215,16 +229,18 @@ export class ProviderCurrencyRepository {
     network: NetworkType,
     enabled: boolean,
   ): Promise<ProviderCurrencyEntity | null> {
+    const em = this.em.fork();
     const entity = await this.findByProviderAndCurrency(provider, currencyCode, network);
 
     if (!entity) {
       return null;
     }
 
-    entity.isEnabled = enabled;
-    await this.em.flush();
+    const managedEntity = em.getReference(ProviderCurrencyEntity, entity.id);
+    em.assign(managedEntity, { isEnabled: enabled });
+    await em.flush();
 
-    return entity;
+    return managedEntity;
   }
 
   /**
@@ -235,8 +251,10 @@ export class ProviderCurrencyRepository {
     currencyCode: CurrencyCode,
     network: NetworkType,
   ): Promise<ProviderCurrencyEntity | null> {
+    const em = this.em.fork();
+
     // First, unset all other networks as not preferred
-    const allNetworks = await this.em.find(ProviderCurrencyEntity, {
+    const allNetworks = await em.find(ProviderCurrencyEntity, {
       provider: { provider },
       currency: { code: currencyCode },
     });
@@ -246,14 +264,14 @@ export class ProviderCurrencyRepository {
     }
 
     // Set the specified network as preferred
-    const entity = await this.findByProviderAndCurrency(provider, currencyCode, network);
+    const entity = allNetworks.find((n) => n.network === network);
 
     if (!entity) {
       return null;
     }
 
     entity.isPreferred = true;
-    await this.em.flush();
+    await em.flush();
 
     return entity;
   }
@@ -267,16 +285,18 @@ export class ProviderCurrencyRepository {
     network: NetworkType,
     priority: number,
   ): Promise<ProviderCurrencyEntity | null> {
+    const em = this.em.fork();
     const entity = await this.findByProviderAndCurrency(provider, currencyCode, network);
 
     if (!entity) {
       return null;
     }
 
-    entity.routingPriority = priority;
-    await this.em.flush();
+    const managedEntity = em.getReference(ProviderCurrencyEntity, entity.id);
+    em.assign(managedEntity, { routingPriority: priority });
+    await em.flush();
 
-    return entity;
+    return managedEntity;
   }
 
   /**
@@ -288,29 +308,33 @@ export class ProviderCurrencyRepository {
     network: NetworkType,
     score: number,
   ): Promise<ProviderCurrencyEntity | null> {
+    const em = this.em.fork();
     const entity = await this.findByProviderAndCurrency(provider, currencyCode, network);
 
     if (!entity) {
       return null;
     }
 
-    entity.reliabilityScore = Math.max(0, Math.min(100, score));
-    await this.em.flush();
+    const managedEntity = em.getReference(ProviderCurrencyEntity, entity.id);
+    em.assign(managedEntity, { reliabilityScore: Math.max(0, Math.min(100, score)) });
+    await em.flush();
 
-    return entity;
+    return managedEntity;
   }
 
   /**
    * Delete provider-currency support
    */
   async delete(provider: PaymentProvider, currencyCode: CurrencyCode, network: NetworkType): Promise<boolean> {
+    const em = this.em.fork();
     const entity = await this.findByProviderAndCurrency(provider, currencyCode, network);
 
     if (!entity) {
       return false;
     }
 
-    await this.em.removeAndFlush(entity);
+    const managedEntity = em.getReference(ProviderCurrencyEntity, entity.id);
+    await em.removeAndFlush(managedEntity);
 
     return true;
   }

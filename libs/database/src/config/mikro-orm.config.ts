@@ -33,6 +33,8 @@ import {
 } from '../entity';
 import {
   TrafficActionsUsersEntity,
+  TrafficOrderSourceEntity,
+  TrafficOrderTargetEntity,
   TrafficSourceCategoriesEntity,
   TrafficTargetSourceEntity,
   TrafficTargetUsersEntity,
@@ -64,6 +66,8 @@ export function createMikroOrmConfig(config: DatabaseConfig): Options {
       TrafficActionsEntity,
       TrafficSourceCategoryEntity,
       TrafficActionsUsersEntity,
+      TrafficOrderSourceEntity,
+      TrafficOrderTargetEntity,
       UserTrafficTargetEntity,
       UserTrafficSourceEntity,
       UserTrafficOrderEntity,

@@ -13,7 +13,10 @@ import {
   TrafficOrderEntity,
   TrafficOrderStatus,
   TrafficOrderType,
-  TrafficSourceEntity,
+  TrafficOrderSourceEntity,
+  TrafficOrderSourceStatus,
+  TrafficOrderTargetEntity,
+  TrafficOrderTargetStatus,
   TrafficTargetEntity,
   TrafficTargetType,
   TrafficTargetStatus,
@@ -22,6 +25,7 @@ import { MenuActionHandler } from './menu-action.handler';
 import { decimal, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
 import { v7 as uuidv7 } from 'uuid';
+import { PaymentConfigService } from '@app/feature-payment-shared';
 
 @Injectable()
 export class OrderActionHandler {
@@ -31,7 +35,12 @@ export class OrderActionHandler {
     private readonly orm: MikroORM,
     private readonly menuHandler: MenuActionHandler,
     private readonly messageService: MessageService,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {}
+
+  private get currencySymbol(): string {
+    return this.paymentConfigService.getBaseCurrencySymbol();
+  }
 
   /**
    * Get a forked EntityManager for context-safe database operations
@@ -41,103 +50,75 @@ export class OrderActionHandler {
   }
 
   /**
-   * Handle active orders view
+   * Handle orders list view (all orders, like sources list)
    */
-  async handleActiveOrders(ctx: AuthenticatedBotContext, page = 1): Promise<void> {
-    const limit = 5;
-    const offset = (page - 1) * limit;
-
-    const [orders, total] = await this.em.findAndCount(
+  async handleOrdersList(ctx: AuthenticatedBotContext): Promise<void> {
+    const orders = await this.em.find(
       TrafficOrderEntity,
-      {
-        creator: ctx.user.id,
-        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-      },
+      { creator: ctx.user.id },
       {
         orderBy: { createdAt: 'DESC' },
-        limit,
-        offset,
-        populate: ['trafficSource', 'trafficTarget'],
+        limit: 10,
+        populate: ['orderTargets', 'orderTargets.trafficTarget'],
       },
     );
 
+    let text = ctx.t('orders.list_title', { default: '<b>📋 My Orders</b>\n\n' });
+
     if (orders.length === 0) {
-      const keyboard = new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders');
-      await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('bot.order.no_active_orders'),
-        replyMarkup: keyboard,
+      text += ctx.t('orders.no_orders', {
+        default: '<i>No orders yet. Click "New Order" to create one!</i>',
+      });
+    } else {
+      text += ctx.t('orders.list_count', {
+        default: `Total: ${orders.length} order(s)\n\n`,
+        count: orders.length,
       });
 
-      return;
+      const statusEmojis: Record<string, string> = {
+        [TrafficOrderStatus.Pending]: '⏳',
+        [TrafficOrderStatus.Active]: '✅',
+        [TrafficOrderStatus.Paused]: '⏸️',
+        [TrafficOrderStatus.InProgress]: '🔄',
+        [TrafficOrderStatus.Completed]: '✔️',
+        [TrafficOrderStatus.Cancelled]: '❌',
+        [TrafficOrderStatus.Failed]: '💥',
+      };
+
+      orders.forEach((order) => {
+        const emoji = statusEmojis[order.status] ?? '❓';
+        const orderTargets = order.orderTargets?.getItems() ?? [];
+        const primaryTarget = orderTargets.find((ot) => ot.isPrimary) ?? orderTargets[0];
+        const targetName = primaryTarget?.trafficTarget?.getEntity()?.name ?? order.orderId;
+        const statusLabel = ctx.t(`orders.status.${order.status}`, { default: order.status });
+
+        text += `${emoji} <b>${targetName}</b>\n`;
+        text += `   ${ctx.t('orders.type')}: ${order.type}\n`;
+        text += `   ${ctx.t('orders.status_label')}: ${statusLabel}\n\n`;
+      });
     }
 
-    const totalPages = Math.ceil(total / limit);
-    const ordersText = this.formatOrdersList(ctx, orders, ctx.t('orders.active_title'), page, totalPages);
+    const ordersList = orders.map((o) => {
+      const orderTargets = o.orderTargets?.getItems() ?? [];
+      const primaryTarget = orderTargets.find((ot) => ot.isPrimary) ?? orderTargets[0];
+      const targetName = primaryTarget?.trafficTarget?.getEntity()?.name ?? o.orderId;
 
-    let keyboard = this.menuHandler.createPaginationKeyboard(ctx, page, totalPages, 'orders:active');
-    if (totalPages > 1) {
-      keyboard = keyboard.row();
-    }
+      return {
+        orderId: o.orderId,
+        type: o.type,
+        status: o.status,
+        targetName,
+      };
+    });
 
-    keyboard = keyboard.text(ctx.t('common.back'), 'menu:orders');
+    const keyboard = this.menuHandler.createOrdersListKeyboard(ctx, ordersList);
 
     await this.messageService.sendOrEditMessage(ctx, {
-      text: ordersText,
-
+      text,
       replyMarkup: keyboard,
     });
 
-    this.logger.log('Active orders viewed', { userId: ctx.user.id, page });
-  }
-
-  /**
-   * Handle completed orders view
-   */
-  async handleCompletedOrders(ctx: AuthenticatedBotContext, page = 1): Promise<void> {
-    const limit = 5;
-    const offset = (page - 1) * limit;
-
-    const [orders, total] = await this.em.findAndCount(
-      TrafficOrderEntity,
-      {
-        creator: ctx.user.id,
-        status: TrafficOrderStatus.Completed,
-      },
-      {
-        orderBy: { completedAt: 'DESC' },
-        limit,
-        offset,
-        populate: ['trafficSource', 'trafficTarget'],
-      },
-    );
-
-    if (orders.length === 0) {
-      const keyboard = new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders');
-      await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('orders.no_completed'),
-        replyMarkup: keyboard,
-      });
-
-      return;
-    }
-
-    const totalPages = Math.ceil(total / limit);
-    const ordersText = this.formatOrdersList(ctx, orders, ctx.t('orders.completed_title'), page, totalPages);
-
-    let keyboard = this.menuHandler.createPaginationKeyboard(ctx, page, totalPages, 'orders:completed');
-    if (totalPages > 1) {
-      keyboard = keyboard.row();
-    }
-
-    keyboard = keyboard.text(ctx.t('common.back'), 'menu:orders');
-
-    await this.messageService.sendOrEditMessage(ctx, {
-      text: ordersText,
-
-      replyMarkup: keyboard,
-    });
-
-    this.logger.log('Completed orders viewed', { userId: ctx.user.id, page });
+    this.logger.log('Orders list viewed', { userId: ctx.user.id, count: orders.length });
   }
 
   /**
@@ -166,12 +147,18 @@ export class OrderActionHandler {
       TrafficOrderEntity,
       { orderId },
       {
-        populate: ['trafficSource', 'trafficTarget', 'creator'],
+        populate: [
+          'orderSources',
+          'orderTargets',
+          'orderSources.trafficSource',
+          'orderTargets.trafficTarget',
+          'creator',
+        ],
       },
     );
 
     if (!order) {
-      const keyboard = new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders');
+      const keyboard = new InlineKeyboard().text(ctx.t('common.back'), 'orders:list');
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.not_found'),
         replyMarkup: keyboard,
@@ -181,7 +168,7 @@ export class OrderActionHandler {
     }
 
     const detailsText = await this.formatOrderDetails(order, ctx);
-    const keyboard = this.createOrderDetailsKeyboard(orderId, ctx);
+    const keyboard = this.createOrderDetailsKeyboard(orderId, order.status, ctx);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: detailsText,
@@ -203,7 +190,7 @@ export class OrderActionHandler {
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: `🔍 <b>${ctx.t('orders.search_title')}</b>\n\n` + ctx.t('orders.search_prompt'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
     });
   }
 
@@ -228,7 +215,7 @@ export class OrderActionHandler {
       text +=
         `${statusEmoji} <b>${order.type}</b> - <code>${order.orderId}</code>\n` +
         `${ctx.t('orders.progress')}: ${order.currentCount}/${order.targetCount} (${progressDisplay}%)\n` +
-        `${ctx.t('orders.budget')}: $${budgetDisplay}\n` +
+        `${ctx.t('orders.budget')}: ${this.currencySymbol}${budgetDisplay}\n` +
         `${ctx.t('orders.status.active')}: ${order.status}\n\n`;
     }
 
@@ -242,10 +229,13 @@ export class OrderActionHandler {
     const progress = decimal(order.currentCount).div(order.targetCount).mul(100);
     const progressDisplay = toDisplayString(progress, 1);
     const statusEmoji = this.getStatusEmoji(order.status);
-    const source = await order.trafficSource.load();
-    const target = await order.trafficTarget.load();
 
-    if (!source || !target) {
+    // Get primary target from junction table
+    const orderTargets = order.orderTargets?.getItems() ?? [];
+    const primaryOrderTarget = orderTargets.find((ot) => ot.isPrimary) ?? orderTargets[0];
+    const target = primaryOrderTarget?.trafficTarget?.getEntity();
+
+    if (!target) {
       return ctx.t('orders.details_not_found');
     }
 
@@ -253,20 +243,23 @@ export class OrderActionHandler {
     const spentAmountDisplay = toDisplayString(order.spentAmount, 2);
     const pricePerActionDisplay = toDisplayString(order.pricePerAction, 4);
 
+    const symbol = this.currencySymbol;
+
+    const statusLabel = ctx.t(`orders.status.${order.status}`, { default: order.status });
+
     return (
       `${statusEmoji} <b>${ctx.t('orders.details_title')}</b>\n\n` +
       `<b>${ctx.t('orders.order_id')}:</b> <code>${order.orderId}</code>\n` +
       `<b>${ctx.t('orders.type')}:</b> ${order.type}\n` +
-      `<b>${ctx.t('orders.status')}:</b> ${order.status}\n\n` +
+      `<b>${ctx.t('orders.status_label')}:</b> ${statusLabel}\n\n` +
       `<b>${ctx.t('orders.progress')}:</b>\n` +
       `• ${ctx.t('orders.current')}: ${order.currentCount}\n` +
       `• ${ctx.t('orders.target')}: ${order.targetCount}\n` +
       `• ${ctx.t('orders.completion')}: ${progressDisplay}%\n\n` +
       `<b>${ctx.t('orders.budget')}:</b>\n` +
-      `• ${ctx.t('orders.total')}: $${totalBudgetDisplay}\n` +
-      `• ${ctx.t('orders.spent')}: $${spentAmountDisplay}\n` +
-      `• ${ctx.t('orders.price_per_action')}: $${pricePerActionDisplay}\n\n` +
-      `<b>${ctx.t('orders.source')}:</b> ${source.name}\n` +
+      `• ${ctx.t('orders.total')}: ${symbol}${totalBudgetDisplay}\n` +
+      `• ${ctx.t('orders.spent')}: ${symbol}${spentAmountDisplay}\n` +
+      `• ${ctx.t('orders.price_per_action')}: ${symbol}${pricePerActionDisplay}\n\n` +
       `<b>${ctx.t('orders.target_label')}:</b> ${target.name}\n\n` +
       (order.description ? `<b>${ctx.t('orders.description')}:</b>\n${order.description}\n\n` : '') +
       `<b>${ctx.t('orders.created')}:</b> ${this.messageService.formatDateTime(ctx, order.createdAt)}\n` +
@@ -283,6 +276,7 @@ export class OrderActionHandler {
     const emojiMap: Record<TrafficOrderStatus, string> = {
       [TrafficOrderStatus.Pending]: '⏳',
       [TrafficOrderStatus.Active]: '✅',
+      [TrafficOrderStatus.Paused]: '⏸️',
       [TrafficOrderStatus.InProgress]: '🔄',
       [TrafficOrderStatus.Completed]: '✅',
       [TrafficOrderStatus.Cancelled]: '❌',
@@ -305,17 +299,32 @@ export class OrderActionHandler {
       .row()
       .text(ctx.t('orders.type_comment'), 'order:type:comment')
       .row()
-      .text(ctx.t('common.cancel'), 'menu:orders');
+      .text(ctx.t('common.cancel'), 'orders:list');
   }
 
   /**
    * Create order details keyboard
    */
-  private createOrderDetailsKeyboard(orderId: string, ctx: AuthenticatedBotContext) {
-    return new InlineKeyboard()
-      .text(ctx.t('common.refresh'), `order:details:${orderId}`)
-      .row()
-      .text(ctx.t('orders.back_to_orders'), 'menu:orders');
+  private createOrderDetailsKeyboard(orderId: string, status: TrafficOrderStatus, ctx: AuthenticatedBotContext) {
+    const keyboard = new InlineKeyboard();
+
+    // Terminal statuses - only show Back button (no actions available)
+    const terminalStatuses = [TrafficOrderStatus.Cancelled, TrafficOrderStatus.Completed, TrafficOrderStatus.Failed];
+
+    const isTerminal = terminalStatuses.includes(status);
+
+    if (!isTerminal) {
+      keyboard
+        .text(ctx.t('common.refresh'), `order:details:${orderId}`)
+        .row()
+        .text(ctx.t('orders.view.btn_stop'), `order:toggle:${orderId}`)
+        .text(ctx.t('orders.view.btn_delete'), `order:delete:${orderId}`)
+        .row();
+    }
+
+    keyboard.text(ctx.t('orders.back_to_orders'), 'orders:list');
+
+    return keyboard;
   }
 
   // ===== Additional Methods (extracted from callback-router) =====
@@ -323,7 +332,7 @@ export class OrderActionHandler {
   async handleDeletedOrders(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.deleted_list'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
     });
   }
 
@@ -331,7 +340,7 @@ export class OrderActionHandler {
     if (!params || params.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.select_to_configure'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
@@ -344,7 +353,7 @@ export class OrderActionHandler {
   async handleOrderEdit(ctx: AuthenticatedBotContext, _params: string[]): Promise<void> {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.edit_prompt'),
-      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+      replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
     });
   }
 
@@ -352,7 +361,7 @@ export class OrderActionHandler {
     if (!params || params.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.not_found'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
@@ -370,17 +379,18 @@ export class OrderActionHandler {
     if (!order) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.not_found'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
     }
 
-    // Toggle between Active and Paused (InProgress stays as is)
+    // Toggle between Active and Paused/Cancelled
     const statusToggleMap: Record<TrafficOrderStatus, TrafficOrderStatus> = {
-      [TrafficOrderStatus.Active]: TrafficOrderStatus.Cancelled,
-      [TrafficOrderStatus.InProgress]: TrafficOrderStatus.Cancelled,
-      [TrafficOrderStatus.Cancelled]: TrafficOrderStatus.Active,
+      [TrafficOrderStatus.Active]: TrafficOrderStatus.Paused,
+      [TrafficOrderStatus.Paused]: TrafficOrderStatus.Active,
+      [TrafficOrderStatus.InProgress]: TrafficOrderStatus.Paused,
+      [TrafficOrderStatus.Cancelled]: TrafficOrderStatus.Cancelled, // Can't toggle cancelled
       [TrafficOrderStatus.Pending]: TrafficOrderStatus.Pending, // Can't toggle pending
       [TrafficOrderStatus.Completed]: TrafficOrderStatus.Completed, // Can't toggle completed
       [TrafficOrderStatus.Failed]: TrafficOrderStatus.Active, // Restart failed
@@ -414,7 +424,7 @@ export class OrderActionHandler {
     if (!params || params.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.not_found'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
@@ -429,7 +439,7 @@ export class OrderActionHandler {
       if (!orderId) {
         await this.messageService.sendOrEditMessage(ctx, {
           text: ctx.t('orders.not_found'),
-          replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+          replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
         });
 
         return;
@@ -447,7 +457,7 @@ export class OrderActionHandler {
       if (!order) {
         await this.messageService.sendOrEditMessage(ctx, {
           text: ctx.t('orders.not_found'),
-          replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+          replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
         });
 
         return;
@@ -461,7 +471,7 @@ export class OrderActionHandler {
 
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.deleted_success'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('orders.btn_view_orders'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('orders.btn_view_orders'), 'orders:list'),
       });
 
       return;
@@ -477,7 +487,7 @@ export class OrderActionHandler {
       } else {
         await this.messageService.sendOrEditMessage(ctx, {
           text: ctx.t('common.errors.operation_cancelled'),
-          replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+          replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
         });
       }
 
@@ -494,7 +504,7 @@ export class OrderActionHandler {
     if (!order) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.not_found'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
@@ -518,7 +528,7 @@ export class OrderActionHandler {
       text: ctx.t('orders.download_coming_soon'),
       replyMarkup: orderId
         ? new InlineKeyboard().text(ctx.t('common.back'), `order:details:${orderId}`)
-        : new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        : new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
     });
   }
 
@@ -530,7 +540,7 @@ export class OrderActionHandler {
       .row()
       .text(ctx.t('orders.bot_admin.btn_added_confirm'), `order:bot:confirm:${orderId}`)
       .row()
-      .text(ctx.t('common.back'), orderId ? `order:details:${orderId}` : 'menu:orders');
+      .text(ctx.t('common.back'), orderId ? `order:details:${orderId}` : 'orders:list');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.bot_management'),
@@ -548,7 +558,7 @@ export class OrderActionHandler {
       .text(ctx.t('orders.audience.btn_age'), `order:audience:age:${orderId}`)
       .text(ctx.t('orders.audience.btn_activity'), `order:audience:activity:${orderId}`)
       .row()
-      .text(ctx.t('common.back'), orderId ? `order:details:${orderId}` : 'menu:orders');
+      .text(ctx.t('common.back'), orderId ? `order:details:${orderId}` : 'orders:list');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.audience_targeting'),
@@ -565,7 +575,7 @@ export class OrderActionHandler {
       .text(ctx.t('orders.gender.male'), `order:gender:set:male:${orderId}`)
       .text(ctx.t('orders.gender.female'), `order:gender:set:female:${orderId}`)
       .row()
-      .text(ctx.t('common.back'), orderId ? `order:audience:${orderId}` : 'menu:orders');
+      .text(ctx.t('common.back'), orderId ? `order:audience:${orderId}` : 'orders:list');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.gender_selection'),
@@ -575,7 +585,7 @@ export class OrderActionHandler {
 
   async handleOrderTopicSelection(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
     const orderId = params.length > 0 ? params[0] : '';
-    const backCallback = orderId ? `order:details:${orderId}` : 'menu:orders';
+    const backCallback = orderId ? `order:details:${orderId}` : 'orders:list';
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.topic_selection'),
@@ -593,7 +603,7 @@ export class OrderActionHandler {
       .row()
       .text(ctx.t('orders.location.both'), `order:location:set:both:${orderId}`)
       .row()
-      .text(ctx.t('common.back'), orderId ? `order:audience:${orderId}` : 'menu:orders');
+      .text(ctx.t('common.back'), orderId ? `order:audience:${orderId}` : 'orders:list');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.location_selection'),
@@ -615,7 +625,7 @@ export class OrderActionHandler {
 
       await this.messageService.sendOrEditMessage(ctx, {
         text,
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
     } else {
       const [orderId] = params;
@@ -627,7 +637,7 @@ export class OrderActionHandler {
     if (!params || params.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.not_found'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
@@ -640,13 +650,28 @@ export class OrderActionHandler {
     const originalOrder = await em.findOne(
       TrafficOrderEntity,
       { orderId, creator: ctx.user.id },
-      { populate: ['trafficSource', 'trafficTarget'] },
+      { populate: ['orderSources', 'orderTargets', 'orderSources.trafficSource', 'orderTargets.trafficTarget'] },
     );
 
     if (!originalOrder) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.not_found'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
+      });
+
+      return;
+    }
+
+    // Get source and target from original order's junction tables
+    const originalOrderSources = originalOrder.orderSources?.getItems() ?? [];
+    const originalOrderTargets = originalOrder.orderTargets?.getItems() ?? [];
+    const primaryOriginalSource = originalOrderSources.find((os) => os.isPrimary) ?? originalOrderSources[0];
+    const primaryOriginalTarget = originalOrderTargets.find((ot) => ot.isPrimary) ?? originalOrderTargets[0];
+
+    if (!primaryOriginalTarget) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('orders.duplicate_error'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
@@ -663,11 +688,38 @@ export class OrderActionHandler {
       totalBudget: originalOrder.totalBudget,
       description: originalOrder.description,
       creatorId: ctx.user.id,
-      trafficSourceId: originalOrder.trafficSource.id,
-      trafficTargetId: originalOrder.trafficTarget.id,
     });
 
     em.persist(duplicateOrder);
+    await em.flush();
+
+    // Create junction table entries for the duplicate order
+    const duplicateOrderTarget = new TrafficOrderTargetEntity({
+      trafficOrderId: duplicateOrder.id,
+      trafficTargetId: primaryOriginalTarget.trafficTarget?.id ?? '',
+      allocatedCount: originalOrder.targetCount,
+      allocatedBudget: originalOrder.totalBudget,
+      pricePerAction: originalOrder.pricePerAction,
+      isPrimary: true,
+      status: TrafficOrderTargetStatus.Pending,
+    });
+
+    em.persist(duplicateOrderTarget);
+
+    if (primaryOriginalSource) {
+      const duplicateOrderSource = new TrafficOrderSourceEntity({
+        trafficOrderId: duplicateOrder.id,
+        trafficSourceId: primaryOriginalSource.trafficSource?.id ?? '',
+        allocatedCount: originalOrder.targetCount,
+        allocatedBudget: originalOrder.totalBudget,
+        pricePerAction: originalOrder.pricePerAction,
+        isPrimary: true,
+        status: TrafficOrderSourceStatus.Pending,
+      });
+
+      em.persist(duplicateOrderSource);
+    }
+
     await em.flush();
 
     this.logger.log('Order duplicated', {
@@ -687,13 +739,13 @@ export class OrderActionHandler {
       replyMarkup: new InlineKeyboard()
         .text(ctx.t('orders.view.btn_settings'), `order:config:${newOrderId}`)
         .row()
-        .text(ctx.t('orders.btn_view_orders'), 'menu:orders'),
+        .text(ctx.t('orders.btn_view_orders'), 'orders:list'),
     });
   }
 
   async handleOrderIntegration(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
     const orderId = params.length > 0 ? params[0] : '';
-    const backCallback = orderId ? `order:details:${orderId}` : 'menu:orders';
+    const backCallback = orderId ? `order:details:${orderId}` : 'orders:list';
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.integration_coming_soon'),
@@ -703,7 +755,7 @@ export class OrderActionHandler {
 
   async handleOrderTransfer(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
     const orderId = params.length > 0 ? params[0] : '';
-    const backCallback = orderId ? `order:details:${orderId}` : 'menu:orders';
+    const backCallback = orderId ? `order:details:${orderId}` : 'orders:list';
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('orders.transfer_coming_soon'),
@@ -715,25 +767,32 @@ export class OrderActionHandler {
     if (!params || params.length === 0) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.not_found'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
     }
 
     const [orderId] = params;
-    const order = await this.em.findOne(TrafficOrderEntity, { orderId }, { populate: ['trafficTarget'] });
+    const order = await this.em.findOne(
+      TrafficOrderEntity,
+      { orderId },
+      { populate: ['orderTargets', 'orderTargets.trafficTarget'] },
+    );
 
     if (!order) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.not_found'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
     }
 
-    const target = await order.trafficTarget.load();
+    // Get primary target from junction table
+    const orderTargets = order.orderTargets?.getItems() ?? [];
+    const primaryOrderTarget = orderTargets.find((ot) => ot.isPrimary) ?? orderTargets[0];
+    const target = primaryOrderTarget?.trafficTarget?.getEntity();
 
     if (!target) {
       await this.messageService.sendOrEditMessage(ctx, {
@@ -767,7 +826,7 @@ export class OrderActionHandler {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.invalid_order_data', { default: '❌ Invalid order data. Please try again.' }),
         parseMode: 'HTML',
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
@@ -780,7 +839,7 @@ export class OrderActionHandler {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.invalid_amount', { default: '❌ Invalid amount.' }),
         parseMode: 'HTML',
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
@@ -801,7 +860,7 @@ export class OrderActionHandler {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.invalid_order_type', { default: '❌ Invalid order type.' }),
         parseMode: 'HTML',
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;
@@ -809,26 +868,6 @@ export class OrderActionHandler {
 
     // Use a single forked EntityManager for the entire transaction
     const { em } = this;
-
-    // Find user's traffic source
-    const trafficSource = await em.findOne(TrafficSourceEntity, {
-      managedBy: ctx.user.id,
-    });
-
-    if (!trafficSource) {
-      await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('orders.no_traffic_source', {
-          default: '❌ You need to create a traffic source first.\n\nGo to Traffic → Sources to add one.',
-        }),
-        parseMode: 'HTML',
-        replyMarkup: new InlineKeyboard()
-          .text(ctx.t('traffic.sources', { default: '📊 Traffic Sources' }), 'traffic:sources')
-          .row()
-          .text(ctx.t('common.back'), 'menu:orders'),
-      });
-
-      return;
-    }
 
     // Find or create traffic target
     let trafficTarget = await em.findOne(TrafficTargetEntity, {
@@ -861,11 +900,23 @@ export class OrderActionHandler {
       pricePerAction,
       totalBudget,
       creatorId: ctx.user.id,
-      trafficSourceId: trafficSource.id,
-      trafficTargetId: trafficTarget.id,
     });
 
     em.persist(order);
+    await em.flush();
+
+    // Create junction table entry for target
+    const orderTarget = new TrafficOrderTargetEntity({
+      trafficOrderId: order.id,
+      trafficTargetId: trafficTarget.id,
+      allocatedCount: amount,
+      allocatedBudget: totalBudget,
+      pricePerAction,
+      isPrimary: true,
+      status: TrafficOrderTargetStatus.Pending,
+    });
+
+    em.persist(orderTarget);
     await em.flush();
 
     // Get localized type name
@@ -890,7 +941,7 @@ export class OrderActionHandler {
       text: successText,
       parseMode: 'HTML',
       replyMarkup: new InlineKeyboard()
-        .text(ctx.t('orders.btn_view_orders', { default: '📋 View My Orders' }), 'menu:orders')
+        .text(ctx.t('orders.btn_view_orders', { default: '📋 View My Orders' }), 'orders:list')
         .row()
         .text(ctx.t('orders.btn_create_another', { default: '➕ Create Another' }), 'order:create:start')
         .row()
@@ -1034,7 +1085,7 @@ export class OrderActionHandler {
       replyMarkup: new InlineKeyboard()
         .text(ctx.t('orders.btn_confirm', { default: '✅ Confirm' }), `order:confirm:${orderType}:${target}:${amount}`)
         .row()
-        .text(ctx.t('common.cancel'), 'menu:orders'),
+        .text(ctx.t('common.cancel'), 'orders:list'),
     });
   }
 
@@ -1058,7 +1109,7 @@ export class OrderActionHandler {
     if (!validTypes.includes(selectedType)) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('orders.type_selection'),
-        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'menu:orders'),
+        replyMarkup: new InlineKeyboard().text(ctx.t('common.back'), 'orders:list'),
       });
 
       return;

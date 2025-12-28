@@ -168,7 +168,8 @@ export class SettingsHandler {
     }
 
     ctx.user.languageCode = validation.sanitized as string;
-    await this.em.persistAndFlush(ctx.user);
+    const em = this.em.fork();
+    await em.persistAndFlush(ctx.user);
 
     await this.messageService.sendNewMessage(ctx, {
       text: ctx.t('settings.language_changed', {
@@ -244,8 +245,9 @@ export class SettingsHandler {
    * Get user preferences
    */
   private async getUserPreferences(userId: string): Promise<UserPreferences> {
-    const user = await this.em.findOne(UserEntity, { id: userId });
-    const settings = await this.em.find(UserSettingsEntity, { user: userId });
+    const em = this.em.fork();
+    const user = await em.findOne(UserEntity, { id: userId });
+    const settings = await em.find(UserSettingsEntity, { user: userId });
 
     const settingsMap = settings.reduce(
       (acc, setting) =>
@@ -275,7 +277,8 @@ export class SettingsHandler {
    * Get notification preferences
    */
   private async getNotificationPreferences(userId: string) {
-    const settings = await this.em.find(UserSettingsEntity, {
+    const em = this.em.fork();
+    const settings = await em.find(UserSettingsEntity, {
       user: userId,
       key: { $like: 'notification_%' },
     });
@@ -293,7 +296,8 @@ export class SettingsHandler {
    * Get privacy preferences
    */
   private async getPrivacyPreferences(userId: string) {
-    const settings = await this.em.find(UserSettingsEntity, {
+    const em = this.em.fork();
+    const settings = await em.find(UserSettingsEntity, {
       user: userId,
       key: { $like: 'privacy_%' },
     });
@@ -317,11 +321,12 @@ export class SettingsHandler {
    * Toggle notification
    */
   private async toggleNotification(userId: string, notificationType: string): Promise<void> {
+    const em = this.em.fork();
     const key = `notification_${notificationType}`;
-    let setting = await this.em.findOne(UserSettingsEntity, { user: userId, key });
+    let setting = await em.findOne(UserSettingsEntity, { user: userId, key });
 
     if (!setting) {
-      const user = await this.em.getReference(UserEntity, userId);
+      const user = em.getReference(UserEntity, userId);
       setting = new UserSettingsEntity({
         userId: user.id,
         key,
@@ -333,7 +338,7 @@ export class SettingsHandler {
       setting.setValue(!currentValue);
     }
 
-    await this.em.persistAndFlush(setting);
+    await em.persistAndFlush(setting);
   }
 
   /**

@@ -163,9 +163,8 @@ export class ModerationCallbackHandler {
       // Update Telegram message with original content preserved
       const chatId = ctx.chat?.id.toString();
       const messageId = ctx.callbackQuery?.message?.message_id;
-      const originalText = ctx.callbackQuery?.message && 'text' in ctx.callbackQuery.message
-        ? ctx.callbackQuery.message.text
-        : undefined;
+      const originalText =
+        ctx.callbackQuery?.message && 'text' in ctx.callbackQuery.message ? ctx.callbackQuery.message.text : undefined;
 
       if (chatId && messageId) {
         await this.telegramModerationNotifier.updateApproved(chatId, messageId, entityType, username, originalText);
@@ -213,12 +212,18 @@ export class ModerationCallbackHandler {
       // Update Telegram message with original content preserved
       const chatId = ctx.chat?.id.toString();
       const messageId = ctx.callbackQuery?.message?.message_id;
-      const originalText = ctx.callbackQuery?.message && 'text' in ctx.callbackQuery.message
-        ? ctx.callbackQuery.message.text
-        : undefined;
+      const originalText =
+        ctx.callbackQuery?.message && 'text' in ctx.callbackQuery.message ? ctx.callbackQuery.message.text : undefined;
 
       if (chatId && messageId) {
-        await this.telegramModerationNotifier.updateDeclined(chatId, messageId, entityType, username, reviewNote, originalText);
+        await this.telegramModerationNotifier.updateDeclined(
+          chatId,
+          messageId,
+          entityType,
+          username,
+          reviewNote,
+          originalText,
+        );
       }
 
       await ctx.answerCallbackQuery(ctx.t('traffic.moderation.declined', { entity: entityName }));

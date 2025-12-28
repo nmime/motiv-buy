@@ -5,3 +5,5 @@ export * from './TrafficSourceCategories.entity';
 export * from './UserTrafficTarget.entity';
 export * from './UserTrafficOrder.entity';
 export * from './UserTrafficSource.entity';
+export * from './TrafficOrderSource.entity';
+export * from './TrafficOrderTarget.entity';

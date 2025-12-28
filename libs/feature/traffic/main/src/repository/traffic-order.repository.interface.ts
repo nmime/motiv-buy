@@ -1,11 +1,31 @@
 import { TrafficOrderEntity, TrafficOrderRequirements, TrafficOrderStatus, TrafficOrderType } from '@app/database';
 
 /**
+ * Source/Target assignment for order creation
+ */
+export interface OrderSourceAssignment {
+  trafficSourceId: string;
+  allocatedCount: number;
+  allocatedBudget: string;
+  pricePerAction?: string;
+  isPrimary?: boolean;
+}
+
+export interface OrderTargetAssignment {
+  trafficTargetId: string;
+  allocatedCount: number;
+  allocatedBudget: string;
+  pricePerAction?: string;
+  targetUrl?: string;
+  isPrimary?: boolean;
+}
+
+/**
  * Repository interface for traffic order operations
  */
 export interface ITrafficOrderRepository {
   /**
-   * Create new traffic order
+   * Create new traffic order with source/target assignments
    */
   create(data: {
     orderId: string;
@@ -20,10 +40,10 @@ export interface ITrafficOrderRepository {
     startDate?: Date;
     endDate?: Date;
     creatorId: string;
-    trafficSourceId: string;
-    trafficTargetId: string;
     assignedTrafficUserId?: string;
     createdById?: string;
+    sources?: OrderSourceAssignment[];
+    targets?: OrderTargetAssignment[];
   }): Promise<TrafficOrderEntity>;
 
   /**
@@ -42,12 +62,12 @@ export interface ITrafficOrderRepository {
   findByCreator(creatorId: string): Promise<TrafficOrderEntity[]>;
 
   /**
-   * Find orders by traffic source
+   * Find orders by traffic source (via junction)
    */
   findByTrafficSource(trafficSourceId: string): Promise<TrafficOrderEntity[]>;
 
   /**
-   * Find orders by traffic target
+   * Find orders by traffic target (via junction)
    */
   findByTrafficTarget(trafficTargetId: string): Promise<TrafficOrderEntity[]>;
 
@@ -100,4 +120,24 @@ export interface ITrafficOrderRepository {
     completedOrders: number;
     totalSpent: string;
   }>;
+
+  /**
+   * Add source to order
+   */
+  addSource(orderId: string, source: OrderSourceAssignment): Promise<void>;
+
+  /**
+   * Add target to order
+   */
+  addTarget(orderId: string, target: OrderTargetAssignment): Promise<void>;
+
+  /**
+   * Remove source from order
+   */
+  removeSource(orderId: string, trafficSourceId: string): Promise<void>;
+
+  /**
+   * Remove target from order
+   */
+  removeTarget(orderId: string, trafficTargetId: string): Promise<void>;
 }

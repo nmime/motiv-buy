@@ -48,7 +48,9 @@ export class GetUserRefLinkService {
   }
 
   private async resolveReferral(code: string): Promise<UserRefLink | null> {
+    // Find by ref code in user_ref_links table
     const customRef = (await this.userRefLinkRepository.findByRefCode(code)) as UserRefLink | null;
+
     if (customRef && !customRef.isDeleted) {
       const userIdValue = (customRef as unknown as { user: { id: string } }).user.id;
 

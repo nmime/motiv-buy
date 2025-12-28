@@ -8,6 +8,7 @@ import { BalanceSharedModule } from '@app/feature-balance-shared';
 import { StatisticSharedModule } from '@app/feature-statistic-shared';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
 import { PaymentSharedModule } from '@app/feature-payment-shared';
+import { CurrencySharedModule } from '@app/feature-currency-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
 import { BotService, BotUserService, BotSessionService, MenuService, MessageService, SessionService } from './service';
 import { BotConfigModule } from './config';
@@ -32,6 +33,7 @@ import {
   SettingsRoutingHandler,
   MenuRoutingHandler,
 } from './handler';
+import { PaymentNotificationHandler } from './handler/payment-notification.handler';
 import { RateLimitMiddleware } from './middleware';
 import { BotWebhookController } from './controller';
 
@@ -67,6 +69,7 @@ import { BotWebhookController } from './controller';
     StatisticSharedModule,
     TrafficSharedModule,
     PaymentSharedModule,
+    CurrencySharedModule,
     AppCommonIntlModule,
     OrderModule,
   ],
@@ -96,6 +99,7 @@ import { BotWebhookController } from './controller';
     SettingsRoutingHandler,
     MenuRoutingHandler,
     RateLimitMiddleware,
+    PaymentNotificationHandler,
   ],
   exports: [
     BotSharedModule,

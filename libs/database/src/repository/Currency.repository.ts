@@ -14,28 +14,35 @@ export class CurrencyRepository {
    * Find currency by code
    */
   async findByCode(code: CurrencyCode): Promise<CurrencyEntity | null> {
-    return this.em.findOne(CurrencyEntity, { code, isActive: true });
+    const em = this.em.fork();
+
+    return em.findOne(CurrencyEntity, { code, isActive: true });
   }
 
   /**
    * Get all active currencies
    */
   async findAllActive(): Promise<CurrencyEntity[]> {
-    return this.em.find(CurrencyEntity, { isActive: true }, { orderBy: { code: 'ASC' } });
+    const em = this.em.fork();
+
+    return em.find(CurrencyEntity, { isActive: true }, { orderBy: { code: 'ASC' } });
   }
 
   /**
    * Get currencies by type (Fiat or Crypto)
    */
   async findByType(type: CurrencyType): Promise<CurrencyEntity[]> {
-    return this.em.find(CurrencyEntity, { type, isActive: true }, { orderBy: { code: 'ASC' } });
+    const em = this.em.fork();
+
+    return em.find(CurrencyEntity, { type, isActive: true }, { orderBy: { code: 'ASC' } });
   }
 
   /**
    * Update currency rate
    */
   async updateRate(code: CurrencyCode, rateToUsd: string): Promise<CurrencyEntity | null> {
-    const currency = await this.findByCode(code);
+    const em = this.em.fork();
+    const currency = await em.findOne(CurrencyEntity, { code, isActive: true });
 
     if (!currency) {
       return null;
@@ -44,7 +51,7 @@ export class CurrencyRepository {
     currency.rateToUsd = rateToUsd;
     currency.rateUpdatedAt = new Date();
 
-    await this.em.flush();
+    await em.flush();
 
     return currency;
   }
@@ -59,7 +66,8 @@ export class CurrencyRepository {
     rateToUsd: string,
     symbol?: string,
   ): Promise<CurrencyEntity> {
-    const existing = await this.em.findOne(CurrencyEntity, { code });
+    const em = this.em.fork();
+    const existing = await em.findOne(CurrencyEntity, { code });
 
     if (existing) {
       existing.name = name;
@@ -67,7 +75,7 @@ export class CurrencyRepository {
       existing.rateToUsd = rateToUsd;
       existing.symbol = symbol || null;
       existing.rateUpdatedAt = new Date();
-      await this.em.flush();
+      await em.flush();
 
       return existing;
     }
@@ -83,7 +91,7 @@ export class CurrencyRepository {
       currency.symbol = symbol;
     }
 
-    await this.em.persistAndFlush(currency);
+    await em.persistAndFlush(currency);
 
     return currency;
   }

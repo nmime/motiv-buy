@@ -40,7 +40,8 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
     currencyCode: CurrencyCode;
     lockedAmount: string;
   }): Promise<TrafficOrderBalanceEntity> {
-    const currency = await this.em.findOne(CurrencyEntity, { code: data.currencyCode });
+    const em = this.em.fork();
+    const currency = await em.findOne(CurrencyEntity, { code: data.currencyCode });
     if (!currency) {
       throw new Error(`Currency with code ${data.currencyCode} not found`);
     }
@@ -55,7 +56,8 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
       isSettled: false,
     });
 
-    await this.em.persistAndFlush(reserve);
+    em.persist(reserve);
+    await em.flush();
 
     return reserve;
   }
@@ -68,7 +70,8 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
    * Invariant: lockedAmount = spentAmount + availableAmount + refundedAmount
    */
   async deductFromLocked(reserveId: string, amount: string): Promise<TrafficOrderBalanceEntity> {
-    const reserve = await this.findOne({ id: reserveId });
+    const em = this.em.fork();
+    const reserve = await em.findOne(TrafficOrderBalanceEntity, { id: reserveId });
     if (!reserve) {
       throw new Error('Order balance reserve not found');
     }
@@ -100,7 +103,7 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
     reserve.availableAmount = toDbString(newAvailable, 8);
     reserve.spentAmount = toDbString(newSpent, 8);
 
-    await this.em.flush();
+    await em.flush();
 
     return reserve;
   }
@@ -109,7 +112,8 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
    * Refund remaining amount back to buyer (when order is completed or cancelled)
    */
   async refundRemaining(reserveId: string): Promise<TrafficOrderBalanceEntity> {
-    const reserve = await this.findOne({ id: reserveId });
+    const em = this.em.fork();
+    const reserve = await em.findOne(TrafficOrderBalanceEntity, { id: reserveId });
     if (!reserve) {
       throw new Error('Order balance reserve not found');
     }
@@ -128,7 +132,7 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
     reserve.isSettled = true;
     reserve.settledAt = new Date();
 
-    await this.em.flush();
+    await em.flush();
 
     return reserve;
   }
@@ -137,7 +141,8 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
    * Settle balance (mark as complete, no refund)
    */
   async settleBalance(reserveId: string): Promise<TrafficOrderBalanceEntity> {
-    const reserve = await this.findOne({ id: reserveId });
+    const em = this.em.fork();
+    const reserve = await em.findOne(TrafficOrderBalanceEntity, { id: reserveId });
     if (!reserve) {
       throw new Error('Order balance reserve not found');
     }
@@ -149,7 +154,7 @@ export class TrafficOrderBalanceRepository extends EntityRepository<TrafficOrder
     reserve.isSettled = true;
     reserve.settledAt = new Date();
 
-    await this.em.flush();
+    await em.flush();
 
     return reserve;
   }

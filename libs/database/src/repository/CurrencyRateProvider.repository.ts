@@ -14,7 +14,9 @@ export class CurrencyRateProviderRepository {
    * Get all enabled provider configs
    */
   async findAllEnabled(): Promise<CurrencyRateProviderEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       CurrencyRateProviderEntity,
       { isEnabled: true },
       { orderBy: { priority: 'ASC', reliability: 'DESC' } },
@@ -25,7 +27,9 @@ export class CurrencyRateProviderRepository {
    * Get enabled providers by type
    */
   async findEnabledByType(type: CurrencyRateProviderType): Promise<CurrencyRateProviderEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       CurrencyRateProviderEntity,
       { isEnabled: true, type },
       { orderBy: { priority: 'ASC', reliability: 'DESC' } },
@@ -36,21 +40,24 @@ export class CurrencyRateProviderRepository {
    * Get provider config by name
    */
   async findByName(name: RateProvider): Promise<CurrencyRateProviderEntity | null> {
-    return this.em.findOne(CurrencyRateProviderEntity, { name });
+    const em = this.em.fork();
+
+    return em.findOne(CurrencyRateProviderEntity, { name });
   }
 
   /**
    * Update provider enabled status
    */
   async setEnabled(name: RateProvider, isEnabled: boolean): Promise<CurrencyRateProviderEntity | null> {
-    const config = await this.findByName(name);
+    const em = this.em.fork();
+    const config = await em.findOne(CurrencyRateProviderEntity, { name });
 
     if (!config) {
       return null;
     }
 
     config.isEnabled = isEnabled;
-    await this.em.flush();
+    await em.flush();
 
     return config;
   }
@@ -59,14 +66,15 @@ export class CurrencyRateProviderRepository {
    * Update provider reliability score
    */
   async updateReliability(name: RateProvider, reliability: number): Promise<CurrencyRateProviderEntity | null> {
-    const config = await this.findByName(name);
+    const em = this.em.fork();
+    const config = await em.findOne(CurrencyRateProviderEntity, { name });
 
     if (!config) {
       return null;
     }
 
     config.reliability = Math.max(0, Math.min(100, reliability));
-    await this.em.flush();
+    await em.flush();
 
     return config;
   }
@@ -84,11 +92,12 @@ export class CurrencyRateProviderRepository {
       >
     >,
   ): Promise<CurrencyRateProviderEntity> {
-    const existing = await this.findByName(name);
+    const em = this.em.fork();
+    const existing = await em.findOne(CurrencyRateProviderEntity, { name });
 
     if (existing) {
       Object.assign(existing, data);
-      await this.em.flush();
+      await em.flush();
 
       return existing;
     }
@@ -99,7 +108,7 @@ export class CurrencyRateProviderRepository {
       ...data,
     });
 
-    await this.em.persistAndFlush(config);
+    await em.persistAndFlush(config);
 
     return config;
   }
@@ -108,6 +117,8 @@ export class CurrencyRateProviderRepository {
    * Get all provider configs (including disabled)
    */
   async findAll(): Promise<CurrencyRateProviderEntity[]> {
-    return this.em.find(CurrencyRateProviderEntity, {}, { orderBy: { type: 'ASC', priority: 'ASC' } });
+    const em = this.em.fork();
+
+    return em.find(CurrencyRateProviderEntity, {}, { orderBy: { type: 'ASC', priority: 'ASC' } });
   }
 }

@@ -16,7 +16,9 @@ export class ProviderRoutingRepository {
    * Find all active rules sorted by priority
    */
   async findActiveRules(): Promise<ProviderRoutingEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       ProviderRoutingEntity,
       {
         isEnabled: true,
@@ -32,7 +34,9 @@ export class ProviderRoutingRepository {
    * Find rules by type
    */
   async findByType(ruleType: RoutingRuleType): Promise<ProviderRoutingEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       ProviderRoutingEntity,
       {
         ruleType,
@@ -49,7 +53,9 @@ export class ProviderRoutingRepository {
    * Find rules for a specific provider
    */
   async findByProvider(provider: PaymentProvider): Promise<ProviderRoutingEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       ProviderRoutingEntity,
       {
         provider: { provider },
@@ -66,7 +72,9 @@ export class ProviderRoutingRepository {
    * Find rules for a specific currency
    */
   async findByCurrency(currencyCode: CurrencyCode): Promise<ProviderRoutingEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       ProviderRoutingEntity,
       {
         currency: { code: currencyCode },
@@ -88,6 +96,7 @@ export class ProviderRoutingRepository {
     platform?: string;
     amount?: string;
   }): Promise<ProviderRoutingEntity[]> {
+    const em = this.em.fork();
     const conditions: {
       isEnabled: boolean;
       $or?: Array<{ currency: { code: CurrencyCode } } | { currency: null }>;
@@ -100,7 +109,7 @@ export class ProviderRoutingRepository {
       conditions['$or'] = [{ currency: { code: params.currencyCode } }, { currency: null }];
     }
 
-    const rules = await this.em.find(ProviderRoutingEntity, conditions, {
+    const rules = await em.find(ProviderRoutingEntity, conditions, {
       populate: ['provider', 'currency'],
       orderBy: { priority: 'ASC' },
     });
@@ -158,7 +167,9 @@ export class ProviderRoutingRepository {
    * Find default routing rule
    */
   async findDefaultRule(): Promise<ProviderRoutingEntity | null> {
-    return this.em.findOne(
+    const em = this.em.fork();
+
+    return em.findOne(
       ProviderRoutingEntity,
       {
         ruleType: RoutingRuleType.Default,
@@ -175,13 +186,14 @@ export class ProviderRoutingRepository {
    * Find fallback rule by ID
    */
   async findFallbackRule(ruleId: string): Promise<ProviderRoutingEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
+    const em = this.em.fork();
+    const rule = await em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule || !rule.fallbackRuleId) {
       return null;
     }
 
-    return this.em.findOne(
+    return em.findOne(
       ProviderRoutingEntity,
       {
         id: rule.fallbackRuleId,
@@ -202,23 +214,25 @@ export class ProviderRoutingRepository {
           Partial<Omit<ProviderRoutingEntity, 'name' | 'ruleType'>>)
       | (Required<Pick<ProviderRoutingEntity, 'id'>> & Partial<ProviderRoutingEntity>),
   ): Promise<ProviderRoutingEntity> {
+    const em = this.em.fork();
+
     if ('id' in data && data.id) {
       // Update existing
-      const entity = await this.em.findOne(ProviderRoutingEntity, { id: data.id });
+      const entity = await em.findOne(ProviderRoutingEntity, { id: data.id });
 
       if (!entity) {
         throw new Error(`Rule with ID ${data.id} not found`);
       }
 
-      this.em.assign(entity, data);
-      await this.em.flush();
+      em.assign(entity, data);
+      await em.flush();
 
       return entity;
     } else {
       // Create new using entity constructor which properly handles defaults and relations
       const entity = new ProviderRoutingEntity(data as ConstructorParameters<typeof ProviderRoutingEntity>[0]);
-      this.em.persist(entity);
-      await this.em.flush();
+      em.persist(entity);
+      await em.flush();
 
       return entity;
     }
@@ -228,7 +242,8 @@ export class ProviderRoutingRepository {
    * Record rule usage (increment counters)
    */
   async recordUsage(ruleId: string, success: boolean): Promise<void> {
-    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
+    const em = this.em.fork();
+    const rule = await em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return;
@@ -244,21 +259,22 @@ export class ProviderRoutingRepository {
 
     rule.lastUsedAt = new Date();
 
-    await this.em.flush();
+    await em.flush();
   }
 
   /**
    * Enable/disable rule
    */
   async setEnabled(ruleId: string, enabled: boolean): Promise<ProviderRoutingEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
+    const em = this.em.fork();
+    const rule = await em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return null;
     }
 
     rule.isEnabled = enabled;
-    await this.em.flush();
+    await em.flush();
 
     return rule;
   }
@@ -267,14 +283,15 @@ export class ProviderRoutingRepository {
    * Update rule priority
    */
   async updatePriority(ruleId: string, priority: number): Promise<ProviderRoutingEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
+    const em = this.em.fork();
+    const rule = await em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return null;
     }
 
     rule.priority = priority;
-    await this.em.flush();
+    await em.flush();
 
     return rule;
   }
@@ -283,14 +300,15 @@ export class ProviderRoutingRepository {
    * Update load balancing weight
    */
   async updateWeight(ruleId: string, weight: number): Promise<ProviderRoutingEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
+    const em = this.em.fork();
+    const rule = await em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return null;
     }
 
     rule.weight = Math.max(0, weight);
-    await this.em.flush();
+    await em.flush();
 
     return rule;
   }
@@ -309,13 +327,14 @@ export class ProviderRoutingRepository {
    * Delete routing rule
    */
   async delete(ruleId: string): Promise<boolean> {
-    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
+    const em = this.em.fork();
+    const rule = await em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return false;
     }
 
-    await this.em.removeAndFlush(rule);
+    await em.removeAndFlush(rule);
 
     return true;
   }
@@ -324,7 +343,8 @@ export class ProviderRoutingRepository {
    * Reset rule statistics
    */
   async resetStatistics(ruleId: string): Promise<ProviderRoutingEntity | null> {
-    const rule = await this.em.findOne(ProviderRoutingEntity, { id: ruleId });
+    const em = this.em.fork();
+    const rule = await em.findOne(ProviderRoutingEntity, { id: ruleId });
 
     if (!rule) {
       return null;
@@ -335,7 +355,7 @@ export class ProviderRoutingRepository {
     rule.failureCount = 0;
     rule.lastUsedAt = null;
 
-    await this.em.flush();
+    await em.flush();
 
     return rule;
   }

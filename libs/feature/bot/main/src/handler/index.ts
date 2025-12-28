@@ -26,7 +26,6 @@ export * from './settings-action.handler';
 
 // Organized feature handlers (preferred structure for big features)
 export * from './balance';
-export * from './profile';
 export * from './statistics';
 export * from './settings';
 export * from './support';

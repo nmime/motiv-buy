@@ -24,14 +24,22 @@ import {
   TrafficTargetType,
   TrafficOrderEntity,
   TrafficOrderStatus,
+  TrafficOrderSourceEntity,
+  TrafficOrderTargetEntity,
   ModerationRequestEntity,
   ModerationStatus,
   ModerationEntityType,
+  TrafficSourceCategoryEntity,
+  TrafficSourceCategoriesEntity,
+  TopicCategory,
 } from '@app/database';
 import { decimal, sum, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../../service/message.service';
 import { MenuActionHandler } from '../menu-action.handler';
 import { v7 as uuidv7 } from 'uuid';
+import { PaymentConfigService } from '@app/feature-payment-shared';
+
+const categoriesPerPage = 9;
 
 @Injectable()
 export class TrafficHandler {
@@ -42,7 +50,12 @@ export class TrafficHandler {
     private readonly messageService: MessageService,
     private readonly menuHandler: MenuActionHandler,
     private readonly moderationNotifier: TelegramModerationNotifier,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {}
+
+  private get currencySymbol(): string {
+    return this.paymentConfigService.getBaseCurrencySymbol();
+  }
 
   /**
    * Get a forked EntityManager for context-safe database operations
@@ -93,7 +106,7 @@ export class TrafficHandler {
 
 ${ctx.t('buy_traffic.description')}
 
-<b>💰 ${ctx.t('buy_traffic.your_balance')}:</b> $${availableBalance}
+<b>💰 ${ctx.t('buy_traffic.your_balance')}:</b> ${this.currencySymbol}${availableBalance}
 <b>📦 ${ctx.t('buy_traffic.active_orders')}:</b> ${activeOrdersCount}
 
 <b>📋 ${ctx.t('buy_traffic.how_it_works')}:</b>
@@ -137,8 +150,8 @@ ${ctx.t('sell_traffic.description')}
 <b>📊 ${ctx.t('sell_traffic.your_stats')}:</b>
 • ${ctx.t('sell_traffic.total_sources')}: ${sourcesCount}
 • ${ctx.t('sell_traffic.active_sources')}: ${activeSourcesCount}
-• ${ctx.t('sell_traffic.pending_earnings')}: $${pendingEarnings}
-• ${ctx.t('sell_traffic.available_balance')}: $${availableBalance}
+• ${ctx.t('sell_traffic.pending_earnings')}: ${this.currencySymbol}${pendingEarnings}
+• ${ctx.t('sell_traffic.available_balance')}: ${this.currencySymbol}${availableBalance}
 
 <b>💡 ${ctx.t('sell_traffic.how_to_earn')}:</b>
 1. ${ctx.t('sell_traffic.step1')}
@@ -164,7 +177,11 @@ ${ctx.t('sell_traffic.description')}
    * Handle Traffic menu - main traffic management overview
    */
   async handleTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
-    const sources = await this.em.find(TrafficSourceEntity, { managedBy: ctx.user.id }, { populate: ['orders'] });
+    const sources = await this.em.find(
+      TrafficSourceEntity,
+      { managedBy: ctx.user.id },
+      { populate: ['orderAssignments'] },
+    );
 
     const activeOrders = await this.em.count(TrafficOrderEntity, {
       creator: ctx.user.id,
@@ -208,7 +225,7 @@ ${ctx.t('sell_traffic.description')}
     const sources = await this.em.find(
       TrafficSourceEntity,
       { managedBy: ctx.user.id },
-      { orderBy: { createdAt: 'DESC' }, limit: 10 },
+      { orderBy: { createdAt: 'DESC' }, limit: 10, populate: ['categories.category'] },
     );
 
     let text = ctx.t('traffic.sources_list_title');
@@ -230,8 +247,19 @@ ${ctx.t('sell_traffic.description')}
 
         const statusLabel = ctx.t(`traffic.status.${source.status}`);
 
+        // Get all categories
+        const categoryLinks = source.categories?.getItems() || [];
+        const sortedCategories = [...categoryLinks].sort((a, b) => a.sortOrder - b.sortOrder);
+        const categoryNames = sortedCategories.map((c) => this.getCategoryLocalizedName(ctx, c.category.getEntity()));
+        const categoryLabel =
+          categoryNames.length > 0 ? categoryNames.join(', ') : ctx.t('traffic.category.no_category');
+
+        const categoryHeaderKey =
+          categoryNames.length > 1 ? 'traffic.category.source_categories' : 'traffic.category.source_category';
+
         text += `${statusEmoji} <b>${source.name}</b>\n`;
         text += `   ${ctx.t('traffic.source_type')}: ${typeLabel}\n`;
+        text += `   ${ctx.t(categoryHeaderKey)}: ${categoryLabel}\n`;
         text += `   ${ctx.t('traffic.source_status')}: ${statusLabel}\n\n`;
       });
     }
@@ -283,7 +311,11 @@ ${ctx.t('sell_traffic.description')}
   }
 
   async handleTrafficSourceView(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
-    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
+    const source = await this.em.findOne(
+      TrafficSourceEntity,
+      { id: sourceId, managedBy: ctx.user.id },
+      { populate: ['categories.category'] },
+    );
 
     if (!source) {
       await this.messageService.sendOrEditMessage(ctx, {
@@ -293,17 +325,27 @@ ${ctx.t('sell_traffic.description')}
       return;
     }
 
-    const ordersCount = await this.em.count(TrafficOrderEntity, { trafficSource: source.id });
+    const ordersCount = await this.em.count(TrafficOrderSourceEntity, { trafficSource: source.id });
     const statusEmoji = source.status === TrafficSourceStatus.Active ? '✅' : '❌';
     const typeLabel =
       source.type === TrafficSourceType.Bot ? ctx.t('traffic.type_bot') : ctx.t('traffic.type_bot_with_token');
 
     const statusLabel = ctx.t(`traffic.status.${source.status}`);
 
+    // Get all categories (sorted by sortOrder)
+    const categoryLinks = source.categories?.getItems() || [];
+    const sortedCategories = [...categoryLinks].sort((a, b) => a.sortOrder - b.sortOrder);
+    const categoryNames = sortedCategories.map((c) => this.getCategoryLocalizedName(ctx, c.category.getEntity()));
+    const categoryLabel = categoryNames.length > 0 ? categoryNames.join(', ') : ctx.t('traffic.category.no_category');
+
+    const categoryHeaderKey =
+      categoryNames.length > 1 ? 'traffic.category.source_categories' : 'traffic.category.source_category';
+
     let text = ctx.t('traffic.source_details_title');
     text += `<b>${ctx.t('traffic.source_name')}:</b> ${source.name}\n`;
     text += `<b>${ctx.t('traffic.source_type')}:</b> ${typeLabel}\n`;
     text += `<b>${ctx.t('traffic.source_status')}:</b> ${statusEmoji} ${statusLabel}\n`;
+    text += `<b>${ctx.t(categoryHeaderKey)}:</b> ${categoryLabel}\n`;
 
     if (source.botUsername) {
       text += `<b>${ctx.t('traffic.bot_username')}:</b> @${source.botUsername}\n`;
@@ -418,14 +460,25 @@ ${ctx.t('sell_traffic.description')}
       return;
     }
 
-    const [totalOrders, activeOrders, completedOrders] = await Promise.all([
-      this.em.count(TrafficOrderEntity, { trafficSource: source.id }),
-      this.em.count(TrafficOrderEntity, {
-        trafficSource: source.id,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-      }),
-      this.em.count(TrafficOrderEntity, { trafficSource: source.id, status: TrafficOrderStatus.Completed }),
-    ]);
+    // Query via junction table to get order counts for this source
+    const orderSources = await this.em.find(
+      TrafficOrderSourceEntity,
+      { trafficSource: source.id },
+      { populate: ['trafficOrder'] },
+    );
+
+    const totalOrders = orderSources.length;
+    const activeOrders = orderSources.filter((os) => {
+      const order = os.trafficOrder.getEntity();
+
+      return order.status === TrafficOrderStatus.Active || order.status === TrafficOrderStatus.InProgress;
+    }).length;
+
+    const completedOrders = orderSources.filter((os) => {
+      const order = os.trafficOrder.getEntity();
+
+      return order.status === TrafficOrderStatus.Completed;
+    }).length;
 
     const text =
       ctx.t('traffic.source_stats_title', { name: source.name }) +
@@ -511,7 +564,7 @@ ${ctx.t('sell_traffic.description')}
       return;
     }
 
-    const ordersCount = await this.em.count(TrafficOrderEntity, { trafficTarget: target.id });
+    const ordersCount = await this.em.count(TrafficOrderTargetEntity, { trafficTarget: target.id });
     const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
     const typeLabel = this.getTargetTypeLabel(target.type);
 
@@ -533,7 +586,7 @@ ${ctx.t('sell_traffic.description')}
     }
 
     if (target.pricePerMember) {
-      text += `<b>Price per Member:</b> $${toDisplayString(target.pricePerMember, 2)}\n`;
+      text += `<b>Price per Member:</b> ${this.currencySymbol}${toDisplayString(target.pricePerMember, 2)}\n`;
     }
 
     text += `\n<b>${ctx.t('common.statistics')}:</b>\n`;
@@ -633,14 +686,25 @@ ${ctx.t('sell_traffic.description')}
       return;
     }
 
-    const [totalOrders, activeOrders, completedOrders] = await Promise.all([
-      this.em.count(TrafficOrderEntity, { trafficTarget: target.id }),
-      this.em.count(TrafficOrderEntity, {
-        trafficTarget: target.id,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-      }),
-      this.em.count(TrafficOrderEntity, { trafficTarget: target.id, status: TrafficOrderStatus.Completed }),
-    ]);
+    // Query via junction table to get order counts for this target
+    const orderTargets = await this.em.find(
+      TrafficOrderTargetEntity,
+      { trafficTarget: target.id },
+      { populate: ['trafficOrder'] },
+    );
+
+    const totalOrders = orderTargets.length;
+    const activeOrders = orderTargets.filter((ot) => {
+      const order = ot.trafficOrder.getEntity();
+
+      return order.status === TrafficOrderStatus.Active || order.status === TrafficOrderStatus.InProgress;
+    }).length;
+
+    const completedOrders = orderTargets.filter((ot) => {
+      const order = ot.trafficOrder.getEntity();
+
+      return order.status === TrafficOrderStatus.Completed;
+    }).length;
 
     let text = ctx.t('traffic.target_stats_title', {
       default: `<b>📊 Target Statistics: ${target.name}</b>\n\n`,
@@ -680,16 +744,16 @@ ${ctx.t('sell_traffic.description')}
     const totalBudget = sum(orders.map((o) => decimal(o.totalBudget || '0')));
 
     let text = ctx.t('traffic.analytics_title');
-    text += `<b>Resources:</b>\n`;
-    text += `• Traffic Sources: ${sourcesCount}\n`;
-    text += `• Traffic Targets: ${targetsCount}\n\n`;
-    text += `<b>Orders:</b>\n`;
-    text += `• Total: ${totalOrders}\n`;
-    text += `• Active: ${activeOrders}\n`;
-    text += `• Completed: ${completedOrders}\n\n`;
-    text += `<b>Financial:</b>\n`;
-    text += `• Total Budget: $${toDisplayString(totalBudget, 2)}\n`;
-    text += `• Total Spent: $${toDisplayString(totalSpent, 2)}`;
+    text += `<b>${ctx.t('traffic.analytics_resources')}:</b>\n`;
+    text += `• ${ctx.t('traffic.analytics_traffic_sources')}: ${sourcesCount}\n`;
+    text += `• ${ctx.t('traffic.analytics_traffic_targets')}: ${targetsCount}\n\n`;
+    text += `<b>${ctx.t('traffic.analytics_orders')}:</b>\n`;
+    text += `• ${ctx.t('traffic.analytics_total')}: ${totalOrders}\n`;
+    text += `• ${ctx.t('traffic.analytics_active')}: ${activeOrders}\n`;
+    text += `• ${ctx.t('traffic.analytics_completed')}: ${completedOrders}\n\n`;
+    text += `<b>${ctx.t('traffic.analytics_financial')}:</b>\n`;
+    text += `• ${ctx.t('traffic.analytics_total_budget')}: ${this.currencySymbol}${toDisplayString(totalBudget, 2)}\n`;
+    text += `• ${ctx.t('traffic.analytics_total_spent')}: ${this.currencySymbol}${toDisplayString(totalSpent, 2)}`;
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -717,29 +781,25 @@ ${ctx.t('sell_traffic.description')}
   }
 
   /**
-   * Create traffic source from bot username
+   * Create traffic source from bot username - stores data and shows category selection
    */
   private async createSourceFromUsername(ctx: AuthenticatedBotContext, input: string): Promise<void> {
-    const { em } = this;
+    // Store source data in session for later creation
+    if (ctx.session) {
+      ctx.session.formData = {
+        step: 'select_category',
+        type: TrafficSourceType.Bot,
+        name: input,
+        botUsername: input.replace('@', ''),
+        categoryPage: 0,
+      };
+    }
 
-    const newSource = new TrafficSourceEntity({
-      name: input,
-      botUsername: input.replace('@', ''),
-      managedById: ctx.user.id,
-      type: TrafficSourceType.Bot,
-      status: TrafficSourceStatus.Pending,
-    });
-
-    // Generate ID manually since we need it for the moderation request before flush
-    newSource.id = uuidv7();
-
-    await this.persistSourceWithModeration(em, newSource);
-    this.clearSessionState(ctx);
-    await this.showSourceCreatedMessage(ctx, newSource, input);
+    await this.showCategorySelection(ctx, 0);
   }
 
   /**
-   * Create traffic source from bot token
+   * Create traffic source from bot token - validates token and shows category selection
    */
   private async createSourceFromToken(ctx: AuthenticatedBotContext, input: string): Promise<void> {
     try {
@@ -755,29 +815,454 @@ ${ctx.t('sell_traffic.description')}
       }
 
       const botInfo = data.result;
-      const { em } = this;
 
-      const newSource = new TrafficSourceEntity({
-        name: botInfo.first_name,
-        botUsername: botInfo.username,
-        botToken: input,
-        managedById: ctx.user.id,
-        type: TrafficSourceType.BotWithToken,
-        status: TrafficSourceStatus.Pending,
-      });
+      // Store source data in session for later creation
+      if (ctx.session) {
+        ctx.session.formData = {
+          step: 'select_category',
+          type: TrafficSourceType.BotWithToken,
+          name: botInfo.first_name,
+          botUsername: botInfo.username,
+          botToken: input,
+          categoryPage: 0,
+        };
+      }
 
-      // Generate ID manually since we need it for the moderation request before flush
-      newSource.id = uuidv7();
-
-      await this.persistSourceWithModeration(em, newSource);
-      this.clearSessionState(ctx);
-      await this.showSourceCreatedMessage(ctx, newSource, botInfo.username);
+      await this.showCategorySelection(ctx, 0);
     } catch (error) {
       this.logger.error('Failed to get bot info from token', { error });
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('traffic.invalid_bot_token'),
       });
     }
+  }
+
+  /**
+   * Show category selection keyboard with pagination
+   */
+  async showCategorySelection(ctx: AuthenticatedBotContext, page: number): Promise<void> {
+    const categories = await this.em.find(
+      TrafficSourceCategoryEntity,
+      { isActive: true, categoryType: { $ne: TopicCategory.All } },
+      { orderBy: { sortOrder: 'ASC', name: 'ASC' } },
+    );
+
+    const totalPages = Math.ceil(categories.length / categoriesPerPage);
+    const currentPage = Math.max(0, Math.min(page, totalPages - 1));
+    const startIdx = currentPage * categoriesPerPage;
+    const pageCategories = categories.slice(startIdx, startIdx + categoriesPerPage);
+
+    const keyboard = new InlineKeyboard();
+
+    // Add category buttons in rows of 3
+    pageCategories.forEach((category, idx) => {
+      const categoryName = this.getCategoryLocalizedName(ctx, category);
+      keyboard.text(categoryName, `traffic:source:category:${category.categoryType}`);
+
+      if ((idx + 1) % 3 === 0) {
+        keyboard.row();
+      }
+    });
+
+    // Ensure we're on a new row for navigation
+    if (pageCategories.length % 3 !== 0) {
+      keyboard.row();
+    }
+
+    // Pagination buttons
+    const navButtons: Array<{ text: string; callback: string }> = [];
+
+    if (currentPage > 0) {
+      navButtons.push({
+        text: ctx.t('traffic.category.btn_prev'),
+        callback: `traffic:source:catpage:${currentPage - 1}`,
+      });
+    }
+
+    if (currentPage < totalPages - 1) {
+      navButtons.push({
+        text: ctx.t('traffic.category.btn_next'),
+        callback: `traffic:source:catpage:${currentPage + 1}`,
+      });
+    }
+
+    navButtons.forEach((btn) => keyboard.text(btn.text, btn.callback));
+
+    if (navButtons.length > 0) {
+      keyboard.row();
+    }
+
+    // Skip and back buttons
+    keyboard.text(ctx.t('traffic.category.btn_skip'), 'traffic:source:category:skip');
+    keyboard.row();
+    keyboard.text(ctx.t('common.back'), 'traffic:sources:add');
+
+    const text = `${ctx.t('traffic.category.select_prompt')}\n\n${ctx.t('traffic.category.page_info', {
+      current: currentPage + 1,
+      total: totalPages,
+    })}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Get localized category name from entity or fallback to locale key
+   */
+  private getCategoryLocalizedName(ctx: BotContext, category: TrafficSourceCategoryEntity): string {
+    const locale = ctx.from?.language_code === 'ru' ? 'ru' : 'en';
+
+    // First try entity's localized name
+    if (category.name && typeof category.name === 'object') {
+      const localizedName = category.name[locale] || category.name.en;
+
+      if (localizedName) {
+        return localizedName;
+      }
+    }
+
+    // Fallback to locale key
+    return ctx.t(`traffic.categories.${category.categoryType}`);
+  }
+
+  /**
+   * Handle category page change
+   */
+  async handleCategoryPageChange(ctx: AuthenticatedBotContext, page: number): Promise<void> {
+    if (ctx.session?.formData && typeof ctx.session.formData === 'object') {
+      (ctx.session.formData as Record<string, unknown>).categoryPage = page;
+    }
+
+    await this.showCategorySelection(ctx, page);
+  }
+
+  /**
+   * Handle category selection and create source
+   */
+  async handleCategorySelect(ctx: AuthenticatedBotContext, categoryType: string): Promise<void> {
+    const formData = ctx.session?.formData;
+
+    if (!formData || typeof formData !== 'object') {
+      await this.handleTrafficSourcesList(ctx);
+
+      return;
+    }
+
+    const { em } = this;
+    const type = 'type' in formData ? (formData.type as TrafficSourceType) : TrafficSourceType.Bot;
+    const name = 'name' in formData ? String(formData.name) : '';
+    const botUsername = 'botUsername' in formData ? String(formData.botUsername) : '';
+    const botToken = 'botToken' in formData ? String(formData.botToken) : undefined;
+
+    const newSource = new TrafficSourceEntity({
+      name,
+      botUsername,
+      botToken,
+      managedById: ctx.user.id,
+      type,
+      status: TrafficSourceStatus.Pending,
+    });
+
+    newSource.id = uuidv7();
+
+    em.persist(newSource);
+
+    // Link category if not skipped
+    if (categoryType !== 'skip') {
+      const category = await em.findOne(TrafficSourceCategoryEntity, { categoryType: categoryType as TopicCategory });
+
+      if (category) {
+        const categoryLink = new TrafficSourceCategoriesEntity({
+          trafficSourceId: newSource.id,
+          categoryId: category.id,
+          isPrimary: true,
+          sortOrder: 0,
+        });
+
+        em.persist(categoryLink);
+      }
+    }
+
+    // Create moderation request
+    const moderationRequest = new ModerationRequestEntity({
+      entityType: ModerationEntityType.TrafficSource,
+      entityId: newSource.id,
+      status: ModerationStatus.Pending,
+    });
+
+    em.persist(moderationRequest);
+    await em.flush();
+
+    // Notify moderators
+    const notificationResult = await this.moderationNotifier.notifySourceCreated(newSource, moderationRequest);
+
+    if (notificationResult) {
+      moderationRequest.telegramChatId = notificationResult.chatId;
+      moderationRequest.telegramMessageId = notificationResult.messageId.toString();
+      await em.flush();
+    }
+
+    this.clearSessionState(ctx);
+    await this.showSourceCreatedMessage(ctx, newSource, botUsername || name);
+  }
+
+  /**
+   * Start category change flow for existing source
+   */
+  async handleCategoryChangeStart(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(
+      TrafficSourceEntity,
+      { id: sourceId, managedBy: ctx.user.id },
+      { populate: ['categories.category'] },
+    );
+
+    if (!source) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
+
+      return;
+    }
+
+    // Get current category types from source
+    const categoryItems = source.categories?.getItems() || [];
+    const currentCategoryTypes = categoryItems
+      .map((c) => c.category.getEntity().categoryType)
+      .filter((ct): ct is TopicCategory => ct !== null);
+
+    // Store source ID and selected categories in session
+    if (ctx.session) {
+      ctx.session.conversationState = 'trafficSourceCategoryChange';
+      ctx.session.formData = {
+        step: 'select_category',
+        sourceId,
+        categoryPage: 0,
+        selectedCategories: currentCategoryTypes,
+      };
+    }
+
+    await this.showCategorySelectionForEdit(ctx, sourceId, 0, currentCategoryTypes);
+  }
+
+  /**
+   * Show category selection for editing existing source (multi-select, max 5)
+   */
+  async showCategorySelectionForEdit(
+    ctx: AuthenticatedBotContext,
+    sourceId: string,
+    page: number,
+    selectedCategories: string[] = [],
+  ): Promise<void> {
+    const categories = await this.em.find(
+      TrafficSourceCategoryEntity,
+      { isActive: true, categoryType: { $ne: TopicCategory.All } },
+      { orderBy: { sortOrder: 'ASC', name: 'ASC' } },
+    );
+
+    const maxCategories = 5;
+    const totalPages = Math.ceil(categories.length / categoriesPerPage);
+    const currentPage = Math.max(0, Math.min(page, totalPages - 1));
+    const startIdx = currentPage * categoriesPerPage;
+    const pageCategories = categories.slice(startIdx, startIdx + categoriesPerPage);
+
+    const keyboard = new InlineKeyboard();
+
+    // Add category buttons in rows of 3 with checkmarks for selected
+    // Use short callback format: traf:ct:<categoryType> (toggle category)
+    pageCategories.forEach((category, idx) => {
+      const isSelected = selectedCategories.includes(category.categoryType ?? '');
+      const checkmark = isSelected ? '✓ ' : '';
+      const categoryName = this.getCategoryLocalizedName(ctx, category);
+      keyboard.text(`${checkmark}${categoryName}`, `traf:ct:${category.categoryType}`);
+
+      if ((idx + 1) % 3 === 0) {
+        keyboard.row();
+      }
+    });
+
+    // Ensure we're on a new row for navigation
+    if (pageCategories.length % 3 !== 0) {
+      keyboard.row();
+    }
+
+    // Pagination buttons - use short format: traf:cp:<page>
+    const navButtons: Array<{ text: string; callback: string }> = [];
+
+    if (currentPage > 0) {
+      navButtons.push({
+        text: ctx.t('traffic.category.btn_prev'),
+        callback: `traf:cp:${currentPage - 1}`,
+      });
+    }
+
+    if (currentPage < totalPages - 1) {
+      navButtons.push({
+        text: ctx.t('traffic.category.btn_next'),
+        callback: `traf:cp:${currentPage + 1}`,
+      });
+    }
+
+    navButtons.forEach((btn) => keyboard.text(btn.text, btn.callback));
+
+    if (navButtons.length > 0) {
+      keyboard.row();
+    }
+
+    // Done button (save categories)
+    keyboard.text(ctx.t('common.buttons.done'), 'traf:cd');
+
+    // Cancel button - go back to source view
+    keyboard.text(ctx.t('common.buttons.cancel'), `traf:cv:${sourceId}`);
+
+    const selectedCount = selectedCategories.length;
+    const text = `${ctx.t('traffic.category.select_multi_prompt', { max: maxCategories })}\n\n${ctx.t('traffic.category.selected_count', { count: selectedCount, max: maxCategories })}\n\n${ctx.t(
+      'traffic.category.page_info',
+      {
+        current: currentPage + 1,
+        total: totalPages,
+      },
+    )}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle category page change for editing
+   */
+  async handleCategoryEditPageChange(ctx: AuthenticatedBotContext, sourceId: string, page: number): Promise<void> {
+    const formData = ctx.session?.formData as { selectedCategories?: string[]; categoryPage?: number } | undefined;
+    const selectedCategories = formData?.selectedCategories ?? [];
+
+    if (ctx.session?.formData && typeof ctx.session.formData === 'object') {
+      (ctx.session.formData as Record<string, unknown>).categoryPage = page;
+    }
+
+    await this.showCategorySelectionForEdit(ctx, sourceId, page, selectedCategories);
+  }
+
+  /**
+   * Toggle category selection (add/remove from session)
+   */
+  async handleCategoryToggle(ctx: AuthenticatedBotContext, categoryType: string): Promise<void> {
+    const maxCategories = 5;
+    const formData = ctx.session?.formData as
+      | {
+          sourceId?: string;
+          selectedCategories?: string[];
+          categoryPage?: number;
+        }
+      | undefined;
+
+    if (!formData?.sourceId) {
+      return;
+    }
+
+    const selectedCategories = formData.selectedCategories ?? [];
+    const currentPage = formData.categoryPage ?? 0;
+
+    // Toggle category
+    const categoryIndex = selectedCategories.indexOf(categoryType);
+
+    if (categoryIndex > -1) {
+      // Remove category
+      selectedCategories.splice(categoryIndex, 1);
+    } else {
+      // Add category (if under limit)
+      if (selectedCategories.length >= maxCategories) {
+        await this.safeAnswerCallback(ctx, ctx.t('traffic.category.max_reached', { max: maxCategories }));
+
+        return;
+      }
+
+      selectedCategories.push(categoryType);
+    }
+
+    // Update session
+    if (ctx.session?.formData && typeof ctx.session.formData === 'object') {
+      (ctx.session.formData as Record<string, unknown>).selectedCategories = selectedCategories;
+    }
+
+    // Refresh the category selection UI
+    await this.showCategorySelectionForEdit(ctx, formData.sourceId, currentPage, selectedCategories);
+  }
+
+  /**
+   * Save selected categories to source
+   */
+  async handleCategorySave(ctx: AuthenticatedBotContext): Promise<void> {
+    const { em } = this;
+    const formData = ctx.session?.formData as
+      | {
+          sourceId?: string;
+          selectedCategories?: string[];
+        }
+      | undefined;
+
+    if (!formData?.sourceId) {
+      return;
+    }
+
+    const { sourceId } = formData;
+    const selectedCategories = formData.selectedCategories ?? [];
+
+    const source = await em.findOne(
+      TrafficSourceEntity,
+      { id: sourceId, managedBy: ctx.user.id },
+      { populate: ['categories.category'] },
+    );
+
+    if (!source) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
+
+      return;
+    }
+
+    // Remove all existing category links
+    const existingLinks = source.categories?.getItems() || [];
+
+    for (const link of existingLinks) {
+      em.remove(link);
+    }
+
+    // Fetch all categories in parallel
+    const categoryPromises = selectedCategories.map((categoryType) =>
+      em.findOne(TrafficSourceCategoryEntity, {
+        categoryType: categoryType as TopicCategory,
+      }),
+    );
+
+    const categories = await Promise.all(categoryPromises);
+
+    // Add new category links
+    categories.forEach((category, i) => {
+      if (category) {
+        const categoryLink = new TrafficSourceCategoriesEntity({
+          trafficSourceId: source.id,
+          categoryId: category.id,
+          isPrimary: i === 0, // First category is primary
+          sortOrder: i,
+        });
+
+        em.persist(categoryLink);
+      }
+    });
+
+    await em.flush();
+
+    this.clearSessionState(ctx);
+
+    const count = selectedCategories.length;
+    await this.safeAnswerCallback(ctx, ctx.t('traffic.category.saved', { count }));
+
+    // Refresh the source view
+    await this.handleTrafficSourceView(ctx, sourceId);
   }
 
   /**

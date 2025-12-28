@@ -1,20 +1,27 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { EntityManager, EntityRepository, LockMode } from '@mikro-orm/core';
+import { EntityManager, EntityRepository, LockMode, ref } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { I18nService } from 'nestjs-i18n';
 import { Ok, Err, AsyncResult, toError } from '@app/common-shared';
 import { decimal, add, subtract, toDbString, lessThan } from '@app/common-shared';
 import { PaymentProviderFactory } from './payment-provider.factory';
 import { ProviderRoutingService, RoutingContext } from './provider-routing.service';
+import { PaymentEventService } from './payment-event.service';
+import { CurrencyRateService } from '@app/feature-currency-shared';
+import { PaymentConfigService } from '../config/payment-config.service';
 import {
   UserBalanceRepository,
   UserBalanceEntity,
+  UserBalanceHistoryEntity,
+  UserEntity,
   CurrencyCode,
   PaymentTransactionEntity,
   PaymentType,
   PaymentProvider,
   PaymentStatus,
   Cryptocurrency,
+  TransactionType,
+  TransactionStatus,
 } from '@app/database';
 import { CreateInvoiceDto, CreateTransferDto, WebhookUpdateDto, InvoiceResponseDto, TransferResponseDto } from '../dto';
 import { PaymentTransfer } from '../interface';
@@ -55,6 +62,9 @@ export class PaymentService {
     private readonly routingService: ProviderRoutingService,
     private readonly em: EntityManager,
     private readonly i18n: I18nService,
+    private readonly paymentEventService: PaymentEventService,
+    private readonly currencyRateService: CurrencyRateService,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {}
 
   /**
@@ -120,8 +130,9 @@ export class PaymentService {
 
       const invoice = invoiceResult.val;
 
-      // Save transaction to database
-      const transaction = this.transactionRepository.create({
+      // Save transaction to database using forked EntityManager
+      const em = this.em.fork();
+      const transaction = em.create(PaymentTransactionEntity, {
         userId,
         type: PaymentType.TopUp,
         provider: providerType,
@@ -138,7 +149,7 @@ export class PaymentService {
         },
       });
 
-      await this.em.persistAndFlush(transaction);
+      await em.persistAndFlush(transaction);
 
       this.logger.log(
         `Top-up invoice created: ${transaction.id} (provider: ${providerType}, invoiceId: ${invoice.invoiceId})`,
@@ -270,27 +281,40 @@ export class PaymentService {
 
       // Use database transaction with pessimistic locking to prevent race conditions
       const result = await this.em.transactional(async (em) => {
-        // First find the currency entity by code
-        const currency = await em.findOne('CurrencyEntity', { code: dto.currency });
+        // Get base currency from config
+        const baseCurrency = this.paymentConfigService.getBaseCurrency();
 
-        if (!currency || !('id' in currency)) {
-          throw new Error(`Currency ${dto.currency} not found in system`);
+        // Convert withdrawal amount to base currency equivalent
+        const convertedAmountResult = await this.currencyRateService.convertAmount(
+          dto.amount,
+          dto.currency,
+          baseCurrency,
+        );
+
+        if (convertedAmountResult.err) {
+          throw new Error(
+            `Failed to convert ${dto.amount} ${dto.currency} to ${baseCurrency}: ${convertedAmountResult.val.message}`,
+          );
         }
 
-        // CRITICAL: Lock balance row to prevent concurrent withdrawals
-        // This ensures atomic balance check and deduction
-        // FIXED: Now checks balance in REQUESTED currency, not always RUB
+        const convertedAmount = convertedAmountResult.val;
+
+        // Find base currency entity
+        const baseCurrencyEntity = await em.findOne('CurrencyEntity', { code: baseCurrency });
+
+        if (!baseCurrencyEntity || !('id' in baseCurrencyEntity)) {
+          throw new Error(`${baseCurrency} currency not found in system`);
+        }
+
+        // CRITICAL: Lock base currency balance row to prevent concurrent withdrawals
         const balanceEntity = await em.findOne(
           UserBalanceEntity,
-          { user: userId, currency: currency.id as string },
+          { user: userId, currency: baseCurrencyEntity.id as string },
           { lockMode: LockMode.PESSIMISTIC_WRITE },
         );
 
         if (!balanceEntity) {
-          throw new Error(
-            `Balance not found for user ${userId} in currency ${dto.currency}. ` +
-              `User may not have a balance in this currency.`,
-          );
+          throw new Error(`${baseCurrency} balance not found for user ${userId}. User may not have deposited yet.`);
         }
 
         // Store original balance for rollback (captured BEFORE any modifications)
@@ -301,16 +325,16 @@ export class PaymentService {
         }
 
         const availableAmount = decimal(balanceBeforeTransaction);
-        const requestedAmount = decimal(dto.amount);
+        const requestedAmount = decimal(convertedAmount);
 
-        // Atomic balance check (now safe from race conditions due to lock)
+        // Atomic balance check in base currency
         if (lessThan(availableAmount, requestedAmount)) {
           this.logger.warn(
-            `Insufficient balance for withdrawal. Currency: ${dto.currency}, Available: ${availableAmount.toString()}, Requested: ${requestedAmount.toString()}`,
+            `Insufficient ${baseCurrency} balance for withdrawal. Available: ${availableAmount.toString()}, Requested: ${convertedAmount} (${dto.amount} ${dto.currency})`,
           );
 
           throw new Error(
-            `Insufficient balance in ${dto.currency}. Available: ${availableAmount.toString()}, Requested: ${requestedAmount.toString()}`,
+            `Insufficient balance. Available: ${availableAmount.toString()} ${baseCurrency}, Requested: ${convertedAmount} ${baseCurrency} (${dto.amount} ${dto.currency})`,
           );
         }
 
@@ -332,10 +356,24 @@ export class PaymentService {
         transfer = transferResult.val;
         transferCreated = true;
 
-        // Now deduct balance atomically within the locked transaction
-        // FIXED: Deduct from REQUESTED currency balance, not always RUB
+        // Deduct from base currency balance
         const newBalance = toDbString(subtract(availableAmount, requestedAmount), 8);
-        await this.userBalanceRepository.createOrUpdateBalance(userId, dto.currency, newBalance);
+        await this.userBalanceRepository.createOrUpdateBalance(userId, baseCurrency, newBalance);
+
+        // Create withdrawal history record (in base currency)
+        const userRef = em.getReference(UserEntity, userId);
+        const historyRecord = new UserBalanceHistoryEntity({
+          user: ref(userRef),
+          currency: baseCurrency,
+          type: TransactionType.Withdrawal,
+          amount: `-${convertedAmount}`, // Negative amount for withdrawal
+          balanceBefore: availableAmount.toString(),
+          balanceAfter: newBalance,
+          status: TransactionStatus.Pending,
+          description: `Withdrawal ${dto.amount} ${cryptocurrency} (~${convertedAmount} ${baseCurrency})`,
+        });
+
+        em.persist(historyRecord);
 
         // Save transaction to database
         const transaction = em.create(PaymentTransactionEntity, {
@@ -354,6 +392,7 @@ export class PaymentService {
             balanceAfter: newBalance,
             balanceLockedAt: new Date().toISOString(),
             provider: providerType,
+            historyId: historyRecord.id,
           },
         });
 
@@ -417,7 +456,8 @@ export class PaymentService {
     try {
       this.logger.log(`Fetching transaction: ${transactionId}`);
 
-      const transaction = await this.transactionRepository.findOne({
+      const em = this.em.fork();
+      const transaction = await em.findOne(PaymentTransactionEntity, {
         id: transactionId,
       });
 
@@ -445,6 +485,8 @@ export class PaymentService {
     try {
       this.logger.log(`Fetching transactions for user ${userId}`, query);
 
+      const em = this.em.fork();
+
       // Build query filters
       const filters: Record<string, unknown> = { userId };
 
@@ -457,13 +499,13 @@ export class PaymentService {
       }
 
       // Get total count
-      const total = await this.transactionRepository.count(filters);
+      const total = await em.count(PaymentTransactionEntity, filters);
 
       // Apply pagination
       const limit = query?.limit || 50;
       const offset = query?.offset || 0;
 
-      const transactions = await this.transactionRepository.find(filters, {
+      const transactions = await em.find(PaymentTransactionEntity, filters, {
         orderBy: { createdAt: 'DESC' },
         limit,
         offset,
@@ -492,8 +534,10 @@ export class PaymentService {
     try {
       this.logger.log(`Checking invoice status: ${invoiceId}`);
 
+      const em = this.em.fork();
+
       // Find transaction in database
-      const transaction = await this.transactionRepository.findOne({
+      const transaction = await em.findOne(PaymentTransactionEntity, {
         providerTransactionId: invoiceId,
       });
 
@@ -532,7 +576,7 @@ export class PaymentService {
         transaction.paidAt = providerTransaction.paidAt || null;
         transaction.fee = providerTransaction.fee || null;
 
-        await this.em.flush();
+        await em.flush();
 
         // Credit user balance if payment completed
         if (providerTransaction.status === PaymentStatus.Completed && !transaction.metadata?.['balanceCredited']) {
@@ -601,9 +645,10 @@ export class PaymentService {
   ): AsyncResult<PaymentTransactionEntity, Error> {
     try {
       const invoiceId = updateDto.payload.id;
+      const em = this.em.fork();
 
       // Find transaction by provider transaction ID
-      const transaction = await this.transactionRepository.findOne({
+      const transaction = await em.findOne(PaymentTransactionEntity, {
         providerTransactionId: invoiceId,
       });
 
@@ -630,7 +675,7 @@ export class PaymentService {
         requestId: logContext.requestId,
       };
 
-      await this.em.flush();
+      await em.flush();
 
       // Credit user balance
       await this.creditUserBalance(transaction);
@@ -659,8 +704,9 @@ export class PaymentService {
   ): AsyncResult<PaymentTransactionEntity, Error> {
     try {
       const invoiceId = updateDto.payload.id;
+      const em = this.em.fork();
 
-      const transaction = await this.transactionRepository.findOne({
+      const transaction = await em.findOne(PaymentTransactionEntity, {
         providerTransactionId: invoiceId,
       });
 
@@ -685,7 +731,7 @@ export class PaymentService {
         requestId: logContext.requestId,
       };
 
-      await this.em.flush();
+      await em.flush();
 
       this.logger.log(`Invoice expired webhook processed: ${invoiceId}`, {
         ...logContext,
@@ -710,8 +756,9 @@ export class PaymentService {
   ): AsyncResult<PaymentTransactionEntity, Error> {
     try {
       const invoiceId = updateDto.payload.id;
+      const em = this.em.fork();
 
-      const transaction = await this.transactionRepository.findOne({
+      const transaction = await em.findOne(PaymentTransactionEntity, {
         providerTransactionId: invoiceId,
       });
 
@@ -736,7 +783,7 @@ export class PaymentService {
         requestId: logContext.requestId,
       };
 
-      await this.em.flush();
+      await em.flush();
 
       this.logger.log(`Invoice cancelled webhook processed: ${invoiceId}`, {
         ...logContext,
@@ -764,8 +811,9 @@ export class PaymentService {
   ): AsyncResult<PaymentTransactionEntity, Error> {
     try {
       const transferId = updateDto.payload.id;
+      const em = this.em.fork();
 
-      const transaction = await this.transactionRepository.findOne({
+      const transaction = await em.findOne(PaymentTransactionEntity, {
         providerTransactionId: transferId,
       });
 
@@ -792,7 +840,7 @@ export class PaymentService {
         requestId: logContext.requestId,
       };
 
-      await this.em.flush();
+      await em.flush();
 
       this.logger.log(`Transfer completed webhook processed: ${transferId}`, {
         ...logContext,
@@ -821,8 +869,9 @@ export class PaymentService {
   ): AsyncResult<PaymentTransactionEntity, Error> {
     try {
       const transferId = updateDto.payload.id;
+      const em = this.em.fork();
 
-      const transaction = await this.transactionRepository.findOne({
+      const transaction = await em.findOne(PaymentTransactionEntity, {
         providerTransactionId: transferId,
       });
 
@@ -848,7 +897,7 @@ export class PaymentService {
         requestId: logContext.requestId,
       };
 
-      await this.em.flush();
+      await em.flush();
 
       // Refund user balance if this was a withdrawal
       if (transaction.type === PaymentType.Withdraw) {
@@ -959,9 +1008,8 @@ export class PaymentService {
   // eslint-disable-next-line sonarjs/cognitive-complexity
   async syncTransactionStatus(transactionId: string): AsyncResult<PaymentTransactionEntity, Error> {
     try {
-      this.logger.log(`Syncing transaction status: ${transactionId}`);
-
-      const transaction = await this.transactionRepository.findOne({
+      const em = this.em.fork();
+      const transaction = await em.findOne(PaymentTransactionEntity, {
         id: transactionId,
       });
 
@@ -989,6 +1037,20 @@ export class PaymentService {
       }
 
       if (providerResult.err) {
+        const errorMessage = providerResult.val?.message || String(providerResult.val);
+
+        // Mark as expired if provider can't find the invoice/transfer (likely expired)
+        if (errorMessage.includes('not found')) {
+          const oldStatus = transaction.status;
+          transaction.status = PaymentStatus.Expired;
+          await em.flush();
+          this.logger.log(
+            `Transaction marked as expired (not found on provider): ${transactionId} (${oldStatus} -> expired)`,
+          );
+
+          return Ok(transaction);
+        }
+
         this.logger.error('Failed to get status from provider', providerResult.val);
 
         return Err(toError(providerResult.val || 'Failed to sync transaction status'));
@@ -1011,7 +1073,7 @@ export class PaymentService {
 
         transaction.fee = providerTransaction.fee || null;
 
-        await this.em.flush();
+        await em.flush();
 
         this.logger.log(`Transaction status synced: ${transactionId} (${oldStatus} -> ${transaction.status})`);
 
@@ -1063,28 +1125,56 @@ export class PaymentService {
           return;
         }
 
-        this.logger.log(
-          `Crediting balance for user ${lockedTransaction.userId}: ${lockedTransaction.amount} ${lockedTransaction.currency}`,
+        // Get base currency from config
+        const baseCurrency = this.paymentConfigService.getBaseCurrency();
+
+        // Map transaction currency to CurrencyCode for conversion
+        const sourceCurrencyCode = this.mapCryptocurrencyToCurrencyCode(lockedTransaction.currency);
+
+        // Convert deposit amount to base currency
+        const convertedAmountResult = await this.currencyRateService.convertAmount(
+          lockedTransaction.amount,
+          sourceCurrencyCode,
+          baseCurrency,
         );
 
-        // Map transaction currency to CurrencyCode for balance operations
-        const currencyCode = this.mapCryptocurrencyToCurrencyCode(lockedTransaction.currency);
-
-        // Get current balance in the correct currency
-        const balance = await this.userBalanceRepository.findByUserAndCurrency(lockedTransaction.userId, currencyCode);
-
-        if (!balance) {
+        if (convertedAmountResult.err) {
           throw new Error(
-            `Balance not found for user ${lockedTransaction.userId} in currency ${lockedTransaction.currency}`,
+            `Failed to convert ${lockedTransaction.amount} ${sourceCurrencyCode} to ${baseCurrency}: ${convertedAmountResult.val.message}`,
           );
         }
 
-        const creditAmount = decimal(lockedTransaction.amount);
-        const currentBalance = decimal(balance.balance);
+        const convertedAmount = convertedAmountResult.val;
+
+        this.logger.log(
+          `Crediting balance for user ${lockedTransaction.userId}: ${lockedTransaction.amount} ${lockedTransaction.currency} -> ${convertedAmount} ${baseCurrency}`,
+        );
+
+        // Get current balance in base currency (may not exist yet for first deposit)
+        const balance = await this.userBalanceRepository.findByUserAndCurrency(lockedTransaction.userId, baseCurrency);
+
+        const creditAmount = decimal(convertedAmount);
+        const currentBalance = balance ? decimal(balance.balance) : decimal('0');
         const newBalance = toDbString(add(currentBalance, creditAmount), 8);
 
-        // Update balance with correct currency
-        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, currencyCode, newBalance);
+        // Update balance in base currency
+        await this.userBalanceRepository.createOrUpdateBalance(lockedTransaction.userId, baseCurrency, newBalance);
+
+        // Create transaction history record (in base currency)
+        const userRef = em.getReference(UserEntity, lockedTransaction.userId);
+        const historyRecord = new UserBalanceHistoryEntity({
+          user: ref(userRef),
+          currency: baseCurrency,
+          type: TransactionType.Deposit,
+          amount: convertedAmount,
+          balanceBefore: currentBalance.toString(),
+          balanceAfter: newBalance,
+          status: TransactionStatus.Completed,
+          description: `Deposit ${lockedTransaction.amount} ${lockedTransaction.currency} (~${convertedAmount} ${baseCurrency})`,
+          referenceId: lockedTransaction.id,
+        });
+
+        em.persist(historyRecord);
 
         // Mark as credited atomically within the locked transaction
         lockedTransaction.metadata = {
@@ -1093,13 +1183,27 @@ export class PaymentService {
           balanceCreditedAt: new Date().toISOString(),
           balanceBefore: currentBalance.toString(),
           balanceAfter: newBalance,
-          currency: lockedTransaction.currency, // Track which currency was credited
+          originalCurrency: lockedTransaction.currency,
+          originalAmount: lockedTransaction.amount,
+          convertedAmount,
+          baseCurrency,
+          historyId: historyRecord.id,
         };
 
         // Flush happens automatically at end of transactional block
       });
 
       this.logger.log(`Balance credited successfully for transaction: ${transaction.id}`);
+
+      // Emit event for notifications (async, non-blocking)
+      this.paymentEventService
+        .emitBalanceCredited({
+          transactionId: transaction.id,
+          userId: transaction.userId,
+          amount: transaction.amount,
+          currency: transaction.currency,
+        })
+        .catch((err) => this.logger.error('Failed to emit balance credited event', err));
     } catch (error) {
       this.logger.error(`Failed to credit balance for transaction: ${transaction.id}`, error);
       throw error;

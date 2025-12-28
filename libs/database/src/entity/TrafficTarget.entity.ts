@@ -1,7 +1,7 @@
 import { Collection, Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Ref } from '@mikro-orm/core';
 import { assignEntityData, EntityConstructorData, TrafficTargetConfig } from '../type';
 import { UserEntity } from './User.entity';
-import type { TrafficOrderEntity } from './TrafficOrder.entity';
+import type { TrafficOrderTargetEntity } from './junction/TrafficOrderTarget.entity';
 
 export enum TrafficTargetType {
   Channel = 'channel',
@@ -72,8 +72,9 @@ export class TrafficTargetEntity {
   @ManyToOne('UserEntity', { nullable: true, joinColumn: 'managed_by_id', referenceColumnName: 'id', ref: true })
   managedBy?: Ref<UserEntity>;
 
-  @OneToMany('TrafficOrderEntity', 'trafficTarget')
-  orders? = new Collection<TrafficOrderEntity>(this);
+  /** Junction: Orders that target this destination (M:M via TrafficOrderTarget) */
+  @OneToMany('TrafficOrderTargetEntity', 'trafficTarget')
+  orderAssignments? = new Collection<TrafficOrderTargetEntity>(this);
 
   constructor(
     data: EntityConstructorData<TrafficTargetEntity, 'id' | 'createdAt' | 'updatedAt', 'requiresApproval', 'managedBy'>,

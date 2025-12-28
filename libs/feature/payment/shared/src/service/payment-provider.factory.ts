@@ -61,8 +61,6 @@ export class PaymentProviderFactory {
       throw new Error(`Unsupported payment provider: ${providerType}. Available providers: ${availableProviders}`);
     }
 
-    this.logger.debug(`Retrieved provider: ${providerType}`);
-
     return provider;
   }
 

@@ -9,6 +9,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BotContext } from '@app/feature-bot-shared';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceQueryService } from '@app/feature-balance-shared';
+import { PaymentConfigService } from '@app/feature-payment-shared';
 import { UserRole, UserStatus } from '@app/database';
 import { defaultLanguage, unknownToError, toDisplayString } from '@app/common-shared';
 import { SessionService } from '../../service/session.service';
@@ -24,7 +25,12 @@ export class InformationCommandHandler {
     private readonly balanceQueryService: BalanceQueryService,
     private readonly sessionService: SessionService,
     private readonly messageService: MessageService,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {}
+
+  private get currencySymbol(): string {
+    return this.paymentConfigService.getBaseCurrencySymbol();
+  }
 
   /**
    * Handle /help command - comprehensive help information
@@ -315,17 +321,17 @@ Export your data in various formats:
       const balanceText = `
 <b>💰 Your Balance</b>
 
-<b>💵 Current Balance:</b> $${toDisplayString(balance.availableAmount)}
-<b>🔒 Pending:</b> $${toDisplayString(balance.pendingAmount)}
-<b>📊 Total Earned:</b> $${toDisplayString(balance.totalEarned)}
+<b>💵 Current Balance:</b> ${this.currencySymbol}${toDisplayString(balance.availableAmount)}
+<b>🔒 Pending:</b> ${this.currencySymbol}${toDisplayString(balance.pendingAmount)}
+<b>📊 Total Earned:</b> ${this.currencySymbol}${toDisplayString(balance.totalEarned)}
 
 <b>📈 Recent Activity:</b>
 • Last transaction: ${balance.lastTransactionAt ? this.messageService.formatDate(ctx, new Date(balance.lastTransactionAt)) : 'No transactions yet'}
 • Account created: ${this.messageService.formatDate(ctx, user.createdAt)}
 
 <b>💸 Withdrawal Status:</b>
-• Available for withdrawal: $${toDisplayString(balance.availableAmount)}
-• Minimum withdrawal: $10.00
+• Available for withdrawal: ${this.currencySymbol}${toDisplayString(balance.availableAmount)}
+• Minimum withdrawal: ${this.currencySymbol}10.00
 `;
 
       const keyboard = new InlineKeyboard()
@@ -387,8 +393,8 @@ Export your data in various formats:
 • Member since: ${this.messageService.formatDate(ctx, user.createdAt)}
 
 <b>💰 Financial Status:</b>
-• Current balance: $${toDisplayString(balance.availableAmount)}
-• Total earned: $${toDisplayString(balance.totalEarned)}
+• Current balance: ${this.currencySymbol}${toDisplayString(balance.availableAmount)}
+• Total earned: ${this.currencySymbol}${toDisplayString(balance.totalEarned)}
 • Last transaction: ${balance.lastTransactionAt ? this.messageService.formatDate(ctx, new Date(balance.lastTransactionAt)) : 'None'}
 
 <b>📱 Session Info:</b>

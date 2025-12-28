@@ -240,14 +240,20 @@ export class TelegramModerationNotifier {
    * Format traffic order message for moderation
    */
   private async formatOrderMessage(order: TrafficOrderEntity): Promise<string> {
-    // Load required relations in parallel to avoid N+1 queries
-    // Note: These are required relations (nullable: false), so we use .load() without ?.
-    // The fallback values (?? 'Unknown') handle display if relations fail to load
-    const [creator, trafficSource, trafficTarget] = await Promise.all([
-      order.creator.load(),
-      order.trafficSource.load(),
-      order.trafficTarget.load(),
-    ]);
+    // Load creator
+    const creator = await order.creator.load();
+
+    // Get sources and targets from junction tables
+    const orderSources = order.orderSources?.getItems() ?? [];
+    const orderTargets = order.orderTargets?.getItems() ?? [];
+
+    // Format sources list
+    const sourcesInfo =
+      orderSources.length > 0 ? orderSources.map((os) => os.trafficSource?.id ?? 'Unknown').join(', ') : 'Not assigned';
+
+    // Format targets list
+    const targetsInfo =
+      orderTargets.length > 0 ? orderTargets.map((ot) => ot.trafficTarget?.id ?? 'Unknown').join(', ') : 'Not assigned';
 
     const lines = [
       '📋 <b>New Traffic Order - Awaiting Moderation</b>',
@@ -260,8 +266,8 @@ export class TelegramModerationNotifier {
       `📝 <b>Description:</b> ${order.description ?? 'N/A'}`,
       '',
       `👤 <b>Creator:</b> ${creator?.username ?? 'Unknown'} (ID: ${creator?.id ?? 'N/A'})`,
-      `🤖 <b>Source:</b> ${trafficSource?.name ?? 'Unknown'}`,
-      `🎯 <b>Target:</b> ${trafficTarget?.id ?? 'Unknown'}`,
+      `🤖 <b>Sources:</b> ${sourcesInfo}`,
+      `🎯 <b>Targets:</b> ${targetsInfo}`,
       '',
       `🔑 <b>Order ID:</b> <code>${order.id}</code>`,
       '',

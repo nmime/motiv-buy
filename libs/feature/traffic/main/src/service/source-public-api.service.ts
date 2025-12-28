@@ -30,6 +30,7 @@ import {
   TrafficActionsRepository,
   TrafficOrderEntity,
   TrafficOrderRepository,
+  TrafficOrderSourceEntity,
   TrafficOrderBalanceEntity,
   TrafficOrderBalanceRepository,
   TrafficOrderStatus,
@@ -75,6 +76,8 @@ export class SourcePublicApiService {
     private readonly trafficActionsRepository: TrafficActionsRepository,
     @InjectRepository(TrafficUserEntity)
     private readonly trafficUserRepository: EntityRepository<TrafficUserEntity>,
+    @InjectRepository(TrafficOrderSourceEntity)
+    private readonly trafficOrderSourceRepository: EntityRepository<TrafficOrderSourceEntity>,
     private readonly userBalanceRepository: UserBalanceRepository,
     private readonly userBalanceHistoryRepository: UserBalanceHistoryRepository,
     private readonly botFactoryService: BotFactoryService,
@@ -186,17 +189,22 @@ export class SourcePublicApiService {
     try {
       const source = await this.validateApiKey(dto.apiKey);
 
-      // Get active orders for this source
-      const orders = await this.trafficOrderRepository.find(
-        {
-          trafficSource: source.id,
-          status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-          $or: [{ endDate: { $gte: new Date() } }, { endDate: null }],
-        },
-        {
-          populate: ['trafficTarget', 'actions'],
-        },
+      // Get active orders for this source via junction table
+      const orderSources = await this.trafficOrderSourceRepository.find(
+        { trafficSource: source.id },
+        { populate: ['trafficOrder', 'trafficOrder.orderTargets', 'trafficOrder.orderTargets.trafficTarget'] },
       );
+
+      // Filter to active orders with valid date range
+      const now = new Date();
+      const orders = orderSources
+        .map((os) => os.trafficOrder.getEntity())
+        .filter((order) => {
+          const isActive = order.status === TrafficOrderStatus.Active || order.status === TrafficOrderStatus.InProgress;
+          const isValidDate = !order.endDate || order.endDate >= now;
+
+          return isActive && isValidDate;
+        });
 
       // Filter orders by targeting requirements
       const filteredOrders = orders.filter((order) => this.matchesTargeting(order, dto));
@@ -220,7 +228,15 @@ export class SourcePublicApiService {
           continue;
         }
 
-        const target = order.trafficTarget.getEntity();
+        // Get primary target from junction table
+        const orderTargets = order.orderTargets?.getItems() ?? [];
+        const primaryOrderTarget = orderTargets.find((ot) => ot.isPrimary) ?? orderTargets[0];
+        const target = primaryOrderTarget?.trafficTarget?.getEntity();
+
+        if (!target) {
+          continue;
+        }
+
         const remainingSlots = order.targetCount - order.currentCount;
 
         // Skip if no remaining slots
@@ -274,16 +290,13 @@ export class SourcePublicApiService {
       // Parse taskId to get orderId and userId
       const { orderId, userId } = this.parseTaskId(dto.taskId);
 
-      // Find order
-      const order = await this.trafficOrderRepository.findOne(
-        {
-          orderId,
-          trafficSource: source.id,
-        },
-        {
-          populate: ['actions'],
-        },
+      // Find order via junction table
+      const orderSource = await this.trafficOrderSourceRepository.findOne(
+        { trafficSource: source.id, trafficOrder: { orderId } },
+        { populate: ['trafficOrder'] },
       );
+
+      const order = orderSource?.trafficOrder?.getEntity();
 
       if (!order) {
         return {
@@ -491,7 +504,8 @@ export class SourcePublicApiService {
 
     // Populate managedBy relation if needed
     if (source.managedBy && !source.managedBy.isInitialized()) {
-      await this.em.populate(source, ['managedBy']);
+      const em = this.em.fork();
+      await em.populate(source, ['managedBy']);
     }
 
     return source;
@@ -699,15 +713,13 @@ export class SourcePublicApiService {
   ): Promise<{ order: TrafficOrderEntity; reserve: TrafficOrderBalanceEntity; existsAlready: boolean }> {
     const { orderId } = this.parseTaskId(dto.taskId);
 
-    const order = await this.trafficOrderRepository.findOne(
-      {
-        orderId,
-        trafficSource: source.id,
-      },
-      {
-        populate: ['creator', 'trafficSource', 'trafficTarget'],
-      },
+    // Find order via junction table
+    const orderSource = await this.trafficOrderSourceRepository.findOne(
+      { trafficSource: source.id, trafficOrder: { orderId } },
+      { populate: ['trafficOrder', 'trafficOrder.creator', 'trafficOrder.orderSources', 'trafficOrder.orderTargets'] },
     );
+
+    const order = orderSource?.trafficOrder?.getEntity();
 
     if (!order) {
       throw new BadRequestException('Task not found');

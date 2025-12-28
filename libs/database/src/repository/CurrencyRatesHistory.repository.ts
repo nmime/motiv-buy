@@ -20,7 +20,8 @@ export class CurrencyRatesHistoryRepository {
     rateToUsd: string,
     reliabilityScore = 100,
   ): Promise<CurrencyRatesHistoryEntity> {
-    const currencyRef = this.em.getReference(CurrencyEntity, currencyId);
+    const em = this.em.fork();
+    const currencyRef = em.getReference(CurrencyEntity, currencyId);
     const entry = new CurrencyRatesHistoryEntity({
       currency: ref(currencyRef),
       provider,
@@ -31,7 +32,7 @@ export class CurrencyRatesHistoryRepository {
       entry.reliabilityScore = reliabilityScore;
     }
 
-    await this.em.persistAndFlush(entry);
+    await em.persistAndFlush(entry);
 
     return entry;
   }
@@ -40,7 +41,8 @@ export class CurrencyRatesHistoryRepository {
    * Get latest rates for a currency from all providers
    */
   async getLatestRatesByProvider(currencyCode: CurrencyCode): Promise<CurrencyRatesHistoryEntity[]> {
-    const currency = await this.em.findOne(CurrencyEntity, { code: currencyCode });
+    const em = this.em.fork();
+    const currency = await em.findOne(CurrencyEntity, { code: currencyCode });
 
     if (!currency) {
       return [];
@@ -49,7 +51,7 @@ export class CurrencyRatesHistoryRepository {
     // Get most recent entry from each provider (last hour)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
-    const rates = await this.em.find(
+    const rates = await em.find(
       CurrencyRatesHistoryEntity,
       {
         currency: currency.id,
@@ -103,7 +105,8 @@ export class CurrencyRatesHistoryRepository {
     to: Date,
     provider?: RateProvider,
   ): Promise<CurrencyRatesHistoryEntity[]> {
-    const currency = await this.em.findOne(CurrencyEntity, { code: currencyCode });
+    const em = this.em.fork();
+    const currency = await em.findOne(CurrencyEntity, { code: currencyCode });
 
     if (!currency) {
       return [];
@@ -118,7 +121,7 @@ export class CurrencyRatesHistoryRepository {
       filters['provider'] = provider;
     }
 
-    return this.em.find(CurrencyRatesHistoryEntity, filters, {
+    return em.find(CurrencyRatesHistoryEntity, filters, {
       orderBy: { createdAt: 'DESC' },
     });
   }
@@ -127,9 +130,10 @@ export class CurrencyRatesHistoryRepository {
    * Cleanup old rate history (older than specified days)
    */
   async cleanupOldRates(daysToKeep = 7): Promise<number> {
+    const em = this.em.fork();
     const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
 
-    const result = await this.em.nativeDelete(CurrencyRatesHistoryEntity, {
+    const result = await em.nativeDelete(CurrencyRatesHistoryEntity, {
       createdAt: { $lt: cutoffDate },
     });
 
@@ -143,13 +147,14 @@ export class CurrencyRatesHistoryRepository {
     currencyCode: CurrencyCode,
     provider: RateProvider,
   ): Promise<CurrencyRatesHistoryEntity | null> {
-    const currency = await this.em.findOne(CurrencyEntity, { code: currencyCode });
+    const em = this.em.fork();
+    const currency = await em.findOne(CurrencyEntity, { code: currencyCode });
 
     if (!currency) {
       return null;
     }
 
-    return this.em.findOne(
+    return em.findOne(
       CurrencyRatesHistoryEntity,
       {
         currency: currency.id,

@@ -1,12 +1,11 @@
-import { EntityManager, EntityRepository, ref, Reference } from '@mikro-orm/core';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import {
   TrafficOrderEntity,
   TrafficOrderStatus,
   TrafficOrderType,
-  TrafficSourceEntity,
-  TrafficTargetEntity,
+  TrafficOrderSourceEntity,
+  TrafficOrderTargetEntity,
   TrafficUserEntity,
-  UserEntity,
 } from '../entity';
 import { decimal, divide, greaterThanOrEqual, lessThanOrEqual, multiply, sum, toNumber } from '@app/common-shared';
 
@@ -16,45 +15,66 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   }
 
   async findByOrderId(orderId: string): Promise<TrafficOrderEntity | null> {
-    return this.findOne({ orderId });
+    return this.findOne({ orderId }, { populate: ['orderSources', 'orderTargets'] });
   }
 
   async findByCreator(creatorId: string): Promise<TrafficOrderEntity[]> {
-    return this.find({ creator: creatorId });
+    return this.find({ creator: creatorId }, { populate: ['orderSources', 'orderTargets'] });
   }
 
   async findByStatus(status: TrafficOrderStatus): Promise<TrafficOrderEntity[]> {
-    return this.find({ status });
+    return this.find({ status }, { populate: ['orderSources', 'orderTargets'] });
   }
 
   async findByType(type: TrafficOrderType): Promise<TrafficOrderEntity[]> {
-    return this.find({ type });
+    return this.find({ type }, { populate: ['orderSources', 'orderTargets'] });
   }
 
   async findActiveOrders(): Promise<TrafficOrderEntity[]> {
-    return this.find({
-      status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-    });
+    return this.find(
+      {
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      },
+      { populate: ['orderSources', 'orderTargets'] },
+    );
   }
 
   async findPendingOrders(): Promise<TrafficOrderEntity[]> {
-    return this.find({ status: TrafficOrderStatus.Pending });
+    return this.find({ status: TrafficOrderStatus.Pending }, { populate: ['orderSources', 'orderTargets'] });
   }
 
+  /**
+   * Find orders by traffic source using junction table
+   */
   async findByTrafficSource(trafficSourceId: string): Promise<TrafficOrderEntity[]> {
-    return this.find({ trafficSource: trafficSourceId });
+    const orderSources = await this.em.find(
+      TrafficOrderSourceEntity,
+      { trafficSource: trafficSourceId },
+      { populate: ['trafficOrder'] },
+    );
+
+    return orderSources.map((os) => os.trafficOrder.getEntity());
   }
 
+  /**
+   * Find orders by traffic target using junction table
+   */
   async findByTrafficTarget(trafficTargetId: string): Promise<TrafficOrderEntity[]> {
-    return this.find({ trafficTarget: trafficTargetId });
+    const orderTargets = await this.em.find(
+      TrafficOrderTargetEntity,
+      { trafficTarget: trafficTargetId },
+      { populate: ['trafficOrder'] },
+    );
+
+    return orderTargets.map((ot) => ot.trafficOrder.getEntity());
   }
 
   async findByAssignedUser(trafficUserId: string): Promise<TrafficOrderEntity[]> {
-    return this.find({ assignedTrafficUser: trafficUserId });
+    return this.find({ assignedTrafficUser: trafficUserId }, { populate: ['orderSources', 'orderTargets'] });
   }
 
   async findOrdersByBudgetRange(minBudget: number, maxBudget: number): Promise<TrafficOrderEntity[]> {
-    const results = await this.findAll();
+    const results = await this.findAll({ populate: ['orderSources', 'orderTargets'] });
 
     return results.filter((order) => {
       if (!order.totalBudget) {
@@ -70,73 +90,30 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   }
 
   async findOrdersByDateRange(startDate: Date, endDate: Date): Promise<TrafficOrderEntity[]> {
-    return this.find({
-      createdAt: { $gte: startDate, $lte: endDate },
-    });
-  }
-
-  async createOrder(data: {
-    orderId: string;
-    type: TrafficOrderType;
-    targetCount: number;
-    pricePerAction: number;
-    totalBudget: number;
-    creator: Reference<UserEntity>;
-    trafficSource: Reference<TrafficSourceEntity>;
-    trafficTarget: Reference<TrafficTargetEntity>;
-    description?: string;
-    targetUrl?: string;
-    requirements?: string;
-    startDate?: Date;
-    endDate?: Date;
-    assignedTrafficUser?: Reference<TrafficUserEntity>;
-  }): Promise<TrafficOrderEntity> {
-    const {
-      totalBudget,
-      pricePerAction,
-      requirements,
-      creator,
-      trafficSource,
-      trafficTarget,
-      assignedTrafficUser,
-      ...otherData
-    } = data;
-
-    const order = new TrafficOrderEntity({
-      ...otherData,
-      creatorId: typeof creator === 'string' ? creator : creator.getEntity().id,
-      trafficSourceId: typeof trafficSource === 'string' ? trafficSource : trafficSource.getEntity().id,
-      trafficTargetId: typeof trafficTarget === 'string' ? trafficTarget : trafficTarget.getEntity().id,
-      assignedTrafficUserId:
-        typeof assignedTrafficUser === 'string' ? assignedTrafficUser : assignedTrafficUser?.getEntity().id,
-      totalBudget: totalBudget.toString(),
-      pricePerAction: pricePerAction.toString(),
-      requirements:
-        typeof requirements === 'string' ? (JSON.parse(requirements) as Record<string, unknown>) : requirements,
-      status: TrafficOrderStatus.Pending,
-      currentCount: 0,
-      spentAmount: '0',
-    });
-
-    await this.em.persistAndFlush(order);
-
-    return order;
+    return this.find(
+      {
+        createdAt: { $gte: startDate, $lte: endDate },
+      },
+      { populate: ['orderSources', 'orderTargets'] },
+    );
   }
 
   async updateStatus(orderId: string, status: TrafficOrderStatus): Promise<void> {
-    const order = await this.findByOrderId(orderId);
+    const em = this.em.fork();
+    const order = await em.findOne(TrafficOrderEntity, { orderId });
     if (order) {
       order.status = status;
       if (status === TrafficOrderStatus.Completed) {
         order.completedAt = new Date();
       }
 
-      await this.em.flush();
+      await em.flush();
     }
   }
 
   async updateProgress(orderId: string, currentCount: number): Promise<void> {
-    const order = await this.findByOrderId(orderId);
+    const em = this.em.fork();
+    const order = await em.findOne(TrafficOrderEntity, { orderId });
     if (order) {
       order.currentCount = currentCount;
       if (currentCount >= order.targetCount) {
@@ -144,33 +121,37 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
         order.completedAt = new Date();
       }
 
-      await this.em.flush();
+      await em.flush();
     }
   }
 
   async updateSpentAmount(orderId: string, amount: number): Promise<void> {
-    const order = await this.findByOrderId(orderId);
+    const em = this.em.fork();
+    const order = await em.findOne(TrafficOrderEntity, { orderId });
     if (order) {
       order.spentAmount = amount.toString();
-      await this.em.flush();
+      await em.flush();
     }
   }
 
   async assignUser(orderId: string, trafficUserId: string): Promise<void> {
-    const order = await this.findByOrderId(orderId);
+    const em = this.em.fork();
+    const order = await em.findOne(TrafficOrderEntity, { orderId });
     if (order) {
-      order.assignedTrafficUser = ref(this.em.getReference(TrafficUserEntity, trafficUserId));
+      const trafficUser = em.getReference(TrafficUserEntity, trafficUserId);
+      order.assignedTrafficUser = { getEntity: () => trafficUser } as typeof order.assignedTrafficUser;
       order.status = TrafficOrderStatus.InProgress;
-      await this.em.flush();
+      await em.flush();
     }
   }
 
   async unassignUser(orderId: string): Promise<void> {
-    const order = await this.findByOrderId(orderId);
+    const em = this.em.fork();
+    const order = await em.findOne(TrafficOrderEntity, { orderId });
     if (order) {
       order.assignedTrafficUser = undefined;
       order.status = TrafficOrderStatus.Pending;
-      await this.em.flush();
+      await em.flush();
     }
   }
 

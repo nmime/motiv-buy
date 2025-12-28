@@ -6,3 +6,4 @@
 export * from './payment.service';
 export * from './payment-provider.factory';
 export * from './provider-routing.service';
+export * from './payment-event.service';

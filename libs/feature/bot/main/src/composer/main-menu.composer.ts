@@ -8,6 +8,7 @@ import { MenuService } from '../service/menu.service';
 import { AuthUserService } from '@app/feature-auth-shared';
 import { BalanceDto, BalanceQueryService } from '@app/feature-balance-shared';
 import { UserEntity, UserRole, UserStatus } from '@app/database';
+import { PaymentConfigService } from '@app/feature-payment-shared';
 
 /**
  * Main Menu Composer
@@ -29,9 +30,14 @@ export class MainMenuComposer {
     private readonly menuService: MenuService,
     private readonly authUserService: AuthUserService,
     private readonly balanceQueryService: BalanceQueryService,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {
     this.composer = new Composer<BotContext>();
     this.setupComposer();
+  }
+
+  private get currencySymbol(): string {
+    return this.paymentConfigService.getBaseCurrencySymbol();
   }
 
   /**
@@ -529,7 +535,7 @@ export class MainMenuComposer {
       },
       {
         text: balance
-          ? `${ctx.t('menu.main_menu.btn_balance')} ($${balance.availableAmount.toFixed(2)})`
+          ? `${ctx.t('menu.main_menu.btn_balance')} (${this.currencySymbol}${balance.availableAmount.toFixed(2)})`
           : ctx.t('menu.main_menu.btn_balance'),
         callbackData: 'balance:view',
         metadata: { feature: 'balance', hasData: !!balance },
@@ -627,7 +633,7 @@ export class MainMenuComposer {
     const parts = [];
 
     if (balance && balance.availableAmount > 0) {
-      parts.push(`${ctx.t('balance.title')}: $${balance.availableAmount.toFixed(2)}`);
+      parts.push(`${ctx.t('balance.title')}: ${this.currencySymbol}${balance.availableAmount.toFixed(2)}`);
     }
 
     if (user.status === UserStatus.Active) {

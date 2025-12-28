@@ -74,21 +74,25 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
       requiresApproval: false,
     });
 
-    await this.em.persistAndFlush(trafficTarget);
+    const em = this.em.fork();
+    em.persist(trafficTarget);
+    await em.flush();
 
     return trafficTarget;
   }
 
   async updatePricing(id: string, pricePerMember: number): Promise<void> {
-    const target = await this.findOne({ id });
+    const em = this.em.fork();
+    const target = await em.findOne(TrafficTargetEntity, { id });
     if (target) {
       target.pricePerMember = pricePerMember.toString();
-      await this.em.flush();
+      await em.flush();
     }
   }
 
   async updateMemberLimits(id: string, minMembers?: number, maxMembers?: number): Promise<void> {
-    const target = await this.findOne({ id });
+    const em = this.em.fork();
+    const target = await em.findOne(TrafficTargetEntity, { id });
     if (target) {
       if (minMembers !== undefined) {
         target.minMembers = minMembers;
@@ -98,23 +102,25 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
         target.maxMembers = maxMembers;
       }
 
-      await this.em.flush();
+      await em.flush();
     }
   }
 
   async deactivateTarget(id: string): Promise<void> {
-    const target = await this.findOne({ id });
+    const em = this.em.fork();
+    const target = await em.findOne(TrafficTargetEntity, { id });
     if (target) {
       target.status = TrafficTargetStatus.Inactive;
-      await this.em.flush();
+      await em.flush();
     }
   }
 
   async activateTarget(id: string): Promise<void> {
-    const target = await this.findOne({ id });
+    const em = this.em.fork();
+    const target = await em.findOne(TrafficTargetEntity, { id });
     if (target) {
       target.status = TrafficTargetStatus.Active;
-      await this.em.flush();
+      await em.flush();
     }
   }
 
@@ -122,10 +128,11 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
    * Suspend target - set status to Suspended
    */
   async suspendTarget(id: string): Promise<void> {
-    const target = await this.findOne({ id });
+    const em = this.em.fork();
+    const target = await em.findOne(TrafficTargetEntity, { id });
     if (target) {
       target.status = TrafficTargetStatus.Suspended;
-      await this.em.flush();
+      await em.flush();
     }
   }
 
@@ -133,10 +140,11 @@ export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntit
    * Set target to pending verification
    */
   async setPendingVerification(id: string): Promise<void> {
-    const target = await this.findOne({ id });
+    const em = this.em.fork();
+    const target = await em.findOne(TrafficTargetEntity, { id });
     if (target) {
       target.status = TrafficTargetStatus.PendingVerification;
-      await this.em.flush();
+      await em.flush();
     }
   }
 

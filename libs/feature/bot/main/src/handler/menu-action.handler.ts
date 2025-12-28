@@ -92,7 +92,20 @@ export class MenuActionHandler {
    * Create profile menu keyboard
    */
   createProfileMenuKeyboard(ctx: BotContext): InlineKeyboard {
-    return new InlineKeyboard().text(ctx.t('common.back'), 'menu:main');
+    return new InlineKeyboard()
+      .text(ctx.t('referral.my_referrals'), 'profile:referrals')
+      .row()
+      .text(ctx.t('common.back'), 'menu:main');
+  }
+
+  /**
+   * Create referrals view keyboard with share button
+   */
+  createReferralsViewKeyboard(ctx: BotContext, referralLink: string): InlineKeyboard {
+    return new InlineKeyboard()
+      .url(ctx.t('referral.share'), `https://t.me/share/url?url=${encodeURIComponent(referralLink)}`)
+      .row()
+      .text(ctx.t('common.back'), 'profile:view');
   }
 
   /**
@@ -123,17 +136,44 @@ export class MenuActionHandler {
   }
 
   /**
-   * Create orders menu keyboard
+   * Create orders menu keyboard (simplified like sources)
    */
   createOrdersMenuKeyboard(ctx: BotContext): InlineKeyboard {
     return new InlineKeyboard()
-      .text(ctx.t('orders.btn_active'), 'orders:active')
-      .text(ctx.t('orders.btn_completed'), 'orders:completed')
-      .row()
+      .text(ctx.t('orders.btn_my_orders'), 'orders:list')
       .text(ctx.t('orders.btn_new'), 'orders:create')
-      .text(ctx.t('orders.btn_search'), 'orders:search')
       .row()
       .text(ctx.t('common.back'), 'menu:main');
+  }
+
+  /**
+   * Create orders list keyboard (like traffic sources)
+   */
+  createOrdersListKeyboard(
+    ctx: BotContext,
+    orders: Array<{ orderId: string; type: string; status: string; targetName: string }>,
+  ): InlineKeyboard {
+    const keyboard = new InlineKeyboard();
+
+    const statusEmojis: Record<string, string> = {
+      pending: '⏳',
+      active: '✅',
+      paused: '⏸️',
+      in_progress: '🔄',
+      completed: '✔️',
+      cancelled: '❌',
+      failed: '💥',
+    };
+
+    orders.forEach((order) => {
+      const emoji = statusEmojis[order.status] ?? '❓';
+      keyboard.text(`${emoji} ${order.targetName}`, `order:details:${order.orderId}`).row();
+    });
+
+    keyboard.text(ctx.t('orders.btn_new'), 'order:create:start').row();
+    keyboard.text(ctx.t('common.back'), 'menu:buy_traffic');
+
+    return keyboard;
   }
 
   /**
@@ -240,9 +280,10 @@ export class MenuActionHandler {
       .text(ctx.t('common.buttons.edit'), `traffic:source:edit:${sourceId}`)
       .text(ctx.t('traffic.toggle_status'), `traffic:source:toggle:${sourceId}`)
       .row()
+      .text(ctx.t('traffic.category.change_category'), `traffic:source:chgcat:${sourceId}`)
       .text(ctx.t('common.statistics'), `traffic:source:stats:${sourceId}`)
-      .text(ctx.t('common.buttons.delete'), `traffic:source:delete:${sourceId}`)
       .row()
+      .text(ctx.t('common.buttons.delete'), `traffic:source:delete:${sourceId}`)
       .text(ctx.t('common.back'), 'traffic:sources');
   }
 

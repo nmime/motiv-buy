@@ -15,7 +15,9 @@ export class PaymentProviderRepository {
    * Find provider by type
    */
   async findByProvider(provider: PaymentProvider): Promise<PaymentProviderEntity | null> {
-    return this.em.findOne(PaymentProviderEntity, {
+    const em = this.em.fork();
+
+    return em.findOne(PaymentProviderEntity, {
       provider,
       isEnabled: true,
     });
@@ -25,7 +27,9 @@ export class PaymentProviderRepository {
    * Get all active providers
    */
   async findAllActive(): Promise<PaymentProviderEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       PaymentProviderEntity,
       {
         isEnabled: true,
@@ -41,7 +45,9 @@ export class PaymentProviderRepository {
    * Get all enabled providers (including maintenance mode)
    */
   async findAllEnabled(): Promise<PaymentProviderEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       PaymentProviderEntity,
       {
         isEnabled: true,
@@ -56,7 +62,9 @@ export class PaymentProviderRepository {
    * Get providers that support deposits
    */
   async findDepositProviders(): Promise<PaymentProviderEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       PaymentProviderEntity,
       {
         isEnabled: true,
@@ -73,7 +81,9 @@ export class PaymentProviderRepository {
    * Get providers that support withdrawals
    */
   async findWithdrawalProviders(): Promise<PaymentProviderEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       PaymentProviderEntity,
       {
         isEnabled: true,
@@ -90,7 +100,9 @@ export class PaymentProviderRepository {
    * Get providers with Telegram integration
    */
   async findTelegramProviders(): Promise<PaymentProviderEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       PaymentProviderEntity,
       {
         isEnabled: true,
@@ -107,7 +119,9 @@ export class PaymentProviderRepository {
    * Get providers with fiat conversion support
    */
   async findFiatProviders(): Promise<PaymentProviderEntity[]> {
-    return this.em.find(
+    const em = this.em.fork();
+
+    return em.find(
       PaymentProviderEntity,
       {
         isEnabled: true,
@@ -127,20 +141,21 @@ export class PaymentProviderRepository {
     data: Required<Pick<PaymentProviderEntity, 'provider' | 'displayName' | 'providerType'>> &
       Partial<Omit<PaymentProviderEntity, 'provider' | 'displayName' | 'providerType'>>,
   ): Promise<PaymentProviderEntity> {
-    let entity = await this.em.findOne(PaymentProviderEntity, {
+    const em = this.em.fork();
+    let entity = await em.findOne(PaymentProviderEntity, {
       provider: data.provider,
     });
 
     if (entity) {
       // Update existing
-      this.em.assign(entity, data);
+      em.assign(entity, data);
     } else {
       // Create new using entity constructor which properly handles defaults
       entity = new PaymentProviderEntity(data as ConstructorParameters<typeof PaymentProviderEntity>[0]);
-      this.em.persist(entity);
+      em.persist(entity);
     }
 
-    await this.em.flush();
+    await em.flush();
 
     return entity;
   }
@@ -149,14 +164,15 @@ export class PaymentProviderRepository {
    * Update provider status
    */
   async updateStatus(provider: PaymentProvider, status: ProviderStatus): Promise<PaymentProviderEntity | null> {
-    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return null;
     }
 
     entity.status = status;
-    await this.em.flush();
+    await em.flush();
 
     return entity;
   }
@@ -165,14 +181,15 @@ export class PaymentProviderRepository {
    * Enable/disable provider
    */
   async setEnabled(provider: PaymentProvider, enabled: boolean): Promise<PaymentProviderEntity | null> {
-    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return null;
     }
 
     entity.isEnabled = enabled;
-    await this.em.flush();
+    await em.flush();
 
     return entity;
   }
@@ -181,14 +198,15 @@ export class PaymentProviderRepository {
    * Update provider priority
    */
   async updatePriority(provider: PaymentProvider, priority: number): Promise<PaymentProviderEntity | null> {
-    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return null;
     }
 
     entity.priority = priority;
-    await this.em.flush();
+    await em.flush();
 
     return entity;
   }
@@ -197,14 +215,15 @@ export class PaymentProviderRepository {
    * Update reliability score
    */
   async updateReliabilityScore(provider: PaymentProvider, score: number): Promise<PaymentProviderEntity | null> {
-    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return null;
     }
 
     entity.reliabilityScore = Math.max(0, Math.min(100, score));
-    await this.em.flush();
+    await em.flush();
 
     return entity;
   }
@@ -213,7 +232,9 @@ export class PaymentProviderRepository {
    * Get provider configuration with relationships
    */
   async findWithRelations(provider: PaymentProvider): Promise<PaymentProviderEntity | null> {
-    return this.em.findOne(
+    const em = this.em.fork();
+
+    return em.findOne(
       PaymentProviderEntity,
       { provider },
       {
@@ -226,13 +247,14 @@ export class PaymentProviderRepository {
    * Delete provider configuration (use with caution)
    */
   async delete(provider: PaymentProvider): Promise<boolean> {
-    const entity = await this.em.findOne(PaymentProviderEntity, { provider });
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
 
     if (!entity) {
       return false;
     }
 
-    await this.em.removeAndFlush(entity);
+    await em.removeAndFlush(entity);
 
     return true;
   }

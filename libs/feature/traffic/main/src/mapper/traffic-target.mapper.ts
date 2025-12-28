@@ -67,8 +67,9 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
     }
 
     const target = new TrafficTargetEntity(targetData);
-    this.em.persist(target);
-    await this.em.flush();
+    const em = this.em.fork();
+    em.persist(target);
+    await em.flush();
 
     this.logger.log(`Traffic target created with ID: ${target.id}`);
 
@@ -104,9 +105,10 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
   async update(id: string, data: Partial<TrafficTargetEntity>): Promise<TrafficTargetEntity> {
     this.logger.log(`Updating traffic target: ${id}`);
 
-    const target = await this.trafficTargetRepository.findOneOrFail({ id });
-    this.trafficTargetRepository.assign(target, data);
-    await this.em.flush();
+    const em = this.em.fork();
+    const target = await em.findOneOrFail(TrafficTargetEntity, { id });
+    em.assign(target, data);
+    await em.flush();
 
     this.logger.log(`Traffic target updated: ${id}`);
 
@@ -116,9 +118,10 @@ export class TrafficTargetMapper implements ITrafficTargetRepository {
   async deactivate(id: string): Promise<void> {
     this.logger.log(`Deactivating traffic target: ${id}`);
 
-    const target = await this.trafficTargetRepository.findOneOrFail({ id });
+    const em = this.em.fork();
+    const target = await em.findOneOrFail(TrafficTargetEntity, { id });
     target.status = TrafficTargetStatus.Inactive;
-    await this.em.flush();
+    await em.flush();
 
     this.logger.log(`Traffic target deactivated: ${id}`);
   }

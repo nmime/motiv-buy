@@ -1,5 +1,11 @@
 {
   "title": "My Orders",
+  "list_title": "📋 <b>My Orders</b>\n\n",
+  "list_count": "Total: {count} order(s)\n\n",
+  "no_orders": "<i>No orders yet. Click \"New Order\" to create one!</i>",
+  "menu_description": "Manage your traffic orders here.",
+  "btn_my_orders": "📋 My Orders",
+  "status_label": "Status",
   "stats_title": "Order Statistics",
   "active_count": "Active",
   "completed_count": "Completed",
@@ -76,11 +82,15 @@
     "number_too_large": "Number is too large. Maximum is 1,000,000."
   },
   "status": {
+    "pending": "Pending",
     "active": "Active",
     "paused": "Paused",
+    "in_progress": "In Progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "failed": "Failed",
     "moderation": "Under moderation",
     "rejected": "Rejected",
-    "completed": "Completed",
     "deleted": "Deleted",
     "unknown": "Unknown"
   },
@@ -211,7 +221,6 @@
   "btn_confirm": "✅ Confirm",
   "invalid_order_data": "❌ Invalid order data. Please try again.",
   "invalid_order_type": "❌ Invalid order type.",
-  "no_traffic_source": "❌ You need to create a traffic source first.\n\nGo to Traffic → Sources to add one.",
   "order_created": "Order Created Successfully!",
   "order_pending": "Your order is now pending moderation.",
   "btn_view_orders": "📋 View My Orders",

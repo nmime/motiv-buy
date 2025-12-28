@@ -328,6 +328,17 @@ export function createLocationKeyboard(ctx: BotContext, orderId: string): Inline
 export function createViewOrderKeyboard(ctx: BotContext, order: Order): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
+  // Check if order is in terminal state
+  const terminalStatuses = [OrderStatus.Completed, OrderStatus.Deleted, OrderStatus.Rejected];
+  const isTerminal = terminalStatuses.includes(order.status);
+
+  // For terminal orders, only show back button
+  if (isTerminal) {
+    keyboard.text(ctx.t('orders.view.btn_back_to_list'), 'order:list');
+
+    return keyboard;
+  }
+
   // View channel button
   if (order.channel.username) {
     keyboard.url(ctx.t('orders.config.btn_view_channel'), `https://t.me/${order.channel.username}`).row();

@@ -6,6 +6,7 @@ export * from './UserRefLink.repository';
 export * from './UserSettings.repository';
 export * from './UserSourceVisit.repository';
 export * from './TrafficSource.repository';
+export * from './TrafficSourceCategory.repository';
 export * from './TrafficTarget.repository';
 export * from './TrafficUser.repository';
 export * from './TrafficOrder.repository';

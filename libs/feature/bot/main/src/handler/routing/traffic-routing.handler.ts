@@ -95,9 +95,12 @@ export class TrafficRoutingHandler {
   }
 
   /**
-   * Route shortened traffic actions (for delete confirmations within 64-byte callback limit)
+   * Route shortened traffic actions (for 64-byte callback limit)
    * Format: traf:src:del:Y:<id> or traf:src:del:N:<id> (source delete confirm/cancel)
    * Format: traf:tgt:del:Y:<id> or traf:tgt:del:N:<id> (target delete confirm/cancel)
+   * Format: traf:sc:<categoryType> (set category - sourceId from session)
+   * Format: traf:cp:<page> (category page change - sourceId from session)
+   * Format: traf:cv:<sourceId> (cancel/view source - go back from category selection)
    */
   async routeTrafficShortAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
     if (!isAuthenticated(ctx)) {
@@ -106,7 +109,52 @@ export class TrafficRoutingHandler {
       return;
     }
 
-    // action = 'src' or 'tgt', params = ['del', 'Y'/'N', '<id>']
+    // Handle category-related short actions
+    // sourceId is stored in session.formData during category change flow
+    const formData = ctx.session?.formData as { sourceId?: string } | undefined;
+    const sessionSourceId = formData?.sourceId;
+
+    const categoryHandlers: Record<string, () => Promise<void>> = {
+      ct: async () => {
+        // Toggle category: traf:ct:<categoryType>
+        const [categoryType] = params;
+
+        if (categoryType) {
+          await this.trafficHandler.handleCategoryToggle(ctx, categoryType);
+        }
+      },
+      cd: async () => {
+        // Done/save categories: traf:cd
+        await this.trafficHandler.handleCategorySave(ctx);
+      },
+      cp: async () => {
+        // Category page: traf:cp:<page>
+        const [pageStr] = params;
+        const page = parseInt(pageStr, 10) || 0;
+
+        if (sessionSourceId) {
+          await this.trafficHandler.handleCategoryEditPageChange(ctx, sessionSourceId, page);
+        }
+      },
+      cv: async () => {
+        // Cancel/view source: traf:cv:<sourceId>
+        const [sourceId] = params;
+
+        if (sourceId) {
+          await this.trafficHandler.handleTrafficSourceView(ctx, sourceId);
+        }
+      },
+    };
+
+    const categoryHandler = categoryHandlers[action];
+
+    if (categoryHandler) {
+      await categoryHandler();
+
+      return;
+    }
+
+    // Handle delete confirmation actions: traf:src:del:... or traf:tgt:del:...
     const [operation, confirmFlag, entityId] = params;
 
     if (operation !== 'del' || !entityId) {
@@ -115,7 +163,7 @@ export class TrafficRoutingHandler {
 
     const isConfirm = confirmFlag === 'Y';
 
-    const shortActionHandlers: Record<string, () => Promise<void>> = {
+    const deleteHandlers: Record<string, () => Promise<void>> = {
       src: async () => {
         if (isConfirm) {
           await this.trafficHandler.handleTrafficSourceDeleteConfirm(ctx, entityId);
@@ -132,10 +180,10 @@ export class TrafficRoutingHandler {
       },
     };
 
-    const handler = shortActionHandlers[action];
+    const deleteHandler = deleteHandlers[action];
 
-    if (handler) {
-      await handler();
+    if (deleteHandler) {
+      await deleteHandler();
     }
   }
 
@@ -148,6 +196,33 @@ export class TrafficRoutingHandler {
 
       return;
     }
+
+    // Handle category page navigation: traffic:source:catpage:<page>
+    if (subAction === 'catpage') {
+      const page = parseInt(rest[0], 10) || 0;
+      await this.trafficHandler.handleCategoryPageChange(ctx, page);
+
+      return;
+    }
+
+    // Handle category selection for new source: traffic:source:category:<categoryType>
+    if (subAction === 'category') {
+      const [categoryType] = rest;
+      await this.trafficHandler.handleCategorySelect(ctx, categoryType);
+
+      return;
+    }
+
+    // Handle change category start: traffic:source:chgcat:<sourceId>
+    if (subAction === 'chgcat') {
+      const [sourceId] = rest;
+      await this.trafficHandler.handleCategoryChangeStart(ctx, sourceId);
+
+      return;
+    }
+
+    // Note: setcat and catpg are now handled via short format (traf:ct, traf:cp)
+    // in routeTrafficShortAction method
 
     const [sourceId] = rest;
 

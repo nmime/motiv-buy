@@ -1,10 +1,10 @@
 import { Collection, Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Ref } from '@mikro-orm/core';
 import { assignEntityData, EntityConstructorData, TrafficSourceConfig } from '../type';
 import { UserEntity } from './User.entity';
-import type { TrafficOrderEntity } from './TrafficOrder.entity';
 import type { TrafficUserEntity } from './TrafficUser.entity';
 import type { TrafficActionsEntity } from './TrafficActions.entity';
 import type { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategories.entity';
+import type { TrafficOrderSourceEntity } from './junction/TrafficOrderSource.entity';
 
 export enum TrafficSourceType {
   Bot = 'bot',
@@ -79,9 +79,6 @@ export class TrafficSourceEntity {
   @ManyToOne('UserEntity', { nullable: true, joinColumn: 'managed_by_id', referenceColumnName: 'id', ref: true })
   managedBy?: Ref<UserEntity>;
 
-  @OneToMany('TrafficOrderEntity', 'trafficSource')
-  orders? = new Collection<TrafficOrderEntity>(this);
-
   @OneToMany('TrafficUserEntity', 'trafficSource')
   trafficUsers? = new Collection<TrafficUserEntity>(this);
 
@@ -90,6 +87,10 @@ export class TrafficSourceEntity {
 
   @OneToMany('TrafficSourceCategoriesEntity', 'trafficSource')
   categories? = new Collection<TrafficSourceCategoriesEntity>(this);
+
+  /** Junction: Orders that use this source (M:M via TrafficOrderSource) */
+  @OneToMany('TrafficOrderSourceEntity', 'trafficSource')
+  orderAssignments? = new Collection<TrafficOrderSourceEntity>(this);
 
   constructor(data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt', never, 'managedBy'>) {
     assignEntityData(this as Record<string, unknown>, data, {

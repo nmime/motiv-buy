@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
-import { TrafficOrderStatus } from './traffic-purchase.dto';
+import { TrafficOrderStatus } from '@app/database';
 
 /**
  * Traffic order DTO representing a traffic purchase order

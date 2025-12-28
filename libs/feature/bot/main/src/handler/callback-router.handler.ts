@@ -469,6 +469,9 @@ export class CallbackRouterHandler {
       orderCreate: async () => {
         await this.orderHandler.handleOrderCreateInput(ctx, messageText);
       },
+      depositAmount: async () => {
+        await this.balanceHandler.handleDepositAmount(ctx, messageText);
+      },
     };
 
     const handler = conversationHandlers[conversationState];

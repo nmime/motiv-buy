@@ -6,12 +6,16 @@ import {
   TrafficOrderRequirements,
   TrafficOrderStatus,
   TrafficOrderType,
+  TrafficOrderSourceEntity,
+  TrafficOrderSourceStatus,
+  TrafficOrderTargetEntity,
+  TrafficOrderTargetStatus,
   TrafficSourceEntity,
   TrafficTargetEntity,
   TrafficUserEntity,
   UserEntity,
 } from '@app/database';
-import { ITrafficOrderRepository } from '../repository';
+import { ITrafficOrderRepository, OrderSourceAssignment, OrderTargetAssignment } from '../repository';
 import { randomBytes } from 'crypto';
 import { sum, toDisplayString } from '@app/common-shared';
 
@@ -33,6 +37,10 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
     private readonly trafficTargetRepository: EntityRepository<TrafficTargetEntity>,
     @InjectRepository(TrafficUserEntity)
     private readonly trafficUserRepository: EntityRepository<TrafficUserEntity>,
+    @InjectRepository(TrafficOrderSourceEntity)
+    private readonly orderSourceRepository: EntityRepository<TrafficOrderSourceEntity>,
+    @InjectRepository(TrafficOrderTargetEntity)
+    private readonly orderTargetRepository: EntityRepository<TrafficOrderTargetEntity>,
     private readonly em: EntityManager,
   ) {}
 
@@ -49,33 +57,17 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
     startDate?: Date;
     endDate?: Date;
     creatorId: string;
-    trafficSourceId: string;
-    trafficTargetId: string;
     assignedTrafficUserId?: string;
     createdById?: string;
+    sources?: OrderSourceAssignment[];
+    targets?: OrderTargetAssignment[];
   }): Promise<TrafficOrderEntity> {
     this.logger.log(`Creating traffic order: ${data.orderId}`);
 
-    interface CreateOrderData {
-      orderId: string;
-      type: TrafficOrderType;
-      status: TrafficOrderStatus;
-      targetCount: number;
-      pricePerAction: string;
-      totalBudget: string;
-      description?: string;
-      targetUrl?: string;
-      requirements?: TrafficOrderRequirements;
-      startDate?: Date;
-      endDate?: Date;
-      creatorId: string;
-      trafficSourceId: string;
-      trafficTargetId: string;
-      assignedTrafficUserId?: string;
-      createdById?: string;
-    }
+    const em = this.em.fork();
 
-    const orderData: CreateOrderData = {
+    // Create the order
+    const order = new TrafficOrderEntity({
       orderId: data.orderId,
       type: data.type,
       status: data.status,
@@ -88,21 +80,49 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
       startDate: data.startDate,
       endDate: data.endDate,
       creatorId: data.creatorId,
-      trafficSourceId: data.trafficSourceId,
-      trafficTargetId: data.trafficTargetId,
-    };
+      assignedTrafficUserId: data.assignedTrafficUserId,
+      createdById: data.createdById,
+    });
 
-    if (data.assignedTrafficUserId) {
-      orderData.assignedTrafficUserId = data.assignedTrafficUserId;
+    em.persist(order);
+    await em.flush();
+
+    // Add sources via junction table
+    if (data.sources && data.sources.length > 0) {
+      for (const source of data.sources) {
+        const orderSource = new TrafficOrderSourceEntity({
+          trafficOrderId: order.id,
+          trafficSourceId: source.trafficSourceId,
+          allocatedCount: source.allocatedCount,
+          allocatedBudget: source.allocatedBudget,
+          pricePerAction: source.pricePerAction,
+          isPrimary: source.isPrimary ?? false,
+          status: TrafficOrderSourceStatus.Pending,
+        });
+
+        em.persist(orderSource);
+      }
     }
 
-    if (data.createdById) {
-      orderData.createdById = data.createdById;
+    // Add targets via junction table
+    if (data.targets && data.targets.length > 0) {
+      for (const target of data.targets) {
+        const orderTarget = new TrafficOrderTargetEntity({
+          trafficOrderId: order.id,
+          trafficTargetId: target.trafficTargetId,
+          allocatedCount: target.allocatedCount,
+          allocatedBudget: target.allocatedBudget,
+          pricePerAction: target.pricePerAction,
+          targetUrl: target.targetUrl,
+          isPrimary: target.isPrimary ?? false,
+          status: TrafficOrderTargetStatus.Pending,
+        });
+
+        em.persist(orderTarget);
+      }
     }
 
-    const order = new TrafficOrderEntity(orderData);
-    this.em.persist(order);
-    await this.em.flush();
+    await em.flush();
 
     this.logger.log(`Traffic order created with ID: ${order.id}`);
 
@@ -112,14 +132,14 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
   async findById(id: string): Promise<TrafficOrderEntity | null> {
     return this.trafficOrderRepository.findOne(
       { id },
-      { populate: ['creator', 'trafficSource', 'trafficTarget', 'assignedTrafficUser', 'createdBy'] },
+      { populate: ['creator', 'assignedTrafficUser', 'createdBy', 'orderSources', 'orderTargets'] },
     );
   }
 
   async findByOrderId(orderId: string): Promise<TrafficOrderEntity | null> {
     return this.trafficOrderRepository.findOne(
       { orderId },
-      { populate: ['creator', 'trafficSource', 'trafficTarget', 'assignedTrafficUser', 'createdBy'] },
+      { populate: ['creator', 'assignedTrafficUser', 'createdBy', 'orderSources', 'orderTargets'] },
     );
   }
 
@@ -127,37 +147,53 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
     return this.trafficOrderRepository.find(
       { creator: creatorId },
       {
-        populate: ['creator', 'trafficSource', 'trafficTarget', 'assignedTrafficUser'],
+        populate: ['creator', 'assignedTrafficUser', 'orderSources', 'orderTargets'],
         orderBy: { createdAt: 'DESC' },
       },
     );
   }
 
   async findByTrafficSource(trafficSourceId: string): Promise<TrafficOrderEntity[]> {
-    return this.trafficOrderRepository.find(
+    const orderSources = await this.orderSourceRepository.find(
       { trafficSource: trafficSourceId },
-      {
-        populate: ['creator', 'trafficSource', 'trafficTarget', 'assignedTrafficUser'],
-        orderBy: { createdAt: 'DESC' },
-      },
+      { populate: ['trafficOrder'] },
     );
+
+    const orders = await Promise.all(
+      orderSources.map(async (os) => {
+        const order = os.trafficOrder.getEntity();
+        await this.em.populate(order, ['creator', 'assignedTrafficUser', 'orderSources', 'orderTargets']);
+
+        return order;
+      }),
+    );
+
+    return orders;
   }
 
   async findByTrafficTarget(trafficTargetId: string): Promise<TrafficOrderEntity[]> {
-    return this.trafficOrderRepository.find(
+    const orderTargets = await this.orderTargetRepository.find(
       { trafficTarget: trafficTargetId },
-      {
-        populate: ['creator', 'trafficSource', 'trafficTarget', 'assignedTrafficUser'],
-        orderBy: { createdAt: 'DESC' },
-      },
+      { populate: ['trafficOrder'] },
     );
+
+    const orders = await Promise.all(
+      orderTargets.map(async (ot) => {
+        const order = ot.trafficOrder.getEntity();
+        await this.em.populate(order, ['creator', 'assignedTrafficUser', 'orderSources', 'orderTargets']);
+
+        return order;
+      }),
+    );
+
+    return orders;
   }
 
   async findByStatus(status: TrafficOrderStatus): Promise<TrafficOrderEntity[]> {
     return this.trafficOrderRepository.find(
       { status },
       {
-        populate: ['creator', 'trafficSource', 'trafficTarget', 'assignedTrafficUser'],
+        populate: ['creator', 'assignedTrafficUser', 'orderSources', 'orderTargets'],
         orderBy: { createdAt: 'DESC' },
       },
     );
@@ -170,7 +206,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
         status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress, TrafficOrderStatus.Pending] },
       },
       {
-        populate: ['creator', 'trafficSource', 'trafficTarget', 'assignedTrafficUser'],
+        populate: ['creator', 'assignedTrafficUser', 'orderSources', 'orderTargets'],
         orderBy: { createdAt: 'DESC' },
       },
     );
@@ -179,9 +215,10 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
   async update(id: string, data: Partial<TrafficOrderEntity>): Promise<TrafficOrderEntity> {
     this.logger.log(`Updating traffic order: ${id}`);
 
-    const order = await this.trafficOrderRepository.findOneOrFail({ id });
-    this.trafficOrderRepository.assign(order, data);
-    await this.em.flush();
+    const em = this.em.fork();
+    const order = await em.findOneOrFail(TrafficOrderEntity, { id });
+    em.assign(order, data);
+    await em.flush();
 
     this.logger.log(`Traffic order updated: ${id}`);
 
@@ -191,7 +228,8 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
   async updateProgress(orderId: string, currentCount: number, spentAmount: string): Promise<void> {
     this.logger.log(`Updating order progress: ${orderId}, count: ${currentCount}, spent: ${spentAmount}`);
 
-    const order = await this.trafficOrderRepository.findOneOrFail({ orderId });
+    const em = this.em.fork();
+    const order = await em.findOneOrFail(TrafficOrderEntity, { orderId });
     order.currentCount = currentCount;
     order.spentAmount = spentAmount;
 
@@ -201,17 +239,18 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
       order.completedAt = new Date();
     }
 
-    await this.em.flush();
+    await em.flush();
     this.logger.log(`Order progress updated: ${orderId}`);
   }
 
   async complete(orderId: string): Promise<void> {
     this.logger.log(`Completing order: ${orderId}`);
 
-    const order = await this.trafficOrderRepository.findOneOrFail({ orderId });
+    const em = this.em.fork();
+    const order = await em.findOneOrFail(TrafficOrderEntity, { orderId });
     order.status = TrafficOrderStatus.Completed;
     order.completedAt = new Date();
-    await this.em.flush();
+    await em.flush();
 
     this.logger.log(`Order completed: ${orderId}`);
   }
@@ -219,9 +258,10 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
   async cancel(orderId: string): Promise<void> {
     this.logger.log(`Cancelling order: ${orderId}`);
 
-    const order = await this.trafficOrderRepository.findOneOrFail({ orderId });
+    const em = this.em.fork();
+    const order = await em.findOneOrFail(TrafficOrderEntity, { orderId });
     order.status = TrafficOrderStatus.Cancelled;
-    await this.em.flush();
+    await em.flush();
 
     this.logger.log(`Order cancelled: ${orderId}`);
   }
@@ -271,5 +311,88 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
       completedOrders,
       totalSpent,
     };
+  }
+
+  async addSource(orderId: string, source: OrderSourceAssignment): Promise<void> {
+    this.logger.log(`Adding source ${source.trafficSourceId} to order ${orderId}`);
+
+    const em = this.em.fork();
+    const order = await em.findOneOrFail(TrafficOrderEntity, { orderId });
+
+    const orderSource = new TrafficOrderSourceEntity({
+      trafficOrderId: order.id,
+      trafficSourceId: source.trafficSourceId,
+      allocatedCount: source.allocatedCount,
+      allocatedBudget: source.allocatedBudget,
+      pricePerAction: source.pricePerAction,
+      isPrimary: source.isPrimary ?? false,
+      status: TrafficOrderSourceStatus.Pending,
+    });
+
+    em.persist(orderSource);
+    await em.flush();
+
+    this.logger.log(`Source added to order: ${orderId}`);
+  }
+
+  async addTarget(orderId: string, target: OrderTargetAssignment): Promise<void> {
+    this.logger.log(`Adding target ${target.trafficTargetId} to order ${orderId}`);
+
+    const em = this.em.fork();
+    const order = await em.findOneOrFail(TrafficOrderEntity, { orderId });
+
+    const orderTarget = new TrafficOrderTargetEntity({
+      trafficOrderId: order.id,
+      trafficTargetId: target.trafficTargetId,
+      allocatedCount: target.allocatedCount,
+      allocatedBudget: target.allocatedBudget,
+      pricePerAction: target.pricePerAction,
+      targetUrl: target.targetUrl,
+      isPrimary: target.isPrimary ?? false,
+      status: TrafficOrderTargetStatus.Pending,
+    });
+
+    em.persist(orderTarget);
+    await em.flush();
+
+    this.logger.log(`Target added to order: ${orderId}`);
+  }
+
+  async removeSource(orderId: string, trafficSourceId: string): Promise<void> {
+    this.logger.log(`Removing source ${trafficSourceId} from order ${orderId}`);
+
+    const em = this.em.fork();
+    const order = await em.findOneOrFail(TrafficOrderEntity, { orderId });
+
+    const orderSource = await em.findOne(TrafficOrderSourceEntity, {
+      trafficOrder: order.id,
+      trafficSource: trafficSourceId,
+    });
+
+    if (orderSource) {
+      em.remove(orderSource);
+      await em.flush();
+    }
+
+    this.logger.log(`Source removed from order: ${orderId}`);
+  }
+
+  async removeTarget(orderId: string, trafficTargetId: string): Promise<void> {
+    this.logger.log(`Removing target ${trafficTargetId} from order ${orderId}`);
+
+    const em = this.em.fork();
+    const order = await em.findOneOrFail(TrafficOrderEntity, { orderId });
+
+    const orderTarget = await em.findOne(TrafficOrderTargetEntity, {
+      trafficOrder: order.id,
+      trafficTarget: trafficTargetId,
+    });
+
+    if (orderTarget) {
+      em.remove(orderTarget);
+      await em.flush();
+    }
+
+    this.logger.log(`Target removed from order: ${orderId}`);
   }
 }

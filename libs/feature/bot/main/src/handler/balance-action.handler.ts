@@ -17,10 +17,12 @@ import {
   TransactionType,
 } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
-import { decimal, lessThan, toDisplayString, toError } from '@app/common-shared';
+import { add, decimal, lessThan, multiply, toDisplayString, toError } from '@app/common-shared';
 import { MessageService } from '../service/message.service';
 import { InlineKeyboard } from 'grammy';
 import { PaymentService } from '@app/feature-payment-main';
+import { CurrencyRateService } from '@app/feature-currency-shared';
+import { PaymentConfigService } from '@app/feature-payment-shared';
 
 @Injectable()
 export class BalanceActionHandler {
@@ -32,7 +34,13 @@ export class BalanceActionHandler {
     private readonly messageService: MessageService,
     private readonly paymentService: PaymentService,
     private readonly providerCurrencyRepo: ProviderCurrencyRepository,
+    private readonly currencyRateService: CurrencyRateService,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {}
+
+  private get currencySymbol(): string {
+    return this.paymentConfigService.getBaseCurrencySymbol();
+  }
 
   /**
    * Handle balance view action
@@ -113,14 +121,28 @@ export class BalanceActionHandler {
   }
 
   /**
-   * Handle withdrawal initiation
+   * Handle withdrawal initiation - checks USD balance
    */
   async handleWithdrawalStart(ctx: AuthenticatedBotContext): Promise<void> {
     try {
       const balances = await this.getUserBalances(ctx.user.id);
-      const availableBalance = balances.length > 0 ? balances[0].getAvailableBalance() : decimal(0);
 
-      if (lessThan(availableBalance, decimal(10))) {
+      // Calculate total available balance in USD
+      let totalAvailableUsd = decimal(0);
+
+      for (const balance of balances) {
+        // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
+        const currency = await balance.currency.load();
+        if (!currency) {
+          continue;
+        }
+
+        const availableBalance = decimal(balance.getAvailableBalance());
+        const rateToUsd = decimal(currency.rateToUsd);
+        totalAvailableUsd = add(totalAvailableUsd, multiply(availableBalance, rateToUsd));
+      }
+
+      if (lessThan(totalAvailableUsd, decimal(10))) {
         await ctx.answerCallbackQuery({
           text: ctx.t('balance.insufficient_funds'),
           show_alert: true,
@@ -137,7 +159,7 @@ export class BalanceActionHandler {
       const currencyKeyboard = await this.createCurrencySelectionKeyboard(ctx, balances);
 
       await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('balance.withdrawal_prompt'),
+        text: ctx.t('balance.withdrawal_prompt_usd', { availableUsd: toDisplayString(totalAvailableUsd, 2) }),
         parseMode: 'HTML',
         replyMarkup: currencyKeyboard,
       });
@@ -173,7 +195,7 @@ export class BalanceActionHandler {
   async handleDepositCurrency(ctx: AuthenticatedBotContext, currency: CurrencyCode): Promise<void> {
     try {
       if (ctx.session) {
-        ctx.session.conversationState = 'deposit_amount';
+        ctx.session.conversationState = 'depositAmount';
         ctx.session.formData = { currency, step: 'enter_amount' };
       }
 
@@ -222,10 +244,14 @@ export class BalanceActionHandler {
         return;
       }
 
+      // Convert to USD equivalent
+      const usdAmountResult = await this.currencyRateService.convertAmount(amount, currency, CurrencyCode.Usd);
+      const usdAmount = usdAmountResult.err ? amount : usdAmountResult.val;
+
       const result = await this.paymentService.createTopUp(ctx.user.id, {
         amount,
         currency,
-        description: `Deposit ${amount} ${currency}`,
+        description: `Deposit ${amount} ${currency} (~${this.currencySymbol}${toDisplayString(usdAmount, 2)})`,
       });
 
       if (result.err) {
@@ -248,7 +274,7 @@ export class BalanceActionHandler {
         .text(ctx.t('common.back'), 'balance:view');
 
       await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('balance.deposit_success', { amount, currency }),
+        text: ctx.t('balance.deposit_success_with_usd', { amount, currency, usdAmount: toDisplayString(usdAmount, 2) }),
         parseMode: 'HTML',
         replyMarkup: keyboard,
       });
@@ -258,6 +284,7 @@ export class BalanceActionHandler {
         invoiceId: invoice.id,
         amount,
         currency,
+        usdAmount,
       });
     } catch (error) {
       this.logger.error('Error handling deposit amount', { error: toError(error) });
@@ -360,15 +387,17 @@ export class BalanceActionHandler {
   }
 
   /**
-   * Format balance view
+   * Format balance view - shows unified USD balance
    */
   private async formatBalanceView(ctx: AuthenticatedBotContext, balances: UserBalanceEntity[]): Promise<string> {
     if (balances.length === 0) {
       return ctx.t('balance.no_balances_found');
     }
 
-    let text = ctx.t('balance.your_balance') + '\n\n';
+    let totalAvailableUsd = decimal(0);
+    let totalLockedUsd = decimal(0);
 
+    // Convert all currency balances to USD
     for (const balance of balances) {
       // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
       const currency = await balance.currency.load();
@@ -376,26 +405,32 @@ export class BalanceActionHandler {
         continue;
       }
 
-      const availableBalanceDisplay = toDisplayString(balance.getAvailableBalance(), 8);
-      const lockedBalanceDisplay = toDisplayString(balance.getLockedBalance(), 8);
-      const totalBalanceDisplay = toDisplayString(balance.getTotalBalance(), 8);
+      const availableBalance = decimal(balance.getAvailableBalance());
+      const lockedBalance = decimal(balance.getLockedBalance());
 
-      const currencySymbol = currency.symbol ?? currency.code;
+      // Convert to USD using rateToUsd (1 crypto = X USD)
+      const rateToUsd = decimal(currency.rateToUsd);
+      const availableInUsd = multiply(availableBalance, rateToUsd);
+      const lockedInUsd = multiply(lockedBalance, rateToUsd);
 
-      text +=
-        `<b>${currency.code}:</b>\n` +
-        `  ${ctx.t('balance.available')}: ${availableBalanceDisplay} ${currencySymbol}\n` +
-        `  ${ctx.t('balance.locked')}: ${lockedBalanceDisplay} ${currencySymbol}\n` +
-        `  ${ctx.t('balance.total')}: ${totalBalanceDisplay} ${currencySymbol}\n\n`;
+      totalAvailableUsd = add(totalAvailableUsd, availableInUsd);
+      totalLockedUsd = add(totalLockedUsd, lockedInUsd);
     }
 
+    const totalBalanceUsd = add(totalAvailableUsd, totalLockedUsd);
+
+    const symbol = this.currencySymbol;
+    let text = ctx.t('balance.your_balance') + '\n\n';
+    text += `${ctx.t('balance.available')}: <b>${symbol}${toDisplayString(totalAvailableUsd, 2)}</b>\n`;
+    text += `${ctx.t('balance.locked')}: <b>${symbol}${toDisplayString(totalLockedUsd, 2)}</b>\n`;
+    text += `${ctx.t('balance.total')}: <b>${symbol}${toDisplayString(totalBalanceUsd, 2)}</b>\n\n`;
     text += ctx.t('balance.balance_buttons_hint');
 
     return text;
   }
 
   /**
-   * Format transaction history
+   * Format transaction history - shows USD amounts
    */
   private async formatTransactionHistory(
     ctx: AuthenticatedBotContext,
@@ -409,12 +444,26 @@ export class BalanceActionHandler {
       const currencyCode = tx.currency;
       const amount = decimal(tx.amount);
       const isPositive = amount.greaterThanOrEqualTo(0);
-      const amountText = isPositive ? `+${toDisplayString(amount, 8)}` : toDisplayString(amount, 8);
+
+      // Convert to USD for display
+      // eslint-disable-next-line no-await-in-loop -- Sequential processing needed for each transaction
+      const usdAmountResult = await this.currencyRateService.convertAmount(
+        amount.abs().toString(),
+        currencyCode as CurrencyCode,
+        CurrencyCode.Usd,
+      );
+
+      const usdAmount = usdAmountResult.err ? amount.abs() : decimal(usdAmountResult.val);
+      const symbol = this.currencySymbol;
+      const usdAmountText = isPositive
+        ? `+${symbol}${toDisplayString(usdAmount, 2)}`
+        : `-${symbol}${toDisplayString(usdAmount, 2)}`;
+
       const emoji = isPositive ? '📈' : '📉';
 
       text +=
         `${emoji} <b>${tx.type}</b>\n` +
-        `  ${ctx.t('balance.amount')}: ${amountText} ${currencyCode}\n` +
+        `  ${ctx.t('balance.amount')}: ${usdAmountText}\n` +
         `  ${ctx.t('balance.date')}: ${this.messageService.formatDateTime(ctx, tx.createdAt)}\n` +
         (tx.description ? `  ${ctx.t('balance.note')}: ${tx.description}\n` : '') +
         `\n`;
@@ -486,7 +535,8 @@ export class BalanceActionHandler {
   }
 
   async handleWithdrawalHistory(ctx: AuthenticatedBotContext): Promise<void> {
-    const history = await this.em.find(
+    const em = this.em.fork();
+    const history = await em.find(
       UserBalanceHistoryEntity,
       { user: ctx.user.id, type: TransactionType.Withdrawal },
       { orderBy: { createdAt: 'DESC' }, limit: 10 },
@@ -522,7 +572,8 @@ export class BalanceActionHandler {
   }
 
   async handleDepositHistory(ctx: AuthenticatedBotContext): Promise<void> {
-    const history = await this.em.find(
+    const em = this.em.fork();
+    const history = await em.find(
       UserBalanceHistoryEntity,
       { user: ctx.user.id, type: TransactionType.Deposit },
       { orderBy: { createdAt: 'DESC' }, limit: 10 },
@@ -544,7 +595,8 @@ export class BalanceActionHandler {
   }
 
   async handleBalanceAnalytics(ctx: AuthenticatedBotContext): Promise<void> {
-    const history = await this.em.find(
+    const em = this.em.fork();
+    const history = await em.find(
       UserBalanceHistoryEntity,
       { user: ctx.user.id },
       { orderBy: { createdAt: 'DESC' }, limit: 100 },
@@ -562,9 +614,10 @@ export class BalanceActionHandler {
       }
     }
 
+    const symbol = this.currencySymbol;
     let text = ctx.t('balance.analytics_title');
-    text += `\n• ${ctx.t('balance.total_income')}: $${toDisplayString(totalIncome, 2)}`;
-    text += `\n• ${ctx.t('balance.total_expense')}: $${toDisplayString(totalExpense, 2)}`;
+    text += `\n• ${ctx.t('balance.total_income')}: ${symbol}${toDisplayString(totalIncome, 2)}`;
+    text += `\n• ${ctx.t('balance.total_expense')}: ${symbol}${toDisplayString(totalExpense, 2)}`;
     text += `\n• ${ctx.t('balance.transactions_count')}: ${history.length}`;
 
     await this.messageService.sendOrEditMessage(ctx, {

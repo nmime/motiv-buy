@@ -9,6 +9,7 @@ import { YooKassaProvider } from './provider/yookassa.provider';
 import { PaymentProviderFactory } from './service/payment-provider.factory';
 import { ProviderRoutingService } from './service/provider-routing.service';
 import { PaymentService } from './service/payment.service';
+import { PaymentEventService } from './service/payment-event.service';
 
 /**
  * Payment Shared Module
@@ -31,6 +32,7 @@ import { PaymentService } from './service/payment.service';
     PaymentProviderFactory,
     ProviderRoutingService,
     PaymentService,
+    PaymentEventService,
   ],
   exports: [
     PaymentConfigModule,
@@ -43,6 +45,7 @@ import { PaymentService } from './service/payment.service';
     PaymentProviderFactory,
     ProviderRoutingService,
     PaymentService,
+    PaymentEventService,
   ],
 })
 export class PaymentSharedModule {}

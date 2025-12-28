@@ -20,6 +20,7 @@ import { OrderManagementHandler } from './order.management.handler';
 import { OrderConfigHandler } from './order.config.handler';
 import { OrderEditHandler } from './order.edit.handler';
 import { MessageService } from '../../service/message.service';
+import { PaymentConfigService } from '@app/feature-payment-shared';
 
 @Injectable()
 export class OrderHandler {
@@ -35,12 +36,13 @@ export class OrderHandler {
   constructor(
     private readonly orderService: BotOrderService,
     private readonly messageService: MessageService,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {
     // Initialize sub-handlers
     this.creationHandler = new OrderCreationHandler(orderService, messageService);
     this.managementHandler = new OrderManagementHandler(orderService, messageService);
     this.configHandler = new OrderConfigHandler(orderService, messageService);
-    this.editHandler = new OrderEditHandler(orderService, messageService);
+    this.editHandler = new OrderEditHandler(orderService, messageService, paymentConfigService);
 
     // Create main composer
     this.composer = new Composer<BotContext>();

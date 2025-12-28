@@ -52,24 +52,28 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
       status: data.status,
     });
 
-    await this.em.persistAndFlush(trafficSource);
+    const em = this.em.fork();
+    em.persist(trafficSource);
+    await em.flush();
 
     return trafficSource;
   }
 
   async updateConfig(id: string, config: TrafficSourceConfig): Promise<void> {
-    const source = await this.findOne({ id });
+    const em = this.em.fork();
+    const source = await em.findOne(TrafficSourceEntity, { id });
     if (source) {
       source.config = config;
-      await this.em.flush();
+      await em.flush();
     }
   }
 
   async deactivateSource(id: string): Promise<void> {
-    const source = await this.findOne({ id });
+    const em = this.em.fork();
+    const source = await em.findOne(TrafficSourceEntity, { id });
     if (source) {
       source.status = TrafficSourceStatus.Inactive;
-      await this.em.flush();
+      await em.flush();
     }
   }
 
@@ -85,10 +89,11 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
    * Approve source - set status to Active
    */
   async approveSource(id: string): Promise<void> {
-    const source = await this.findOne({ id });
+    const em = this.em.fork();
+    const source = await em.findOne(TrafficSourceEntity, { id });
     if (source) {
       source.status = TrafficSourceStatus.Active;
-      await this.em.flush();
+      await em.flush();
     }
   }
 
@@ -96,10 +101,11 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
    * Decline source - set status to Declined
    */
   async declineSource(id: string): Promise<void> {
-    const source = await this.findOne({ id });
+    const em = this.em.fork();
+    const source = await em.findOne(TrafficSourceEntity, { id });
     if (source) {
       source.status = TrafficSourceStatus.Declined;
-      await this.em.flush();
+      await em.flush();
     }
   }
 
@@ -140,7 +146,8 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
    * Also stores first 8 chars as prefix for fast indexed lookup
    */
   async setApiKey(sourceId: string, apiKey: string): Promise<void> {
-    const source = await this.findOne({ id: sourceId });
+    const em = this.em.fork();
+    const source = await em.findOne(TrafficSourceEntity, { id: sourceId });
     if (!source) {
       throw new Error(`Traffic source with id ${sourceId} not found`);
     }
@@ -151,7 +158,7 @@ export class TrafficSourceRepository extends EntityRepository<TrafficSourceEntit
     // Store hash and prefix (first 8 chars for indexed lookup)
     source.apiKeyHash = hashedKey;
     source.apiKeyPrefix = apiKey.substring(0, 8);
-    await this.em.flush();
+    await em.flush();
   }
 
   /**

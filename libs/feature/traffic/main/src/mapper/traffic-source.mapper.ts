@@ -56,8 +56,9 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
     }
 
     const source = new TrafficSourceEntity(sourceData);
-    this.em.persist(source);
-    await this.em.flush();
+    const em = this.em.fork();
+    em.persist(source);
+    await em.flush();
 
     this.logger.log(`Traffic source created with ID: ${source.id}`);
 
@@ -93,9 +94,10 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
   async update(id: string, data: Partial<TrafficSourceEntity>): Promise<TrafficSourceEntity> {
     this.logger.log(`Updating traffic source: ${id}`);
 
-    const source = await this.trafficSourceRepository.findOneOrFail({ id });
-    this.trafficSourceRepository.assign(source, data);
-    await this.em.flush();
+    const em = this.em.fork();
+    const source = await em.findOneOrFail(TrafficSourceEntity, { id });
+    em.assign(source, data);
+    await em.flush();
 
     this.logger.log(`Traffic source updated: ${id}`);
 
@@ -105,9 +107,10 @@ export class TrafficSourceMapper implements ITrafficSourceRepository {
   async deactivate(id: string): Promise<void> {
     this.logger.log(`Deactivating traffic source: ${id}`);
 
-    const source = await this.trafficSourceRepository.findOneOrFail({ id });
+    const em = this.em.fork();
+    const source = await em.findOneOrFail(TrafficSourceEntity, { id });
     source.status = TrafficSourceStatus.Inactive;
-    await this.em.flush();
+    await em.flush();
 
     this.logger.log(`Traffic source deactivated: ${id}`);
   }

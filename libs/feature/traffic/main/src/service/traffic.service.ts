@@ -34,6 +34,10 @@ import {
   TrafficOrderRepository,
   TrafficOrderStatus,
   TrafficOrderType,
+  TrafficOrderSourceEntity,
+  TrafficOrderSourceStatus,
+  TrafficOrderTargetEntity,
+  TrafficOrderTargetStatus,
   TrafficSourceEntity,
   TrafficSourceRepository,
   TrafficSourceType,
@@ -456,15 +460,22 @@ export class TrafficService {
 
     return Promise.all(
       orders.map(async (order) => {
-        const target = await order.trafficTarget.load();
+        // Get primary target from junction table
+        const orderTargets = order.orderTargets?.getItems() ?? [];
+        const primaryOrderTarget = orderTargets.find((ot) => ot.isPrimary) ?? orderTargets[0];
+        if (!primaryOrderTarget) {
+          throw new NotFoundException(`Traffic target not found for order ${order.orderId}`);
+        }
+
+        const target = primaryOrderTarget.trafficTarget?.getEntity();
         if (!target) {
           throw new NotFoundException(`Traffic target not found for order ${order.orderId}`);
         }
 
-        const source = await order.trafficSource.load();
-        if (!source) {
-          throw new NotFoundException(`Traffic source not found for order ${order.orderId}`);
-        }
+        // Get primary source from junction table (optional)
+        const orderSources = order.orderSources?.getItems() ?? [];
+        const primaryOrderSource = orderSources.find((os) => os.isPrimary) ?? orderSources[0];
+        const source = primaryOrderSource?.trafficSource?.getEntity();
 
         return this.mapOrderToResponseDto(order, target, source);
       }),
@@ -486,15 +497,22 @@ export class TrafficService {
       throw new ForbiddenException('Access denied');
     }
 
-    const target = await order.trafficTarget.load();
+    // Get primary target from junction table
+    const orderTargets = order.orderTargets?.getItems() ?? [];
+    const primaryOrderTarget = orderTargets.find((ot) => ot.isPrimary) ?? orderTargets[0];
+    if (!primaryOrderTarget) {
+      throw new NotFoundException('Traffic target not found for order');
+    }
+
+    const target = primaryOrderTarget.trafficTarget?.getEntity();
     if (!target) {
       throw new NotFoundException('Traffic target not found for order');
     }
 
-    const source = await order.trafficSource.load();
-    if (!source) {
-      throw new NotFoundException('Traffic source not found for order');
-    }
+    // Get primary source from junction table (optional)
+    const orderSources = order.orderSources?.getItems() ?? [];
+    const primaryOrderSource = orderSources.find((os) => os.isPrimary) ?? orderSources[0];
+    const source = primaryOrderSource?.trafficSource?.getEntity();
 
     return this.mapOrderToResponseDto(order, target, source);
   }
@@ -539,15 +557,22 @@ export class TrafficService {
 
     const updatedOrder = await this.updateOrder(order.id, updateData);
 
-    const target = await updatedOrder.trafficTarget.load();
+    // Get primary target from junction table
+    const orderTargets = updatedOrder.orderTargets?.getItems() ?? [];
+    const primaryOrderTarget = orderTargets.find((ot) => ot.isPrimary) ?? orderTargets[0];
+    if (!primaryOrderTarget) {
+      throw new NotFoundException('Traffic target not found for order');
+    }
+
+    const target = primaryOrderTarget.trafficTarget?.getEntity();
     if (!target) {
       throw new NotFoundException('Traffic target not found for order');
     }
 
-    const source = await updatedOrder.trafficSource.load();
-    if (!source) {
-      throw new NotFoundException('Traffic source not found for order');
-    }
+    // Get primary source from junction table (optional)
+    const orderSources = updatedOrder.orderSources?.getItems() ?? [];
+    const primaryOrderSource = orderSources.find((os) => os.isPrimary) ?? orderSources[0];
+    const source = primaryOrderSource?.trafficSource?.getEntity();
 
     return this.mapOrderToResponseDto(updatedOrder, target, source);
   }
@@ -679,7 +704,8 @@ export class TrafficService {
     id: string,
     data: { isActive?: boolean; config?: Record<string, unknown> },
   ): Promise<void> {
-    const source = await this.findSourceById(id);
+    const em = this.em.fork();
+    const source = await em.findOne(TrafficSourceEntity, { id });
     if (!source) {
       throw new NotFoundException('Traffic source not found');
     }
@@ -692,7 +718,7 @@ export class TrafficService {
       source.config = data.config;
     }
 
-    await this.em.flush();
+    await em.flush();
   }
 
   /**
@@ -776,7 +802,8 @@ export class TrafficService {
    * Update order
    */
   private async updateOrder(id: string, data: Partial<TrafficOrderEntity>): Promise<TrafficOrderEntity> {
-    const order = await this.trafficOrderRepository.findOne({ id });
+    const em = this.em.fork();
+    const order = await em.findOne(TrafficOrderEntity, { id });
     if (!order) {
       throw new NotFoundException('Order not found');
     }
@@ -793,7 +820,7 @@ export class TrafficService {
       order.totalBudget = data.totalBudget;
     }
 
-    await this.em.flush();
+    await em.flush();
 
     return order;
   }
@@ -820,7 +847,7 @@ export class TrafficService {
   }
 
   /**
-   * Create traffic order entity
+   * Create traffic order entity with junction table entries
    */
   private async createOrderEntity(data: {
     orderId: string;
@@ -852,6 +879,7 @@ export class TrafficService {
       throw new NotFoundException('Traffic target not found');
     }
 
+    // Create order without direct source/target references (use junction tables)
     const order = new TrafficOrderEntity({
       orderId: data.orderId,
       type: data.type,
@@ -865,14 +893,45 @@ export class TrafficService {
       currentCount: 0,
       spentAmount: '0',
       creatorId: data.creatorId,
-      trafficSourceId: data.trafficSourceId,
-      trafficTargetId: data.trafficTargetId,
       createdById: data.createdById,
     });
 
-    await this.em.persistAndFlush(order);
+    this.em.persist(order);
+    await this.em.flush();
 
-    return order;
+    // Create junction table entries for source and target
+    const orderSource = new TrafficOrderSourceEntity({
+      trafficOrderId: order.id,
+      trafficSourceId: data.trafficSourceId,
+      allocatedCount: data.targetCount,
+      allocatedBudget: data.totalBudget,
+      pricePerAction: data.pricePerAction,
+      isPrimary: true,
+      status: TrafficOrderSourceStatus.Pending,
+    });
+
+    const orderTarget = new TrafficOrderTargetEntity({
+      trafficOrderId: order.id,
+      trafficTargetId: data.trafficTargetId,
+      allocatedCount: data.targetCount,
+      allocatedBudget: data.totalBudget,
+      pricePerAction: data.pricePerAction,
+      targetUrl: data.targetUrl,
+      isPrimary: true,
+      status: TrafficOrderTargetStatus.Pending,
+    });
+
+    this.em.persist(orderSource);
+    this.em.persist(orderTarget);
+    await this.em.flush();
+
+    // Reload order with populated junction tables
+    const reloadedOrder = await this.trafficOrderRepository.findByOrderId(order.orderId);
+    if (!reloadedOrder) {
+      throw new NotFoundException('Order not found after creation');
+    }
+
+    return reloadedOrder;
   }
 
   private extractUsernameFromUrl(url: string): string {
@@ -912,7 +971,7 @@ export class TrafficService {
   private mapOrderToResponseDto(
     order: TrafficOrderEntity,
     target: TrafficTargetEntity,
-    source: TrafficSourceEntity, // eslint-disable-line @typescript-eslint/no-unused-vars -- Source parameter is kept for future use when we need to include source-specific data
+    source?: TrafficSourceEntity, // eslint-disable-line @typescript-eslint/no-unused-vars -- Source parameter is kept for future use when we need to include source-specific data
   ): TrafficOrderResponseDto {
     const progressPercentage = order.targetCount > 0 ? toNumber(percentage(order.currentCount, order.targetCount)) : 0;
 

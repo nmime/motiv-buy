@@ -1,14 +1,15 @@
 import { Collection, Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Ref } from '@mikro-orm/core';
 import { assignEntityData, EntityConstructorData, TrafficOrderRequirements } from '../type';
 import { UserEntity } from './User.entity';
-import { TrafficSourceEntity } from './TrafficSource.entity';
-import { TrafficTargetEntity } from './TrafficTarget.entity';
 import { TrafficUserEntity } from './TrafficUser.entity';
 import type { TrafficActionsEntity } from './TrafficActions.entity';
+import type { TrafficOrderSourceEntity } from './junction/TrafficOrderSource.entity';
+import type { TrafficOrderTargetEntity } from './junction/TrafficOrderTarget.entity';
 
 export enum TrafficOrderStatus {
   Pending = 'pending',
   Active = 'active',
+  Paused = 'paused',
   Completed = 'completed',
   Cancelled = 'cancelled',
   Failed = 'failed',
@@ -31,8 +32,6 @@ export enum TrafficOrderType {
 @Index({ name: 'ix__traffic_orders__type', properties: ['type'] })
 @Index({ name: 'ix__traffic_orders__created_at', properties: ['createdAt'] })
 @Index({ name: 'ix__traffic_orders__creator_id', properties: ['creator'] })
-@Index({ name: 'ix__traffic_orders__traffic_source_id', properties: ['trafficSource'] })
-@Index({ name: 'ix__traffic_orders__traffic_target_id', properties: ['trafficTarget'] })
 @Index({ name: 'ix__traffic_orders__assigned_traffic_user_id', properties: ['assignedTrafficUser'] })
 @Index({ name: 'ix__traffic_orders__created_by', properties: ['createdBy'] })
 export class TrafficOrderEntity {
@@ -92,22 +91,6 @@ export class TrafficOrderEntity {
   @ManyToOne('UserEntity', { nullable: false, joinColumn: 'creator_id', referenceColumnName: 'id', ref: true })
   creator!: Ref<UserEntity>;
 
-  @ManyToOne('TrafficSourceEntity', {
-    nullable: false,
-    joinColumn: 'traffic_source_id',
-    referenceColumnName: 'id',
-    ref: true,
-  })
-  trafficSource!: Ref<TrafficSourceEntity>;
-
-  @ManyToOne('TrafficTargetEntity', {
-    nullable: false,
-    joinColumn: 'traffic_target_id',
-    referenceColumnName: 'id',
-    ref: true,
-  })
-  trafficTarget!: Ref<TrafficTargetEntity>;
-
   @ManyToOne('TrafficUserEntity', {
     nullable: true,
     joinColumn: 'assigned_traffic_user_id',
@@ -122,12 +105,20 @@ export class TrafficOrderEntity {
   @OneToMany('TrafficActionsEntity', 'trafficOrder')
   actions? = new Collection<TrafficActionsEntity>(this);
 
+  /** Junction: Multiple sources can be assigned to this order */
+  @OneToMany('TrafficOrderSourceEntity', 'trafficOrder')
+  orderSources? = new Collection<TrafficOrderSourceEntity>(this);
+
+  /** Junction: Multiple targets can be assigned to this order */
+  @OneToMany('TrafficOrderTargetEntity', 'trafficOrder')
+  orderTargets? = new Collection<TrafficOrderTargetEntity>(this);
+
   constructor(
     data: EntityConstructorData<
       TrafficOrderEntity,
       'id' | 'createdAt' | 'updatedAt',
       'currentCount' | 'spentAmount',
-      'creator' | 'trafficSource' | 'trafficTarget' | 'assignedTrafficUser' | 'createdBy'
+      'creator' | 'assignedTrafficUser' | 'createdBy'
     >,
   ) {
     assignEntityData(this as Record<string, unknown>, data, {
@@ -136,21 +127,8 @@ export class TrafficOrderEntity {
         entityClass: UserEntity,
         required: true,
       },
-      trafficSourceId: {
-        field: 'trafficSource',
-
-        entityClass: TrafficSourceEntity,
-        required: true,
-      },
-      trafficTargetId: {
-        field: 'trafficTarget',
-
-        entityClass: TrafficTargetEntity,
-        required: true,
-      },
       assignedTrafficUserId: {
         field: 'assignedTrafficUser',
-
         entityClass: TrafficUserEntity,
         required: false,
       },

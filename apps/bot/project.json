@@ -42,10 +42,10 @@
     "serve": {
       "executor": "@nx/js:node",
       "defaultConfiguration": "development",
-      "dependsOn": ["build"],
       "options": {
         "buildTarget": "bot:build",
-        "watch": true
+        "watch": true,
+        "runBuildTargetDependencies": false
       },
       "configurations": {
         "development": {

@@ -21,6 +21,7 @@ import {
 import { decimal, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../../service/message.service';
 import { MenuActionHandler } from '../menu-action.handler';
+import { PaymentConfigService } from '@app/feature-payment-shared';
 
 @Injectable()
 export class MiscMenuHandler {
@@ -30,7 +31,12 @@ export class MiscMenuHandler {
     private readonly orm: MikroORM,
     private readonly messageService: MessageService,
     private readonly menuActionHandler: MenuActionHandler,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {}
+
+  private get currencySymbol(): string {
+    return this.paymentConfigService.getBaseCurrencySymbol();
+  }
 
   private get em() {
     return this.orm.em.fork();
@@ -58,7 +64,7 @@ export class MiscMenuHandler {
     const recentCampaigns = await this.em.find(
       TrafficOrderEntity,
       { creator: ctx.user.id },
-      { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['trafficTarget'] },
+      { orderBy: { createdAt: 'DESC' }, limit: 5, populate: ['orderTargets', 'orderTargets.trafficTarget'] },
     );
 
     const totalSpent = recentCampaigns.reduce((acc, order) => {
@@ -70,7 +76,7 @@ export class MiscMenuHandler {
     text += `• ${ctx.t('campaign.active')}: ${active}\n`;
     text += `• ${ctx.t('common.completed')}: ${completed}\n`;
     text += `• ${ctx.t('common.total')}: ${total}\n`;
-    text += `• ${ctx.t('common.total_spent')}: $${toDisplayString(totalSpent, 2)}\n\n`;
+    text += `• ${ctx.t('common.total_spent')}: ${this.currencySymbol}${toDisplayString(totalSpent, 2)}\n\n`;
 
     if (recentCampaigns.length > 0) {
       text += `<b>${ctx.t('campaign.recent')}:</b>\n`;
@@ -78,6 +84,7 @@ export class MiscMenuHandler {
         const statusEmoji =
           {
             [TrafficOrderStatus.Active]: '✅',
+            [TrafficOrderStatus.Paused]: '⏸️',
             [TrafficOrderStatus.InProgress]: '🔄',
             [TrafficOrderStatus.Completed]: '✔️',
             [TrafficOrderStatus.Pending]: '⏳',
@@ -118,7 +125,7 @@ ${ctx.t('referral.description')}
 
 <b>📊 ${ctx.t('referral.stats_title')}:</b>
 • ${ctx.t('referral.invited')}: 0
-• ${ctx.t('referral.earned')}: $0.00
+• ${ctx.t('referral.earned')}: ${this.currencySymbol}0.00
 
 <i>${ctx.t('referral.share_hint')}</i>`;
 
@@ -266,34 +273,19 @@ ${ctx.t('payment.description')}
   }
 
   async handleOrdersMenu(ctx: AuthenticatedBotContext): Promise<void> {
-    const [activeCount, completedCount, totalCount] = await Promise.all([
-      this.em.count(TrafficOrderEntity, {
-        creator: ctx.user.id,
-        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-      }),
-      this.em.count(TrafficOrderEntity, {
-        creator: ctx.user.id,
-        status: TrafficOrderStatus.Completed,
-      }),
-      this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
-    ]);
+    const totalCount = await this.em.count(TrafficOrderEntity, { creator: ctx.user.id });
 
     const text = `<b>📦 ${ctx.t('orders.title')}</b>
 
-<b>📊 ${ctx.t('orders.stats_title')}:</b>
-• ${ctx.t('orders.active_count')}: ${activeCount}
-• ${ctx.t('orders.completed_count')}: ${completedCount}
-• ${ctx.t('orders.total_count')}: ${totalCount}
+${ctx.t('orders.menu_description', { default: 'Manage your traffic orders here.' })}
+
+<b>📊 ${ctx.t('orders.total_count')}:</b> ${totalCount}
 
 <i>${ctx.t('common.select_action')}:</i>`;
 
     const keyboard = new InlineKeyboard()
+      .text(ctx.t('orders.btn_my_orders'), 'orders:list')
       .text(ctx.t('orders.btn_new'), 'order:create:start')
-      .row()
-      .text(ctx.t('orders.btn_active'), 'orders:active')
-      .text(ctx.t('orders.btn_completed'), 'orders:completed')
-      .row()
-      .text(ctx.t('orders.btn_search'), 'orders:search')
       .row()
       .text(ctx.t('common.back'), 'menu:main');
 

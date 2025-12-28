@@ -5,21 +5,12 @@ import { Cryptocurrency, PaymentStatus } from '@app/database';
 import { IPaymentProvider, PaymentBalance, PaymentInvoice, PaymentTransaction, PaymentTransfer } from '../interface';
 import { PaymentConfigService } from '../config';
 
-/**
- * CryptoBot API Response
- */
 interface CryptoPayResponse<T> {
   ok: boolean;
   result?: T;
-  error?: {
-    code: number;
-    name: string;
-  };
+  error?: { code: number; name: string };
 }
 
-/**
- * CryptoBot Invoice from API
- */
 interface CryptoPayInvoice {
   invoice_id: number;
   hash: string;
@@ -49,9 +40,6 @@ interface CryptoPayInvoice {
   paid_btn_url?: string;
 }
 
-/**
- * CryptoBot Transfer from API
- */
 interface CryptoPayTransfer {
   transfer_id: number;
   spend_id: string;
@@ -63,20 +51,37 @@ interface CryptoPayTransfer {
   comment?: string;
 }
 
-/**
- * CryptoBot Balance from API
- */
 interface CryptoPayBalance {
   currency_code: string;
   available: string;
   onhold: string;
 }
 
+const invoiceStatusMap: Record<string, PaymentStatus> = {
+  active: PaymentStatus.Pending,
+  paid: PaymentStatus.Completed,
+  expired: PaymentStatus.Expired,
+};
+
+const transferStatusMap: Record<string, PaymentStatus> = {
+  completed: PaymentStatus.Completed,
+  pending: PaymentStatus.Pending,
+};
+
+const assetToCrypto: Record<string, Cryptocurrency> = {
+  USDT: Cryptocurrency.Usdt,
+  TON: Cryptocurrency.Ton,
+  BTC: Cryptocurrency.Btc,
+  ETH: Cryptocurrency.Eth,
+  BNB: Cryptocurrency.Bnb,
+  TRX: Cryptocurrency.Trx,
+  USDC: Cryptocurrency.Usdc,
+  JET: Cryptocurrency.Jet,
+};
+
 /**
- * CryptoBot payment provider implementation using raw HTTP requests
- * Integrates with CryptoPay API for cryptocurrency payments
- *
- * API Documentation: https://help.send.tg/en/articles/10279948-crypto-pay-api
+ * CryptoBot payment provider (@CryptoBot / @CryptoTestnetBot on Telegram).
+ * API docs: https://help.send.tg/en/articles/10279948-crypto-pay-api
  */
 @Injectable()
 export class CryptoBotProvider implements IPaymentProvider {
@@ -86,21 +91,15 @@ export class CryptoBotProvider implements IPaymentProvider {
 
   constructor(private readonly paymentConfig: PaymentConfigService) {
     this.apiToken = this.paymentConfig.getCryptoBotApiToken();
-    this.baseUrl = this.paymentConfig.isTestnet() ? 'https://testnet-pay.crypt.bot/api' : 'https://pay.crypt.bot/api';
+    this.baseUrl = this.paymentConfig.getCryptoBotApiUrl();
 
     if (!this.apiToken) {
-      this.logger.warn(
-        'CryptoBotProvider initialized without API token - provider will be disabled. ' +
-          'Set CRYPTO_BOT_API_TOKEN in environment variables.',
-      );
+      this.logger.warn('No API token configured - provider disabled. Set CRYPTO_BOT_API_TOKEN.');
     } else {
-      this.logger.log(`CryptoBotProvider initialized (testnet: ${this.paymentConfig.isTestnet()})`);
+      this.logger.log(`Initialized (url: ${this.baseUrl})`);
     }
   }
 
-  /**
-   * Create payment invoice for top-up
-   */
   async createInvoice(params: {
     amount: string;
     currency: Cryptocurrency;
@@ -109,23 +108,17 @@ export class CryptoBotProvider implements IPaymentProvider {
     expiresIn?: number;
   }): AsyncResult<PaymentInvoice, Error> {
     try {
-      this.logger.log(`Creating invoice for user ${params.userId}: ${params.amount} ${params.currency}`);
+      this.logger.log(`Creating invoice: ${params.amount} ${params.currency} for user ${params.userId}`);
 
       const requestParams: Record<string, unknown> = {
         currency_type: 'crypto',
-        asset: this.mapCryptocurrencyToAsset(params.currency),
+        asset: params.currency,
         amount: params.amount,
+        ...(params.description && { description: params.description }),
+        ...(params.expiresIn && { expires_in: params.expiresIn }),
       };
 
-      if (params.description) {
-        requestParams.description = params.description;
-      }
-
-      if (params.expiresIn) {
-        requestParams.expires_in = params.expiresIn;
-      }
-
-      const response = await this.makeRequest<CryptoPayInvoice>('POST', 'createInvoice', requestParams);
+      const response = await this.request<CryptoPayInvoice>('POST', 'createInvoice', requestParams);
 
       if (!response.ok || !response.result) {
         this.logger.error('Failed to create invoice', response);
@@ -134,18 +127,18 @@ export class CryptoBotProvider implements IPaymentProvider {
       }
 
       const invoice = response.result;
-      const paymentInvoice: PaymentInvoice = {
+      const result: PaymentInvoice = {
         invoiceId: invoice.invoice_id.toString(),
         amount: invoice.amount,
-        currency: this.mapAssetToCryptocurrency(invoice.asset || 'USDT'),
+        currency: this.mapAsset(invoice.asset || 'USDT'),
         payUrl: invoice.bot_invoice_url || invoice.mini_app_invoice_url || invoice.web_app_invoice_url || '',
         expiresAt: invoice.expiration_date ? new Date(invoice.expiration_date) : undefined,
         description: invoice.description,
       };
 
-      this.logger.log(`Invoice created: ${paymentInvoice.invoiceId}`);
+      this.logger.log(`Invoice created: ${result.invoiceId}`);
 
-      return Ok(paymentInvoice);
+      return Ok(result);
     } catch (error) {
       this.logger.error('Error creating invoice', error);
 
@@ -153,36 +146,27 @@ export class CryptoBotProvider implements IPaymentProvider {
     }
   }
 
-  /**
-   * Get invoice status by ID
-   */
   async getInvoice(invoiceId: string): AsyncResult<PaymentTransaction, Error> {
     try {
-      this.logger.log(`Getting invoice: ${invoiceId}`);
-
-      const response = await this.makeRequest<{ items: CryptoPayInvoice[] }>('GET', 'getInvoices', {
+      const response = await this.request<{ items: CryptoPayInvoice[] }>('GET', 'getInvoices', {
         invoice_ids: invoiceId,
       });
 
-      if (!response.ok || !response.result || response.result.items.length === 0) {
-        this.logger.warn(`Invoice not found: ${invoiceId}`);
-
+      if (!response.ok || !response.result?.items?.length) {
         return Err(new Error(`Invoice not found: ${invoiceId}`));
       }
 
-      // eslint-disable-next-line prefer-destructuring
-      const invoice = response.result.items[0];
-      const transaction: PaymentTransaction = {
+      const [invoice] = response.result.items;
+
+      return Ok({
         transactionId: invoice.invoice_id.toString(),
         invoiceId: invoice.invoice_id.toString(),
         amount: invoice.amount,
-        currency: this.mapAssetToCryptocurrency(invoice.asset || invoice.paid_asset || 'USDT'),
-        status: this.mapStatusToPaymentStatus(invoice.status),
+        currency: this.mapAsset(invoice.asset || invoice.paid_asset || 'USDT'),
+        status: invoiceStatusMap[invoice.status] || PaymentStatus.Pending,
         paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
         fee: invoice.fee_amount,
-      };
-
-      return Ok(transaction);
+      });
     } catch (error) {
       this.logger.error(`Error getting invoice ${invoiceId}`, error);
 
@@ -190,48 +174,40 @@ export class CryptoBotProvider implements IPaymentProvider {
     }
   }
 
-  /**
-   * Get invoices history with filtering
-   */
   async getInvoices(params?: {
     status?: PaymentStatus;
     offset?: number;
     count?: number;
   }): AsyncResult<PaymentTransaction[], Error> {
     try {
-      this.logger.log('Getting invoices history', params);
+      const statusMap: Partial<Record<PaymentStatus, string>> = {
+        [PaymentStatus.Pending]: 'active',
+        [PaymentStatus.Processing]: 'active',
+        [PaymentStatus.Completed]: 'paid',
+        [PaymentStatus.Expired]: 'expired',
+      };
 
       const requestParams: Record<string, unknown> = {
         offset: params?.offset || 0,
         count: params?.count || 100,
+        ...(params?.status && statusMap[params.status] && { status: statusMap[params.status] }),
       };
 
-      if (params?.status) {
-        const apiStatus = this.mapPaymentStatusToApiStatus(params.status);
-        if (apiStatus) {
-          requestParams.status = apiStatus;
-        }
-      }
-
-      const response = await this.makeRequest<{ items: CryptoPayInvoice[] }>('GET', 'getInvoices', requestParams);
+      const response = await this.request<{ items: CryptoPayInvoice[] }>('GET', 'getInvoices', requestParams);
 
       if (!response.ok || !response.result) {
-        this.logger.error('Failed to get invoices', response);
-
         return Err(new Error(response.error?.name || 'Failed to get invoices'));
       }
 
-      const transactions: PaymentTransaction[] = response.result.items.map((invoice) => ({
-        transactionId: invoice.invoice_id.toString(),
-        invoiceId: invoice.invoice_id.toString(),
-        amount: invoice.amount,
-        currency: this.mapAssetToCryptocurrency(invoice.asset || invoice.paid_asset || 'USDT'),
-        status: this.mapStatusToPaymentStatus(invoice.status),
-        paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
-        fee: invoice.fee_amount,
+      const transactions = response.result.items.map((inv) => ({
+        transactionId: inv.invoice_id.toString(),
+        invoiceId: inv.invoice_id.toString(),
+        amount: inv.amount,
+        currency: this.mapAsset(inv.asset || inv.paid_asset || 'USDT'),
+        status: invoiceStatusMap[inv.status] || PaymentStatus.Pending,
+        paidAt: inv.paid_at ? new Date(inv.paid_at) : undefined,
+        fee: inv.fee_amount,
       }));
-
-      this.logger.log(`Retrieved ${transactions.length} invoices`);
 
       return Ok(transactions);
     } catch (error) {
@@ -241,9 +217,6 @@ export class CryptoBotProvider implements IPaymentProvider {
     }
   }
 
-  /**
-   * Create transfer for withdrawal
-   */
   async createTransfer(params: {
     userId: string;
     amount: string;
@@ -251,21 +224,17 @@ export class CryptoBotProvider implements IPaymentProvider {
     comment?: string;
   }): AsyncResult<PaymentTransfer, Error> {
     try {
-      this.logger.log(`Creating transfer for user ${params.userId}: ${params.amount} ${params.currency}`);
+      this.logger.log(`Creating transfer: ${params.amount} ${params.currency} to user ${params.userId}`);
 
       const requestParams: Record<string, unknown> = {
         user_id: parseInt(params.userId, 10),
-        asset: this.mapCryptocurrencyToAsset(params.currency),
+        asset: params.currency,
         amount: params.amount,
-        // eslint-disable-next-line sonarjs/pseudo-random
-        spend_id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        spend_id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, // eslint-disable-line sonarjs/pseudo-random
+        ...(params.comment && { comment: params.comment }),
       };
 
-      if (params.comment) {
-        requestParams.comment = params.comment;
-      }
-
-      const response = await this.makeRequest<CryptoPayTransfer>('POST', 'transfer', requestParams);
+      const response = await this.request<CryptoPayTransfer>('POST', 'transfer', requestParams);
 
       if (!response.ok || !response.result) {
         this.logger.error('Failed to create transfer', response);
@@ -274,17 +243,17 @@ export class CryptoBotProvider implements IPaymentProvider {
       }
 
       const transfer = response.result;
-      const paymentTransfer: PaymentTransfer = {
+      const result: PaymentTransfer = {
         transferId: transfer.transfer_id.toString(),
         amount: transfer.amount,
-        currency: this.mapAssetToCryptocurrency(transfer.asset),
-        status: this.mapTransferStatusToPaymentStatus(transfer.status),
+        currency: this.mapAsset(transfer.asset),
+        status: transferStatusMap[transfer.status] || PaymentStatus.Pending,
         completedAt: transfer.completed_at ? new Date(transfer.completed_at) : undefined,
       };
 
-      this.logger.log(`Transfer created: ${paymentTransfer.transferId}`);
+      this.logger.log(`Transfer created: ${result.transferId}`);
 
-      return Ok(paymentTransfer);
+      return Ok(result);
     } catch (error) {
       this.logger.error('Error creating transfer', error);
 
@@ -292,33 +261,25 @@ export class CryptoBotProvider implements IPaymentProvider {
     }
   }
 
-  /**
-   * Get transfer status by ID
-   */
   async getTransfer(transferId: string): AsyncResult<PaymentTransfer, Error> {
     try {
-      this.logger.log(`Getting transfer: ${transferId}`);
-
-      const response = await this.makeRequest<{ items: CryptoPayTransfer[] }>('GET', 'getTransfers', {
+      const response = await this.request<{ items: CryptoPayTransfer[] }>('GET', 'getTransfers', {
         transfer_ids: transferId,
       });
 
-      if (!response.ok || !response.result || response.result.items.length === 0) {
-        this.logger.warn(`Transfer not found: ${transferId}`);
-
+      if (!response.ok || !response.result?.items?.length) {
         return Err(new Error(`Transfer not found: ${transferId}`));
       }
 
       const [transfer] = response.result.items;
-      const paymentTransfer: PaymentTransfer = {
+
+      return Ok({
         transferId: transfer.transfer_id.toString(),
         amount: transfer.amount,
-        currency: this.mapAssetToCryptocurrency(transfer.asset),
-        status: this.mapTransferStatusToPaymentStatus(transfer.status),
+        currency: this.mapAsset(transfer.asset),
+        status: transferStatusMap[transfer.status] || PaymentStatus.Pending,
         completedAt: transfer.completed_at ? new Date(transfer.completed_at) : undefined,
-      };
-
-      return Ok(paymentTransfer);
+      });
     } catch (error) {
       this.logger.error(`Error getting transfer ${transferId}`, error);
 
@@ -326,35 +287,24 @@ export class CryptoBotProvider implements IPaymentProvider {
     }
   }
 
-  /**
-   * Get transfers history
-   */
   async getTransfers(params?: { offset?: number; count?: number }): AsyncResult<PaymentTransfer[], Error> {
     try {
-      this.logger.log('Getting transfers history', params);
-
-      const requestParams: Record<string, unknown> = {
+      const response = await this.request<{ items: CryptoPayTransfer[] }>('GET', 'getTransfers', {
         offset: params?.offset || 0,
         count: params?.count || 100,
-      };
-
-      const response = await this.makeRequest<{ items: CryptoPayTransfer[] }>('GET', 'getTransfers', requestParams);
+      });
 
       if (!response.ok || !response.result) {
-        this.logger.error('Failed to get transfers', response);
-
         return Err(new Error(response.error?.name || 'Failed to get transfers'));
       }
 
-      const transfers: PaymentTransfer[] = response.result.items.map((transfer) => ({
-        transferId: transfer.transfer_id.toString(),
-        amount: transfer.amount,
-        currency: this.mapAssetToCryptocurrency(transfer.asset),
-        status: this.mapTransferStatusToPaymentStatus(transfer.status),
-        completedAt: transfer.completed_at ? new Date(transfer.completed_at) : undefined,
+      const transfers = response.result.items.map((t) => ({
+        transferId: t.transfer_id.toString(),
+        amount: t.amount,
+        currency: this.mapAsset(t.asset),
+        status: transferStatusMap[t.status] || PaymentStatus.Pending,
+        completedAt: t.completed_at ? new Date(t.completed_at) : undefined,
       }));
-
-      this.logger.log(`Retrieved ${transfers.length} transfers`);
 
       return Ok(transfers);
     } catch (error) {
@@ -364,28 +314,19 @@ export class CryptoBotProvider implements IPaymentProvider {
     }
   }
 
-  /**
-   * Get account balances
-   */
   async getBalances(): AsyncResult<PaymentBalance[], Error> {
     try {
-      this.logger.log('Getting account balances');
-
-      const response = await this.makeRequest<CryptoPayBalance[]>('GET', 'getBalance');
+      const response = await this.request<CryptoPayBalance[]>('GET', 'getBalance');
 
       if (!response.ok || !response.result) {
-        this.logger.error('Failed to get balances', response);
-
         return Err(new Error(response.error?.name || 'Failed to get balances'));
       }
 
-      const balances: PaymentBalance[] = response.result.map((balance) => ({
-        currency: this.mapAssetToCryptocurrency(balance.currency_code),
-        available: balance.available,
-        onHold: balance.onhold || '0',
+      const balances = response.result.map((b) => ({
+        currency: this.mapAsset(b.currency_code),
+        available: b.available,
+        onHold: b.onhold || '0',
       }));
-
-      this.logger.log(`Retrieved ${balances.length} balances`);
 
       return Ok(balances);
     } catch (error) {
@@ -396,27 +337,20 @@ export class CryptoBotProvider implements IPaymentProvider {
   }
 
   /**
-   * Verify webhook signature
-   * According to CryptoPay documentation:
-   * secret = SHA256(token)
-   * signature = HMAC-SHA256(body, secret)
+   * Verify webhook signature using HMAC-SHA256.
+   * Secret = SHA256(token), Signature = HMAC-SHA256(body, secret)
    */
   verifyWebhook(signature: string, body: string): boolean {
     if (!this.apiToken) {
-      this.logger.warn('Cannot verify webhook signature - API token not configured');
+      this.logger.warn('Cannot verify webhook - no API token configured');
 
       return false;
     }
 
     try {
-      // Create secret from API token
       const secret = createHash('sha256').update(this.apiToken).digest();
-
-      // Create HMAC signature
-      const expectedSignature = createHmac('sha256', secret).update(body).digest('hex');
-
-      // Compare signatures
-      const isValid = signature === expectedSignature;
+      const expected = createHmac('sha256', secret).update(body).digest('hex');
+      const isValid = signature === expected;
 
       if (!isValid) {
         this.logger.warn('Invalid webhook signature');
@@ -424,52 +358,46 @@ export class CryptoBotProvider implements IPaymentProvider {
 
       return isValid;
     } catch (error) {
-      this.logger.error('Error verifying webhook signature', error);
+      this.logger.error('Error verifying webhook', error);
 
       return false;
     }
   }
 
-  /**
-   * Make HTTP request to Crypto Pay API
-   */
-  private async makeRequest<T>(
+  private async request<T>(
     method: string,
     endpoint: string,
     params?: Record<string, unknown>,
   ): Promise<CryptoPayResponse<T>> {
     if (!this.apiToken) {
-      throw new Error('CryptoBot API token not configured. Set CRYPTO_BOT_API_TOKEN in environment variables.');
+      throw new Error('CryptoBot API token not configured. Set CRYPTO_BOT_API_TOKEN.');
     }
 
     const url = `${this.baseUrl}/${endpoint}`;
+    const options: RequestInit = {
+      method,
+      headers: {
+        'Crypto-Pay-API-Token': this.apiToken,
+        'Content-Type': 'application/json',
+      },
+    };
 
     try {
-      const options: RequestInit = {
-        method,
-        headers: {
-          'Crypto-Pay-API-Token': this.apiToken,
-          'Content-Type': 'application/json',
-        },
-      };
-
       if (params && method === 'POST') {
         options.body = JSON.stringify(params);
-      } else if (params && method === 'GET') {
-        const queryString = new URLSearchParams(
-          Object.entries(params).reduce(
-            (acc, [key, value]) => {
-              if (value !== undefined && value !== null) {
-                return { ...acc, [key]: String(value) };
-              }
+        const response = await fetch(url, options);
 
-              return acc;
-            },
-            {} as Record<string, string>,
-          ),
+        return response.json();
+      }
+
+      if (params && method === 'GET') {
+        const query = new URLSearchParams(
+          Object.entries(params)
+            .filter(([, v]) => v !== undefined && v !== null)
+            .map(([k, v]) => [k, String(v)]),
         ).toString();
 
-        const fullUrl = queryString ? `${url}?${queryString}` : url;
+        const fullUrl = query ? `${url}?${query}` : url;
         const response = await fetch(fullUrl, options);
 
         return response.json();
@@ -479,74 +407,12 @@ export class CryptoBotProvider implements IPaymentProvider {
 
       return response.json();
     } catch (error) {
-      this.logger.error(`HTTP request failed: ${method} ${endpoint}`, error);
+      this.logger.error(`Request failed: ${method} ${endpoint}`, error);
       throw error;
     }
   }
 
-  /**
-   * Map Cryptocurrency enum to CryptoPay asset code
-   */
-  private mapCryptocurrencyToAsset(currency: Cryptocurrency): string {
-    return currency;
-  }
-
-  /**
-   * Map CryptoPay asset code to Cryptocurrency enum
-   */
-  private mapAssetToCryptocurrency(asset: string): Cryptocurrency {
-    const mapping: Record<string, Cryptocurrency> = {
-      USDT: Cryptocurrency.Usdt,
-      TON: Cryptocurrency.Ton,
-      BTC: Cryptocurrency.Btc,
-      ETH: Cryptocurrency.Eth,
-      BNB: Cryptocurrency.Bnb,
-      TRX: Cryptocurrency.Trx,
-      USDC: Cryptocurrency.Usdc,
-      JET: Cryptocurrency.Jet,
-    };
-
-    return mapping[asset] || Cryptocurrency.Usdt;
-  }
-
-  /**
-   * Map CryptoPay invoice status to PaymentStatus enum
-   */
-  private mapStatusToPaymentStatus(status: string): PaymentStatus {
-    const mapping: Record<string, PaymentStatus> = {
-      active: PaymentStatus.Pending,
-      paid: PaymentStatus.Completed,
-      expired: PaymentStatus.Expired,
-    };
-
-    return mapping[status] || PaymentStatus.Pending;
-  }
-
-  /**
-   * Map PaymentStatus enum to CryptoPay API status
-   */
-  private mapPaymentStatusToApiStatus(status: PaymentStatus): 'active' | 'paid' | 'expired' | undefined {
-    const mapping: Record<PaymentStatus, 'active' | 'paid' | 'expired' | undefined> = {
-      [PaymentStatus.Pending]: 'active',
-      [PaymentStatus.Processing]: 'active',
-      [PaymentStatus.Completed]: 'paid',
-      [PaymentStatus.Failed]: undefined,
-      [PaymentStatus.Cancelled]: undefined,
-      [PaymentStatus.Expired]: 'expired',
-    };
-
-    return mapping[status];
-  }
-
-  /**
-   * Map CryptoPay transfer status to PaymentStatus enum
-   */
-  private mapTransferStatusToPaymentStatus(status: string): PaymentStatus {
-    const mapping: Record<string, PaymentStatus> = {
-      completed: PaymentStatus.Completed,
-      pending: PaymentStatus.Pending,
-    };
-
-    return mapping[status] || PaymentStatus.Pending;
+  private mapAsset(asset: string): Cryptocurrency {
+    return assetToCrypto[asset] || Cryptocurrency.Usdt;
   }
 }

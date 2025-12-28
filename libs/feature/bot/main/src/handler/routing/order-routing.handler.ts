@@ -29,21 +29,7 @@ export class OrderRoutingHandler {
 
   private initializeHandlers(): void {
     this.orderActionHandlers = new Map([
-      ['list', this.withAuthParams((ctx) => this.menuHandler2.handleOrdersMenu(ctx))],
-      [
-        'active',
-        this.withAuthParams(async (ctx, params) => {
-          const page = params.length > 0 && params[0] === 'page' ? parseInt(params[1]) : 1;
-          await this.orderHandler.handleActiveOrders(ctx, page);
-        }),
-      ],
-      [
-        'completed',
-        this.withAuthParams(async (ctx, params) => {
-          const page = params.length > 0 && params[0] === 'page' ? parseInt(params[1]) : 1;
-          await this.orderHandler.handleCompletedOrders(ctx, page);
-        }),
-      ],
+      ['list', this.withAuthParams((ctx) => this.orderHandler.handleOrdersList(ctx))],
       [
         'create',
         this.withAuthParams(async (ctx, params) => {
@@ -56,7 +42,6 @@ export class OrderRoutingHandler {
           }
         }),
       ],
-      ['search', this.withAuthParams((ctx) => this.orderHandler.handleOrderSearch(ctx))],
       [
         'details',
         this.withAuthParams(async (ctx, params) => {

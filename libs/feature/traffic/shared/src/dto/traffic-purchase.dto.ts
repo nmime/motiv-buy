@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { TrafficOrderStatus } from '@app/database';
 
 export enum TrafficType {
   PrivateMessages = 'private_messages',
@@ -7,27 +8,6 @@ export enum TrafficType {
   ChannelSubscribers = 'channel_subscribers',
   PostViews = 'post_views',
 }
-
-/**
- * Traffic Order Status Enum
- * Consolidated enum for all order statuses
- * This replaces the old OrderStatus enum for consistency
- */
-export enum TrafficOrderStatus {
-  Pending = 'pending',
-  Active = 'active',
-  Paused = 'paused',
-  Completed = 'completed',
-  Cancelled = 'cancelled',
-  Failed = 'failed',
-  InProgress = 'in_progress',
-}
-
-/**
- * @deprecated Use TrafficOrderStatus instead
- * Type alias for backward compatibility
- */
-export type OrderStatus = TrafficOrderStatus;
 
 export class CreateTrafficOrderDto {
   @ApiProperty({

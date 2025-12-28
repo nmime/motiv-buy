@@ -16,6 +16,7 @@ import { decimal, greaterThan, lessThan, toNumber } from '@app/common-shared';
 import { BotOrderService } from './bot-order.service';
 import { createConfigurationKeyboard } from './order.keyboards';
 import { MessageService } from '../../service/message.service';
+import { PaymentConfigService } from '@app/feature-payment-shared';
 
 /** Edit field types supported by this handler */
 type OrderEditField = 'name' | 'link' | 'daily' | 'total' | 'price' | 'startTime' | 'schedule';
@@ -35,9 +36,14 @@ export class OrderEditHandler {
   constructor(
     private readonly orderService: BotOrderService,
     private readonly messageService: MessageService,
+    private readonly paymentConfigService: PaymentConfigService,
   ) {
     this.composer = new Composer<BotContext>();
     this.setupHandlers();
+  }
+
+  private get currencySymbol(): string {
+    return this.paymentConfigService.getBaseCurrencySymbol();
   }
 
   getComposer(): Composer<BotContext> {
@@ -323,7 +329,7 @@ export class OrderEditHandler {
       const currentPrice = order.config.pricePerSubscriber || '0.00';
       const message =
         `<b>${ctx.t('orders.edit.price_title')}</b>\n\n` +
-        `${ctx.t('orders.edit.current_value')}: <code>$${currentPrice}</code>\n\n` +
+        `${ctx.t('orders.edit.current_value')}: <code>${this.currencySymbol}${currentPrice}</code>\n\n` +
         `${ctx.t('orders.edit.price_prompt')}\n\n` +
         `<i>${ctx.t('orders.edit.price_hint')}</i>`;
 
