@@ -206,8 +206,11 @@ export class SourcePublicApiService {
           return isActive && isValidDate;
         });
 
-      // Filter orders by targeting requirements
-      const filteredOrders = orders.filter((order) => this.matchesTargeting(order, dto));
+      // Get source category types for filtering
+      const sourceCategoryTypes = this.getSourceCategoryTypes(source);
+
+      // Filter orders by targeting requirements (including category matching)
+      const filteredOrders = orders.filter((order) => this.matchesTargeting(order, dto, sourceCategoryTypes));
 
       // Get completed task IDs for this user
       const completedTaskIds = await this.getCompletedTaskIdsForUser(dto.userId, source.id);
@@ -502,11 +505,9 @@ export class SourcePublicApiService {
       throw new UnauthorizedException('API key belongs to inactive source');
     }
 
-    // Populate managedBy relation if needed
-    if (source.managedBy && !source.managedBy.isInitialized()) {
-      const em = this.em.fork();
-      await em.populate(source, ['managedBy']);
-    }
+    // Populate managedBy and categories relations if needed
+    const em = this.em.fork();
+    await em.populate(source, ['managedBy', 'categories', 'categories.category']);
 
     return source;
   }
@@ -544,9 +545,26 @@ export class SourcePublicApiService {
   }
 
   /**
+   * Get source category types from populated categories relation
+   */
+  private getSourceCategoryTypes(source: TrafficSourceEntity): string[] {
+    const categories = source.categories?.getItems() ?? [];
+    const result: string[] = [];
+
+    for (const cat of categories) {
+      const categoryType = cat.category?.getEntity()?.categoryType;
+      if (categoryType !== undefined) {
+        result.push(String(categoryType));
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Check if order matches targeting requirements
    */
-  private matchesTargeting(order: TrafficOrderEntity, dto: GetTasksRequestDto): boolean {
+  private matchesTargeting(order: TrafficOrderEntity, dto: GetTasksRequestDto, sourceCategoryTypes: string[]): boolean {
     const { requirements } = order;
 
     if (!requirements) {
@@ -557,8 +575,26 @@ export class SourcePublicApiService {
       this.matchesGender(requirements, dto) &&
       this.matchesAge(requirements, dto) &&
       this.matchesCountry(requirements, dto) &&
-      this.matchesLanguage(requirements, dto)
+      this.matchesLanguage(requirements, dto) &&
+      this.matchesCategories(requirements, sourceCategoryTypes)
     );
+  }
+
+  /**
+   * Check if source categories match order's allowed categories
+   * If order has no allowedCategories (empty array), all sources are allowed
+   * If order has allowedCategories, source must have at least one matching category
+   */
+  private matchesCategories(requirements: Record<string, unknown>, sourceCategoryTypes: string[]): boolean {
+    const allowedCategories = requirements['allowedCategories'] as string[] | undefined;
+
+    // Empty or undefined allowedCategories = all categories allowed
+    if (!allowedCategories || allowedCategories.length === 0) {
+      return true;
+    }
+
+    // Source must have at least one category that matches allowed categories
+    return sourceCategoryTypes.some((sourceCategory) => allowedCategories.includes(sourceCategory));
   }
 
   private matchesGender(requirements: Record<string, unknown>, dto: { gender?: string }): boolean {
