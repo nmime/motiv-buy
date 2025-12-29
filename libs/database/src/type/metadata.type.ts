@@ -25,6 +25,8 @@ export interface TrafficOrderRequirements {
   devices?: string[];
   targetAudience?: string;
   restrictions?: string[];
+  /** Allowed traffic source categories (empty = all categories allowed) */
+  allowedCategories?: string[];
   [key: string]: unknown;
 }
 

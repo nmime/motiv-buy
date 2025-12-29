@@ -86,6 +86,7 @@
     "btn_audience_settings": "👥 NEW Настройка пользователей",
     "btn_price_per_sub": "💸 Цена за подписчика",
     "btn_excluded_topics": "🚫 Исключенные тематики",
+    "btn_allowed_categories": "📂 Категории трафика",
     "btn_start_time": "🕐 Запуск по времени",
     "btn_schedule": "📋 Расписание",
     "btn_locations": "📍 Места показов",
@@ -107,6 +108,20 @@
     "my_bots_only": "📍 Только в моих ботах",
     "other_bots_only": "🌐 Только в чужих ботах",
     "both": "🔄 В моих и чужих ботах"
+  },
+  "category": {
+    "title": "<b>📂 Категории источников трафика</b>",
+    "prompt": "Выберите категории источников трафика, которые могут выполнить этот заказ.\nПустой выбор = разрешены все категории.",
+    "selected_count": "Выбрано: {count}",
+    "all_allowed": "Разрешены все категории",
+    "max_reached": "Максимум {max} категорий",
+    "saved": "Категории сохранены",
+    "btn_select_all": "☑️ Выбрать все",
+    "btn_deselect_all": "☐ Снять все",
+    "btn_save": "💾 Сохранить",
+    "page_info": "Страница {current} из {total}",
+    "btn_next": "Далее ➡️",
+    "btn_prev": "⬅️ Назад"
   },
   "view": {
     "btn_refresh_stats": "🔄 Обновить статистику",

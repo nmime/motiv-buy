@@ -129,6 +129,7 @@
     "btn_audience_settings": "👥 NEW User settings",
     "btn_price_per_sub": "💸 Price per subscriber",
     "btn_excluded_topics": "🚫 Excluded topics",
+    "btn_allowed_categories": "📂 Traffic categories",
     "btn_start_time": "🕐 Start by time",
     "btn_schedule": "📋 Schedule",
     "btn_locations": "📍 Display locations",
@@ -150,6 +151,20 @@
     "my_bots_only": "📍 Only in my bots",
     "other_bots_only": "🌐 Only in other bots",
     "both": "🔄 In my and other bots"
+  },
+  "category": {
+    "title": "<b>📂 Traffic Source Categories</b>",
+    "prompt": "Select categories of traffic sources that can fulfill this order.\nEmpty selection = all categories allowed.",
+    "selected_count": "Selected: {count}",
+    "all_allowed": "All categories allowed",
+    "max_reached": "Maximum {max} categories allowed",
+    "saved": "Categories saved",
+    "btn_select_all": "☑️ Select All",
+    "btn_deselect_all": "☐ Deselect All",
+    "btn_save": "💾 Save",
+    "page_info": "Page {current} of {total}",
+    "btn_next": "Next ➡️",
+    "btn_prev": "⬅️ Previous"
   },
   "view": {
     "btn_refresh_stats": "🔄 Refresh statistics",

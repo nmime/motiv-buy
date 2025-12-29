@@ -2,6 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { TrafficOrderStatus } from '@app/database';
 
+export { TrafficOrderStatus };
+
 export enum TrafficType {
   PrivateMessages = 'private_messages',
   GroupMessages = 'group_messages',

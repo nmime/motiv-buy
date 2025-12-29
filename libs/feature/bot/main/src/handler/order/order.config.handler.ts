@@ -15,10 +15,12 @@ import {
   createConfigurationKeyboard,
   createGenderKeyboard,
   createLocationKeyboard,
+  createOrderCategoryKeyboard,
   createTopicsKeyboard,
 } from './order.keyboards';
 import { OrderDisplayLocation, UserGender } from '@app/feature-order-shared';
 import { MessageService } from '../../service/message.service';
+import { TopicCategory } from '@app/database';
 
 @Injectable()
 export class OrderConfigHandler {
@@ -52,6 +54,14 @@ export class OrderConfigHandler {
     this.composer.callbackQuery(/^order:edit:topics:([^:]+)$/, (ctx) => this.handleEditTopics(ctx));
     this.composer.callbackQuery(/^order:topic:([^:]+):([^:]+)$/, (ctx) => this.handleTopicToggle(ctx));
     this.composer.callbackQuery(/^order:topics:save:([^:]+)$/, (ctx) => this.handleTopicsSave(ctx));
+
+    // Categories configuration
+    this.composer.callbackQuery(/^order:edit:categories:([^:]+)$/, (ctx) => this.handleEditCategories(ctx));
+    this.composer.callbackQuery(/^order:cat:([^:]+):([^:]+)$/, (ctx) => this.handleCategoryToggle(ctx));
+    this.composer.callbackQuery(/^order:catpage:(\d+):([^:]+)$/, (ctx) => this.handleCategoryPage(ctx));
+    this.composer.callbackQuery(/^order:catselectall:([^:]+)$/, (ctx) => this.handleCategorySelectAll(ctx));
+    this.composer.callbackQuery(/^order:catdeselectall:([^:]+)$/, (ctx) => this.handleCategoryDeselectAll(ctx));
+    this.composer.callbackQuery(/^order:catsave:([^:]+)$/, (ctx) => this.handleCategorySave(ctx));
 
     // Locations configuration
     this.composer.callbackQuery(/^order:edit:locations:([^:]+)$/, (ctx) => this.handleEditLocations(ctx));
@@ -487,6 +497,314 @@ export class OrderConfigHandler {
     } catch (error) {
       this.logger.error('Error toggling unsubscribes', error);
       await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Get available categories for selection (excluding 'all')
+   */
+  private getAvailableCategories(): Array<{ type: string; name: string }> {
+    return Object.values(TopicCategory)
+      .filter((cat) => cat !== TopicCategory.All)
+      .map((cat) => ({ type: cat, name: cat }));
+  }
+
+  /**
+   * Handle edit categories
+   */
+  private async handleEditCategories(ctx: BotContext, page = 0): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:edit:categories:(.+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      // Authorization check
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.not_found'));
+
+        return;
+      }
+
+      if (order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      const categories = this.getAvailableCategories();
+      const selectedCategories = order.config.allowedCategories || [];
+
+      const keyboard = createOrderCategoryKeyboard(ctx, orderId, categories, selectedCategories, page);
+
+      const selectedInfo =
+        selectedCategories.length > 0
+          ? ctx.t('orders.category.selected_count', { count: selectedCategories.length })
+          : ctx.t('orders.category.all_allowed');
+
+      const message = `${ctx.t('orders.category.title')}\n\n${ctx.t('orders.category.prompt')}\n\n${selectedInfo}`;
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+
+      await ctx.answerCallbackQuery();
+    } catch (error) {
+      this.logger.error('Error editing categories', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle category toggle
+   */
+  private async handleCategoryToggle(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:cat:([^:]+):([^:]+)$/);
+      const categoryType = match?.[1];
+      const orderId = match?.[2];
+
+      if (!categoryType || !orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      // Authorization check
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      // Toggle category in allowed list
+      const allowedCategories = [...(order.config.allowedCategories || [])];
+      const index = allowedCategories.indexOf(categoryType);
+
+      if (index === -1) {
+        allowedCategories.push(categoryType);
+      } else {
+        allowedCategories.splice(index, 1);
+      }
+
+      await this.orderService.updateOrderConfig(orderId, {
+        allowedCategories,
+      });
+
+      // Refresh the categories screen (preserve current page from session if available)
+      const page = this.getCategoryPageFromSession(ctx) || 0;
+      await this.showCategoryScreen(ctx, orderId, page);
+    } catch (error) {
+      this.logger.error('Error toggling category', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle category page navigation
+   */
+  private async handleCategoryPage(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:catpage:(\d+):([^:]+)$/);
+      const page = parseInt(match?.[1] || '0', 10);
+      const orderId = match?.[2];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      // Authorization check
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      // Save page to session for state preservation
+      this.saveCategoryPageToSession(ctx, page);
+
+      await this.showCategoryScreen(ctx, orderId, page);
+    } catch (error) {
+      this.logger.error('Error navigating category page', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle select all categories
+   */
+  private async handleCategorySelectAll(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:catselectall:([^:]+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      // Authorization check
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      // Select all categories
+      const allCategories = this.getAvailableCategories().map((cat) => cat.type);
+      await this.orderService.updateOrderConfig(orderId, {
+        allowedCategories: allCategories,
+      });
+
+      const page = this.getCategoryPageFromSession(ctx) || 0;
+      await this.showCategoryScreen(ctx, orderId, page);
+    } catch (error) {
+      this.logger.error('Error selecting all categories', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle deselect all categories (clear selection = all allowed)
+   */
+  private async handleCategoryDeselectAll(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:catdeselectall:([^:]+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      // Authorization check
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      // Clear selection (empty = all categories allowed)
+      await this.orderService.updateOrderConfig(orderId, {
+        allowedCategories: [],
+      });
+
+      const page = this.getCategoryPageFromSession(ctx) || 0;
+      await this.showCategoryScreen(ctx, orderId, page);
+      await ctx.answerCallbackQuery(ctx.t('orders.category.all_allowed'));
+    } catch (error) {
+      this.logger.error('Error deselecting categories', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle save categories
+   */
+  private async handleCategorySave(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:catsave:([^:]+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      // Authorization check
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      // Clear category page from session
+      this.clearCategoryPageFromSession(ctx);
+
+      // Return to config screen
+      await this.handleOrderConfig(ctx);
+      await ctx.answerCallbackQuery(ctx.t('orders.category.saved'));
+    } catch (error) {
+      this.logger.error('Error saving categories', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Show category selection screen
+   */
+  private async showCategoryScreen(ctx: BotContext, orderId: string, page: number): Promise<void> {
+    const order = await this.orderService.getOrderById(orderId);
+    if (!order) {
+      return;
+    }
+
+    const categories = this.getAvailableCategories();
+    const selectedCategories = order.config.allowedCategories || [];
+
+    const keyboard = createOrderCategoryKeyboard(ctx, orderId, categories, selectedCategories, page);
+
+    const selectedInfo =
+      selectedCategories.length > 0
+        ? ctx.t('orders.category.selected_count', { count: selectedCategories.length })
+        : ctx.t('orders.category.all_allowed');
+
+    const message = `${ctx.t('orders.category.title')}\n\n${ctx.t('orders.category.prompt')}\n\n${selectedInfo}`;
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: message,
+      parseMode: 'HTML',
+      replyMarkup: keyboard,
+    });
+
+    await ctx.answerCallbackQuery();
+  }
+
+  /**
+   * Get category page from session
+   */
+  private getCategoryPageFromSession(ctx: BotContext): number | null {
+    return (ctx.session?.formData?.categoryPage as number) || null;
+  }
+
+  /**
+   * Save category page to session
+   */
+  private saveCategoryPageToSession(ctx: BotContext, page: number): void {
+    if (!ctx.session) {
+      ctx.session = {};
+    }
+
+    if (!ctx.session.formData) {
+      ctx.session.formData = {};
+    }
+
+    ctx.session.formData.categoryPage = page;
+  }
+
+  /**
+   * Clear category page from session
+   */
+  private clearCategoryPageFromSession(ctx: BotContext): void {
+    if (ctx.session?.formData) {
+      delete ctx.session.formData.categoryPage;
     }
   }
 }
