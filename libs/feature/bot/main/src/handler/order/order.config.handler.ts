@@ -59,8 +59,8 @@ export class OrderConfigHandler {
     this.composer.callbackQuery(/^order:edit:categories:([^:]+)$/, (ctx) => this.handleEditCategories(ctx));
     this.composer.callbackQuery(/^order:cat:([^:]+):([^:]+)$/, (ctx) => this.handleCategoryToggle(ctx));
     this.composer.callbackQuery(/^order:catpage:(\d+):([^:]+)$/, (ctx) => this.handleCategoryPage(ctx));
-    this.composer.callbackQuery(/^order:catall:([^:]+)$/, (ctx) => this.handleCategorySelectAll(ctx));
-    this.composer.callbackQuery(/^order:catclear:([^:]+)$/, (ctx) => this.handleCategoryClear(ctx));
+    this.composer.callbackQuery(/^order:catselectall:([^:]+)$/, (ctx) => this.handleCategorySelectAll(ctx));
+    this.composer.callbackQuery(/^order:catdeselectall:([^:]+)$/, (ctx) => this.handleCategoryDeselectAll(ctx));
     this.composer.callbackQuery(/^order:catsave:([^:]+)$/, (ctx) => this.handleCategorySave(ctx));
 
     // Locations configuration
@@ -642,11 +642,11 @@ export class OrderConfigHandler {
   }
 
   /**
-   * Handle select all categories (clear selection = all allowed)
+   * Handle select all categories
    */
   private async handleCategorySelectAll(ctx: BotContext): Promise<void> {
     try {
-      const match = ctx.callbackQuery?.data?.match(/^order:catall:([^:]+)$/);
+      const match = ctx.callbackQuery?.data?.match(/^order:catselectall:([^:]+)$/);
       const orderId = match?.[1];
 
       if (!orderId) {
@@ -663,7 +663,43 @@ export class OrderConfigHandler {
         return;
       }
 
-      // Clear selection to allow all categories
+      // Select all categories
+      const allCategories = this.getAvailableCategories().map((cat) => cat.type);
+      await this.orderService.updateOrderConfig(orderId, {
+        allowedCategories: allCategories,
+      });
+
+      const page = this.getCategoryPageFromSession(ctx) || 0;
+      await this.showCategoryScreen(ctx, orderId, page);
+    } catch (error) {
+      this.logger.error('Error selecting all categories', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle deselect all categories (clear selection = all allowed)
+   */
+  private async handleCategoryDeselectAll(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:catdeselectall:([^:]+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      // Authorization check
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      // Clear selection (empty = all categories allowed)
       await this.orderService.updateOrderConfig(orderId, {
         allowedCategories: [],
       });
@@ -672,42 +708,7 @@ export class OrderConfigHandler {
       await this.showCategoryScreen(ctx, orderId, page);
       await ctx.answerCallbackQuery(ctx.t('orders.category.all_allowed'));
     } catch (error) {
-      this.logger.error('Error selecting all categories', error);
-      await ctx.answerCallbackQuery(ctx.t('common.error'));
-    }
-  }
-
-  /**
-   * Handle clear category selection
-   */
-  private async handleCategoryClear(ctx: BotContext): Promise<void> {
-    try {
-      const match = ctx.callbackQuery?.data?.match(/^order:catclear:([^:]+)$/);
-      const orderId = match?.[1];
-
-      if (!orderId) {
-        await ctx.answerCallbackQuery(ctx.t('common.error'));
-
-        return;
-      }
-
-      // Authorization check
-      const order = await this.orderService.getOrderById(orderId);
-      if (!order || order.userId !== ctx.from?.id.toString()) {
-        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
-
-        return;
-      }
-
-      // Clear selection
-      await this.orderService.updateOrderConfig(orderId, {
-        allowedCategories: [],
-      });
-
-      const page = this.getCategoryPageFromSession(ctx) || 0;
-      await this.showCategoryScreen(ctx, orderId, page);
-    } catch (error) {
-      this.logger.error('Error clearing categories', error);
+      this.logger.error('Error deselecting categories', error);
       await ctx.answerCallbackQuery(ctx.t('common.error'));
     }
   }

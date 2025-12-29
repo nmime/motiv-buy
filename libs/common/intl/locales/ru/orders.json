@@ -116,9 +116,9 @@
     "all_allowed": "Разрешены все категории",
     "max_reached": "Максимум {max} категорий",
     "saved": "Категории сохранены",
-    "btn_all": "🌐 Все категории",
+    "btn_select_all": "☑️ Выбрать все",
+    "btn_deselect_all": "☐ Снять все",
     "btn_save": "💾 Сохранить",
-    "btn_clear": "🗑️ Очистить выбор",
     "page_info": "Страница {current} из {total}",
     "btn_next": "Далее ➡️",
     "btn_prev": "⬅️ Назад"

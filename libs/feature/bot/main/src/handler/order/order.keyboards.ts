@@ -493,13 +493,11 @@ export function createOrderCategoryKeyboard(
     keyboard.row();
   }
 
-  // All categories button
-  keyboard.text(ctx.t('orders.category.btn_all'), `order:catall:${orderId}`).row();
-
-  // Clear selection button (only if something selected)
-  if (selectedCategories.length > 0) {
-    keyboard.text(ctx.t('orders.category.btn_clear'), `order:catclear:${orderId}`).row();
-  }
+  // Select All / Deselect All buttons on the same row
+  keyboard
+    .text(ctx.t('orders.category.btn_select_all'), `order:catselectall:${orderId}`)
+    .text(ctx.t('orders.category.btn_deselect_all'), `order:catdeselectall:${orderId}`)
+    .row();
 
   // Save button
   keyboard.text(ctx.t('orders.category.btn_save'), `order:catsave:${orderId}`).row();

@@ -159,9 +159,9 @@
     "all_allowed": "All categories allowed",
     "max_reached": "Maximum {max} categories allowed",
     "saved": "Categories saved",
-    "btn_all": "🌐 All Categories",
+    "btn_select_all": "☑️ Select All",
+    "btn_deselect_all": "☐ Deselect All",
     "btn_save": "💾 Save",
-    "btn_clear": "🗑️ Clear selection",
     "page_info": "Page {current} of {total}",
     "btn_next": "Next ➡️",
     "btn_prev": "⬅️ Previous"
