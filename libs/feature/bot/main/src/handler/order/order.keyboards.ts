@@ -245,6 +245,9 @@ export function createConfigurationKeyboard(ctx: BotContext, orderId: string): I
   keyboard.text(ctx.t('orders.config.btn_price_per_sub'), `order:edit:price:${orderId}`).row();
   keyboard.text(ctx.t('orders.config.btn_excluded_topics'), `order:edit:topics:${orderId}`).row();
 
+  // Traffic source categories
+  keyboard.text(ctx.t('orders.config.btn_allowed_categories'), `order:edit:categories:${orderId}`).row();
+
   // Schedule
   keyboard.text(ctx.t('orders.config.btn_start_time'), `order:edit:start_time:${orderId}`).row();
   keyboard.text(ctx.t('orders.config.btn_schedule'), `order:edit:schedule:${orderId}`).row();
@@ -410,6 +413,99 @@ export function createDeleteConfirmKeyboard(ctx: BotContext, orderId: string): I
   keyboard
     .text(ctx.t('orders.delete.btn_confirm'), `order:delete:confirm:${orderId}`)
     .text(ctx.t('orders.delete.btn_cancel'), `order:view:${orderId}`);
+
+  return keyboard;
+}
+
+/**
+ * Category item for keyboard
+ */
+interface CategoryItem {
+  type: string;
+  name: string;
+}
+
+/**
+ * Order Category Selection Keyboard
+ * Paginated multi-select keyboard for traffic source categories
+ */
+export function createOrderCategoryKeyboard(
+  ctx: BotContext,
+  orderId: string,
+  categories: CategoryItem[],
+  selectedCategories: string[],
+  page = 0,
+): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+  const categoriesPerPage = 9;
+  const categoriesPerRow = 3;
+
+  const totalPages = Math.ceil(categories.length / categoriesPerPage);
+  const startIdx = page * categoriesPerPage;
+  const pageCategories = categories.slice(startIdx, startIdx + categoriesPerPage);
+
+  // Add category buttons
+  pageCategories.forEach((category, idx) => {
+    const isSelected = selectedCategories.includes(category.type);
+    const prefix = isSelected ? '✅ ' : '';
+    const displayName = ctx.t(`traffic.categories.${category.type}`);
+    keyboard.text(`${prefix}${displayName}`, `order:cat:${category.type}:${orderId}`);
+
+    if ((idx + 1) % categoriesPerRow === 0) {
+      keyboard.row();
+    }
+  });
+
+  // Ensure row break after last category if not already done
+  if (pageCategories.length % categoriesPerRow !== 0) {
+    keyboard.row();
+  }
+
+  // Navigation buttons
+  const navButtons: Array<{ text: string; callback: string }> = [];
+
+  if (page > 0) {
+    navButtons.push({
+      text: ctx.t('orders.category.btn_prev'),
+      callback: `order:catpage:${page - 1}:${orderId}`,
+    });
+  }
+
+  if (totalPages > 1) {
+    navButtons.push({
+      text: ctx.t('orders.category.page_info', { current: page + 1, total: totalPages }),
+      callback: 'noop',
+    });
+  }
+
+  if (page < totalPages - 1) {
+    navButtons.push({
+      text: ctx.t('orders.category.btn_next'),
+      callback: `order:catpage:${page + 1}:${orderId}`,
+    });
+  }
+
+  navButtons.forEach((btn) => {
+    keyboard.text(btn.text, btn.callback);
+  });
+
+  if (navButtons.length > 0) {
+    keyboard.row();
+  }
+
+  // All categories button
+  keyboard.text(ctx.t('orders.category.btn_all'), `order:catall:${orderId}`).row();
+
+  // Clear selection button (only if something selected)
+  if (selectedCategories.length > 0) {
+    keyboard.text(ctx.t('orders.category.btn_clear'), `order:catclear:${orderId}`).row();
+  }
+
+  // Save button
+  keyboard.text(ctx.t('orders.category.btn_save'), `order:catsave:${orderId}`).row();
+
+  // Back to config button
+  keyboard.text(ctx.t('orders.common.btn_back'), `order:config:start:${orderId}`);
 
   return keyboard;
 }

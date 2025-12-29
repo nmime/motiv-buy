@@ -29,7 +29,6 @@ export {
   AvailableTrafficDto,
   TrafficType,
   TrafficOrderStatus,
-  type OrderStatus,
 } from './traffic-purchase.dto';
 
 // Export Public API DTOs

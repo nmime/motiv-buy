@@ -105,6 +105,8 @@ export interface OrderConfiguration {
   pricePerSubscriber: number;
   /** Excluded topics/categories */
   excludedTopics: string[];
+  /** Allowed traffic source categories (empty = all categories) */
+  allowedCategories: string[];
   /** Start time (null = start now) */
   startTime: Date | null;
   /** Schedule (null = no schedule) */
@@ -273,6 +275,7 @@ export const defaultOrderConfig: Partial<OrderConfiguration> = {
     activeOnly: false,
   },
   excludedTopics: [],
+  allowedCategories: [],
   startTime: null,
   schedule: null,
   displayLocation: OrderDisplayLocation.Both,
