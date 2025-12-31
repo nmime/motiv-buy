@@ -45,14 +45,12 @@ export class AuthCreateUserService {
     await entityManager.flush();
 
     // Create default UserRefLink for the new user
-    const userDefaultRefLink = await this.createDefaultRefLink(user, refCode, entityManager);
-
-    // Update user with ref link levels
-    user.refLinkLevel1 = userDefaultRefLink.id;
+    await this.createDefaultRefLink(user, refCode, entityManager);
 
     // If user was referred, set their ref link levels based on referrer
+    // refLinkLevel1/2/3 store USER IDs (who referred), not ref link IDs
     if (userRefLink) {
-      user.refLinkLevel1 = userRefLink.id;
+      user.refLinkLevel1 = userRefLink.userId;
 
       const referrer = await this.userRepository.findOne({ id: userRefLink.userId });
 
