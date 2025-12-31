@@ -69,6 +69,9 @@ COPY --from=all-apps-builder --chown=nodejs:nodejs /app/dist ./dist
 # Copy i18n locales (needed at runtime by the i18n module)
 COPY --chown=nodejs:nodejs libs/common/intl/locales ./libs/common/intl/locales
 
+# Copy migration files (needed by MikroORM migration CLI)
+COPY --chown=nodejs:nodejs apps/migration/src/migration ./apps/migration/src/migration
+
 # Final verification for this specific app
 RUN test -f dist/apps/${APP_NAME}/src/main.js || \
     (echo "ERROR: Production image missing entrypoint for ${APP_NAME}" && exit 1)

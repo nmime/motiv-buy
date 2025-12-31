@@ -213,14 +213,14 @@ sudo chown -R $USER:$USER /opt/motiv-buy
 ```bash
 cd /opt/motiv-buy
 
-# Build & start
-docker compose -f docker-compose.local.yml up -d --build
+# Build & start (exclude nginx - host nginx handles SSL)
+docker compose -f docker-compose.local.yml up -d --build api bot postgres redis nats
 
 # Wait for healthy containers
 docker compose -f docker-compose.local.yml ps
 
 # Run migrations
-docker compose -f docker-compose.local.yml exec api node dist/apps/migration/src/main.js
+docker compose -f docker-compose.local.yml exec -u root api node dist/apps/migration/src/main.js up
 
 # Check logs
 docker compose -f docker-compose.local.yml logs -f api bot
