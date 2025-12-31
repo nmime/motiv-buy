@@ -5,7 +5,7 @@ import { MigrationCLI } from './cli';
 import { logger } from './util';
 
 // Import migrations to ensure they are compiled into dist
-import './migration';
+import './migration/_compile';
 
 export async function bootstrap(): Promise<void> {
   const program = new Command();
