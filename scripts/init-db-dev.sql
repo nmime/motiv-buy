@@ -14,29 +14,21 @@ CREATE SCHEMA IF NOT EXISTS test;
 CREATE SCHEMA IF NOT EXISTS analytics;
 CREATE SCHEMA IF NOT EXISTS audit;
 
--- Grant permissions for development user
-GRANT
-ALL
-PRIVILEGES
-ON
-DATABASE
-motiv_buy_development TO motiv_dev;
-GRANT USAGE ON SCHEMA
-public TO motiv_dev;
-GRANT CREATE
-ON SCHEMA public TO motiv_dev;
-GRANT ALL PRIVILEGES ON ALL
-TABLES IN SCHEMA public TO motiv_dev;
-GRANT ALL PRIVILEGES ON ALL
-SEQUENCES IN SCHEMA public TO motiv_dev;
+-- Grant permissions (database name is set via POSTGRES_DB env var)
+-- The grants below use current_database() to work with any DB name
+GRANT USAGE ON SCHEMA public TO CURRENT_USER;
+GRANT CREATE ON SCHEMA public TO CURRENT_USER;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO CURRENT_USER;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO CURRENT_USER;
 
--- Set up development-friendly settings
-ALTER
-DATABASE motiv_buy_development SET log_statement = 'all';
-ALTER
-DATABASE motiv_buy_development SET log_min_duration_statement = 0;
-ALTER
-DATABASE motiv_buy_development SET shared_preload_libraries = 'pg_stat_statements';
+-- Set up development-friendly settings using dynamic SQL
+DO $$
+BEGIN
+    EXECUTE format('ALTER DATABASE %I SET log_statement = %L', current_database(), 'all');
+    EXECUTE format('ALTER DATABASE %I SET log_min_duration_statement = %s', current_database(), 0);
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Could not set database options: %', SQLERRM;
+END $$;
 
 -- Development helper functions
 CREATE
