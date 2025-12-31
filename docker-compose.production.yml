@@ -185,23 +185,6 @@ services:
     deploy:
       <<: *bot-resources
 
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    container_name: ${PROJECT_NAME}-nginx-${ENV}
-    <<: *common-defaults
-    volumes:
-      - ./config/nginx/nginx-prod.conf:/etc/nginx/nginx.conf:ro
-      - ${VPS_DEPLOY_PATH}/data/nginx/logs:/var/log/nginx
-    ports:
-      - '${HTTP_PORT:-80}:80'
-      - '${HTTPS_PORT:-443}:443'
-    depends_on:
-      - api
-    healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost/health']
-      <<: *healthcheck-standard
-
   # Monitoring - Prometheus
   prometheus:
     image: prom/prometheus:latest
