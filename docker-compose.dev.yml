@@ -65,6 +65,7 @@ services:
       POSTGRES_INITDB_ARGS: -c password_encryption=scram-sha-256
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
+      - ./scripts/init-db-dev.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     ports:
       - '${DB_PORT_EXTERNAL}:5432'
     healthcheck:
