@@ -54,7 +54,7 @@ export class Migration20250105000020FixTrafficSourceCategories extends Migration
 
     // Add index on category_type
     this.addSql(`
-      CREATE INDEX IF NOT EXISTS IF NOT EXISTS ix__traffic_source_categories__category_type
+      CREATE INDEX IF NOT EXISTS ix__traffic_source_categories__category_type
       ON traffic_source_categories (category_type);
     `);
 
