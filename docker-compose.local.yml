@@ -133,8 +133,8 @@ services:
       - .env
     environment:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
-      DB_MIGRATIONS_PATH: ./apps/migration/src/migration
-      DB_MIGRATIONS_EMIT: ts
+      DB_MIGRATIONS_PATH: ./dist/apps/migration/src/migration
+      DB_MIGRATIONS_EMIT: js
     volumes:
       - ${VPS_DEPLOY_PATH}/data/api/logs:/app/logs
       - ${VPS_DEPLOY_PATH}/data/api/uploads:/app/uploads

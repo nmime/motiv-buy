@@ -4,6 +4,9 @@ import { createMikroOrmConfig, getDatabaseConfig } from '@app/database';
 import { MigrationCLI } from './cli';
 import { logger } from './util';
 
+// Import migrations to ensure they are compiled into dist
+import './migration';
+
 export async function bootstrap(): Promise<void> {
   const program = new Command();
 
