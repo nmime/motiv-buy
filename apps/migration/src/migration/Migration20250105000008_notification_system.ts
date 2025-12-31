@@ -11,7 +11,7 @@ export class Migration20250105000008NotificationSystem extends Migration {
   async up(): Promise<void> {
     // 1. Create notification_templates table
     this.addSql(`
-      CREATE TABLE notification_templates (
+      CREATE TABLE IF NOT EXISTS notification_templates (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         code varchar(100) UNIQUE NOT NULL,
         name varchar(255),
@@ -37,9 +37,9 @@ export class Migration20250105000008NotificationSystem extends Migration {
     `);
 
     // Create indexes for notification_templates table
-    this.addSql('CREATE INDEX ix__notification_templates__code ON notification_templates (code);');
-    this.addSql('CREATE INDEX ix__notification_templates__content_type ON notification_templates (content_type);');
-    this.addSql('CREATE INDEX ix__notification_templates__is_active ON notification_templates (is_active);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notification_templates__code ON notification_templates (code);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notification_templates__content_type ON notification_templates (content_type);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notification_templates__is_active ON notification_templates (is_active);');
 
     // Create trigger for notification_templates
     this.addSql(`
@@ -51,7 +51,7 @@ export class Migration20250105000008NotificationSystem extends Migration {
 
     // 2. Create notifications table
     this.addSql(`
-      CREATE TABLE notifications (
+      CREATE TABLE IF NOT EXISTS notifications (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         channel varchar(32) NOT NULL,
         target_type varchar(32) NOT NULL,
@@ -79,18 +79,18 @@ export class Migration20250105000008NotificationSystem extends Migration {
     `);
 
     // Create indexes for notifications table
-    this.addSql('CREATE INDEX ix__notifications__status ON notifications (status);');
-    this.addSql('CREATE INDEX ix__notifications__channel ON notifications (channel);');
-    this.addSql('CREATE INDEX ix__notifications__target_type ON notifications (target_type);');
-    this.addSql('CREATE INDEX ix__notifications__target_id ON notifications (target_id);');
-    this.addSql('CREATE INDEX ix__notifications__template_id ON notifications (template_id);');
-    this.addSql('CREATE INDEX ix__notifications__priority_status ON notifications (priority, status);');
-    this.addSql('CREATE INDEX ix__notifications__created_at ON notifications (created_at);');
-    this.addSql('CREATE INDEX ix__notifications__send_at ON notifications (send_at);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notifications__status ON notifications (status);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notifications__channel ON notifications (channel);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notifications__target_type ON notifications (target_type);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notifications__target_id ON notifications (target_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notifications__template_id ON notifications (template_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notifications__priority_status ON notifications (priority, status);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notifications__created_at ON notifications (created_at);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notifications__send_at ON notifications (send_at);');
     // Composite index for queue processing (find pending notifications ordered by send_at)
-    this.addSql('CREATE INDEX ix__notifications__status_send_at ON notifications (status, send_at);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__notifications__status_send_at ON notifications (status, send_at);');
     this.addSql(
-      'CREATE INDEX ix__notifications__status_target_send_time ON notifications (status, target_type, send_time_from, send_time_to);',
+      'CREATE INDEX IF NOT EXISTS ix__notifications__status_target_send_time ON notifications (status, target_type, send_time_from, send_time_to);',
     );
 
     // Create trigger for notifications

@@ -21,7 +21,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
 
     // 1. Create currencies table
     this.addSql(`
-      CREATE TABLE currencies (
+      CREATE TABLE IF NOT EXISTS currencies (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         code varchar(10) NOT NULL UNIQUE,
         name varchar(50) NOT NULL,
@@ -36,13 +36,13 @@ export class Migration20250105000004PaymentSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE UNIQUE INDEX ix__currencies__code ON currencies (code);');
-    this.addSql('CREATE INDEX ix__currencies__type ON currencies (type);');
-    this.addSql('CREATE INDEX ix__currencies__is_active ON currencies (is_active);');
+    this.addSql('CREATE UNIQUE INDEX IF NOT EXISTS ix__currencies__code ON currencies (code);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__currencies__type ON currencies (type);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__currencies__is_active ON currencies (is_active);');
 
     // 2. Create currency_rates_history table
     this.addSql(`
-      CREATE TABLE currency_rates_history (
+      CREATE TABLE IF NOT EXISTS currency_rates_history (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         currency_id uuid NOT NULL,
         provider varchar(30) NOT NULL,
@@ -54,11 +54,11 @@ export class Migration20250105000004PaymentSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX ix__currency_rates_history__currency_id ON currency_rates_history (currency_id);');
-    this.addSql('CREATE INDEX ix__currency_rates_history__provider ON currency_rates_history (provider);');
-    this.addSql('CREATE INDEX ix__currency_rates_history__created_at ON currency_rates_history (created_at);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__currency_rates_history__currency_id ON currency_rates_history (currency_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__currency_rates_history__provider ON currency_rates_history (provider);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__currency_rates_history__created_at ON currency_rates_history (created_at);');
     this.addSql(`
-      CREATE INDEX ix__currency_rates_history__currency_provider
+      CREATE INDEX IF NOT EXISTS ix__currency_rates_history__currency_provider
         ON currency_rates_history (currency_id, provider);
     `);
 
@@ -68,7 +68,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
 
     // 3. Create payment_transactions table
     this.addSql(`
-      CREATE TABLE payment_transactions (
+      CREATE TABLE IF NOT EXISTS payment_transactions (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id varchar(255) NOT NULL,
         type varchar(20) NOT NULL,
@@ -88,16 +88,16 @@ export class Migration20250105000004PaymentSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX idx__payment_transactions__user_id ON payment_transactions (user_id);');
-    this.addSql('CREATE INDEX idx__payment_transactions__status ON payment_transactions (status);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx__payment_transactions__user_id ON payment_transactions (user_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx__payment_transactions__status ON payment_transactions (status);');
     this.addSql(`
-      CREATE UNIQUE INDEX idx__payment_transactions__provider_transaction_id
+      CREATE UNIQUE INDEX IF NOT EXISTS idx__payment_transactions__provider_transaction_id
         ON payment_transactions (provider_transaction_id)
         WHERE provider_transaction_id IS NOT NULL;
     `);
 
-    this.addSql('CREATE INDEX idx__payment_transactions__created_at ON payment_transactions (created_at DESC);');
-    this.addSql('CREATE INDEX idx__payment_transactions__user_status ON payment_transactions (user_id, status);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx__payment_transactions__created_at ON payment_transactions (created_at DESC);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx__payment_transactions__user_status ON payment_transactions (user_id, status);');
 
     this.addSql(`
       CREATE TRIGGER update_payment_transactions_updated_at
@@ -112,7 +112,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
 
     // 4. Create payment_providers table
     this.addSql(`
-      CREATE TABLE payment_providers (
+      CREATE TABLE IF NOT EXISTS payment_providers (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         provider varchar(50) NOT NULL UNIQUE,
         provider_type varchar(30) NOT NULL DEFAULT 'CRYPTO_NATIVE',
@@ -135,10 +135,10 @@ export class Migration20250105000004PaymentSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX idx_payment_providers_provider ON payment_providers(provider);');
-    this.addSql('CREATE INDEX idx_payment_providers_enabled ON payment_providers(is_enabled);');
-    this.addSql('CREATE INDEX idx_payment_providers_status ON payment_providers(status);');
-    this.addSql('CREATE INDEX idx_payment_providers_priority ON payment_providers(priority);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_payment_providers_provider ON payment_providers(provider);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_payment_providers_enabled ON payment_providers(is_enabled);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_payment_providers_status ON payment_providers(status);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_payment_providers_priority ON payment_providers(priority);');
 
     this.addSql(`
       CREATE TRIGGER update_payment_providers_updated_at
@@ -149,7 +149,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
 
     // 5. Create provider_currencies table
     this.addSql(`
-      CREATE TABLE provider_currencies (
+      CREATE TABLE IF NOT EXISTS provider_currencies (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         provider_id uuid NOT NULL,
         currency_id uuid NOT NULL,
@@ -181,12 +181,12 @@ export class Migration20250105000004PaymentSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX idx_provider_currencies_provider ON provider_currencies(provider_id);');
-    this.addSql('CREATE INDEX idx_provider_currencies_currency ON provider_currencies(currency_id);');
-    this.addSql('CREATE INDEX idx_provider_currencies_network ON provider_currencies(network);');
-    this.addSql('CREATE INDEX idx_provider_currencies_enabled ON provider_currencies(is_enabled);');
-    this.addSql('CREATE INDEX idx_provider_currencies_preferred ON provider_currencies(is_preferred);');
-    this.addSql('CREATE INDEX idx_provider_currencies_priority ON provider_currencies(routing_priority);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_provider ON provider_currencies(provider_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_currency ON provider_currencies(currency_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_network ON provider_currencies(network);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_enabled ON provider_currencies(is_enabled);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_preferred ON provider_currencies(is_preferred);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_priority ON provider_currencies(routing_priority);');
 
     this.addSql(`
       CREATE TRIGGER update_provider_currencies_updated_at
@@ -197,7 +197,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
 
     // 6. Create provider_routings table
     this.addSql(`
-      CREATE TABLE provider_routings (
+      CREATE TABLE IF NOT EXISTS provider_routings (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         name varchar(255) NOT NULL,
         description text,
@@ -236,13 +236,13 @@ export class Migration20250105000004PaymentSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX idx_provider_routings_rule_type ON provider_routings(rule_type);');
-    this.addSql('CREATE INDEX idx_provider_routings_provider ON provider_routings(provider_id);');
-    this.addSql('CREATE INDEX idx_provider_routings_currency ON provider_routings(currency_id);');
-    this.addSql('CREATE INDEX idx_provider_routings_enabled ON provider_routings(is_enabled);');
-    this.addSql('CREATE INDEX idx_provider_routings_priority ON provider_routings(priority);');
-    this.addSql('CREATE INDEX idx_provider_routings_active_from ON provider_routings(active_from);');
-    this.addSql('CREATE INDEX idx_provider_routings_active_until ON provider_routings(active_until);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_routings_rule_type ON provider_routings(rule_type);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_routings_provider ON provider_routings(provider_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_routings_currency ON provider_routings(currency_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_routings_enabled ON provider_routings(is_enabled);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_routings_priority ON provider_routings(priority);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_routings_active_from ON provider_routings(active_from);');
+    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_routings_active_until ON provider_routings(active_until);');
 
     this.addSql(`
       CREATE TRIGGER update_provider_routings_updated_at
@@ -261,7 +261,7 @@ export class Migration20250105000004PaymentSystem extends Migration {
         ADD COLUMN currency_id uuid;
     `);
 
-    this.addSql('CREATE INDEX ix__user_balances__currency_id ON user_balances (currency_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_balances__currency_id ON user_balances (currency_id);');
 
     // Ensure async compliance
     await Promise.resolve();

@@ -68,11 +68,11 @@ export class Migration20250105000017DropTrafficOrderDirectRelations extends Migr
 
     // Re-add indexes
     this.addSql(`
-      CREATE INDEX ix__traffic_orders__traffic_source_id ON traffic_orders (traffic_source_id);
+      CREATE INDEX IF NOT EXISTS ix__traffic_orders__traffic_source_id ON traffic_orders (traffic_source_id);
     `);
 
     this.addSql(`
-      CREATE INDEX ix__traffic_orders__traffic_target_id ON traffic_orders (traffic_target_id);
+      CREATE INDEX IF NOT EXISTS ix__traffic_orders__traffic_target_id ON traffic_orders (traffic_target_id);
     `);
 
     await Promise.resolve();

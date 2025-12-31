@@ -14,7 +14,7 @@ export class Migration20250105000002BalanceSystem extends Migration {
   async up(): Promise<void> {
     // 1. Create user_balances table with foreign key and unique constraint
     this.addSql(`
-      CREATE TABLE user_balances (
+      CREATE TABLE IF NOT EXISTS user_balances (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         balance decimal(20,8) NOT NULL DEFAULT 0,
@@ -27,8 +27,8 @@ export class Migration20250105000002BalanceSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX ix__user_balances__user_id ON user_balances (user_id);');
-    this.addSql('CREATE INDEX ix__user_balances__currency ON user_balances (currency);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_balances__user_id ON user_balances (user_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_balances__currency ON user_balances (currency);');
 
     this.addSql(`
       CREATE TRIGGER update_user_balances_updated_at
@@ -39,7 +39,7 @@ export class Migration20250105000002BalanceSystem extends Migration {
 
     // 2. Create user_balance_history table with foreign key
     this.addSql(`
-      CREATE TABLE user_balance_history (
+      CREATE TABLE IF NOT EXISTS user_balance_history (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         amount decimal(20,8) NOT NULL,
@@ -53,9 +53,9 @@ export class Migration20250105000002BalanceSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX ix__user_balance_history__user_id ON user_balance_history (user_id);');
-    this.addSql('CREATE INDEX ix__user_balance_history__transaction_type ON user_balance_history (transaction_type);');
-    this.addSql('CREATE INDEX ix__user_balance_history__created_at ON user_balance_history (created_at);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_balance_history__user_id ON user_balance_history (user_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_balance_history__transaction_type ON user_balance_history (transaction_type);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_balance_history__created_at ON user_balance_history (created_at);');
 
     // Ensure async compliance
     await Promise.resolve();

@@ -12,7 +12,7 @@ export class Migration20250105000016TrafficOrderSourcesTargets extends Migration
   async up(): Promise<void> {
     // Create traffic_order_sources junction table
     this.addSql(`
-      CREATE TABLE traffic_order_sources (
+      CREATE TABLE IF NOT EXISTS traffic_order_sources (
         id UUID PRIMARY KEY DEFAULT uuidv7(),
         traffic_order_id UUID NOT NULL REFERENCES traffic_orders(id) ON DELETE CASCADE,
         traffic_source_id UUID NOT NULL REFERENCES traffic_sources(id) ON DELETE CASCADE,
@@ -35,14 +35,14 @@ export class Migration20250105000016TrafficOrderSourcesTargets extends Migration
 
     // Create indexes for traffic_order_sources
     this.addSql(`
-      CREATE INDEX ix__traffic_order_sources__order_id ON traffic_order_sources(traffic_order_id);
-      CREATE INDEX ix__traffic_order_sources__source_id ON traffic_order_sources(traffic_source_id);
-      CREATE INDEX ix__traffic_order_sources__status ON traffic_order_sources(status);
+      CREATE INDEX IF NOT EXISTS ix__traffic_order_sources__order_id ON traffic_order_sources(traffic_order_id);
+      CREATE INDEX IF NOT EXISTS ix__traffic_order_sources__source_id ON traffic_order_sources(traffic_source_id);
+      CREATE INDEX IF NOT EXISTS ix__traffic_order_sources__status ON traffic_order_sources(status);
     `);
 
     // Create traffic_order_targets junction table
     this.addSql(`
-      CREATE TABLE traffic_order_targets (
+      CREATE TABLE IF NOT EXISTS traffic_order_targets (
         id UUID PRIMARY KEY DEFAULT uuidv7(),
         traffic_order_id UUID NOT NULL REFERENCES traffic_orders(id) ON DELETE CASCADE,
         traffic_target_id UUID NOT NULL REFERENCES traffic_targets(id) ON DELETE CASCADE,
@@ -66,9 +66,9 @@ export class Migration20250105000016TrafficOrderSourcesTargets extends Migration
 
     // Create indexes for traffic_order_targets
     this.addSql(`
-      CREATE INDEX ix__traffic_order_targets__order_id ON traffic_order_targets(traffic_order_id);
-      CREATE INDEX ix__traffic_order_targets__target_id ON traffic_order_targets(traffic_target_id);
-      CREATE INDEX ix__traffic_order_targets__status ON traffic_order_targets(status);
+      CREATE INDEX IF NOT EXISTS ix__traffic_order_targets__order_id ON traffic_order_targets(traffic_order_id);
+      CREATE INDEX IF NOT EXISTS ix__traffic_order_targets__target_id ON traffic_order_targets(traffic_target_id);
+      CREATE INDEX IF NOT EXISTS ix__traffic_order_targets__status ON traffic_order_targets(status);
     `);
 
     await Promise.resolve();

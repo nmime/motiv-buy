@@ -13,7 +13,7 @@ export class Migration20250105000009CurrencyRateProviders extends Migration {
   async up(): Promise<void> {
     // Create currency_rate_providers table
     this.addSql(`
-      CREATE TABLE currency_rate_providers (
+      CREATE TABLE IF NOT EXISTS currency_rate_providers (
         id uuid NOT NULL DEFAULT uuidv7(),
         name varchar(50) NOT NULL,
         type varchar(20) NOT NULL,
@@ -36,9 +36,9 @@ export class Migration20250105000009CurrencyRateProviders extends Migration {
 
     // Create indexes
     this.addSql(`
-      CREATE INDEX ix__currency_rate_providers__type ON currency_rate_providers (type);
-      CREATE INDEX ix__currency_rate_providers__is_enabled ON currency_rate_providers (is_enabled);
-      CREATE INDEX ix__currency_rate_providers__priority ON currency_rate_providers (priority);
+      CREATE INDEX IF NOT EXISTS ix__currency_rate_providers__type ON currency_rate_providers (type);
+      CREATE INDEX IF NOT EXISTS ix__currency_rate_providers__is_enabled ON currency_rate_providers (is_enabled);
+      CREATE INDEX IF NOT EXISTS ix__currency_rate_providers__priority ON currency_rate_providers (priority);
     `);
 
     // Seed default provider configurations

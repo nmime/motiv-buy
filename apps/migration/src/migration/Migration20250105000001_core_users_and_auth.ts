@@ -25,7 +25,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
 
     // 2. Create users table
     this.addSql(`
-      CREATE TABLE users (
+      CREATE TABLE IF NOT EXISTS users (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         telegram_id bigint UNIQUE NOT NULL,
         username varchar(32),
@@ -46,11 +46,11 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
     `);
 
     // Create indexes for users table
-    this.addSql('CREATE INDEX ix__users__telegram_id ON users (telegram_id);');
-    this.addSql('CREATE INDEX ix__users__username ON users (username);');
-    this.addSql('CREATE INDEX ix__users__referred_by ON users (referred_by);');
-    this.addSql('CREATE INDEX ix__users__status ON users (status);');
-    this.addSql('CREATE INDEX ix__users__created_at ON users (created_at);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__users__telegram_id ON users (telegram_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__users__username ON users (username);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__users__referred_by ON users (referred_by);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__users__status ON users (status);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__users__created_at ON users (created_at);');
 
     // Add self-referencing foreign keys to users (must be added after table creation)
     this.addSql(`
@@ -71,7 +71,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
 
     // 3. Create user_settings table with foreign key
     this.addSql(`
-      CREATE TABLE user_settings (
+      CREATE TABLE IF NOT EXISTS user_settings (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid UNIQUE NOT NULL,
         notifications_enabled boolean NOT NULL DEFAULT true,
@@ -85,7 +85,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX ix__user_settings__user_id ON user_settings (user_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_settings__user_id ON user_settings (user_id);');
 
     this.addSql(`
       CREATE TRIGGER update_user_settings_updated_at
@@ -96,7 +96,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
 
     // 4. Create user_last_auth table with foreign key
     this.addSql(`
-      CREATE TABLE user_last_auth (
+      CREATE TABLE IF NOT EXISTS user_last_auth (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid UNIQUE NOT NULL,
         ip_address inet,
@@ -109,8 +109,8 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX ix__user_last_auth__user_id ON user_last_auth (user_id);');
-    this.addSql('CREATE INDEX ix__user_last_auth__last_login_at ON user_last_auth (last_login_at);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_last_auth__user_id ON user_last_auth (user_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_last_auth__last_login_at ON user_last_auth (last_login_at);');
 
     this.addSql(`
       CREATE TRIGGER update_user_last_auth_updated_at
@@ -121,7 +121,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
 
     // 5. Create user_ref_links table with foreign key
     this.addSql(`
-      CREATE TABLE user_ref_links (
+      CREATE TABLE IF NOT EXISTS user_ref_links (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         ref_code varchar(32) UNIQUE NOT NULL,
@@ -135,9 +135,9 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX ix__user_ref_links__user_id ON user_ref_links (user_id);');
-    this.addSql('CREATE INDEX ix__user_ref_links__ref_code ON user_ref_links (ref_code);');
-    this.addSql('CREATE INDEX ix__user_ref_links__is_active ON user_ref_links (is_active);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_ref_links__user_id ON user_ref_links (user_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_ref_links__ref_code ON user_ref_links (ref_code);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_ref_links__is_active ON user_ref_links (is_active);');
 
     this.addSql(`
       CREATE TRIGGER update_user_ref_links_updated_at
@@ -148,7 +148,7 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
 
     // 6. Create user_source_visits table with foreign key
     this.addSql(`
-      CREATE TABLE user_source_visits (
+      CREATE TABLE IF NOT EXISTS user_source_visits (
         id uuid PRIMARY KEY DEFAULT uuidv7(),
         user_id uuid NOT NULL,
         link_user_id uuid,
@@ -174,12 +174,12 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX ix__user_source_visits__user_id ON user_source_visits (user_id);');
-    this.addSql('CREATE INDEX ix__user_source_visits__created_at ON user_source_visits (created_at);');
-    this.addSql('CREATE INDEX ix__user_source_visits__utm_source ON user_source_visits (utm_source);');
-    this.addSql('CREATE INDEX ix__user_source_visits__utm_medium ON user_source_visits (utm_medium);');
-    this.addSql('CREATE INDEX ix__user_source_visits__utm_campaign ON user_source_visits (utm_campaign);');
-    this.addSql('CREATE INDEX ix__user_source_visits__platform_type ON user_source_visits (platform_type);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__user_id ON user_source_visits (user_id);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__created_at ON user_source_visits (created_at);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__utm_source ON user_source_visits (utm_source);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__utm_medium ON user_source_visits (utm_medium);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__utm_campaign ON user_source_visits (utm_campaign);');
+    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__platform_type ON user_source_visits (platform_type);');
 
     // Ensure async compliance
     await Promise.resolve();

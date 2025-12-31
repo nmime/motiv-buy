@@ -29,12 +29,12 @@ export class Migration20250105000018FixCategoryJunctionColumn extends Migration 
     this.addSql(`DROP INDEX IF EXISTS uq__traffic_source_categories__source_category;`);
 
     this.addSql(`
-      CREATE INDEX IF NOT EXISTS ix__traffic_source_categories_junction__category_id
+      CREATE INDEX IF NOT EXISTS IF NOT EXISTS ix__traffic_source_categories_junction__category_id
       ON traffic_source_categories_junction (category_id);
     `);
 
     this.addSql(`
-      CREATE UNIQUE INDEX IF NOT EXISTS uq__traffic_source_categories_junction__source_category
+      CREATE UNIQUE INDEX IF NOT EXISTS IF NOT EXISTS uq__traffic_source_categories_junction__source_category
       ON traffic_source_categories_junction (traffic_source_id, category_id);
     `);
   }
@@ -46,12 +46,12 @@ export class Migration20250105000018FixCategoryJunctionColumn extends Migration 
 
     // Restore old indexes
     this.addSql(`
-      CREATE INDEX ix__traffic_source_categories__category_id
+      CREATE INDEX IF NOT EXISTS ix__traffic_source_categories__category_id
       ON traffic_source_categories_junction (category_id);
     `);
 
     this.addSql(`
-      CREATE UNIQUE INDEX uq__traffic_source_categories__source_category
+      CREATE UNIQUE INDEX IF NOT EXISTS uq__traffic_source_categories__source_category
       ON traffic_source_categories_junction (traffic_source_id, category_id);
     `);
 

@@ -18,7 +18,7 @@ export class Migration20250105000010RateProviderCurrencies extends Migration {
   async up(): Promise<void> {
     // Create rate_provider_currencies table
     this.addSql(`
-      CREATE TABLE rate_provider_currencies (
+      CREATE TABLE IF NOT EXISTS rate_provider_currencies (
         id uuid NOT NULL DEFAULT uuidv7(),
         provider_id uuid NOT NULL,
         currency_id uuid NOT NULL,
@@ -38,9 +38,9 @@ export class Migration20250105000010RateProviderCurrencies extends Migration {
 
     // Create indexes
     this.addSql(`
-      CREATE INDEX ix__rate_provider_currencies__provider ON rate_provider_currencies (provider_id);
-      CREATE INDEX ix__rate_provider_currencies__currency ON rate_provider_currencies (currency_id);
-      CREATE INDEX ix__rate_provider_currencies__is_enabled ON rate_provider_currencies (is_enabled);
+      CREATE INDEX IF NOT EXISTS ix__rate_provider_currencies__provider ON rate_provider_currencies (provider_id);
+      CREATE INDEX IF NOT EXISTS ix__rate_provider_currencies__currency ON rate_provider_currencies (currency_id);
+      CREATE INDEX IF NOT EXISTS ix__rate_provider_currencies__is_enabled ON rate_provider_currencies (is_enabled);
     `);
 
     // Seed CoinGecko currency mappings (all crypto currencies)
