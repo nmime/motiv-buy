@@ -641,7 +641,6 @@ export class StatisticService {
       `SELECT
         COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Completed}' THEN 1 END) as "completedOrders",
         COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Pending}' THEN 1 END) as "pendingOrders",
-        COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.InProgress}' THEN 1 END) as "inProgressOrders",
         COUNT(CASE WHEN tor.status = '${TrafficOrderStatus.Active}' THEN 1 END) as "activeOrders"
        FROM traffic_orders tor ${whereClause}`,
       parameters,
@@ -649,12 +648,11 @@ export class StatisticService {
 
     const row = this.getFirstRow(result);
     const pendingOrders = this.safeParseInt(row, 'pendingOrders');
-    const inProgressOrders = this.safeParseInt(row, 'inProgressOrders');
     const activeOrders = this.safeParseInt(row, 'activeOrders');
 
     return {
       completed: this.safeParseInt(row, 'completedOrders'),
-      pending: pendingOrders + inProgressOrders + activeOrders,
+      pending: pendingOrders + activeOrders,
     };
   }
 

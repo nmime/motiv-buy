@@ -8,11 +8,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer } from 'grammy';
 import { EntityManager } from '@mikro-orm/core';
+import { I18nService } from 'nestjs-i18n';
 import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/feature-bot-shared';
 import { SettingType, UserEntity, UserSettingsEntity } from '@app/database';
-import { defaultLanguage } from '@app/common-shared';
+import { defaultLanguage, languageNames, supportedLanguages } from '@app/common-shared';
+import { updateContextTranslation } from '@app/common-intl';
 import { BotValidationUtil } from '../../util/bot-validation.util';
 import { MessageService } from '../../service/message.service';
+import { BotSessionService } from '../../service/auth';
 import {
   createSettingsMenuKeyboard,
   createLanguageKeyboard,
@@ -39,12 +42,13 @@ interface UserPreferences {
 @Injectable()
 export class SettingsHandler {
   private readonly logger = new Logger(SettingsHandler.name);
-  private readonly supportedLanguages = ['en', 'ru', 'uk', 'es', 'fr', 'de', 'zh'];
   private composer: Composer<BotContext>;
 
   constructor(
     private readonly em: EntityManager,
     private readonly messageService: MessageService,
+    private readonly i18n: I18nService,
+    private readonly botSessionService: BotSessionService,
   ) {
     this.composer = new Composer<BotContext>();
     this.setupHandlers();
@@ -136,7 +140,7 @@ export class SettingsHandler {
    * Handle language settings
    */
   async handleLanguageSettings(ctx: AuthenticatedBotContext): Promise<void> {
-    const currentLang = ctx.user.languageCode ?? defaultLanguage;
+    const currentLang = ctx.user.language ?? defaultLanguage;
     const languageText =
       `🌐 <b>${ctx.t('settings.language_title')}</b>\n\n` +
       `${ctx.t('settings.current_language')}: ${this.getLanguageName(currentLang)}\n\n` +
@@ -161,24 +165,39 @@ export class SettingsHandler {
       toLowerCase: true,
     });
 
-    if (!validation.isValid || !this.supportedLanguages.includes(validation.sanitized as string)) {
+    if (!validation.isValid || !supportedLanguages.includes(validation.sanitized as string)) {
       await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.invalid_input') });
 
       return;
     }
 
-    ctx.user.languageCode = validation.sanitized as string;
+    const newLang = validation.sanitized as string;
+
+    // Update in database
+    ctx.user.language = newLang;
     const em = this.em.fork();
     await em.persistAndFlush(ctx.user);
 
+    // Sync language across all places:
+    // 1. Update Grammy session language
+    if (ctx.session) {
+      ctx.session.language = newLang;
+    }
+
+    // 2. Update Redis session cache (for BotAuthMiddleware on next request)
+    if (ctx.sessionId) {
+      await this.botSessionService.updateSessionLanguage(ctx.sessionId, newLang);
+    }
+
+    // 3. Update i18n context language and recreate ctx.t() function
+    updateContextTranslation(ctx, this.i18n, newLang);
+
+    // Now ctx.t() uses the new language
     await this.messageService.sendNewMessage(ctx, {
-      text: ctx.t('settings.language_changed', {
-        default: `✅ Language changed to ${this.getLanguageName(validation.sanitized as string)}!`,
-        language: this.getLanguageName(validation.sanitized as string),
-      }),
+      text: ctx.t('settings.language_changed', { language: this.getLanguageName(newLang) }),
     });
 
-    this.logger.log('Language changed', { userId: ctx.user.id, language: validation.sanitized });
+    this.logger.log('Language changed', { userId: ctx.user.id, language: newLang });
   }
 
   /**
@@ -258,7 +277,7 @@ export class SettingsHandler {
     );
 
     return {
-      language: user?.languageCode ?? defaultLanguage,
+      language: user?.language ?? defaultLanguage,
       notifications: {
         balance: settingsMap['notification_balance'] !== false,
         trade: settingsMap['notification_trade'] !== false,
@@ -345,17 +364,7 @@ export class SettingsHandler {
    * Get language name
    */
   private getLanguageName(code: string): string {
-    const languages: Record<string, string> = {
-      en: 'English',
-      ru: 'Русский',
-      uk: 'Українська',
-      es: 'Español',
-      fr: 'Français',
-      de: 'Deutsch',
-      zh: '中文',
-    };
-
-    return languages[code] ?? code;
+    return languageNames[code] ?? code;
   }
 
   /**

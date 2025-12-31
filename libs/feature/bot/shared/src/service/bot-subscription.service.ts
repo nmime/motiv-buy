@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Bot } from 'grammy';
 import {
+  BotPermissions,
   BulkSubscriptionCheckResult,
   ChatInformation,
   ChatMemberStatus,
@@ -236,6 +237,68 @@ export class BotSubscriptionService {
       this.logger.error(`Failed to get member count for chat ${chatId}: ${errorMessage}`);
 
       throw new Error(`Failed to retrieve chat member count: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get bot permissions in a chat
+   *
+   * @param botToken - Bot token
+   * @param chatId - Chat ID
+   * @returns Bot permissions in the chat
+   *
+   * @example
+   * const permissions = await subscriptionService.getBotPermissions(
+   *   botToken,
+   *   '@mychannel'
+   * );
+   * if (permissions.canInviteUsers) {
+   *   console.log('Bot can invite users!');
+   * }
+   */
+  async getBotPermissions(botToken: string, chatId: string | number): Promise<BotPermissions> {
+    this.logger.log(`Checking bot permissions in chat ${chatId}`);
+
+    try {
+      const bot = new Bot(botToken);
+      const botInfo = await bot.api.getMe();
+      const chatMember = await bot.api.getChatMember(chatId, botInfo.id);
+
+      const isAdmin = chatMember.status === 'administrator' || chatMember.status === 'creator';
+
+      // Check specific permissions for administrators
+      let canInviteUsers = false;
+      let canGenerateInviteLink = false;
+
+      if (chatMember.status === 'creator') {
+        // Creator has all permissions
+        canInviteUsers = true;
+        canGenerateInviteLink = true;
+      } else if (chatMember.status === 'administrator') {
+        // Check administrator permissions
+        canInviteUsers = chatMember.can_invite_users ?? false;
+        canGenerateInviteLink = chatMember.can_invite_users ?? false;
+      }
+
+      this.logger.log(`Bot permissions in ${chatId}: admin=${isAdmin}, canInvite=${canInviteUsers}`);
+
+      return {
+        isMember: chatMember.status !== 'left' && chatMember.status !== 'kicked',
+        isAdmin,
+        canInviteUsers,
+        canGenerateInviteLink,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to get bot permissions for chat ${chatId}: ${errorMessage}`);
+
+      return {
+        isMember: false,
+        isAdmin: false,
+        canInviteUsers: false,
+        canGenerateInviteLink: false,
+        error: errorMessage,
+      };
     }
   }
 

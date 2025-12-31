@@ -50,7 +50,7 @@ export class TrafficTargetController {
     description: 'User traffic orders retrieved successfully',
     type: [TrafficOrderResponseDto],
   })
-  async getUserTrafficOrders(@CurrentUserId() userId: string): Promise<AsyncResult<TrafficOrderResponseDto[], Error>> {
+  async getUserTrafficOrders(@CurrentUserId() userId: string): AsyncResult<TrafficOrderResponseDto[], Error> {
     const result = await this.trafficService.getUserTrafficOrders(userId);
 
     return Ok(result);
@@ -73,7 +73,7 @@ export class TrafficTargetController {
   async getTrafficOrder(
     @Param('targetId') targetId: string,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
+  ): AsyncResult<TrafficOrderResponseDto, Error> {
     const result = await this.trafficService.getTrafficOrder(targetId, userId);
 
     return Ok(result);

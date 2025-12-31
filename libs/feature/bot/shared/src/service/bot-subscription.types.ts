@@ -109,6 +109,28 @@ export interface ChatInformation {
 }
 
 /**
+ * Bot Permissions in a Chat
+ *
+ * Permissions that the bot has in a specific chat
+ */
+export interface BotPermissions {
+  /** Whether the bot is a member of the chat */
+  isMember: boolean;
+
+  /** Whether the bot is an administrator */
+  isAdmin: boolean;
+
+  /** Whether the bot can invite users */
+  canInviteUsers: boolean;
+
+  /** Whether the bot can generate invite links */
+  canGenerateInviteLink: boolean;
+
+  /** Error message if check failed */
+  error?: string;
+}
+
+/**
  * Bot Subscription Service Interface
  *
  * Service for checking user subscriptions to groups, supergroups, and channels

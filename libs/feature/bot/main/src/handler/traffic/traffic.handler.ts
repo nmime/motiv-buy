@@ -11,21 +11,30 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { EntityManager, MikroORM } from '@mikro-orm/core';
+import { MikroORM, EntityManager } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, AuthenticatedBotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import {
-  UserBalanceEntity,
+  BotContext,
+  AuthenticatedBotContext,
+  TelegramModerationNotifier,
+  BotSubscriptionService,
+  ChatType,
+  ChatInformation,
+} from '@app/feature-bot-shared';
+import {
   TrafficSourceEntity,
   TrafficSourceStatus,
   TrafficSourceType,
+  TrafficSourceRepository,
   TrafficTargetEntity,
   TrafficTargetStatus,
   TrafficTargetType,
   TrafficOrderEntity,
   TrafficOrderStatus,
   TrafficOrderSourceEntity,
+  TrafficOrderSourceStatus,
   TrafficOrderTargetEntity,
+  TrafficOrderTargetStatus,
   ModerationRequestEntity,
   ModerationStatus,
   ModerationEntityType,
@@ -38,6 +47,8 @@ import { MessageService } from '../../service/message.service';
 import { MenuActionHandler } from '../menu-action.handler';
 import { v7 as uuidv7 } from 'uuid';
 import { PaymentConfigService } from '@app/feature-payment-shared';
+import { UserBalanceOperationService } from '@app/feature-balance-shared';
+import { BotConfigService } from '../../config/bot-config.service';
 
 const categoriesPerPage = 9;
 
@@ -51,6 +62,10 @@ export class TrafficHandler {
     private readonly menuHandler: MenuActionHandler,
     private readonly moderationNotifier: TelegramModerationNotifier,
     private readonly paymentConfigService: PaymentConfigService,
+    private readonly userBalanceService: UserBalanceOperationService,
+    private readonly botConfigService: BotConfigService,
+    private readonly botSubscriptionService: BotSubscriptionService,
+    private readonly trafficSourceRepository: TrafficSourceRepository,
   ) {}
 
   private get currencySymbol(): string {
@@ -89,40 +104,35 @@ export class TrafficHandler {
   }
 
   /**
-   * Handle Buy Traffic menu - for users who want to purchase subscribers
+   * Handle Buy Traffic menu - shows user's targets (channels, groups, bots) for buying traffic
    */
   async handleBuyTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
-    const [balance, activeOrdersCount] = await Promise.all([
-      this.em.findOne(UserBalanceEntity, { user: ctx.user.id }),
-      this.em.count(TrafficOrderEntity, {
-        creator: ctx.user.id,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
-      }),
-    ]);
+    const targets = await this.em.find(
+      TrafficTargetEntity,
+      { managedBy: { id: ctx.user.id }, status: { $ne: TrafficTargetStatus.Deleted } },
+      { orderBy: { createdAt: 'DESC' }, limit: 20 },
+    );
 
-    const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
+    let text = ctx.t('traffic.buy_target.targets_list_title');
 
-    const text = `<b>🛒 ${ctx.t('buy_traffic.title')}</b>
+    if (targets.length === 0) {
+      text += ctx.t('traffic.buy_target.no_targets');
+    } else {
+      text += ctx.t('traffic.buy_target.targets_count', { count: targets.length });
 
-${ctx.t('buy_traffic.description')}
+      targets.forEach((target) => {
+        const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
+        const typeLabel = this.getBuyTargetTypeLabel(ctx, target.type);
+        const statusKey = `traffic.status.${target.status}`;
+        const statusLabel = ctx.t(statusKey);
+        const usernameInfo = target.username ? ` @${target.username}` : '';
+        text += `${statusEmoji} <b>${target.name}</b>${usernameInfo}\n`;
+        text += `   ${ctx.t('traffic.target_type_label')}: ${typeLabel}\n`;
+        text += `   ${ctx.t('traffic.source_status')}: ${statusLabel}\n\n`;
+      });
+    }
 
-<b>💰 ${ctx.t('buy_traffic.your_balance')}:</b> ${this.currencySymbol}${availableBalance}
-<b>📦 ${ctx.t('buy_traffic.active_orders')}:</b> ${activeOrdersCount}
-
-<b>📋 ${ctx.t('buy_traffic.how_it_works')}:</b>
-1. ${ctx.t('buy_traffic.step1')}
-2. ${ctx.t('buy_traffic.step2')}
-3. ${ctx.t('buy_traffic.step3')}
-4. ${ctx.t('buy_traffic.step4')}
-5. ${ctx.t('buy_traffic.step5')}
-
-<i>${ctx.t('buy_traffic.select_action')} 👇</i>`;
-
-    const keyboard = new InlineKeyboard()
-      .text(ctx.t('buy_traffic.btn_new_order'), 'order:create:start:traffic')
-      .text(ctx.t('buy_traffic.btn_my_orders'), 'orders:list')
-      .row()
-      .text(ctx.t('common.back'), 'menu:main');
+    const keyboard = this.menuHandler.createBuyTrafficTargetsKeyboard(ctx, targets);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,
@@ -134,14 +144,15 @@ ${ctx.t('buy_traffic.description')}
    * Handle Sell Traffic menu - for users who want to monetize their bot/channel
    */
   async handleSellTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
-    const [sourcesCount, activeSourcesCount, balance] = await Promise.all([
-      this.em.count(TrafficSourceEntity, { managedBy: ctx.user.id }),
-      this.em.count(TrafficSourceEntity, { managedBy: ctx.user.id, status: TrafficSourceStatus.Active }),
-      this.em.findOne(UserBalanceEntity, { user: ctx.user.id }),
+    const baseCurrency = this.paymentConfigService.getBaseCurrency();
+    const [sourcesCount, activeSourcesCount, balanceSummary] = await Promise.all([
+      this.em.count(TrafficSourceEntity, { managedBy: { id: ctx.user.id } }),
+      this.em.count(TrafficSourceEntity, { managedBy: { id: ctx.user.id }, status: TrafficSourceStatus.Active }),
+      this.userBalanceService.getBalanceSummary(ctx.user.id, baseCurrency),
     ]);
 
-    const pendingEarnings = balance ? toDisplayString(balance.lockedBalance, 2) : '0.00';
-    const availableBalance = balance ? toDisplayString(balance.balance, 2) : '0.00';
+    const pendingEarnings = balanceSummary.locked;
+    const availableBalance = balanceSummary.available;
 
     const text = `<b>💰 ${ctx.t('sell_traffic.title')}</b>
 
@@ -179,13 +190,13 @@ ${ctx.t('sell_traffic.description')}
   async handleTrafficMenu(ctx: AuthenticatedBotContext): Promise<void> {
     const sources = await this.em.find(
       TrafficSourceEntity,
-      { managedBy: ctx.user.id },
+      { managedBy: { id: ctx.user.id } },
       { populate: ['orderAssignments'] },
     );
 
     const activeOrders = await this.em.count(TrafficOrderEntity, {
       creator: ctx.user.id,
-      status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+      status: TrafficOrderStatus.Active,
     });
 
     const totalOrders = await this.em.count(TrafficOrderEntity, { creator: ctx.user.id });
@@ -224,7 +235,7 @@ ${ctx.t('sell_traffic.description')}
   async handleTrafficSourcesList(ctx: AuthenticatedBotContext): Promise<void> {
     const sources = await this.em.find(
       TrafficSourceEntity,
-      { managedBy: ctx.user.id },
+      { managedBy: { id: ctx.user.id }, status: { $ne: TrafficSourceStatus.Deleted } },
       { orderBy: { createdAt: 'DESC' }, limit: 10, populate: ['categories.category'] },
     );
 
@@ -313,7 +324,7 @@ ${ctx.t('sell_traffic.description')}
   async handleTrafficSourceView(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
     const source = await this.em.findOne(
       TrafficSourceEntity,
-      { id: sourceId, managedBy: ctx.user.id },
+      { id: sourceId, managedBy: { id: ctx.user.id } },
       { populate: ['categories.category'] },
     );
 
@@ -380,7 +391,7 @@ ${ctx.t('sell_traffic.description')}
   }
 
   async handleTrafficSourceToggle(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
-    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: { id: ctx.user.id } });
 
     if (!source) {
       await this.messageService.sendOrEditMessage(ctx, {
@@ -424,8 +435,12 @@ ${ctx.t('sell_traffic.description')}
     });
   }
 
+  /**
+   * Handle Traffic Source Delete Confirm
+   * Uses soft delete via status change - no data is actually deleted
+   */
   async handleTrafficSourceDeleteConfirm(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
-    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: { id: ctx.user.id } });
 
     if (!source) {
       await this.messageService.sendOrEditMessage(ctx, {
@@ -436,7 +451,29 @@ ${ctx.t('sell_traffic.description')}
     }
 
     const sourceName = source.name;
-    await this.em.removeAndFlush(source);
+
+    // Cancel all order-source assignments and cancel related orders
+    const orderSources = await this.em.find(
+      TrafficOrderSourceEntity,
+      { trafficSource: source.id },
+      { populate: ['trafficOrder'] },
+    );
+
+    for (const os of orderSources) {
+      // Cancel the order-source junction entry
+      os.status = TrafficOrderSourceStatus.Cancelled;
+
+      // Cancel active/paused orders for this source
+      const order = os.trafficOrder.getEntity();
+      if (order.status === TrafficOrderStatus.Active || order.status === TrafficOrderStatus.Paused) {
+        order.status = TrafficOrderStatus.Cancelled;
+      }
+    }
+
+    // Soft delete the source by changing status
+    source.status = TrafficSourceStatus.Deleted;
+
+    await this.em.flush();
 
     await this.safeAnswerCallback(ctx, ctx.t('traffic.source_deleted'));
 
@@ -450,7 +487,7 @@ ${ctx.t('sell_traffic.description')}
   }
 
   async handleTrafficSourceStats(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
-    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: { id: ctx.user.id } });
 
     if (!source) {
       await this.messageService.sendOrEditMessage(ctx, {
@@ -471,7 +508,7 @@ ${ctx.t('sell_traffic.description')}
     const activeOrders = orderSources.filter((os) => {
       const order = os.trafficOrder.getEntity();
 
-      return order.status === TrafficOrderStatus.Active || order.status === TrafficOrderStatus.InProgress;
+      return order.status === TrafficOrderStatus.Active;
     }).length;
 
     const completedOrders = orderSources.filter((os) => {
@@ -499,13 +536,127 @@ ${ctx.t('sell_traffic.description')}
   }
 
   /**
+   * Handle Traffic Source Integration - shows API key and integration guide
+   */
+  async handleTrafficSourceIntegration(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: { id: ctx.user.id } });
+
+    if (!source) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
+
+      return;
+    }
+
+    const hasApiKey = Boolean(source.apiKeyHash);
+    const docsUrl = this.botConfigService.getApiDocsUrl();
+
+    let text = ctx.t('traffic.integration.title');
+    text += `<b>${ctx.t('traffic.source_name')}:</b> ${source.name}\n\n`;
+
+    if (hasApiKey) {
+      // Show masked API key info (prefix + asterisks)
+      const maskedKey = source.apiKeyPrefix ? `${source.apiKeyPrefix}${'*'.repeat(56)}` : '********';
+      text += `${ctx.t('traffic.integration.api_key_label')}\n`;
+      text += ctx.t('traffic.integration.api_key_spoiler', { apiKey: maskedKey });
+    } else {
+      text += ctx.t('traffic.integration.no_api_key');
+    }
+
+    text += ctx.t('traffic.integration.quick_guide_title');
+    text += `\n${ctx.t('traffic.integration.quick_guide_step1')}`;
+    text += `\n${ctx.t('traffic.integration.quick_guide_step2')}`;
+    text += `\n${ctx.t('traffic.integration.quick_guide_step3')}`;
+
+    if (docsUrl) {
+      text += ctx.t('traffic.integration.docs_link', { docsUrl });
+    }
+
+    text += ctx.t('traffic.integration.copy_hint');
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('traffic.integration.regenerate_btn'), `traffic:source:regen:${sourceId}`)
+      .row()
+      .text(ctx.t('common.back'), `traffic:source:view:${sourceId}`);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle Traffic Source Regenerate API Key - confirmation dialog
+   */
+  async handleTrafficSourceRegenerateConfirm(ctx: BotContext, sourceId: string): Promise<void> {
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('common.buttons.confirm'), `traf:rg:Y:${sourceId}`)
+      .text(ctx.t('common.buttons.cancel'), `traf:rg:N:${sourceId}`);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.integration.regenerate_confirm'),
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle Traffic Source Regenerate API Key - execute regeneration
+   */
+  async handleTrafficSourceRegenerateKey(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: { id: ctx.user.id } });
+
+    if (!source) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
+
+      return;
+    }
+
+    // Generate new API key using repository method
+    const newApiKey = await this.trafficSourceRepository.regenerateApiKey(sourceId);
+
+    const docsUrl = this.botConfigService.getApiDocsUrl();
+
+    let text = ctx.t('traffic.integration.title');
+    text += `<b>${ctx.t('traffic.source_name')}:</b> ${source.name}\n\n`;
+    text += `${ctx.t('traffic.integration.regenerate_success')}\n\n`;
+    text += `${ctx.t('traffic.integration.api_key_label')}\n`;
+    text += ctx.t('traffic.integration.api_key_spoiler', { apiKey: newApiKey });
+
+    text += ctx.t('traffic.integration.quick_guide_title');
+    text += `\n${ctx.t('traffic.integration.quick_guide_step1')}`;
+    text += `\n${ctx.t('traffic.integration.quick_guide_step2')}`;
+    text += `\n${ctx.t('traffic.integration.quick_guide_step3')}`;
+
+    if (docsUrl) {
+      text += ctx.t('traffic.integration.docs_link', { docsUrl });
+    }
+
+    text += ctx.t('traffic.integration.copy_hint');
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('traffic.integration.regenerate_btn'), `traffic:source:regen:${sourceId}`)
+      .row()
+      .text(ctx.t('common.back'), `traffic:source:view:${sourceId}`);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+
+    await this.safeAnswerCallback(ctx, ctx.t('traffic.integration.regenerate_success'));
+  }
+
+  /**
    * Traffic Target CRUD Operations
    */
 
   async handleTrafficTargetsList(ctx: AuthenticatedBotContext): Promise<void> {
     const targets = await this.em.find(
       TrafficTargetEntity,
-      { managedBy: ctx.user.id },
+      { managedBy: { id: ctx.user.id }, status: { $ne: TrafficTargetStatus.Deleted } },
       { orderBy: { createdAt: 'DESC' }, limit: 10 },
     );
 
@@ -523,10 +674,11 @@ ${ctx.t('sell_traffic.description')}
 
       targets.forEach((target) => {
         const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
-        const typeLabel = this.getTargetTypeLabel(target.type);
+        const typeLabel = this.getBuyTargetTypeLabel(ctx, target.type);
+        const statusLabel = ctx.t(`traffic.status.${target.status}`);
         text += `${statusEmoji} <b>${target.name}</b>\n`;
-        text += `   Type: ${typeLabel}\n`;
-        text += `   Status: ${target.status}\n\n`;
+        text += `   ${ctx.t('traffic.target_type_label')}: ${typeLabel}\n`;
+        text += `   ${ctx.t('traffic.source_status')}: ${statusLabel}\n\n`;
       });
     }
 
@@ -554,7 +706,7 @@ ${ctx.t('sell_traffic.description')}
   }
 
   async handleTrafficTargetView(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
-    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: { id: ctx.user.id } });
 
     if (!target) {
       await this.messageService.sendOrEditMessage(ctx, {
@@ -566,27 +718,28 @@ ${ctx.t('sell_traffic.description')}
 
     const ordersCount = await this.em.count(TrafficOrderTargetEntity, { trafficTarget: target.id });
     const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
-    const typeLabel = this.getTargetTypeLabel(target.type);
+    const typeLabel = this.getBuyTargetTypeLabel(ctx, target.type);
+    const statusLabel = ctx.t(`traffic.status.${target.status}`);
 
     let text = ctx.t('traffic.target_details_title');
-    text += `<b>Name:</b> ${target.name}\n`;
-    text += `<b>Type:</b> ${typeLabel}\n`;
-    text += `<b>Status:</b> ${statusEmoji} ${target.status}\n`;
+    text += `<b>${ctx.t('traffic.target_name')}:</b> ${target.name}\n`;
+    text += `<b>${ctx.t('traffic.target_type_label')}:</b> ${typeLabel}\n`;
+    text += `<b>${ctx.t('traffic.source_status')}:</b> ${statusEmoji} ${statusLabel}\n`;
 
     if (target.username) {
-      text += `<b>Username:</b> @${target.username}\n`;
+      text += `<b>${ctx.t('traffic.target_username')}:</b> @${target.username}\n`;
     }
 
     if (target.inviteLink) {
-      text += `<b>Invite Link:</b> ${target.inviteLink}\n`;
+      text += `<b>${ctx.t('traffic.target_invite_link')}:</b> ${target.inviteLink}\n`;
     }
 
     if (target.description) {
-      text += `<b>Description:</b> ${target.description}\n`;
+      text += `<b>${ctx.t('traffic.source_description')}:</b> ${target.description}\n`;
     }
 
     if (target.pricePerMember) {
-      text += `<b>Price per Member:</b> ${this.currencySymbol}${toDisplayString(target.pricePerMember, 2)}\n`;
+      text += `<b>${ctx.t('traffic.target_price_per_member')}:</b> ${this.currencySymbol}${toDisplayString(target.pricePerMember, 2)}\n`;
     }
 
     text += `\n<b>${ctx.t('common.statistics')}:</b>\n`;
@@ -614,7 +767,7 @@ ${ctx.t('sell_traffic.description')}
   }
 
   async handleTrafficTargetToggle(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
-    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: { id: ctx.user.id } });
 
     if (!target) {
       await this.messageService.sendOrEditMessage(ctx, {
@@ -650,8 +803,12 @@ ${ctx.t('sell_traffic.description')}
     });
   }
 
+  /**
+   * Handle Traffic Target Delete Confirm
+   * Uses soft delete via status change - no data is actually deleted
+   */
   async handleTrafficTargetDeleteConfirm(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
-    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: { id: ctx.user.id } });
 
     if (!target) {
       await this.messageService.sendOrEditMessage(ctx, {
@@ -662,7 +819,29 @@ ${ctx.t('sell_traffic.description')}
     }
 
     const targetName = target.name;
-    await this.em.removeAndFlush(target);
+
+    // Cancel all order-target assignments and cancel related orders
+    const orderTargets = await this.em.find(
+      TrafficOrderTargetEntity,
+      { trafficTarget: target.id },
+      { populate: ['trafficOrder'] },
+    );
+
+    for (const ot of orderTargets) {
+      // Cancel the order-target junction entry
+      ot.status = TrafficOrderTargetStatus.Cancelled;
+
+      // Cancel active/paused orders for this target
+      const order = ot.trafficOrder.getEntity();
+      if (order.status === TrafficOrderStatus.Active || order.status === TrafficOrderStatus.Paused) {
+        order.status = TrafficOrderStatus.Cancelled;
+      }
+    }
+
+    // Soft delete the target by changing status
+    target.status = TrafficTargetStatus.Deleted;
+
+    await this.em.flush();
 
     await this.safeAnswerCallback(ctx, ctx.t('traffic.target_deleted'));
 
@@ -676,7 +855,7 @@ ${ctx.t('sell_traffic.description')}
   }
 
   async handleTrafficTargetStats(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
-    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: { id: ctx.user.id } });
 
     if (!target) {
       await this.messageService.sendOrEditMessage(ctx, {
@@ -697,7 +876,7 @@ ${ctx.t('sell_traffic.description')}
     const activeOrders = orderTargets.filter((ot) => {
       const order = ot.trafficOrder.getEntity();
 
-      return order.status === TrafficOrderStatus.Active || order.status === TrafficOrderStatus.InProgress;
+      return order.status === TrafficOrderStatus.Active;
     }).length;
 
     const completedOrders = orderTargets.filter((ot) => {
@@ -725,16 +904,658 @@ ${ctx.t('sell_traffic.description')}
   }
 
   /**
+   * Buy Traffic Target CRUD Operations
+   */
+
+  /**
+   * Handle Add Buy Traffic Target - show type selection
+   */
+  async handleBuyTrafficTargetAdd(ctx: AuthenticatedBotContext): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'buyTargetCreate';
+      ctx.session.formData = { step: 'select_type' };
+    }
+
+    const text = ctx.t('traffic.buy_target.select_target_type');
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('traffic.buy_target.type_channel'), 'buy:target:type:channel')
+      .row()
+      .text(ctx.t('traffic.buy_target.type_group'), 'buy:target:type:group')
+      .row()
+      .text(ctx.t('traffic.buy_target.type_bot'), 'buy:target:type:bot')
+      .row()
+      .text(ctx.t('common.back'), 'menu:buy_traffic');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle Buy Traffic Target Type Selection - go to mode selection
+   */
+  async handleBuyTrafficTargetTypeSelect(
+    ctx: AuthenticatedBotContext,
+    type: 'channel' | 'group' | 'bot',
+  ): Promise<void> {
+    if (ctx.session) {
+      ctx.session.conversationState = 'buyTargetCreate';
+      ctx.session.formData = {
+        step: 'select_mode',
+        type,
+      };
+    }
+
+    const text = ctx.t('traffic.buy_target.select_delivery_mode');
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('traffic.buy_target.mode_direct'), 'buy:target:mode:direct')
+      .row()
+      .text(ctx.t('traffic.buy_target.mode_moderated'), 'buy:target:mode:moderated')
+      .row()
+      .text(ctx.t('common.back'), 'buy:target:add');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle Buy Traffic Target Mode Selection - go to link/token input
+   */
+  async handleBuyTrafficTargetModeSelect(ctx: AuthenticatedBotContext, mode: 'direct' | 'moderated'): Promise<void> {
+    const formData = ctx.session?.formData;
+    if (!formData || typeof formData !== 'object') {
+      return;
+    }
+
+    const type = 'type' in formData ? String(formData.type) : 'channel';
+
+    if (ctx.session) {
+      ctx.session.formData = {
+        step: 'enter_link',
+        type,
+        mode,
+      };
+    }
+
+    const textKeyMap: Record<string, string> = {
+      channel: 'traffic.buy_target.enter_channel_link',
+      group: 'traffic.buy_target.enter_group_link',
+      bot: 'traffic.buy_target.enter_bot_token',
+    };
+
+    const text = ctx.t(textKeyMap[type]);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: this.createBackButton(ctx, `buy:target:type:${type}`),
+    });
+  }
+
+  /**
+   * Handle Buy Traffic Target View - show target details with orders
+   */
+  async handleBuyTrafficTargetView(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: { id: ctx.user.id } });
+
+    if (!target) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.target_not_found'),
+      });
+
+      return;
+    }
+
+    // Get orders count for this target
+    const orderTargets = await this.em.find(
+      TrafficOrderTargetEntity,
+      { trafficTarget: target.id },
+      { populate: ['trafficOrder'] },
+    );
+
+    const totalOrders = orderTargets.length;
+    const activeOrders = orderTargets.filter((ot) => {
+      const order = ot.trafficOrder.getEntity();
+
+      return order.status === TrafficOrderStatus.Active;
+    }).length;
+
+    const statusEmoji = target.status === TrafficTargetStatus.Active ? '✅' : '❌';
+    const typeLabel = this.getBuyTargetTypeLabel(ctx, target.type);
+    const statusKey = `traffic.status.${target.status}`;
+    const statusLabel = ctx.t(statusKey);
+    const modeLabel = target.requiresApproval
+      ? ctx.t('traffic.buy_target.mode_moderated')
+      : ctx.t('traffic.buy_target.mode_direct');
+
+    let text = ctx.t('traffic.buy_target.target_details_title');
+    text += `<b>${ctx.t('traffic.target_name')}:</b> ${target.name}\n`;
+    text += `<b>${ctx.t('traffic.target_type_label')}:</b> ${typeLabel}\n`;
+    text += `<b>${ctx.t('traffic.buy_target.delivery_mode_label')}:</b> ${modeLabel}\n`;
+    text += `<b>${ctx.t('traffic.source_status')}:</b> ${statusEmoji} ${statusLabel}\n`;
+
+    if (target.username) {
+      text += `<b>Username:</b> @${target.username}\n`;
+    }
+
+    if (target.inviteLink) {
+      text += `<b>Link:</b> ${target.inviteLink}\n`;
+    }
+
+    text += `\n<b>${ctx.t('common.statistics')}:</b>\n`;
+    text += `• ${ctx.t('traffic.total_orders_label')}: ${totalOrders}\n`;
+    text += `• ${ctx.t('orders.active')}: ${activeOrders}\n`;
+    text += `• ${ctx.t('traffic.created_at')}: ${this.messageService.formatDate(ctx, target.createdAt)}\n`;
+
+    const keyboard = this.menuHandler.createBuyTrafficTargetDetailKeyboard(ctx, targetId);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle Buy Traffic Target Orders - list orders for a specific target
+   */
+  async handleBuyTrafficTargetOrders(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: { id: ctx.user.id } });
+
+    if (!target) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.target_not_found'),
+      });
+
+      return;
+    }
+
+    // Get orders for this target via junction table (exclude deleted/cancelled)
+    const orderTargets = await this.em.find(
+      TrafficOrderTargetEntity,
+      {
+        trafficTarget: target.id,
+        trafficOrder: {
+          status: { $nin: [TrafficOrderStatus.Deleted, TrafficOrderStatus.Cancelled] },
+        },
+      },
+      { populate: ['trafficOrder'], orderBy: { id: 'DESC' }, limit: 10 },
+    );
+
+    let text = ctx.t('traffic.buy_target.orders_for_target', { name: target.name });
+
+    if (orderTargets.length === 0) {
+      text += ctx.t('traffic.buy_target.no_orders_for_target');
+    } else {
+      text += ctx.t('traffic.buy_target.orders_count', { count: orderTargets.length });
+
+      const statusEmojis: Record<string, string> = {
+        pending: '⏳',
+        active: '✅',
+        paused: '⏸️',
+        completed: '✔️',
+        failed: '💥',
+      };
+
+      orderTargets.forEach((ot) => {
+        const order = ot.trafficOrder.getEntity();
+        const emoji = statusEmojis[order.status] ?? '❓';
+        const orderStatusKey = `orders.status.${order.status}`;
+        const orderStatusLabel = ctx.t(orderStatusKey);
+        text += `${emoji} <b>#${order.orderId}</b>\n`;
+        text += `   ${ctx.t('orders.progress')}: ${order.currentCount}/${order.targetCount}\n`;
+        text += `   ${ctx.t('traffic.source_status')}: ${orderStatusLabel}\n\n`;
+      });
+    }
+
+    const keyboard = this.menuHandler.createBuyTrafficTargetOrdersKeyboard(ctx, targetId, orderTargets);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle Buy Traffic Target Remove - confirmation dialog
+   */
+  async handleBuyTrafficTargetRemove(ctx: BotContext, targetId: string): Promise<void> {
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('common.buttons.confirm'), `buy:tgt:del:Y:${targetId}`)
+      .text(ctx.t('common.buttons.cancel'), `buy:tgt:del:N:${targetId}`);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.buy_target.remove_target_confirm'),
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle Buy Traffic Target Remove Confirm
+   * Uses soft delete via status change - no data is actually deleted
+   */
+  async handleBuyTrafficTargetRemoveConfirm(ctx: AuthenticatedBotContext, targetId: string): Promise<void> {
+    const entityManager = this.em; // Use single fork for consistency
+    const target = await entityManager.findOne(TrafficTargetEntity, { id: targetId, managedBy: { id: ctx.user.id } });
+
+    if (!target) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.target_not_found'),
+      });
+
+      return;
+    }
+
+    const targetName = target.name;
+
+    // Cancel all order-target assignments and pause/cancel related orders
+    const orderTargets = await entityManager.find(
+      TrafficOrderTargetEntity,
+      { trafficTarget: target.id },
+      { populate: ['trafficOrder'] },
+    );
+
+    for (const ot of orderTargets) {
+      // Cancel the order-target junction entry
+      ot.status = TrafficOrderTargetStatus.Cancelled;
+
+      // Cancel active orders for this target
+      const order = ot.trafficOrder.getEntity();
+      if (order.status === TrafficOrderStatus.Active || order.status === TrafficOrderStatus.Paused) {
+        order.status = TrafficOrderStatus.Cancelled;
+      }
+    }
+
+    // Soft delete the target by changing status
+    target.status = TrafficTargetStatus.Deleted;
+
+    await entityManager.flush();
+
+    await this.safeAnswerCallback(ctx, ctx.t('traffic.buy_target.target_removed'));
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t('traffic.buy_target.target_removed_success', { name: targetName }),
+      replyMarkup: this.createBackButton(ctx, 'menu:buy_traffic'),
+    });
+  }
+
+  /**
+   * Handle Buy Traffic Target Create Input - process user input for target creation
+   */
+  async handleBuyTrafficTargetCreateInput(ctx: AuthenticatedBotContext, input: string): Promise<void> {
+    const formData = ctx.session?.formData;
+    if (!formData || typeof formData !== 'object') {
+      return;
+    }
+
+    const step = 'step' in formData ? String(formData.step) : '';
+    const type = 'type' in formData ? String(formData.type) : 'channel';
+    const mode = 'mode' in formData ? String(formData.mode) : 'direct';
+
+    if (step === 'enter_link') {
+      await this.createBuyTrafficTarget(
+        ctx,
+        input,
+        type as 'channel' | 'group' | 'bot',
+        mode as 'direct' | 'moderated',
+      );
+    }
+  }
+
+  /**
+   * Create a buy traffic target from user input
+   */
+  private async createBuyTrafficTarget(
+    ctx: AuthenticatedBotContext,
+    input: string,
+    type: 'channel' | 'group' | 'bot',
+    mode: 'direct' | 'moderated',
+  ): Promise<void> {
+    const cleanInput = input.trim();
+    const requiresApproval = mode === 'moderated';
+
+    // Handle bot type - validate by token
+    if (type === 'bot') {
+      await this.createBotTarget(ctx, cleanInput, requiresApproval);
+
+      return;
+    }
+
+    // Handle channel/group type - validate by username/link
+    await this.createChannelOrGroupTarget(ctx, cleanInput, type, requiresApproval);
+  }
+
+  /**
+   * Create bot target by validating token via Telegram API
+   */
+  private async createBotTarget(ctx: AuthenticatedBotContext, token: string, requiresApproval: boolean): Promise<void> {
+    // Validate bot token format
+    if (!/^\d+:[A-Za-z0-9_-]{35}$/.test(token)) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.buy_target.invalid_bot_token'),
+        replyMarkup: this.createBackButton(ctx, 'buy:target:add'),
+      });
+
+      return;
+    }
+
+    try {
+      // Verify bot via Telegram API
+      const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+      const data = await response.json();
+
+      if (!data.ok || !data.result) {
+        await this.messageService.sendOrEditMessage(ctx, {
+          text: ctx.t('traffic.buy_target.bot_not_found'),
+          replyMarkup: this.createBackButton(ctx, 'buy:target:add'),
+        });
+
+        return;
+      }
+
+      const botInfo = data.result;
+      const name = botInfo.first_name || botInfo.username;
+      const { username } = botInfo;
+      const telegramId = String(botInfo.id);
+
+      // Create the target
+      const newTarget = new TrafficTargetEntity({
+        name,
+        username,
+        telegramId,
+        managedById: ctx.user.id,
+        type: TrafficTargetType.Bot,
+        status: TrafficTargetStatus.Active,
+        requiresApproval,
+        config: { botToken: token },
+      });
+
+      await this.em.persistAndFlush(newTarget);
+      this.clearSessionState(ctx);
+
+      const typeLabel = this.getBuyTargetTypeLabel(ctx, TrafficTargetType.Bot);
+      const text = ctx.t('traffic.buy_target.target_created', { name, type: typeLabel });
+
+      const keyboard = new InlineKeyboard()
+        .text(ctx.t('traffic.view_target'), `buy:target:view:${newTarget.id}`)
+        .row()
+        .text(ctx.t('traffic.buy_target.btn_my_targets'), 'menu:buy_traffic')
+        .text(ctx.t('common.back'), 'menu:main');
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text,
+        replyMarkup: keyboard,
+      });
+    } catch (error) {
+      this.logger.error('Failed to verify bot token', { error });
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.buy_target.invalid_bot_token'),
+        replyMarkup: this.createBackButton(ctx, 'buy:target:add'),
+      });
+    }
+  }
+
+  /**
+   * Create channel or group target by validating via Telegram API
+   */
+  private async createChannelOrGroupTarget(
+    ctx: AuthenticatedBotContext,
+    input: string,
+    type: 'channel' | 'group',
+    requiresApproval: boolean,
+  ): Promise<void> {
+    const chatIdentifier = this.parseChatInput(input);
+
+    if (!chatIdentifier) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.buy_target.invalid_link'),
+        replyMarkup: this.createBackButton(ctx, 'buy:target:add'),
+      });
+
+      return;
+    }
+
+    // Verify via bot's getChat API
+    await this.verifyAndCreateChatTarget(ctx, chatIdentifier, type, requiresApproval);
+  }
+
+  /**
+   * Parse chat input and return chat identifier (username or ID)
+   * Returns null if input is invalid or is a private invite link
+   */
+  private parseChatInput(input: string): string | null {
+    // @username format
+    if (input.startsWith('@')) {
+      return input;
+    }
+
+    // Private invite links are NOT supported - must use chat ID instead
+    if (/^https?:\/\/t\.me\/\+/.test(input)) {
+      return null;
+    }
+
+    // Public links - extract username
+    if (/^https?:\/\/t\.me\//.test(input)) {
+      const [extractedUsername] = input.replace(/https?:\/\/t\.me\//, '').split('/');
+
+      return `@${extractedUsername}`;
+    }
+
+    // Numeric chat ID (can be negative for groups/channels)
+    if (/^-?\d+$/.test(input)) {
+      return input;
+    }
+
+    // Plain username without @
+    if (/^[a-zA-Z]\w{4,31}$/.test(input)) {
+      return `@${input}`;
+    }
+
+    return null;
+  }
+
+  /**
+   * Verify chat via Telegram API and create target
+   */
+  private async verifyAndCreateChatTarget(
+    ctx: AuthenticatedBotContext,
+    chatIdentifier: string,
+    type: 'channel' | 'group',
+    requiresApproval: boolean,
+  ): Promise<void> {
+    try {
+      const botToken = this.botConfigService.getBotToken();
+      const chatInfo = await this.botSubscriptionService.getChatInfo(botToken, chatIdentifier);
+
+      const isValidType = this.isValidChatType(chatInfo.type, type);
+
+      if (!isValidType) {
+        await this.showChatTypeMismatchError(ctx, type, chatInfo.type);
+
+        return;
+      }
+
+      // Check bot permissions
+      const permissions = await this.botSubscriptionService.getBotPermissions(botToken, chatInfo.id);
+
+      if (!permissions.isMember) {
+        await this.showChatAccessError(ctx, type);
+
+        return;
+      }
+
+      if (!permissions.canInviteUsers) {
+        await this.showBotPermissionError(ctx, type);
+
+        return;
+      }
+
+      await this.persistVerifiedChatTarget(ctx, chatInfo, type, requiresApproval);
+    } catch (error) {
+      this.logger.error('Failed to verify channel/group', { error, type, chatIdentifier });
+      await this.showChatAccessError(ctx, type);
+    }
+  }
+
+  /**
+   * Check if chat type matches expected type
+   */
+  private isValidChatType(chatType: ChatType, expectedType: 'channel' | 'group'): boolean {
+    const expectedTypes: Record<string, ChatType[]> = {
+      channel: [ChatType.Channel],
+      group: [ChatType.Group, ChatType.Supergroup],
+    };
+
+    return expectedTypes[expectedType].includes(chatType);
+  }
+
+  /**
+   * Get bot username from BotConfigService (set after bot.init())
+   */
+  private getBotUsername(): string {
+    return this.botConfigService.getBotUsername();
+  }
+
+  /**
+   * Show chat not found error
+   */
+  private async showChatNotFoundError(ctx: AuthenticatedBotContext, type: 'channel' | 'group'): Promise<void> {
+    const errorKey = type === 'channel' ? 'traffic.buy_target.channel_not_found' : 'traffic.buy_target.group_not_found';
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t(errorKey),
+      replyMarkup: this.createBackButton(ctx, 'buy:target:add'),
+    });
+  }
+
+  /**
+   * Show chat type mismatch error (user selected channel but entered group, or vice versa)
+   */
+  private async showChatTypeMismatchError(
+    ctx: AuthenticatedBotContext,
+    expectedType: 'channel' | 'group',
+    actualType: ChatType,
+  ): Promise<void> {
+    const actualTypeLabels: Record<ChatType, string> = {
+      [ChatType.Channel]: ctx.t('traffic.target_type.channel'),
+      [ChatType.Group]: ctx.t('traffic.target_type.group'),
+      [ChatType.Supergroup]: ctx.t('traffic.target_type.group'),
+      [ChatType.Private]: ctx.t('traffic.target_type.private'),
+    };
+
+    const actualTypeName = actualTypeLabels[actualType];
+
+    const errorKey =
+      expectedType === 'channel'
+        ? 'traffic.buy_target.channel_type_mismatch'
+        : 'traffic.buy_target.group_type_mismatch';
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t(errorKey, { actualType: actualTypeName }),
+      replyMarkup: this.createBackButton(ctx, 'buy:target:add'),
+    });
+  }
+
+  /**
+   * Show chat access error
+   */
+  private async showChatAccessError(ctx: AuthenticatedBotContext, type: 'channel' | 'group'): Promise<void> {
+    const errorKey =
+      type === 'channel' ? 'traffic.buy_target.channel_not_accessible' : 'traffic.buy_target.group_not_accessible';
+
+    const botUsername = this.getBotUsername();
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t(errorKey, { botUsername }),
+      replyMarkup: this.createBackButton(ctx, 'buy:target:add'),
+    });
+  }
+
+  /**
+   * Show bot permission error (bot is member but lacks invite permission)
+   */
+  private async showBotPermissionError(ctx: AuthenticatedBotContext, type: 'channel' | 'group'): Promise<void> {
+    const errorKey =
+      type === 'channel' ? 'traffic.buy_target.channel_no_permission' : 'traffic.buy_target.group_no_permission';
+
+    const botUsername = this.getBotUsername();
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: ctx.t(errorKey, { botUsername }),
+      replyMarkup: this.createBackButton(ctx, 'buy:target:add'),
+    });
+  }
+
+  /**
+   * Persist verified chat target to database
+   */
+  private async persistVerifiedChatTarget(
+    ctx: AuthenticatedBotContext,
+    chatInfo: ChatInformation,
+    type: 'channel' | 'group',
+    requiresApproval: boolean,
+  ): Promise<void> {
+    const name = chatInfo.title ?? chatInfo.username ?? 'Unnamed';
+    const { username } = chatInfo;
+    const telegramId = String(chatInfo.id);
+    const targetType = type === 'channel' ? TrafficTargetType.Channel : TrafficTargetType.Group;
+
+    const newTarget = new TrafficTargetEntity({
+      name,
+      username,
+      telegramId,
+      managedById: ctx.user.id,
+      type: targetType,
+      status: TrafficTargetStatus.Active,
+      requiresApproval,
+    });
+
+    await this.em.persistAndFlush(newTarget);
+    this.clearSessionState(ctx);
+
+    const typeLabel = this.getBuyTargetTypeLabel(ctx, targetType);
+    const text = ctx.t('traffic.buy_target.target_created', { name, type: typeLabel });
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('traffic.view_target'), `buy:target:view:${newTarget.id}`)
+      .row()
+      .text(ctx.t('traffic.buy_target.btn_my_targets'), 'menu:buy_traffic')
+      .text(ctx.t('common.back'), 'menu:main');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Get localized target type label for buy traffic
+   */
+  private getBuyTargetTypeLabel(ctx: BotContext, type: TrafficTargetType): string {
+    const typeKeyMap: Record<TrafficTargetType, string> = {
+      [TrafficTargetType.Channel]: 'traffic.target_type.channel',
+      [TrafficTargetType.Group]: 'traffic.target_type.group',
+      [TrafficTargetType.Bot]: 'traffic.target_type.bot',
+      [TrafficTargetType.WithChecking]: 'traffic.target_type.channel',
+    };
+
+    return ctx.t(typeKeyMap[type]);
+  }
+
+  /**
    * Traffic Analytics
    */
   async handleTrafficAnalytics(ctx: AuthenticatedBotContext): Promise<void> {
     const [sourcesCount, targetsCount, totalOrders, activeOrders, completedOrders] = await Promise.all([
-      this.em.count(TrafficSourceEntity, { managedBy: ctx.user.id }),
-      this.em.count(TrafficTargetEntity, { managedBy: ctx.user.id }),
+      this.em.count(TrafficSourceEntity, { managedBy: { id: ctx.user.id } }),
+      this.em.count(TrafficTargetEntity, { managedBy: { id: ctx.user.id } }),
       this.em.count(TrafficOrderEntity, { creator: ctx.user.id }),
       this.em.count(TrafficOrderEntity, {
         creator: ctx.user.id,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        status: TrafficOrderStatus.Active,
       }),
       this.em.count(TrafficOrderEntity, { creator: ctx.user.id, status: TrafficOrderStatus.Completed }),
     ]);
@@ -1014,7 +1835,7 @@ ${ctx.t('sell_traffic.description')}
   async handleCategoryChangeStart(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
     const source = await this.em.findOne(
       TrafficSourceEntity,
-      { id: sourceId, managedBy: ctx.user.id },
+      { id: sourceId, managedBy: { id: ctx.user.id } },
       { populate: ['categories.category'] },
     );
 
@@ -1212,7 +2033,7 @@ ${ctx.t('sell_traffic.description')}
 
     const source = await em.findOne(
       TrafficSourceEntity,
-      { id: sourceId, managedBy: ctx.user.id },
+      { id: sourceId, managedBy: { id: ctx.user.id } },
       { populate: ['categories.category'] },
     );
 
@@ -1333,7 +2154,7 @@ ${ctx.t('sell_traffic.description')}
       return;
     }
 
-    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: ctx.user.id });
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: { id: ctx.user.id } });
     if (!source) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('traffic.source_not_found'),
@@ -1408,7 +2229,7 @@ ${ctx.t('sell_traffic.description')}
       return;
     }
 
-    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: ctx.user.id });
+    const target = await this.em.findOne(TrafficTargetEntity, { id: targetId, managedBy: { id: ctx.user.id } });
     if (!target) {
       await this.messageService.sendOrEditMessage(ctx, {
         text: ctx.t('traffic.target_not_found'),
@@ -1430,20 +2251,5 @@ ${ctx.t('sell_traffic.description')}
     });
 
     await this.handleTrafficTargetView(ctx, targetId);
-  }
-
-  /**
-   * Helper Methods
-   */
-
-  private getTargetTypeLabel(type: TrafficTargetType): string {
-    const typeLabels: Record<TrafficTargetType, string> = {
-      [TrafficTargetType.Channel]: '📢 Channel',
-      [TrafficTargetType.Group]: '👥 Group',
-      [TrafficTargetType.Bot]: '🤖 Bot',
-      [TrafficTargetType.WithChecking]: '✅ With Checking',
-    };
-
-    return typeLabels[type] || type;
   }
 }

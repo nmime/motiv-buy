@@ -23,6 +23,7 @@ import { InlineKeyboard } from 'grammy';
 import { PaymentService } from '@app/feature-payment-main';
 import { CurrencyRateService } from '@app/feature-currency-shared';
 import { PaymentConfigService } from '@app/feature-payment-shared';
+import { UserBalanceOperationService } from '@app/feature-balance-shared';
 
 @Injectable()
 export class BalanceActionHandler {
@@ -36,6 +37,7 @@ export class BalanceActionHandler {
     private readonly providerCurrencyRepo: ProviderCurrencyRepository,
     private readonly currencyRateService: CurrencyRateService,
     private readonly paymentConfigService: PaymentConfigService,
+    private readonly userBalanceService: UserBalanceOperationService,
   ) {}
 
   private get currencySymbol(): string {
@@ -375,15 +377,7 @@ export class BalanceActionHandler {
    * Get user balances
    */
   private async getUserBalances(userId: string): Promise<UserBalanceEntity[]> {
-    const em = this.em.fork();
-
-    return await em.find(
-      UserBalanceEntity,
-      { user: userId },
-      {
-        populate: ['currency'],
-      },
-    );
+    return this.userBalanceService.getUserBalances(userId);
   }
 
   /**

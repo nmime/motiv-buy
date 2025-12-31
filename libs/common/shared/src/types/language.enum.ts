@@ -11,6 +11,18 @@ export enum Language {
 
 export const defaultLanguage = Language.English;
 
+export const supportedLanguages: readonly string[] = [Language.English, Language.Russian] as const;
+
+export const languageNames: Record<string, string> = {
+  [Language.English]: 'English',
+  [Language.Russian]: 'Русский',
+};
+
+export const supportedLanguageOptions = [
+  { code: Language.English, name: 'English' },
+  { code: Language.Russian, name: 'Русский' },
+] as const;
+
 export function getLang(lang?: string): Language {
   if (!lang) {
     return defaultLanguage;

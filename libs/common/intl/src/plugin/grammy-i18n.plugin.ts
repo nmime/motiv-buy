@@ -189,6 +189,33 @@ export function changeUserLanguage<C extends Context & I18nSessionFlavor>(ctx: C
 }
 
 /**
+ * Helper: Update ctx.t function with new language
+ *
+ * Recreates the ctx.t function to use the specified language.
+ * Call this after changing language to ensure ctx.t() uses the new language.
+ *
+ * @param ctx - Grammy context with i18n
+ * @param i18nService - NestJS I18nService instance
+ * @param newLanguage - New language code
+ */
+export function updateContextTranslation<C extends Context & I18nContextFlavor>(
+  ctx: C,
+  i18nService: I18nService,
+  newLanguage: string,
+): void {
+  const normalizedLang = normalizeLanguageCode(newLanguage);
+
+  ctx.language = normalizedLang;
+
+  ctx.t = (key: string, options?: Record<string, string | number>) => {
+    return i18nService.t(key, {
+      lang: normalizedLang,
+      args: options,
+    });
+  };
+}
+
+/**
  * Helper: Get supported languages list
  *
  * @returns Array of supported language codes

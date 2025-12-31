@@ -138,7 +138,7 @@ export class StatisticsActionHandler {
       em.count(TrafficOrderEntity, { creator: userId }),
       em.count(TrafficOrderEntity, {
         creator: userId,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        status: TrafficOrderStatus.Active,
       }),
       em.count(TrafficOrderEntity, { creator: userId, status: TrafficOrderStatus.Completed }),
     ]);

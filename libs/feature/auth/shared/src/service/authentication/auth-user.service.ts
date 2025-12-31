@@ -100,7 +100,7 @@ export class AuthUserService {
         visit = await this.userVisitService.registerVisit(
           user.id,
           telegramAuthParams,
-          user.languageCode,
+          user.language,
           isSignup,
           entityManager,
           sourceParams,
@@ -125,8 +125,8 @@ export class AuthUserService {
       firstName: telegramAuthParams.firstName,
       lastName: telegramAuthParams.lastName,
       username: telegramAuthParams.username,
-      ...(!user.languageCode && {
-        languageCode: this.createUserService.determineLanguage(telegramAuthParams.languageCode),
+      ...(!user.language && {
+        language: this.createUserService.determineLanguage(telegramAuthParams.languageCode),
       }),
     };
 

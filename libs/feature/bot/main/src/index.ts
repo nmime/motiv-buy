@@ -1,5 +1,4 @@
-export { BotMainModule } from './bot-main.module';
-export { BotService } from './service';
+export * from './bot-main.module';
 export * from './service';
 // Handlers now use concrete services instead of interfaces, so no circular dependency
 export * from './handler';

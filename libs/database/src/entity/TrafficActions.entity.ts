@@ -21,6 +21,7 @@ export enum TrafficActionType {
   Comment = 'comment',
   Share = 'share',
   Vote = 'vote',
+  Start = 'start',
 }
 
 @Entity({ tableName: 'traffic_actions' })

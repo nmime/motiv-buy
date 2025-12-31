@@ -50,8 +50,8 @@ export class UserEntity {
   @Enum(() => UserRole)
   role!: UserRole;
 
-  @Property({ type: 'varchar', length: 10, nullable: true, fieldName: 'language_code' })
-  languageCode?: string;
+  @Property({ type: 'varchar', length: 10, nullable: true })
+  language?: string;
 
   @Property({ type: 'uuid', nullable: true, fieldName: 'referred_by' })
   referredBy?: string;

@@ -14,8 +14,9 @@ export enum TrafficSourceType {
 export enum TrafficSourceStatus {
   Pending = 'pending', // Awaiting moderation approval
   Active = 'active', // Approved and active
-  Inactive = 'inactive', // Approved but disabled by owner
+  Inactive = 'inactive', // Approved but disabled by owner (paused)
   Declined = 'declined', // Rejected by moderation
+  Deleted = 'deleted', // Soft-deleted by owner
 }
 
 @Entity({ tableName: 'traffic_sources' })

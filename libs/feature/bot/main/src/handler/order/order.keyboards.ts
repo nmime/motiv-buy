@@ -8,6 +8,7 @@
 import { InlineKeyboard } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
 import {
+  AgeRange,
   availableTopics,
   Order,
   OrderCreationOrigin,
@@ -71,7 +72,7 @@ function getStatusTextKey(status: OrderStatus): string {
 export function createOrderListKeyboard(
   ctx: BotContext,
   orders: Order[],
-  showDeleted = false,
+  _showDeleted = false,
   page = 1,
 ): InlineKeyboard {
   const keyboard = new InlineKeyboard();
@@ -79,13 +80,9 @@ export function createOrderListKeyboard(
   // New order button
   keyboard.text(ctx.t('orders.btn_new'), 'order:create:start').row();
 
-  // Search button
-  keyboard.text(ctx.t('orders.btn_search'), 'order:search').row();
-
-  // Filter orders
-  const filteredOrders = orders.filter((o) =>
-    !showDeleted ? o.status !== OrderStatus.Deleted : o.status === OrderStatus.Deleted,
-  );
+  // Filter orders (exclude deleted and cancelled)
+  const terminalStatuses = [OrderStatus.Deleted, OrderStatus.Completed];
+  const filteredOrders = orders.filter((o) => !terminalStatuses.includes(o.status));
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredOrders.length / _ordersPerPage);
@@ -129,13 +126,8 @@ export function createOrderListKeyboard(
     keyboard.row();
   }
 
-  // Show deleted orders button
-  if (!showDeleted && orders.some((o) => o.status === OrderStatus.Deleted)) {
-    keyboard.text(ctx.t('orders.list.btn_deleted'), 'order:deleted').row();
-  }
-
-  // Back button
-  keyboard.text(ctx.t('orders.common.btn_back'), 'menu:main');
+  // Back button - go to buy traffic menu
+  keyboard.text(ctx.t('orders.common.btn_back'), 'menu:buy_traffic');
 
   return keyboard;
 }
@@ -269,8 +261,8 @@ export function createAudienceConfigKeyboard(ctx: BotContext, orderId: string): 
 
   keyboard.text(ctx.t('orders.audience.btn_gender'), `order:audience:gender:${orderId}`).row();
   keyboard.text(ctx.t('orders.audience.btn_region'), `order:audience:region:${orderId}`).row();
+  keyboard.text(ctx.t('orders.audience.btn_language'), `order:audience:language:${orderId}`).row();
   keyboard.text(ctx.t('orders.audience.btn_age'), `order:audience:age:${orderId}`).row();
-  keyboard.text(ctx.t('orders.audience.btn_activity'), `order:audience:activity:${orderId}`).row();
   keyboard.text(ctx.t('orders.audience.btn_save'), `order:audience:save:${orderId}`);
 
   return keyboard;
@@ -288,6 +280,209 @@ export function createGenderKeyboard(ctx: BotContext, orderId: string): InlineKe
     .text(ctx.t('orders.gender.male'), `order:gender:${UserGender.Male}:${orderId}`)
     .row()
     .text(ctx.t('orders.gender.female'), `order:gender:${UserGender.Female}:${orderId}`);
+
+  return keyboard;
+}
+
+/**
+ * Age options for selection
+ */
+const minAgeOptions = [13, 18, 25, 35, 45, 55];
+const maxAgeOptions = [17, 24, 34, 44, 54, 99];
+
+/**
+ * Age Range Selection Keyboard
+ */
+export function createAgeKeyboard(ctx: BotContext, orderId: string, currentAgeRange?: AgeRange): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+
+  // Min age row
+  keyboard.text(`${ctx.t('orders.age.min_label')}:`, 'noop');
+  minAgeOptions.forEach((age) => {
+    const isSelected = currentAgeRange?.min === age;
+    const label = isSelected ? `[${age}]` : String(age);
+    keyboard.text(label, `order:age:min:${age}:${orderId}`);
+  });
+
+  keyboard.row();
+
+  // Max age row
+  keyboard.text(`${ctx.t('orders.age.max_label')}:`, 'noop');
+  maxAgeOptions.forEach((age) => {
+    const isSelected = currentAgeRange?.max === age;
+    const label = isSelected ? `[${age}]` : String(age);
+    keyboard.text(label, `order:age:max:${age}:${orderId}`);
+  });
+
+  keyboard.row();
+
+  // Clear button (any age)
+  keyboard.text(ctx.t('orders.age.btn_clear'), `order:age:clear:${orderId}`).row();
+
+  // Back button
+  keyboard.text(ctx.t('orders.age.btn_back'), `order:edit:audience:${orderId}`);
+
+  return keyboard;
+}
+
+/**
+ * Available countries for region selection
+ */
+const availableCountries = [
+  { code: 'US', name: '🇺🇸 USA' },
+  { code: 'GB', name: '🇬🇧 UK' },
+  { code: 'CA', name: '🇨🇦 Canada' },
+  { code: 'AU', name: '🇦🇺 Australia' },
+  { code: 'DE', name: '🇩🇪 Germany' },
+  { code: 'FR', name: '🇫🇷 France' },
+  { code: 'RU', name: '🇷🇺 Russia' },
+  { code: 'UA', name: '🇺🇦 Ukraine' },
+  { code: 'BR', name: '🇧🇷 Brazil' },
+  { code: 'IN', name: '🇮🇳 India' },
+  { code: 'CN', name: '🇨🇳 China' },
+  { code: 'JP', name: '🇯🇵 Japan' },
+  { code: 'KR', name: '🇰🇷 S. Korea' },
+  { code: 'ES', name: '🇪🇸 Spain' },
+  { code: 'IT', name: '🇮🇹 Italy' },
+  { code: 'PL', name: '🇵🇱 Poland' },
+  { code: 'TR', name: '🇹🇷 Turkey' },
+  { code: 'NL', name: '🇳🇱 Netherlands' },
+];
+
+const regionsPerPage = 9;
+
+/**
+ * Available languages for selection
+ */
+const availableLanguages = [
+  { code: 'en', name: '🇬🇧 English' },
+  { code: 'ru', name: '🇷🇺 Russian' },
+  { code: 'uk', name: '🇺🇦 Ukrainian' },
+  { code: 'de', name: '🇩🇪 German' },
+  { code: 'fr', name: '🇫🇷 French' },
+  { code: 'es', name: '🇪🇸 Spanish' },
+  { code: 'pt', name: '🇵🇹 Portuguese' },
+  { code: 'it', name: '🇮🇹 Italian' },
+  { code: 'pl', name: '🇵🇱 Polish' },
+  { code: 'tr', name: '🇹🇷 Turkish' },
+  { code: 'ar', name: '🇸🇦 Arabic' },
+  { code: 'zh', name: '🇨🇳 Chinese' },
+  { code: 'ja', name: '🇯🇵 Japanese' },
+  { code: 'ko', name: '🇰🇷 Korean' },
+  { code: 'hi', name: '🇮🇳 Hindi' },
+  { code: 'id', name: '🇮🇩 Indonesian' },
+  { code: 'th', name: '🇹🇭 Thai' },
+  { code: 'vi', name: '🇻🇳 Vietnamese' },
+];
+
+const languagesPerPage = 9;
+
+/**
+ * Order Language Selection Keyboard (paginated)
+ */
+export function createOrderLanguageKeyboard(
+  ctx: BotContext,
+  orderId: string,
+  selectedLanguages: string[],
+  page = 1,
+): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+  const totalPages = Math.ceil(availableLanguages.length / languagesPerPage);
+  const startIndex = (page - 1) * languagesPerPage;
+  const endIndex = startIndex + languagesPerPage;
+  const pageLanguages = availableLanguages.slice(startIndex, endIndex);
+
+  // Language buttons (3 per row)
+  pageLanguages.forEach((language, index) => {
+    const isSelected = selectedLanguages.includes(language.code);
+    const prefix = isSelected ? '✅' : '☐';
+    keyboard.text(`${prefix} ${language.name}`, `order:language:toggle:${language.code}:${orderId}`);
+
+    if ((index + 1) % 3 === 0) {
+      keyboard.row();
+    }
+  });
+
+  keyboard.row();
+
+  // Pagination
+  if (totalPages > 1) {
+    if (page > 1) {
+      keyboard.text(ctx.t('orders.language.btn_prev'), `order:language:page:${page - 1}:${orderId}`);
+    }
+
+    keyboard.text(ctx.t('orders.language.page_info', { current: page, total: totalPages }), 'noop');
+
+    if (page < totalPages) {
+      keyboard.text(ctx.t('orders.language.btn_next'), `order:language:page:${page + 1}:${orderId}`);
+    }
+
+    keyboard.row();
+  }
+
+  // Clear and Save buttons
+  keyboard.text(ctx.t('orders.language.btn_clear'), `order:language:clear:${orderId}`);
+  keyboard.text(ctx.t('orders.language.btn_save'), `order:language:save:${orderId}`);
+
+  keyboard.row();
+
+  // Back button
+  keyboard.text(ctx.t('orders.language.btn_back'), `order:edit:audience:${orderId}`);
+
+  return keyboard;
+}
+
+/**
+ * Region Selection Keyboard (paginated)
+ */
+export function createRegionKeyboard(
+  ctx: BotContext,
+  orderId: string,
+  selectedRegions: string[],
+  page = 1,
+): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+  const totalPages = Math.ceil(availableCountries.length / regionsPerPage);
+  const startIndex = (page - 1) * regionsPerPage;
+  const endIndex = startIndex + regionsPerPage;
+  const pageCountries = availableCountries.slice(startIndex, endIndex);
+
+  // Country buttons (3 per row)
+  pageCountries.forEach((country, index) => {
+    const isSelected = selectedRegions.includes(country.code);
+    const prefix = isSelected ? '✅' : '☐';
+    keyboard.text(`${prefix} ${country.name}`, `order:region:toggle:${country.code}:${orderId}`);
+
+    if ((index + 1) % 3 === 0) {
+      keyboard.row();
+    }
+  });
+
+  keyboard.row();
+
+  // Pagination
+  if (totalPages > 1) {
+    if (page > 1) {
+      keyboard.text(ctx.t('orders.region.btn_prev'), `order:region:page:${page - 1}:${orderId}`);
+    }
+
+    keyboard.text(ctx.t('orders.region.page_info', { current: page, total: totalPages }), 'noop');
+
+    if (page < totalPages) {
+      keyboard.text(ctx.t('orders.region.btn_next'), `order:region:page:${page + 1}:${orderId}`);
+    }
+
+    keyboard.row();
+  }
+
+  // Clear and Save buttons
+  keyboard.text(ctx.t('orders.region.btn_clear'), `order:region:clear:${orderId}`);
+  keyboard.text(ctx.t('orders.region.btn_save'), `order:region:save:${orderId}`);
+
+  keyboard.row();
+
+  // Back button
+  keyboard.text(ctx.t('orders.region.btn_back'), `order:edit:audience:${orderId}`);
 
   return keyboard;
 }

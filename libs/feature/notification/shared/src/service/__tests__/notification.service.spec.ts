@@ -29,6 +29,14 @@ import { CreateNotificationDto, CreateTemplateNotificationDto } from '../../dto'
 describe('NotificationService', () => {
   let service: NotificationService;
   let mockEntityManager: jest.Mocked<EntityManager>;
+  let mockForkedEm: {
+    persistAndFlush: jest.Mock;
+    findOne: jest.Mock;
+    find: jest.Mock;
+    persist: jest.Mock;
+    flush: jest.Mock;
+  };
+
   let mockNotificationRepository: jest.Mocked<NotificationRepository>;
   let mockTemplateRepository: jest.Mocked<NotificationTemplateRepository>;
 
@@ -71,10 +79,20 @@ describe('NotificationService', () => {
     }) as NotificationEntity;
 
   beforeEach(async () => {
+    // Create forked entity manager mock (module-level for assertion access)
+    mockForkedEm = {
+      persistAndFlush: jest.fn().mockResolvedValue(undefined),
+      findOne: jest.fn(),
+      find: jest.fn(),
+      persist: jest.fn(),
+      flush: jest.fn().mockResolvedValue(undefined),
+    };
+
     // Create mocks
     mockEntityManager = {
       // Note: id, createdAt, updatedAt would be set by database in production
       // We don't need to simulate that in unit tests as we're testing service logic, not database behavior
+      fork: jest.fn().mockReturnValue(mockForkedEm),
       persistAndFlush: jest.fn().mockResolvedValue(undefined),
     } as any;
 
@@ -126,12 +144,12 @@ describe('NotificationService', () => {
       };
 
       mockTemplateRepository.findByCode.mockResolvedValue(template);
-      mockEntityManager.persistAndFlush.mockResolvedValue(undefined);
 
       const result = await service.createNotification(dto);
 
       expect(mockTemplateRepository.findByCode).toHaveBeenCalledWith(testTemplateCode);
-      expect(mockEntityManager.persistAndFlush).toHaveBeenCalled();
+      expect(mockEntityManager.fork).toHaveBeenCalled();
+      expect(mockForkedEm.persistAndFlush).toHaveBeenCalled();
       expect(result).toMatchObject({
         status: NotificationStatus.Pending,
       });
@@ -160,7 +178,7 @@ describe('NotificationService', () => {
       };
 
       mockTemplateRepository.findByCode.mockResolvedValue(template);
-      mockEntityManager.persistAndFlush.mockResolvedValue(undefined);
+      mockForkedEm.persistAndFlush.mockResolvedValue(undefined);
 
       const result = await service.createNotification(dto);
 
@@ -168,7 +186,7 @@ describe('NotificationService', () => {
         status: NotificationStatus.Pending,
       });
 
-      expect(mockEntityManager.persistAndFlush).toHaveBeenCalled();
+      expect(mockForkedEm.persistAndFlush).toHaveBeenCalled();
     });
 
     it('should throw error when template not found', async () => {
@@ -182,7 +200,7 @@ describe('NotificationService', () => {
       mockTemplateRepository.findByCode.mockResolvedValue(null);
 
       await expect(service.createNotification(dto)).rejects.toThrow('Template not found: non_existent');
-      expect(mockEntityManager.persistAndFlush).not.toHaveBeenCalled();
+      expect(mockForkedEm.persistAndFlush).not.toHaveBeenCalled();
     });
 
     it('should create notification with minimal required fields', async () => {
@@ -195,7 +213,7 @@ describe('NotificationService', () => {
       };
 
       mockTemplateRepository.findByCode.mockResolvedValue(template);
-      mockEntityManager.persistAndFlush.mockResolvedValue(undefined);
+      mockForkedEm.persistAndFlush.mockResolvedValue(undefined);
 
       const result = await service.createNotification(dto);
 
@@ -218,7 +236,7 @@ describe('NotificationService', () => {
       };
 
       mockTemplateRepository.findByCode.mockResolvedValue(template);
-      mockEntityManager.persistAndFlush.mockResolvedValue(undefined);
+      mockForkedEm.persistAndFlush.mockResolvedValue(undefined);
 
       const result = await service.createTemplateNotification(dto);
 
@@ -259,12 +277,12 @@ describe('NotificationService', () => {
       ];
 
       mockTemplateRepository.findActiveByCodes.mockResolvedValue([template1, template2]);
-      mockEntityManager.persistAndFlush.mockResolvedValue(undefined);
+      mockForkedEm.persistAndFlush.mockResolvedValue(undefined);
 
       const results = await service.createNotificationBatch(notifications);
 
       expect(mockTemplateRepository.findActiveByCodes).toHaveBeenCalledWith(['template1', 'template2']);
-      expect(mockEntityManager.persistAndFlush).toHaveBeenCalled();
+      expect(mockForkedEm.persistAndFlush).toHaveBeenCalled();
       expect(results).toHaveLength(3);
       results.forEach((result) => {
         expect(result).toMatchObject({
@@ -300,14 +318,14 @@ describe('NotificationService', () => {
 
       await expect(service.createNotificationBatch(notifications)).rejects.toThrow('Template not found: non_existent');
 
-      expect(mockEntityManager.persistAndFlush).not.toHaveBeenCalled();
+      expect(mockForkedEm.persistAndFlush).not.toHaveBeenCalled();
     });
 
     it('should handle empty batch', async () => {
       const notifications: CreateTemplateNotificationDto[] = [];
 
       mockTemplateRepository.findActiveByCodes.mockResolvedValue([]);
-      mockEntityManager.persistAndFlush.mockResolvedValue(undefined);
+      mockForkedEm.persistAndFlush.mockResolvedValue(undefined);
 
       const results = await service.createNotificationBatch(notifications);
 
@@ -336,7 +354,7 @@ describe('NotificationService', () => {
       ];
 
       mockTemplateRepository.findActiveByCodes.mockResolvedValue([template]);
-      mockEntityManager.persistAndFlush.mockResolvedValue(undefined);
+      mockForkedEm.persistAndFlush.mockResolvedValue(undefined);
 
       await service.createNotificationBatch(notifications);
 

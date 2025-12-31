@@ -51,7 +51,7 @@ export class MiscMenuHandler {
     const [active, completed, total] = await Promise.all([
       this.em.count(TrafficOrderEntity, {
         creator: ctx.user.id,
-        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Moderation, TrafficOrderStatus.Active] },
       }),
       this.em.count(TrafficOrderEntity, {
         creator: ctx.user.id,
@@ -85,11 +85,12 @@ export class MiscMenuHandler {
           {
             [TrafficOrderStatus.Active]: '✅',
             [TrafficOrderStatus.Paused]: '⏸️',
-            [TrafficOrderStatus.InProgress]: '🔄',
             [TrafficOrderStatus.Completed]: '✔️',
             [TrafficOrderStatus.Pending]: '⏳',
+            [TrafficOrderStatus.Moderation]: '🔍',
             [TrafficOrderStatus.Cancelled]: '❌',
             [TrafficOrderStatus.Failed]: '⚠️',
+            [TrafficOrderStatus.Deleted]: '🗑️',
           }[campaign.status] || '❓';
 
         text += `${statusEmoji} ${campaign.orderId.substring(0, 8)}... (${campaign.type})\n`;
@@ -202,7 +203,7 @@ ${ctx.t('payment.description')}
     const [totalOrders, activeOrders] = await Promise.all([
       this.em.count(TrafficOrderEntity),
       this.em.count(TrafficOrderEntity, {
-        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        status: { $in: [TrafficOrderStatus.Pending, TrafficOrderStatus.Moderation, TrafficOrderStatus.Active] },
       }),
     ]);
 

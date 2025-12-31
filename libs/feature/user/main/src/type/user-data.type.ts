@@ -8,7 +8,7 @@ export interface CreateUserData {
   lastName?: string;
   email?: string;
   telegramId: string;
-  languageCode?: string;
+  language?: string;
   password?: string;
 }
 

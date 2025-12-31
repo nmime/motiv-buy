@@ -33,7 +33,10 @@ export class OrderRoutingHandler {
       [
         'create',
         this.withAuthParams(async (ctx, params) => {
-          if (params.length > 0 && params[0] === 'start') {
+          if (params.length >= 2 && params[0] === 'target') {
+            // order:create:target:${targetId} - create order for existing target (skip type selection)
+            await this.orderHandler.handleCreateOrderForTarget(ctx, params[1]);
+          } else if (params.length > 0 && params[0] === 'start') {
             await this.orderHandler.handleCreateOrderStart(ctx);
           } else if (params.length > 0 && params[0] === 'back') {
             await this.menuHandler2.handleOrdersMenu(ctx);

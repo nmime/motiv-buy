@@ -17,7 +17,10 @@ export interface UserBalanceMetadata {
   [key: string]: unknown;
 }
 
+export type TrafficOrderGender = 'any' | 'male' | 'female';
+
 export interface TrafficOrderRequirements {
+  gender?: TrafficOrderGender;
   minAge?: number;
   maxAge?: number;
   countries?: string[];

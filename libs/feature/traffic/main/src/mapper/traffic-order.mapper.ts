@@ -203,7 +203,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
     return this.trafficOrderRepository.find(
       {
         creator: userId,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress, TrafficOrderStatus.Pending] },
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.Pending, TrafficOrderStatus.Moderation] },
       },
       {
         populate: ['creator', 'assignedTrafficUser', 'orderSources', 'orderTargets'],
@@ -292,7 +292,7 @@ export class TrafficOrderMapper implements ITrafficOrderRepository {
       this.trafficOrderRepository.count({ creator: userId }),
       this.trafficOrderRepository.count({
         creator: userId,
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress, TrafficOrderStatus.Pending] },
+        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.Pending, TrafficOrderStatus.Moderation] },
       }),
       this.trafficOrderRepository.count({
         creator: userId,

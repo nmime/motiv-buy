@@ -411,11 +411,11 @@ export class TrafficService {
       // Calculate total cost using Decimal.js for precision
       const totalCost = toDbString(multiply(dto.amount, dto.pricePerUnit), 4);
 
-      // Create traffic order (initially pending moderation)
+      // Create traffic order (status is Moderation since it goes to moderation review)
       const order = await this.createOrderEntity({
         orderId,
         type: this.mapTrafficTypeToOrderType(dto.trafficType),
-        status: TrafficOrderStatus.Pending, // Pending moderation
+        status: TrafficOrderStatus.Moderation, // Awaiting moderation approval
         targetCount: dto.amount,
         pricePerAction: dto.pricePerUnit.toString(),
         totalBudget: totalCost,
@@ -550,7 +550,9 @@ export class TrafficService {
       updateData.status = dto.status as unknown as TrafficOrderStatus;
     }
 
-    if (dto.amount && order.status === TrafficOrderStatus.Pending) {
+    // Allow editing amount while in Pending or Moderation status
+    const editableStatuses = [TrafficOrderStatus.Pending, TrafficOrderStatus.Moderation];
+    if (dto.amount && editableStatuses.includes(order.status)) {
       updateData.targetCount = dto.amount;
       updateData.totalBudget = toDbString(multiply(dto.amount, order.pricePerAction), 4);
     }

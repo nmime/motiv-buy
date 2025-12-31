@@ -33,7 +33,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
   async findActiveOrders(): Promise<TrafficOrderEntity[]> {
     return this.find(
       {
-        status: { $in: [TrafficOrderStatus.Active, TrafficOrderStatus.InProgress] },
+        status: TrafficOrderStatus.Active,
       },
       { populate: ['orderSources', 'orderTargets'] },
     );
@@ -140,7 +140,7 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     if (order) {
       const trafficUser = em.getReference(TrafficUserEntity, trafficUserId);
       order.assignedTrafficUser = { getEntity: () => trafficUser } as typeof order.assignedTrafficUser;
-      order.status = TrafficOrderStatus.InProgress;
+      order.status = TrafficOrderStatus.Active;
       await em.flush();
     }
   }
@@ -159,18 +159,16 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
     total: number;
     pending: number;
     active: number;
-    inProgress: number;
     completed: number;
     cancelled: number;
     failed: number;
     totalBudget: number;
     totalSpent: number;
   }> {
-    const [total, pending, active, inProgress, completed, cancelled, failed] = await Promise.all([
+    const [total, pending, active, completed, cancelled, failed] = await Promise.all([
       this.count(),
       this.count({ status: TrafficOrderStatus.Pending }),
       this.count({ status: TrafficOrderStatus.Active }),
-      this.count({ status: TrafficOrderStatus.InProgress }),
       this.count({ status: TrafficOrderStatus.Completed }),
       this.count({ status: TrafficOrderStatus.Cancelled }),
       this.count({ status: TrafficOrderStatus.Failed }),
@@ -184,7 +182,6 @@ export class TrafficOrderRepository extends EntityRepository<TrafficOrderEntity>
       total,
       pending,
       active,
-      inProgress,
       completed,
       cancelled,
       failed,

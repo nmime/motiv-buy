@@ -35,7 +35,7 @@ export class BotSessionService {
         username: user.username,
         firstName: user.firstName,
         lastName: user.lastName,
-        languageCode: user.languageCode,
+        language: user.language,
         status: user.status,
         role: user.role,
         referralCount: String(user.referralCount ?? 0),
@@ -75,7 +75,7 @@ export class BotSessionService {
         username: sessionData.username,
         firstName: sessionData.firstName,
         lastName: sessionData.lastName,
-        languageCode: sessionData.languageCode,
+        language: sessionData.language,
         status: sessionData.status as unknown,
         role: sessionData.role as unknown,
         referralCount: sessionData.referralCount ? parseInt(sessionData.referralCount, 10) : 0,
@@ -114,6 +114,20 @@ export class BotSessionService {
       await this.redisCacheService.setHash(sessionKey, { lastActiveAt: new Date().toISOString() }, this.sessionTtl);
     } catch (err: unknown) {
       this.logger.error('Failed to update session activity', err, { sessionId });
+    }
+  }
+
+  /**
+   * Update session language
+   * Called when user changes language to sync Redis cache
+   */
+  async updateSessionLanguage(sessionId: string, language: string): Promise<void> {
+    try {
+      const sessionKey = this.getSessionKey(sessionId);
+      await this.redisCacheService.setHash(sessionKey, { language }, this.sessionTtl);
+      this.logger.debug(`Session language updated to ${language}`, { sessionId });
+    } catch (err: unknown) {
+      this.logger.error('Failed to update session language', err, { sessionId, language });
     }
   }
 

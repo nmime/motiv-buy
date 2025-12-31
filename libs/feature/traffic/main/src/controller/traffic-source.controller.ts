@@ -13,7 +13,7 @@ import {
   BotResponseDto,
   BotSettingsDto,
   BotTokenValidationDto,
-  BotTokenValidationResultDto,
+  BotTokenValidationResponseDto,
   CreateBotDto,
   OptionalBotToken,
   RequiredBotToken,
@@ -45,12 +45,12 @@ export class TrafficSourceController {
   })
   @ApiOkResponse({
     description: 'Token validation result',
-    type: BotTokenValidationResultDto,
+    type: BotTokenValidationResponseDto,
   })
   async validateBotToken(
     @Body() dto: BotTokenValidationDto,
     @Ip() clientIp: string,
-  ): Promise<AsyncResult<BotTokenValidationResultDto, Error>> {
+  ): AsyncResult<BotTokenValidationResponseDto, Error> {
     const result = await this.trafficService.validateBotToken(dto, clientIp);
 
     return Ok(result);
@@ -94,7 +94,7 @@ export class TrafficSourceController {
     description: 'Available traffic sources retrieved successfully',
     type: [AvailableTrafficDto],
   })
-  async getAvailableTrafficSources(): Promise<AsyncResult<AvailableTrafficDto[], Error>> {
+  async getAvailableTrafficSources(): AsyncResult<AvailableTrafficDto[], Error> {
     const result = await this.trafficService.getAvailableTraffic();
 
     return Ok(result);
@@ -119,7 +119,7 @@ export class TrafficSourceController {
   async createTrafficSourceBot(
     @Body() dto: CreateBotDto,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<BotCreationResponseDto, Error>> {
+  ): AsyncResult<BotCreationResponseDto, Error> {
     const result = await this.trafficService.createBot(dto, userId);
 
     return Ok(result);
@@ -141,7 +141,7 @@ export class TrafficSourceController {
     description: 'Managed bots retrieved successfully',
     type: [BotDto],
   })
-  async getManagedBots(@CurrentUserId() userId: string): Promise<AsyncResult<BotResponseDto[], Error>> {
+  async getManagedBots(@CurrentUserId() userId: string): AsyncResult<BotResponseDto[], Error> {
     const result = await this.trafficService.getUserBots(userId);
 
     return Ok(result);
@@ -170,7 +170,7 @@ export class TrafficSourceController {
   async getBotDetails(
     @Param('botId') botId: string,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<BotResponseDto, Error>> {
+  ): AsyncResult<BotResponseDto, Error> {
     const result = await this.trafficService.getBotDetails(botId, userId);
 
     return Ok(result);
@@ -200,7 +200,7 @@ export class TrafficSourceController {
     @Param('botId') botId: string,
     @Body() dto: UpdateBotSettingsDto,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<BotSettingsDto, Error>> {
+  ): AsyncResult<BotSettingsDto, Error> {
     const result = await this.trafficService.updateBotSettings(botId, dto, userId);
 
     return Ok(result);
@@ -229,7 +229,7 @@ export class TrafficSourceController {
     @Param('botId') botId: string,
     @Body() dto: BotActionDto,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<{ message: string }, Error>> {
+  ): AsyncResult<{ message: string }, Error> {
     const result = await this.trafficService.performBotAction(botId, dto, userId);
 
     return Ok(result);

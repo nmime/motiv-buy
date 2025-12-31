@@ -15,6 +15,7 @@ export enum TrafficTargetStatus {
   Inactive = 'inactive', // Inactive/disabled by owner
   PendingVerification = 'pending_verification', // Awaiting verification
   Suspended = 'suspended', // Suspended by moderation
+  Deleted = 'deleted', // Soft-deleted by owner
 }
 
 @Entity({ tableName: 'traffic_targets' })

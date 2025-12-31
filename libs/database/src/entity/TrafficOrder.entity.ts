@@ -7,13 +7,14 @@ import type { TrafficOrderSourceEntity } from './junction/TrafficOrderSource.ent
 import type { TrafficOrderTargetEntity } from './junction/TrafficOrderTarget.entity';
 
 export enum TrafficOrderStatus {
-  Pending = 'pending',
-  Active = 'active',
-  Paused = 'paused',
-  Completed = 'completed',
-  Cancelled = 'cancelled',
-  Failed = 'failed',
-  InProgress = 'in_progress',
+  Pending = 'pending', // Order created, awaiting processing
+  Moderation = 'moderation', // Order is awaiting moderation approval
+  Active = 'active', // Order is active and processing
+  Paused = 'paused', // Order paused by owner
+  Completed = 'completed', // Order completed successfully
+  Cancelled = 'cancelled', // Order cancelled or declined by moderation
+  Failed = 'failed', // Order failed due to error
+  Deleted = 'deleted', // Soft-deleted by owner
 }
 
 export enum TrafficOrderType {
@@ -24,6 +25,7 @@ export enum TrafficOrderType {
   Unsubscribe = 'unsubscribe',
   React = 'react',
   Comment = 'comment',
+  Start = 'start',
 }
 
 @Entity({ tableName: 'traffic_orders' })

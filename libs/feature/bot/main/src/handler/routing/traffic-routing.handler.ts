@@ -154,6 +154,21 @@ export class TrafficRoutingHandler {
       return;
     }
 
+    // Handle regenerate API key confirmation: traf:rg:Y:<sourceId> or traf:rg:N:<sourceId>
+    if (action === 'rg') {
+      const [confirmFlag, sourceId] = params;
+
+      if (sourceId) {
+        if (confirmFlag === 'Y') {
+          await this.trafficHandler.handleTrafficSourceRegenerateKey(ctx, sourceId);
+        } else {
+          await this.trafficHandler.handleTrafficSourceIntegration(ctx, sourceId);
+        }
+      }
+
+      return;
+    }
+
     // Handle delete confirmation actions: traf:src:del:... or traf:tgt:del:...
     const [operation, confirmFlag, entityId] = params;
 
@@ -239,6 +254,8 @@ export class TrafficRoutingHandler {
       delete: (c, id) => this.trafficHandler.handleTrafficSourceDelete(c, id),
       stats: (c, id) => this.trafficHandler.handleTrafficSourceStats(c, id),
       type: (c, id) => this.trafficHandler.handleTrafficSourceTypeSelect(c, id as 'bot' | 'bot_with_token'),
+      integrate: (c, id) => this.trafficHandler.handleTrafficSourceIntegration(c, id),
+      regen: (c, id) => this.trafficHandler.handleTrafficSourceRegenerateConfirm(c, id),
     };
 
     const handler = sourceActionHandlers[subAction];
@@ -327,5 +344,104 @@ export class TrafficRoutingHandler {
     await this.messageService.sendOrEditMessage(ctx, {
       text: ctx.t('common.errors.authentication_required'),
     });
+  }
+
+  /**
+   * Route buy traffic actions
+   * Format: buy:target:action:params...
+   */
+  async routeBuyAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+    if (!isAuthenticated(ctx)) {
+      await this.sendAuthRequired(ctx);
+
+      return;
+    }
+
+    const buyActionHandlers: Record<string, (ctx: AuthenticatedBotContext, params: string[]) => Promise<void>> = {
+      target: async (ctx, params) => {
+        await this.handleBuyTargetAction(ctx, params);
+      },
+      tgt: async (ctx, params) => {
+        // Handle shortened format: buy:tgt:del:Y:<id> or buy:tgt:del:N:<id>
+        await this.handleBuyTargetShortAction(ctx, params);
+      },
+    };
+
+    const handler = buyActionHandlers[action];
+
+    if (handler) {
+      await handler(ctx, params);
+    }
+  }
+
+  /**
+   * Handle buy target actions
+   * Format: buy:target:subAction:params...
+   */
+  private async handleBuyTargetAction(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const [subAction, ...rest] = params;
+    const [targetIdOrType] = rest;
+
+    type BuyTargetActionHandler = (ctx: AuthenticatedBotContext, id: string) => Promise<void>;
+
+    const buyTargetActionHandlers: Record<string, BuyTargetActionHandler> = {
+      add: async (ctx) => {
+        await this.trafficHandler.handleBuyTrafficTargetAdd(ctx);
+      },
+      type: async (ctx, typeValue) => {
+        const validTypes = ['channel', 'group', 'bot'];
+        if (validTypes.includes(typeValue)) {
+          await this.trafficHandler.handleBuyTrafficTargetTypeSelect(ctx, typeValue as 'channel' | 'group' | 'bot');
+        }
+      },
+      mode: async (ctx, modeValue) => {
+        const validModes = ['direct', 'moderated'];
+        if (validModes.includes(modeValue)) {
+          await this.trafficHandler.handleBuyTrafficTargetModeSelect(ctx, modeValue as 'direct' | 'moderated');
+        }
+      },
+      view: async (ctx, id) => {
+        await this.trafficHandler.handleBuyTrafficTargetView(ctx, id);
+      },
+      orders: async (ctx, id) => {
+        await this.trafficHandler.handleBuyTrafficTargetOrders(ctx, id);
+      },
+      toggle: async (ctx, id) => {
+        await this.trafficHandler.handleTrafficTargetToggle(ctx, id);
+        // After toggle, show the buy traffic target view
+        await this.trafficHandler.handleBuyTrafficTargetView(ctx, id);
+      },
+      remove: async (ctx, id) => {
+        await this.trafficHandler.handleBuyTrafficTargetRemove(ctx, id);
+      },
+    };
+
+    const handler = buyTargetActionHandlers[subAction];
+
+    if (handler && targetIdOrType) {
+      await handler(ctx, targetIdOrType);
+    } else if (subAction === 'add') {
+      await this.trafficHandler.handleBuyTrafficTargetAdd(ctx);
+    }
+  }
+
+  /**
+   * Handle shortened buy target actions (for 64-byte callback limit)
+   * Format: buy:tgt:del:Y:<id> or buy:tgt:del:N:<id>
+   */
+  private async handleBuyTargetShortAction(ctx: AuthenticatedBotContext, params: string[]): Promise<void> {
+    const [operation, confirmFlag, entityId] = params;
+
+    if (operation !== 'del' || !entityId) {
+      return;
+    }
+
+    const isConfirm = confirmFlag === 'Y';
+
+    if (isConfirm) {
+      await this.trafficHandler.handleBuyTrafficTargetRemoveConfirm(ctx, entityId);
+    } else {
+      await this.trafficHandler.handleBuyTrafficTargetView(ctx, entityId);
+    }
   }
 }

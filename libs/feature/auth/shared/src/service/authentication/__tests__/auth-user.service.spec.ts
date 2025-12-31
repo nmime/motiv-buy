@@ -62,7 +62,7 @@ describe('AuthUserService', () => {
       firstName: 'John',
       lastName: 'Doe',
       username: 'johndoe',
-      languageCode: 'en',
+      language: 'en',
       isActive: true,
       createdAt: new Date('2023-01-01T00:00:00Z'),
       updatedAt: new Date('2023-01-01T00:00:00Z'),
@@ -332,7 +332,7 @@ describe('AuthUserService', () => {
         firstName: 'OldFirst',
         lastName: 'OldLast',
         username: 'oldusername',
-        languageCode: undefined,
+        language: undefined,
       });
 
       const updatedParams = {
@@ -360,13 +360,13 @@ describe('AuthUserService', () => {
           firstName: 'NewFirst',
           lastName: 'NewLast',
           username: 'newusername',
-          languageCode: 'es',
+          language: 'es',
         },
       );
     });
 
-    it('should preserve existing language code when present', async () => {
-      const existingUser = createMockUser({ languageCode: 'fr' });
+    it('should preserve existing language when present', async () => {
+      const existingUser = createMockUser({ language: 'fr' });
 
       mockEntityManager.transactional.mockImplementation(async (callback) => {
         return await callback(mockEntityManager);

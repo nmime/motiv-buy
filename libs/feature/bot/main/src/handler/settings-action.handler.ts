@@ -9,9 +9,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
+import { I18nService } from 'nestjs-i18n';
 import { SettingType, UserEntity, UserSettingsEntity } from '@app/database';
-import { defaultLanguage } from '@app/common-shared';
+import { defaultLanguage, languageNames, supportedLanguageOptions, supportedLanguages } from '@app/common-shared';
+import { changeUserLanguage, updateContextTranslation } from '@app/common-intl';
 import { MenuActionHandler } from './menu-action.handler';
+import { createSettingsMenuKeyboard } from './settings/settings.keyboards';
 import { BotValidationUtil } from '../util/bot-validation.util';
 import { MessageService } from '../service/message.service';
 
@@ -34,12 +37,11 @@ interface UserPreferences {
 export class SettingsActionHandler {
   private readonly logger = new Logger(SettingsActionHandler.name);
 
-  private readonly supportedLanguages = ['en', 'ru', 'uk', 'es', 'fr', 'de', 'zh'];
-
   constructor(
     private readonly em: EntityManager,
     private readonly menuHandler: MenuActionHandler,
     private readonly messageService: MessageService,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -48,7 +50,7 @@ export class SettingsActionHandler {
   async handleSettingsView(ctx: AuthenticatedBotContext): Promise<void> {
     const preferences = await this.getUserPreferences(ctx.user.id);
     const settingsText = this.formatSettingsView(preferences, ctx);
-    const keyboard = this.menuHandler.createSettingsMenuKeyboard(ctx);
+    const keyboard = createSettingsMenuKeyboard(ctx);
 
     await this.messageService.sendOrEditMessage(ctx, {
       text: settingsText,
@@ -63,7 +65,7 @@ export class SettingsActionHandler {
    * Handle language settings
    */
   async handleLanguageSettings(ctx: AuthenticatedBotContext): Promise<void> {
-    const currentLang = ctx.user.languageCode || defaultLanguage;
+    const currentLang = ctx.user.language || defaultLanguage;
     const languageText =
       `🌐 <b>${ctx.t('settings.language_title')}</b>\n\n` +
       `${ctx.t('settings.current_language')}: ${this.getLanguageName(currentLang)}\n\n` +
@@ -89,24 +91,44 @@ export class SettingsActionHandler {
       toLowerCase: true,
     });
 
-    if (!validation.isValid || !this.supportedLanguages.includes(validation.sanitized as string)) {
+    if (!validation.isValid || !supportedLanguages.includes(validation.sanitized as string)) {
       await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.invalid_input') });
 
       return;
     }
 
-    ctx.user.languageCode = validation.sanitized as string;
     const em = this.em.fork();
-    await em.persistAndFlush(ctx.user);
+    const user = await em.findOne(UserEntity, { id: ctx.user.id });
 
+    if (!user) {
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.user_not_found') });
+
+      return;
+    }
+
+    const newLang = validation.sanitized as string;
+    user.language = newLang;
+    await em.persistAndFlush(user);
+
+    // Sync language across all places:
+    // 1. Update ctx.user (for immediate access)
+    ctx.user.language = newLang;
+
+    // 2. Update session language (for persistence between requests)
+    if (ctx.session) {
+      ctx.session.language = newLang;
+    }
+
+    // 3. Update i18n context language and recreate ctx.t() function
+    changeUserLanguage(ctx, newLang);
+    updateContextTranslation(ctx, this.i18n, newLang);
+
+    // Now ctx.t() uses the new language
     await this.messageService.sendNewMessage(ctx, {
-      text: ctx.t('settings.language_changed', {
-        default: `✅ Language changed to ${this.getLanguageName(validation.sanitized as string)}!`,
-        language: this.getLanguageName(validation.sanitized as string),
-      }),
+      text: ctx.t('settings.language_changed', { language: this.getLanguageName(newLang) }),
     });
 
-    this.logger.log('Language changed', { userId: ctx.user.id, language: validation.sanitized });
+    this.logger.log('Language changed', { userId: ctx.user.id, language: newLang });
   }
 
   /**
@@ -189,7 +211,7 @@ export class SettingsActionHandler {
     );
 
     return {
-      language: user?.languageCode || defaultLanguage,
+      language: user?.language || defaultLanguage,
       notifications: {
         balance: settingsMap['notification_balance'] !== false,
         trade: settingsMap['notification_trade'] !== false,
@@ -276,17 +298,7 @@ export class SettingsActionHandler {
    * Get language name
    */
   private getLanguageName(code: string): string {
-    const languages: Record<string, string> = {
-      en: 'English',
-      ru: 'Русский',
-      uk: 'Українська',
-      es: 'Español',
-      fr: 'Français',
-      de: 'Deutsch',
-      zh: '中文',
-    };
-
-    return languages[code] || code;
+    return languageNames[code] ?? code;
   }
 
   /**
@@ -348,16 +360,7 @@ export class SettingsActionHandler {
   private createLanguageKeyboard(currentLang: string, ctx: AuthenticatedBotContext) {
     const keyboard = new InlineKeyboard();
 
-    const languages = [
-      { code: 'en', name: 'English' },
-      { code: 'ru', name: 'Русский' },
-      { code: 'uk', name: 'Українська' },
-      { code: 'es', name: 'Español' },
-      { code: 'fr', name: 'Français' },
-      { code: 'de', name: 'Deutsch' },
-    ];
-
-    languages.forEach((lang) => {
+    supportedLanguageOptions.forEach((lang) => {
       const marker = lang.code === currentLang ? '✅ ' : '';
       keyboard.text(`${marker}${lang.name}`, `settings:lang:${lang.code}`).row();
     });

@@ -12,7 +12,7 @@ export class UserMapper {
       id: userData.id,
       name: userData.firstName ?? undefined,
       username: userData.username ?? undefined,
-      language: userData.languageCode ?? undefined,
+      language: userData.language ?? undefined,
       referral: referralData,
     };
   }

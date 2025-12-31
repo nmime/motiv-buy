@@ -46,6 +46,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   private bot: Bot<BotSessionContext> | null = null;
   private isRunning = false;
   private webhookMode = false;
+  private botUsername: string | null = null;
   // Callback interceptors - handlers that process callbacks before the main router
   // Returns true if handled, false to continue to main router
   private readonly callbackInterceptors: Array<(ctx: BotContext) => Promise<boolean>> = [];
@@ -86,6 +87,15 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Get the bot username (populated after initialization)
+   *
+   * @returns Bot username or empty string if not initialized
+   */
+  getBotUsername(): string {
+    return this.botUsername || '';
+  }
+
+  /**
    * Initialize bot service with Grammy bot instance
    *
    * @returns Promise<void>
@@ -107,9 +117,16 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      // Log bot info from getMe API
-      const botInfo = await this.bot.api.getMe();
-      this.logger.log('Bot info retrieved', {
+      // Initialize bot to populate ctx.me in handlers
+      await this.bot.init();
+
+      // Store bot username for use by handlers
+      const { botInfo } = this.bot;
+      this.botUsername = botInfo.username;
+      this.botConfigService.setBotUsername(botInfo.username);
+
+      // Log bot info
+      this.logger.log('Bot initialized', {
         id: botInfo.id,
         username: botInfo.username,
         firstName: botInfo.first_name,
@@ -137,7 +154,8 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
       // Install authentication middleware
       // This middleware loads user from database and adds to context
-      const authMiddleware = BotAuthMiddleware.create(this.botUserService, this.botSessionService);
+      // Also syncs user language to ctx.t() for proper translations
+      const authMiddleware = BotAuthMiddleware.create(this.botUserService, this.botSessionService, this.i18n);
       // Cast to Grammy middleware type - required because our BotContext extends Context
       // but Grammy's type system doesn't automatically recognize this compatibility
       this.bot.use(authMiddleware as Middleware<BotSessionContext>);

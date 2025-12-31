@@ -1,35 +1,11 @@
 export * from './bot-creation.dto';
 export * from './bot-token-validation.dto';
 export * from './traffic-target.dto';
-// Note: source-task.dto exports are duplicated in source-public-api.dto
-// Only export unique types from source-task.dto
-export { TaskTargetDto, TaskRequirementsDto } from './source-task.dto';
+export * from './source-task.dto';
 export * from './source-management.dto';
-
-// Export bot token validation result
-export { BotTokenValidationResponseDto as BotTokenValidationResultDto } from './bot-token-validation.dto';
-
-// Export bot management DTOs (explicit to avoid duplicates)
-export { BotStatus, BotAction, BotActionDto, BotResponseDto } from './bot-management.dto';
-
-// Export bot settings DTOs (explicit to avoid duplicates)
-export { PriceSettings, DailyLimits, BotSettingsDto, UpdateBotSettingsDto } from './bot-settings.dto';
-
-// Export traffic source DTOs (excluding duplicates that exist in bot-management and bot-settings)
-export { TrafficQuality, TrafficSourceDto, TrafficSourceStatsDto, BotDto } from './traffic-source.dto';
-
-// Export traffic order DTOs from traffic-order.dto (primary source)
-export { TrafficOrderDto, TrafficOrderStatusDto, TrafficOrderStatsDto } from './traffic-order.dto';
-
-// Export additional DTOs from traffic-purchase.dto (excluding duplicates)
-export {
-  CreateTrafficOrderDto,
-  TrafficOrderResponseDto,
-  UpdateTrafficOrderDto,
-  AvailableTrafficDto,
-  TrafficType,
-  TrafficOrderStatus,
-} from './traffic-purchase.dto';
-
-// Export Public API DTOs
+export * from './bot-management.dto';
+export * from './bot-settings.dto';
+export * from './traffic-source.dto';
+export * from './traffic-order.dto';
+export * from './traffic-purchase.dto';
 export * from './source-public-api.dto';

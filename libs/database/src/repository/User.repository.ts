@@ -27,7 +27,7 @@ export class UserRepository extends EntityRepository<UserEntity> {
     username?: string;
     firstName: string;
     lastName?: string;
-    languageCode?: string;
+    language?: string;
     referredBy?: string;
   }): Promise<UserEntity> {
     const user = new UserEntity(data);

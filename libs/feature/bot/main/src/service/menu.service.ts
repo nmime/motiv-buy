@@ -232,7 +232,11 @@ export class MenuService {
     return {
       type: MenuType.Profile,
       title: ctx.t('profile.title'),
-      buttons: [[{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }]],
+      buttons: [
+        [{ text: ctx.t('referral.my_referrals'), callbackData: 'profile:referrals' }],
+        [{ text: ctx.t('profile.change_language'), callbackData: 'profile:language' }],
+        [{ text: ctx.t('common.buttons.back'), callbackData: 'menu:main' }],
+      ],
       isInline: true,
     };
   }

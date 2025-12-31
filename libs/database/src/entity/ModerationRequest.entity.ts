@@ -4,6 +4,7 @@ import { UserEntity } from './User.entity';
 
 export enum ModerationEntityType {
   TrafficSource = 'traffic_source',
+  TrafficTarget = 'traffic_target',
   TrafficOrder = 'traffic_order',
 }
 

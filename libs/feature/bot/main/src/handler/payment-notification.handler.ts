@@ -40,7 +40,7 @@ export class PaymentNotificationHandler implements OnModuleInit {
 
       const amount = toDisplayString(event.amount, 8);
       const { currency } = event;
-      const locale = user.languageCode || 'en';
+      const locale = user.language || 'en';
 
       const message = this.i18n.t('balance.deposit_success_notification', {
         lang: locale,

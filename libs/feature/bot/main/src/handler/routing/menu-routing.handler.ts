@@ -65,6 +65,8 @@ export class MenuRoutingHandler {
     this.profileActionHandlers = new Map([
       ['view', this.withAuthParams((ctx) => this.profileHandler.handleProfileView(ctx))],
       ['referrals', this.withAuthParams((ctx) => this.profileHandler.handleReferralsView(ctx))],
+      ['language', this.withAuthParams((ctx) => this.profileHandler.handleLanguageSettings(ctx))],
+      ['lang', this.withAuthParams((ctx, params) => this.profileHandler.handleLanguageChange(ctx, params[0] || ''))],
       ['stats', this.withAuthParams((ctx, params) => this.statisticsHandler.handleProfileStatsMenu(ctx, params))],
       ['stats:overview', this.withAuthParams((ctx) => this.statisticsHandler.handleStatisticsOverview(ctx))],
       ['stats:activity', this.withAuthParams((ctx) => this.statisticsHandler.handleDetailedStatistics(ctx))],

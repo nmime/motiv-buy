@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@app/database';
 import { BalanceQueryService } from './service/balance-query.service';
+import { UserBalanceOperationService } from './service/user-balance-operation.service';
 
 /**
  * Balance Shared Module
@@ -10,7 +11,7 @@ import { BalanceQueryService } from './service/balance-query.service';
  */
 @Module({
   imports: [DatabaseModule],
-  providers: [BalanceQueryService],
-  exports: [BalanceQueryService],
+  providers: [BalanceQueryService, UserBalanceOperationService],
+  exports: [BalanceQueryService, UserBalanceOperationService],
 })
 export class BalanceSharedModule {}

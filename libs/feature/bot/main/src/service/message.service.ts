@@ -253,4 +253,19 @@ export class MessageService {
 
     return message.includes('message to edit not found') || message.includes('message not found');
   }
+
+  /**
+   * Safely answer callback query (no-op if not in callback context)
+   */
+  async safeAnswerCallbackQuery(ctx: BotContext, text?: string): Promise<void> {
+    if (!ctx.callbackQuery) {
+      return;
+    }
+
+    try {
+      await ctx.answerCallbackQuery(text);
+    } catch (error) {
+      this.logger.debug('Failed to answer callback query', { error });
+    }
+  }
 }

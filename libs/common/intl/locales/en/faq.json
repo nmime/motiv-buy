@@ -1,0 +1,92 @@
+{
+  "title": "Frequently Asked Questions",
+  "description": "Select a category to find answers to common questions.",
+
+  "cat_getting_started": "🚀 Getting Started",
+  "cat_orders": "📦 Orders",
+  "cat_balance": "💰 Balance & Payments",
+  "cat_traffic": "🎯 Selling Traffic",
+  "cat_technical": "🔧 Technical Issues",
+
+  "btn_buy_traffic": "🛒 Buy Traffic",
+  "btn_sell_traffic": "💰 Sell Traffic",
+  "btn_create_order": "➕ Create Order",
+  "btn_order_help": "📖 Order Guide",
+  "btn_deposit": "💳 Deposit",
+  "btn_withdraw": "💸 Withdraw",
+  "btn_add_source": "➕ Add Source",
+  "btn_traffic_guide": "📖 Traffic Guide",
+
+  "start": {
+    "q1": "What is MotivBuy?",
+    "a1": "MotivBuy is a marketplace for buying and selling Telegram channel subscribers. You can grow your channel by purchasing real subscribers, or earn money by selling traffic from your bots.",
+
+    "q2": "How do I get started?",
+    "a2": "1. Top up your balance\n2. Add your channel as a target\n3. Create an order specifying how many subscribers you need\n4. Wait for subscribers to arrive (usually within 24 hours)",
+
+    "q3": "Is it safe to use?",
+    "a3": "Yes! All subscribers are real Telegram users. We don't use bots or fake accounts. Your channel remains safe and compliant with Telegram's terms."
+  },
+
+  "orders": {
+    "q1": "How do I create an order?",
+    "a1": "Go to \"Buy Traffic\" → Add your channel → Set the number of subscribers you want → Confirm and pay. That's it!",
+
+    "q2": "How fast do subscribers arrive?",
+    "a2": "Most orders are completed within 24 hours. Speed depends on order size and current demand. You can track progress in real-time.",
+
+    "q3": "What's the minimum order size?",
+    "a3": "The minimum order is 100 subscribers. There's no maximum limit.",
+
+    "q4": "Can I cancel or pause an order?",
+    "a4": "Yes! You can pause or cancel an active order anytime. Unused funds will be refunded to your balance.",
+
+    "q5": "Why is my order pending?",
+    "a5": "New orders go through a quick moderation check (usually 5-15 minutes). If it's taking longer, check that:\n• Your balance is sufficient\n• The channel/group is accessible\n• The price per subscriber isn't too low"
+  },
+
+  "balance": {
+    "q1": "How do I deposit funds?",
+    "a1": "Go to Balance → Deposit → Choose your payment method (crypto, card, or e-wallet) → Follow the instructions.",
+
+    "q2": "What payment methods are accepted?",
+    "a2": "We accept:\n• Cryptocurrency (BTC, ETH, USDT)\n• Bank cards (Visa, MasterCard)\n• E-wallets\n\nCrypto deposits are usually fastest.",
+
+    "q3": "How do I withdraw my earnings?",
+    "a3": "Go to Balance → Withdraw → Select amount and method. Minimum withdrawal is $10. Processing takes up to 24 hours.",
+
+    "q4": "Why is my deposit not showing?",
+    "a4": "Crypto deposits require network confirmations (usually 1-3). Card payments are instant. If it's been more than 1 hour, contact support.",
+
+    "q5": "Are there any fees?",
+    "a5": "Deposits are free. Withdrawals have a small network/processing fee depending on the method (typically 1-2%)."
+  },
+
+  "traffic": {
+    "q1": "How do I earn by selling traffic?",
+    "a1": "Add your bot as a traffic source → It will display ads to users → You earn for each subscriber delivered. Earnings are automatic!",
+
+    "q2": "How much can I earn?",
+    "a2": "Rates are $0.01-0.05 per subscriber, depending on traffic quality. High-quality, active audiences earn more.",
+
+    "q3": "What are the requirements?",
+    "a3": "Your bot must:\n• Be active with real users\n• Follow advertising guidelines\n• Maintain good traffic quality\n• Have you as the owner",
+
+    "q4": "When do I get paid?",
+    "a4": "Earnings are credited to your balance instantly after each successful subscriber delivery. Withdraw anytime!"
+  },
+
+  "technical": {
+    "q1": "The bot isn't responding",
+    "a1": "Try:\n1. Send /start to restart\n2. Clear chat history and try again\n3. Check if Telegram has any outages\n4. Contact support if issue persists",
+
+    "q2": "I can't add my channel",
+    "a2": "Make sure:\n• You're the channel owner or admin\n• The channel is not private (or use the channel ID)\n• Our bot (@motivbuy_bot) is added as admin with \"Add Members\" permission",
+
+    "q3": "Subscribers stopped arriving",
+    "a3": "Check if:\n• Your order is still active (not paused)\n• Your balance is sufficient\n• The channel is still accessible\n• The order hasn't reached its limit",
+
+    "q4": "I found a bug",
+    "a4": "Please report it via Support → Report Issue. Include what happened, when, and any error messages. Screenshots help!"
+  }
+}

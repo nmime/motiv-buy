@@ -6,6 +6,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
+import { I18nService } from 'nestjs-i18n';
 import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import {
   TransactionStatus,
@@ -15,11 +16,21 @@ import {
   UserRefLinkEntity,
   UserStatus,
 } from '@app/database';
-import { multiply, sum, toDisplayString, toNumber } from '@app/common-shared';
+import {
+  defaultLanguage,
+  languageNames,
+  multiply,
+  sum,
+  supportedLanguages,
+  toDisplayString,
+  toNumber,
+} from '@app/common-shared';
+import { changeUserLanguage, updateContextTranslation } from '@app/common-intl';
 import { MenuActionHandler } from './menu-action.handler';
 import { MessageService } from '../service/message.service';
 import { BotConfigService } from '../config/bot-config.service';
 import { PaymentConfigService } from '@app/feature-payment-shared';
+import { BotSessionService } from '../service/auth';
 
 @Injectable()
 export class ProfileActionHandler {
@@ -31,6 +42,8 @@ export class ProfileActionHandler {
     private readonly messageService: MessageService,
     private readonly botConfigService: BotConfigService,
     private readonly paymentConfigService: PaymentConfigService,
+    private readonly i18n: I18nService,
+    private readonly botSessionService: BotSessionService,
   ) {}
 
   private get currencySymbol(): string {
@@ -101,6 +114,82 @@ export class ProfileActionHandler {
     });
 
     this.logger.log('Referrals viewed', { userId: user.id, referralCount });
+  }
+
+  /**
+   * Handle language settings view (from profile)
+   */
+  async handleLanguageSettings(ctx: AuthenticatedBotContext): Promise<void> {
+    // Use ctx.language (session) as primary source since it's what i18n uses
+    const currentLang = ctx.language || ctx.user.language || defaultLanguage;
+    const languageText =
+      `🌐 <b>${ctx.t('settings.language_title')}</b>\n\n` +
+      `${ctx.t('settings.current_language')}: ${this.getLanguageName(currentLang)}\n\n` +
+      `${ctx.t('settings.select_language')}`;
+
+    const keyboard = this.menuHandler.createProfileLanguageKeyboard(ctx, currentLang);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text: languageText,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle language change (from profile)
+   */
+  async handleLanguageChange(ctx: AuthenticatedBotContext, languageCode: string): Promise<void> {
+    if (!supportedLanguages.includes(languageCode)) {
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.invalid_input') });
+
+      return;
+    }
+
+    const em = this.em.fork();
+    const user = await em.findOne(UserEntity, { id: ctx.user.id });
+
+    if (!user) {
+      await this.messageService.sendNewMessage(ctx, { text: ctx.t('common.errors.user_not_found') });
+
+      return;
+    }
+
+    user.language = languageCode;
+    await em.persistAndFlush(user);
+
+    // Sync language across all places:
+    // 1. Update ctx.user (for immediate access)
+    ctx.user.language = languageCode;
+
+    // 2. Update Grammy session language
+    if (ctx.session) {
+      ctx.session.language = languageCode;
+    }
+
+    // 3. Update Redis session cache (for BotAuthMiddleware on next request)
+    if (ctx.sessionId) {
+      await this.botSessionService.updateSessionLanguage(ctx.sessionId, languageCode);
+    }
+
+    // 4. Update i18n context language and recreate ctx.t() function
+    changeUserLanguage(ctx, languageCode);
+    updateContextTranslation(ctx, this.i18n, languageCode);
+
+    // Now ctx.t() uses the new language
+    await this.messageService.sendNewMessage(ctx, {
+      text: ctx.t('settings.language_changed', { language: this.getLanguageName(languageCode) }),
+    });
+
+    this.logger.log('Language changed from profile', { userId: ctx.user.id, language: languageCode });
+
+    await this.handleProfileView(ctx);
+  }
+
+  /**
+   * Get language display name
+   */
+  private getLanguageName(code: string): string {
+    return languageNames[code] ?? code;
   }
 
   /**

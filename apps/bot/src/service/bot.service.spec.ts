@@ -2,6 +2,7 @@
 /* eslint-disable sonarjs/no-nested-functions */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
+import { MikroORM } from '@mikro-orm/core';
 import { BotService } from './bot.service';
 import { BotService as BotMainService } from '@app/feature-bot-main';
 import { ModerationCallbackHandler } from '../handler';
@@ -39,6 +40,20 @@ describe('BotService', () => {
   };
 
   /**
+   * Mock implementation of MikroORM
+   */
+  const mockOrm = {
+    em: {
+      fork: jest.fn().mockReturnValue({
+        findOne: jest.fn(),
+        find: jest.fn(),
+        persist: jest.fn(),
+        flush: jest.fn(),
+      }),
+    },
+  };
+
+  /**
    * Mock implementation of ModerationService
    */
   const mockModerationService = {
@@ -66,6 +81,10 @@ describe('BotService', () => {
         {
           provide: BotMainService,
           useValue: mockBotMainService,
+        },
+        {
+          provide: MikroORM,
+          useValue: mockOrm,
         },
         {
           provide: ModerationService,
@@ -445,6 +464,7 @@ describe('BotService', () => {
     it('should handle service with no BotMainService', async () => {
       // Create mock handler for this test
       const mockHandler = new ModerationCallbackHandler(
+        mockOrm as unknown as MikroORM,
         mockModerationService as unknown as ModerationService,
         mockTelegramNotifier as unknown as TelegramModerationNotifier,
       );

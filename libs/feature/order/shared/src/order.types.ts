@@ -77,6 +77,8 @@ export interface TargetAudience {
   gender: UserGender;
   /** Countries/regions */
   regions: string[];
+  /** Preferred languages */
+  languages: string[];
   /** Age range */
   ageRange?: AgeRange;
   /** Only active users (online in last 7 days) */
@@ -272,6 +274,7 @@ export const defaultOrderConfig: Partial<OrderConfiguration> = {
   targetAudience: {
     gender: UserGender.Any,
     regions: [],
+    languages: [],
     activeOnly: false,
   },
   excludedTopics: [],

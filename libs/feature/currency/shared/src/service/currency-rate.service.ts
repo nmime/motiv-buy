@@ -49,6 +49,7 @@ export class CurrencyRateService implements OnModuleInit {
 
   private readonly lockTtl = 60000;
   private readonly lockKey = 'currency-rate-update';
+  private readonly isSchedulerEnabled: boolean;
 
   constructor(
     private readonly orm: MikroORM,
@@ -59,7 +60,9 @@ export class CurrencyRateService implements OnModuleInit {
     private readonly rateProviderCurrencyRepository: RateProviderCurrencyRepository,
     private readonly configService: ConfigService,
     private readonly redlock: Redlock,
-  ) {}
+  ) {
+    this.isSchedulerEnabled = this.configService.get<string>('CURRENCY_RATE_SCHEDULER_ENABLED', 'true') === 'true';
+  }
 
   private async loadProviderConfigs(): Promise<void> {
     if (this.providerConfigsLoaded) {
@@ -138,6 +141,10 @@ export class CurrencyRateService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_10_MINUTES)
   async updateAllRates(): Promise<void> {
+    if (!this.isSchedulerEnabled) {
+      return;
+    }
+
     let lock;
 
     try {
@@ -186,6 +193,10 @@ export class CurrencyRateService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupOldRates(): Promise<void> {
+    if (!this.isSchedulerEnabled) {
+      return;
+    }
+
     await this.executeInContext(async () => {
       this.logger.log('Cleaning up old rates');
 
@@ -199,6 +210,12 @@ export class CurrencyRateService implements OnModuleInit {
   }
 
   async onModuleInit(): Promise<void> {
+    if (!this.isSchedulerEnabled) {
+      this.logger.log('Currency rate scheduler disabled');
+
+      return;
+    }
+
     this.logger.log('Currency rate service starting');
     setTimeout(() => {
       this.performInitialization().catch((error) => {
@@ -849,17 +866,19 @@ export class CurrencyRateService implements OnModuleInit {
     const allCurrencies = await this.currencyRepository.findAllActive();
 
     await Promise.all(
-      allCurrencies.map(async (currency) => {
-        const rates = await this.currencyRatesHistoryRepository.getLatestRatesByProvider(currency.code);
+      allCurrencies
+        .filter((currency) => currency.code !== CurrencyCode.Usd)
+        .map(async (currency) => {
+          const rates = await this.currencyRatesHistoryRepository.getLatestRatesByProvider(currency.code);
 
-        if (rates.length < 2) {
-          this.logger.warn('Insufficient providers for currency', {
-            currency: currency.code,
-            count: rates.length,
-            minimum: 2,
-          });
-        }
-      }),
+          if (rates.length < 2) {
+            this.logger.warn('Insufficient providers for currency', {
+              currency: currency.code,
+              count: rates.length,
+              minimum: 2,
+            });
+          }
+        }),
     );
   }
 }

@@ -137,6 +137,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL}
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
       RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
+      CURRENCY_RATE_SCHEDULER_ENABLED: 'false'
     volumes:
       - ${VPS_DEPLOY_PATH}/data/api/logs:/app/logs
       - ${VPS_DEPLOY_PATH}/data/api/uploads:/app/uploads

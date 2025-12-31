@@ -40,7 +40,7 @@ export class TrafficOrderController {
   async createTrafficOrder(
     @Body() dto: CreateTrafficOrderDto,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
+  ): AsyncResult<TrafficOrderResponseDto, Error> {
     const result = await this.trafficService.createTrafficOrder(dto, userId);
 
     return Ok(result);
@@ -73,7 +73,7 @@ export class TrafficOrderController {
     description: 'User traffic orders retrieved successfully',
     type: [TrafficOrderDto],
   })
-  async getUserTrafficOrders(@CurrentUserId() userId: string): Promise<AsyncResult<TrafficOrderResponseDto[], Error>> {
+  async getUserTrafficOrders(@CurrentUserId() userId: string): AsyncResult<TrafficOrderResponseDto[], Error> {
     const result = await this.trafficService.getUserTrafficOrders(userId);
 
     return Ok(result);
@@ -96,7 +96,7 @@ export class TrafficOrderController {
   async getTrafficOrder(
     @Param('orderId') orderId: string,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
+  ): AsyncResult<TrafficOrderResponseDto, Error> {
     const result = await this.trafficService.getTrafficOrder(orderId, userId);
 
     return Ok(result);
@@ -120,7 +120,7 @@ export class TrafficOrderController {
     @Param('orderId') orderId: string,
     @Body() dto: UpdateTrafficOrderDto,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<TrafficOrderResponseDto, Error>> {
+  ): AsyncResult<TrafficOrderResponseDto, Error> {
     const result = await this.trafficService.updateTrafficOrder(orderId, dto, userId);
 
     return Ok(result);
@@ -142,7 +142,7 @@ export class TrafficOrderController {
   async cancelTrafficOrder(
     @Param('orderId') orderId: string,
     @CurrentUserId() userId: string,
-  ): Promise<AsyncResult<{ message: string }, Error>> {
+  ): AsyncResult<{ message: string }, Error> {
     const result = await this.trafficService.cancelTrafficOrder(orderId, userId);
 
     return Ok(result);

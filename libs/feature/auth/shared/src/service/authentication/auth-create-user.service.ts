@@ -35,7 +35,7 @@ export class AuthCreateUserService {
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
       telegramId: createUserDto.telegramId,
-      ...(userLanguage && { languageCode: userLanguage }),
+      ...(userLanguage && { language: userLanguage }),
       ...(userRefLink?.userId && { referredBy: userRefLink.userId }),
     };
 

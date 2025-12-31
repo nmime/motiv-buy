@@ -24,26 +24,13 @@ export class SupportHandler {
 
 ${ctx.t('support.description')}
 
-<b>📞 ${ctx.t('support.contact_methods')}:</b>
-• ${ctx.t('support.telegram')}: @motivbuy_support
-• ${ctx.t('support.email')}: support@motivbuy.com
-
 <b>⏰ ${ctx.t('support.working_hours')}:</b>
-• ${ctx.t('support.weekdays')}
-• ${ctx.t('support.weekends')}
-
-<b>📋 ${ctx.t('support.faq_title')}:</b>
-• ${ctx.t('help.faq_create_order')}
-• ${ctx.t('help.faq_deposit')}
-• ${ctx.t('help.faq_withdraw')}
-• ${ctx.t('help.faq_bot_issues')}
-
-<i>${ctx.t('support.select_action')}.</i>`;
+${ctx.t('support.weekdays')} · ${ctx.t('support.weekends')}`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('support.btn_contact'), 'support:contact')
-      .row()
       .text(ctx.t('support.btn_faq'), 'help:faq')
+      .row()
+      .text(ctx.t('support.btn_contact'), 'support:contact')
       .row()
       .text(ctx.t('support.btn_report'), 'support:report')
       .text(ctx.t('support.btn_suggest'), 'support:suggest')
@@ -159,35 +146,181 @@ ${ctx.t('support.suggest_instructions')}
   }
 
   /**
-   * Display FAQ page
+   * Display FAQ main menu with categories
    */
   async handleFAQ(ctx: BotContext): Promise<void> {
-    const text = `<b>❓ ${ctx.t('help.faq_title')}</b>
+    const text = `<b>❓ ${ctx.t('faq.title')}</b>
 
-<b>Q: ${ctx.t('help.faq_q1')}</b>
-A: ${ctx.t('help.faq_a1')}
-
-<b>Q: ${ctx.t('help.faq_q2')}</b>
-A: ${ctx.t('help.faq_a2')}
-
-<b>Q: ${ctx.t('help.faq_q3')}</b>
-A: ${ctx.t('help.faq_a3')}
-
-<b>Q: ${ctx.t('help.faq_q4')}</b>
-A: ${ctx.t('help.faq_a4')}
-
-<b>Q: ${ctx.t('help.faq_q5')}</b>
-A: ${ctx.t('help.faq_a5')}
-
-<b>Q: ${ctx.t('help.faq_q6')}</b>
-A: ${ctx.t('help.faq_a6')}`;
+${ctx.t('faq.description')}`;
 
     const keyboard = new InlineKeyboard()
-      .text(ctx.t('help.btn_more_orders'), 'help:createOrder')
+      .text(ctx.t('faq.cat_getting_started'), 'faq:cat:start')
       .row()
-      .text(ctx.t('help.btn_balance_questions'), 'help:topup')
+      .text(ctx.t('faq.cat_orders'), 'faq:cat:orders')
+      .text(ctx.t('faq.cat_balance'), 'faq:cat:balance')
+      .row()
+      .text(ctx.t('faq.cat_traffic'), 'faq:cat:traffic')
+      .text(ctx.t('faq.cat_technical'), 'faq:cat:technical')
+      .row()
+      .text(ctx.t('support.btn_contact'), 'support:contact')
       .row()
       .text(ctx.t('common.back'), 'menu:support');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Display Getting Started FAQ category
+   */
+  async handleFAQStart(ctx: BotContext): Promise<void> {
+    const text = `<b>🚀 ${ctx.t('faq.cat_getting_started')}</b>
+
+<b>Q: ${ctx.t('faq.start.q1')}</b>
+${ctx.t('faq.start.a1')}
+
+<b>Q: ${ctx.t('faq.start.q2')}</b>
+${ctx.t('faq.start.a2')}
+
+<b>Q: ${ctx.t('faq.start.q3')}</b>
+${ctx.t('faq.start.a3')}`;
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('faq.btn_buy_traffic'), 'menu:buy_traffic')
+      .text(ctx.t('faq.btn_sell_traffic'), 'menu:sell_traffic')
+      .row()
+      .text(ctx.t('common.back'), 'help:faq');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Display Orders FAQ category
+   */
+  async handleFAQOrders(ctx: BotContext): Promise<void> {
+    const text = `<b>📦 ${ctx.t('faq.cat_orders')}</b>
+
+<b>Q: ${ctx.t('faq.orders.q1')}</b>
+${ctx.t('faq.orders.a1')}
+
+<b>Q: ${ctx.t('faq.orders.q2')}</b>
+${ctx.t('faq.orders.a2')}
+
+<b>Q: ${ctx.t('faq.orders.q3')}</b>
+${ctx.t('faq.orders.a3')}
+
+<b>Q: ${ctx.t('faq.orders.q4')}</b>
+${ctx.t('faq.orders.a4')}
+
+<b>Q: ${ctx.t('faq.orders.q5')}</b>
+${ctx.t('faq.orders.a5')}`;
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('faq.btn_create_order'), 'menu:buy_traffic')
+      .row()
+      .text(ctx.t('faq.btn_order_help'), 'help:createOrder')
+      .row()
+      .text(ctx.t('common.back'), 'help:faq');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Display Balance FAQ category
+   */
+  async handleFAQBalance(ctx: BotContext): Promise<void> {
+    const text = `<b>💰 ${ctx.t('faq.cat_balance')}</b>
+
+<b>Q: ${ctx.t('faq.balance.q1')}</b>
+${ctx.t('faq.balance.a1')}
+
+<b>Q: ${ctx.t('faq.balance.q2')}</b>
+${ctx.t('faq.balance.a2')}
+
+<b>Q: ${ctx.t('faq.balance.q3')}</b>
+${ctx.t('faq.balance.a3')}
+
+<b>Q: ${ctx.t('faq.balance.q4')}</b>
+${ctx.t('faq.balance.a4')}
+
+<b>Q: ${ctx.t('faq.balance.q5')}</b>
+${ctx.t('faq.balance.a5')}`;
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('faq.btn_deposit'), 'balance:deposit')
+      .text(ctx.t('faq.btn_withdraw'), 'balance:withdraw')
+      .row()
+      .text(ctx.t('common.back'), 'help:faq');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Display Traffic FAQ category
+   */
+  async handleFAQTraffic(ctx: BotContext): Promise<void> {
+    const text = `<b>🎯 ${ctx.t('faq.cat_traffic')}</b>
+
+<b>Q: ${ctx.t('faq.traffic.q1')}</b>
+${ctx.t('faq.traffic.a1')}
+
+<b>Q: ${ctx.t('faq.traffic.q2')}</b>
+${ctx.t('faq.traffic.a2')}
+
+<b>Q: ${ctx.t('faq.traffic.q3')}</b>
+${ctx.t('faq.traffic.a3')}
+
+<b>Q: ${ctx.t('faq.traffic.q4')}</b>
+${ctx.t('faq.traffic.a4')}`;
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('faq.btn_add_source'), 'traffic:sources:add')
+      .row()
+      .text(ctx.t('faq.btn_traffic_guide'), 'help:traffic')
+      .row()
+      .text(ctx.t('common.back'), 'help:faq');
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Display Technical FAQ category
+   */
+  async handleFAQTechnical(ctx: BotContext): Promise<void> {
+    const text = `<b>🔧 ${ctx.t('faq.cat_technical')}</b>
+
+<b>Q: ${ctx.t('faq.technical.q1')}</b>
+${ctx.t('faq.technical.a1')}
+
+<b>Q: ${ctx.t('faq.technical.q2')}</b>
+${ctx.t('faq.technical.a2')}
+
+<b>Q: ${ctx.t('faq.technical.q3')}</b>
+${ctx.t('faq.technical.a3')}
+
+<b>Q: ${ctx.t('faq.technical.q4')}</b>
+${ctx.t('faq.technical.a4')}`;
+
+    const keyboard = new InlineKeyboard()
+      .text(ctx.t('support.btn_report'), 'support:report')
+      .row()
+      .text(ctx.t('support.btn_contact'), 'support:contact')
+      .row()
+      .text(ctx.t('common.back'), 'help:faq');
 
     await this.messageService.sendOrEditMessage(ctx, {
       text,

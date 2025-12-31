@@ -11,11 +11,14 @@ import { Composer } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
 import { BotOrderService } from './bot-order.service';
 import {
+  createAgeKeyboard,
   createAudienceConfigKeyboard,
   createConfigurationKeyboard,
   createGenderKeyboard,
   createLocationKeyboard,
   createOrderCategoryKeyboard,
+  createOrderLanguageKeyboard,
+  createRegionKeyboard,
   createTopicsKeyboard,
 } from './order.keyboards';
 import { OrderDisplayLocation, UserGender } from '@app/feature-order-shared';
@@ -48,6 +51,29 @@ export class OrderConfigHandler {
     this.composer.callbackQuery(/^order:edit:audience:([^:]+)$/, (ctx) => this.handleEditAudience(ctx));
     this.composer.callbackQuery(/^order:audience:gender:([^:]+)$/, (ctx) => this.handleAudienceGender(ctx));
     this.composer.callbackQuery(/^order:gender:([^:]+):([^:]+)$/, (ctx) => this.handleGenderSelection(ctx));
+
+    // Age configuration
+    this.composer.callbackQuery(/^order:audience:age:([^:]+)$/, (ctx) => this.handleAudienceAge(ctx));
+    this.composer.callbackQuery(/^order:age:min:(\d+):([^:]+)$/, (ctx) => this.handleAgeMinSelection(ctx));
+    this.composer.callbackQuery(/^order:age:max:(\d+):([^:]+)$/, (ctx) => this.handleAgeMaxSelection(ctx));
+    this.composer.callbackQuery(/^order:age:clear:([^:]+)$/, (ctx) => this.handleAgeClear(ctx));
+
+    // Region configuration
+    this.composer.callbackQuery(/^order:audience:region:([^:]+)$/, (ctx) => this.handleAudienceRegion(ctx));
+    this.composer.callbackQuery(/^order:region:toggle:([^:]+):([^:]+)$/, (ctx) => this.handleRegionToggle(ctx));
+    this.composer.callbackQuery(/^order:region:page:(\d+):([^:]+)$/, (ctx) => this.handleRegionPage(ctx));
+    this.composer.callbackQuery(/^order:region:clear:([^:]+)$/, (ctx) => this.handleRegionClear(ctx));
+    this.composer.callbackQuery(/^order:region:save:([^:]+)$/, (ctx) => this.handleRegionSave(ctx));
+
+    // Language configuration
+    this.composer.callbackQuery(/^order:audience:language:([^:]+)$/, (ctx) => this.handleAudienceLanguage(ctx));
+    this.composer.callbackQuery(/^order:language:toggle:([^:]+):([^:]+)$/, (ctx) => this.handleLanguageToggle(ctx));
+    this.composer.callbackQuery(/^order:language:page:(\d+):([^:]+)$/, (ctx) => this.handleLanguagePage(ctx));
+    this.composer.callbackQuery(/^order:language:clear:([^:]+)$/, (ctx) => this.handleLanguageClear(ctx));
+    this.composer.callbackQuery(/^order:language:save:([^:]+)$/, (ctx) => this.handleLanguageSave(ctx));
+
+    // Audience save (back to config)
+    this.composer.callbackQuery(/^order:audience:save:([^:]+)$/, (ctx) => this.handleAudienceSave(ctx));
 
     // Topics configuration
 
@@ -259,6 +285,594 @@ export class OrderConfigHandler {
     } catch (error) {
       this.logger.error('Error saving gender', error);
       await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle audience age selection menu
+   */
+  private async handleAudienceAge(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:audience:age:(.+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      const ageRange = order.config.targetAudience?.ageRange;
+      const keyboard = createAgeKeyboard(ctx, orderId, ageRange);
+
+      let message = `<b>${ctx.t('orders.age.title')}</b>\n\n`;
+      message += `${ctx.t('orders.age.prompt')}\n\n`;
+
+      if (ageRange) {
+        message += `${ctx.t('orders.age.current', { min: ageRange.min, max: ageRange.max })}`;
+      } else {
+        message += ctx.t('orders.age.any');
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+
+      await ctx.answerCallbackQuery();
+    } catch (error) {
+      this.logger.error('Error showing age selection', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle minimum age selection
+   */
+  private async handleAgeMinSelection(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:age:min:(\d+):([^:]+)$/);
+      const minAgeStr = match?.[1];
+      const orderId = match?.[2];
+
+      if (!minAgeStr || !orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const minAge = parseInt(minAgeStr, 10);
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      const currentMax = order.config.targetAudience?.ageRange?.max ?? 99;
+      const newMax = minAge > currentMax ? minAge + 10 : currentMax;
+
+      await this.orderService.updateOrderConfig(orderId, {
+        targetAudience: {
+          ...order.config.targetAudience,
+          ageRange: { min: minAge, max: newMax },
+        },
+      });
+
+      await this.handleAudienceAge(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
+    } catch (error) {
+      this.logger.error('Error saving min age', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle maximum age selection
+   */
+  private async handleAgeMaxSelection(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:age:max:(\d+):([^:]+)$/);
+      const maxAgeStr = match?.[1];
+      const orderId = match?.[2];
+
+      if (!maxAgeStr || !orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const maxAge = parseInt(maxAgeStr, 10);
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      const currentMin = order.config.targetAudience?.ageRange?.min ?? 13;
+      const newMin = maxAge < currentMin ? maxAge - 10 : currentMin;
+
+      await this.orderService.updateOrderConfig(orderId, {
+        targetAudience: {
+          ...order.config.targetAudience,
+          ageRange: { min: Math.max(13, newMin), max: maxAge },
+        },
+      });
+
+      await this.handleAudienceAge(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
+    } catch (error) {
+      this.logger.error('Error saving max age', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle clear age restriction (any age)
+   */
+  private async handleAgeClear(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:age:clear:(.+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      await this.orderService.updateOrderConfig(orderId, {
+        targetAudience: {
+          ...order.config.targetAudience,
+          ageRange: undefined,
+        },
+      });
+
+      await this.handleAudienceAge(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
+    } catch (error) {
+      this.logger.error('Error clearing age restriction', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle audience region selection menu
+   */
+  private async handleAudienceRegion(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:audience:region:(.+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      const regions = order.config.targetAudience?.regions ?? [];
+      const page = this.getRegionPageFromSession(ctx) ?? 1;
+      const keyboard = createRegionKeyboard(ctx, orderId, regions, page);
+
+      let message = `<b>${ctx.t('orders.region.title')}</b>\n\n`;
+      message += `${ctx.t('orders.region.prompt')}\n\n`;
+
+      if (regions.length > 0) {
+        message += ctx.t('orders.region.selected_count', { count: regions.length });
+      } else {
+        message += ctx.t('orders.region.all_allowed');
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+
+      await ctx.answerCallbackQuery();
+    } catch (error) {
+      this.logger.error('Error showing region selection', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle region toggle
+   */
+  private async handleRegionToggle(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:region:toggle:([^:]+):([^:]+)$/);
+      const regionCode = match?.[1];
+      const orderId = match?.[2];
+
+      if (!regionCode || !orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      const regions = [...(order.config.targetAudience?.regions ?? [])];
+      const index = regions.indexOf(regionCode);
+
+      if (index === -1) {
+        regions.push(regionCode);
+      } else {
+        regions.splice(index, 1);
+      }
+
+      await this.orderService.updateOrderConfig(orderId, {
+        targetAudience: {
+          ...order.config.targetAudience,
+          regions,
+        },
+      });
+
+      await this.handleAudienceRegion(ctx);
+    } catch (error) {
+      this.logger.error('Error toggling region', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle region page navigation
+   */
+  private async handleRegionPage(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:region:page:(\d+):([^:]+)$/);
+      const pageStr = match?.[1];
+      const orderId = match?.[2];
+
+      if (!pageStr || !orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const page = parseInt(pageStr, 10);
+      this.saveRegionPageToSession(ctx, page);
+
+      await this.handleAudienceRegion(ctx);
+    } catch (error) {
+      this.logger.error('Error navigating region page', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle region clear (all regions)
+   */
+  private async handleRegionClear(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:region:clear:(.+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      await this.orderService.updateOrderConfig(orderId, {
+        targetAudience: {
+          ...order.config.targetAudience,
+          regions: [],
+        },
+      });
+
+      await this.handleAudienceRegion(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
+    } catch (error) {
+      this.logger.error('Error clearing regions', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle region save (back to audience menu)
+   */
+  private async handleRegionSave(ctx: BotContext): Promise<void> {
+    try {
+      this.clearRegionPageFromSession(ctx);
+      await this.handleEditAudience(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
+    } catch (error) {
+      this.logger.error('Error saving regions', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle audience language selection menu
+   */
+  private async handleAudienceLanguage(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:audience:language:(.+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      const languages = order.config.targetAudience?.languages ?? [];
+      const page = this.getLanguagePageFromSession(ctx) ?? 1;
+      const keyboard = createOrderLanguageKeyboard(ctx, orderId, languages, page);
+
+      let message = `<b>${ctx.t('orders.language.title')}</b>\n\n`;
+      message += `${ctx.t('orders.language.prompt')}\n\n`;
+
+      if (languages.length > 0) {
+        message += ctx.t('orders.language.selected_count', { count: languages.length });
+      } else {
+        message += ctx.t('orders.language.all_allowed');
+      }
+
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: message,
+        parseMode: 'HTML',
+        replyMarkup: keyboard,
+      });
+
+      await ctx.answerCallbackQuery();
+    } catch (error) {
+      this.logger.error('Error showing language selection', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle language toggle
+   */
+  private async handleLanguageToggle(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:language:toggle:([^:]+):([^:]+)$/);
+      const languageCode = match?.[1];
+      const orderId = match?.[2];
+
+      if (!languageCode || !orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      const languages = [...(order.config.targetAudience?.languages ?? [])];
+      const index = languages.indexOf(languageCode);
+
+      if (index === -1) {
+        languages.push(languageCode);
+      } else {
+        languages.splice(index, 1);
+      }
+
+      await this.orderService.updateOrderConfig(orderId, {
+        targetAudience: {
+          ...order.config.targetAudience,
+          languages,
+        },
+      });
+
+      await this.handleAudienceLanguage(ctx);
+    } catch (error) {
+      this.logger.error('Error toggling language', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle language page navigation
+   */
+  private async handleLanguagePage(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:language:page:(\d+):([^:]+)$/);
+      const pageStr = match?.[1];
+      const orderId = match?.[2];
+
+      if (!pageStr || !orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const page = parseInt(pageStr, 10);
+      this.saveLanguagePageToSession(ctx, page);
+
+      await this.handleAudienceLanguage(ctx);
+    } catch (error) {
+      this.logger.error('Error navigating language page', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle language clear (all languages)
+   */
+  private async handleLanguageClear(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:language:clear:(.+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      const order = await this.orderService.getOrderById(orderId);
+      if (!order || order.userId !== ctx.from?.id.toString()) {
+        await ctx.answerCallbackQuery(ctx.t('common.errors.access_denied'));
+
+        return;
+      }
+
+      await this.orderService.updateOrderConfig(orderId, {
+        targetAudience: {
+          ...order.config.targetAudience,
+          languages: [],
+        },
+      });
+
+      await this.handleAudienceLanguage(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
+    } catch (error) {
+      this.logger.error('Error clearing languages', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Handle language save (back to audience menu)
+   */
+  private async handleLanguageSave(ctx: BotContext): Promise<void> {
+    try {
+      this.clearLanguagePageFromSession(ctx);
+      await this.handleEditAudience(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
+    } catch (error) {
+      this.logger.error('Error saving languages', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Get language page from session
+   */
+  private getLanguagePageFromSession(ctx: BotContext): number | null {
+    const page = ctx.session?.formData?.languagePage;
+
+    return typeof page === 'number' ? page : null;
+  }
+
+  /**
+   * Save language page to session
+   */
+  private saveLanguagePageToSession(ctx: BotContext, page: number): void {
+    if (!ctx.session) {
+      ctx.session = {};
+    }
+
+    if (!ctx.session.formData) {
+      ctx.session.formData = {};
+    }
+
+    ctx.session.formData.languagePage = page;
+  }
+
+  /**
+   * Clear language page from session
+   */
+  private clearLanguagePageFromSession(ctx: BotContext): void {
+    if (ctx.session?.formData) {
+      delete ctx.session.formData.languagePage;
+    }
+  }
+
+  /**
+   * Handle audience save (back to config)
+   */
+  private async handleAudienceSave(ctx: BotContext): Promise<void> {
+    try {
+      const match = ctx.callbackQuery?.data?.match(/^order:audience:save:(.+)$/);
+      const orderId = match?.[1];
+
+      if (!orderId) {
+        await ctx.answerCallbackQuery(ctx.t('common.error'));
+
+        return;
+      }
+
+      await this.handleOrderConfig(ctx);
+      await ctx.answerCallbackQuery(ctx.t('common.success.saved'));
+    } catch (error) {
+      this.logger.error('Error saving audience', error);
+      await ctx.answerCallbackQuery(ctx.t('common.error'));
+    }
+  }
+
+  /**
+   * Get region page from session
+   */
+  private getRegionPageFromSession(ctx: BotContext): number | null {
+    const page = ctx.session?.formData?.regionPage;
+
+    return typeof page === 'number' ? page : null;
+  }
+
+  /**
+   * Save region page to session
+   */
+  private saveRegionPageToSession(ctx: BotContext, page: number): void {
+    if (!ctx.session) {
+      ctx.session = {};
+    }
+
+    if (!ctx.session.formData) {
+      ctx.session.formData = {};
+    }
+
+    ctx.session.formData.regionPage = page;
+  }
+
+  /**
+   * Clear region page from session
+   */
+  private clearRegionPageFromSession(ctx: BotContext): void {
+    if (ctx.session?.formData) {
+      delete ctx.session.formData.regionPage;
     }
   }
 
@@ -781,7 +1395,9 @@ export class OrderConfigHandler {
    * Get category page from session
    */
   private getCategoryPageFromSession(ctx: BotContext): number | null {
-    return (ctx.session?.formData?.categoryPage as number) || null;
+    const page = ctx.session?.formData?.categoryPage;
+
+    return typeof page === 'number' ? page : null;
   }
 
   /**

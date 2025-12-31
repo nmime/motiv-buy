@@ -145,10 +145,12 @@ export class CallbackRouterHandler {
       ['withdrawal', (ctx, action, params) => this.balanceRoutingHandler.routeWithdrawalAction(ctx, action, params)],
       ['traffic', (ctx, action, params) => this.trafficRoutingHandler.routeTrafficAction(ctx, action, params)],
       ['traf', (ctx, action, params) => this.trafficRoutingHandler.routeTrafficShortAction(ctx, action, params)], // Shortened traffic callbacks (64-byte limit workaround)
+      ['buy', (ctx, action, params) => this.trafficRoutingHandler.routeBuyAction(ctx, action, params)], // Buy traffic targets
       // Moderation routing is handled at app layer (apps/bot) to avoid circular dependencies
       // See apps/bot/src/handler/moderation-callback.handler.ts
       ['support', this.routeSupportAction.bind(this)],
       ['help', this.routeHelpAction.bind(this)],
+      ['faq', this.routeFAQAction.bind(this)],
       ['campaign', this.routeCampaignAction.bind(this)],
       ['admin', this.routeAdminAction.bind(this)],
       ['auth', this.routeAuthAction.bind(this)],
@@ -344,6 +346,32 @@ export class CallbackRouterHandler {
   }
 
   /**
+   * Route FAQ category actions
+   */
+  private async routeFAQAction(ctx: BotContext, action: string, params: string[]): Promise<void> {
+    // Handle category navigation: faq:cat:start, faq:cat:orders, etc.
+    if (action === 'cat') {
+      const category = params[0] || 'start';
+      const categoryHandlers: Record<string, (ctx: BotContext) => Promise<void>> = {
+        start: (ctx) => this.supportHandler.handleFAQStart(ctx),
+        orders: (ctx) => this.supportHandler.handleFAQOrders(ctx),
+        balance: (ctx) => this.supportHandler.handleFAQBalance(ctx),
+        traffic: (ctx) => this.supportHandler.handleFAQTraffic(ctx),
+        technical: (ctx) => this.supportHandler.handleFAQTechnical(ctx),
+      };
+
+      const handler = categoryHandlers[category];
+      if (handler) {
+        await handler(ctx);
+      } else {
+        await this.supportHandler.handleFAQ(ctx);
+      }
+    } else {
+      await this.supportHandler.handleFAQ(ctx);
+    }
+  }
+
+  /**
    * Route campaign actions
    */
   private async routeCampaignAction(ctx: BotContext, _action: string, _params: string[]): Promise<void> {
@@ -466,8 +494,14 @@ export class CallbackRouterHandler {
       trafficTargetEdit: async () => {
         await this.trafficHandler.handleTrafficTargetEditInput(ctx, messageText);
       },
+      buyTargetCreate: async () => {
+        await this.trafficHandler.handleBuyTrafficTargetCreateInput(ctx, messageText);
+      },
       orderCreate: async () => {
         await this.orderHandler.handleOrderCreateInput(ctx, messageText);
+      },
+      orderEdit: async () => {
+        await this.orderHandler.handleOrderEditInput(ctx, messageText);
       },
       depositAmount: async () => {
         await this.balanceHandler.handleDepositAmount(ctx, messageText);

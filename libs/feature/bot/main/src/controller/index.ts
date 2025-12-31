@@ -1,1 +1,1 @@
-export { BotWebhookController } from './bot-webhook.controller';
+export * from './bot-webhook.controller';

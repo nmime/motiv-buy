@@ -85,7 +85,6 @@
     "pending": "Pending",
     "active": "Active",
     "paused": "Paused",
-    "in_progress": "In Progress",
     "completed": "Completed",
     "cancelled": "Cancelled",
     "failed": "Failed",
@@ -138,14 +137,70 @@
   "audience": {
     "btn_gender": "👤 Gender",
     "btn_region": "🌍 Region",
+    "btn_language": "🗣 Language",
     "btn_age": "🎂 Age",
     "btn_activity": "⚡ Activity",
     "btn_save": "Save"
   },
   "gender": {
+    "title": "Gender Selection",
+    "prompt": "Select the target gender for your order:",
+    "current": "Current: {gender}",
     "any": "Any (default)",
     "male": "Male",
-    "female": "Female"
+    "female": "Female",
+    "updated": "Gender updated to: {gender}"
+  },
+  "age": {
+    "title": "Age Range",
+    "prompt": "Set minimum and maximum age for target audience.\n\nEnter age range like: 18-35",
+    "current": "Current: {min}-{max}",
+    "any": "Any age (no restriction)",
+    "min_label": "Min age",
+    "max_label": "Max age",
+    "btn_clear": "🔄 Any age",
+    "btn_back": "◀️ Back",
+    "btn_12_18": "12-18",
+    "btn_18_25": "18-25",
+    "btn_25_35": "25-35",
+    "btn_35_50": "35-50",
+    "btn_50_plus": "50+",
+    "updated": "Age range updated to: {min}-{max}",
+    "cleared": "Age restriction removed",
+    "invalid_format": "Invalid format. Use: 18-35 or select a preset below"
+  },
+  "region": {
+    "title": "Target Regions",
+    "prompt": "Select countries for target audience.\nEmpty selection = all regions allowed.",
+    "selected_count": "Selected: {count}",
+    "all_allowed": "All regions (no restriction)",
+    "btn_clear": "🔄 All regions",
+    "btn_save": "💾 Save",
+    "btn_back": "◀️ Back",
+    "page_info": "Page {current} of {total}",
+    "btn_next": "Next ➡️",
+    "btn_prev": "⬅️ Previous"
+  },
+  "language": {
+    "title": "Target Languages",
+    "prompt": "Select languages for target audience.\nEmpty selection = all languages allowed.",
+    "selected_count": "Selected: {count}",
+    "all_allowed": "All languages (no restriction)",
+    "btn_clear": "🔄 All languages",
+    "btn_save": "💾 Save",
+    "btn_back": "◀️ Back",
+    "page_info": "Page {current} of {total}",
+    "btn_next": "Next ➡️",
+    "btn_prev": "⬅️ Previous"
+  },
+  "activity": {
+    "title": "Activity Filter",
+    "prompt": "Filter by user activity level.",
+    "active_only": "Only active users (online in last 7 days)",
+    "all_users": "All users (no activity filter)",
+    "btn_toggle_on": "✅ Active users only",
+    "btn_toggle_off": "☐ All users",
+    "btn_back": "◀️ Back"
   },
   "location": {
     "my_bots_only": "📍 Only in my bots",
@@ -219,6 +274,7 @@
   "type_subscribe": "🔔 Subscribe",
   "type_react": "❤️ React",
   "type_comment": "💬 Comment",
+  "type_start": "🤖 Bot Start",
   "search_title": "Search Orders",
   "search_prompt": "Enter order ID or name to search:",
   "back_to_orders": "◀️ Back to Orders",
@@ -239,5 +295,11 @@
   "order_created": "Order Created Successfully!",
   "order_pending": "Your order is now pending moderation.",
   "btn_view_orders": "📋 View My Orders",
-  "btn_create_another": "➕ Create Another"
+  "btn_create_another": "➕ Create Another",
+  "insufficient_balance": "❌ <b>Insufficient Balance</b>\n\nYou need {currency}{required} but only have {currency}{available} available.\n\nPlease top up your balance to create this order.",
+  "balance_lock_failed": "❌ Failed to reserve funds. Please try again.",
+  "funds_locked": "💰 Funds have been reserved from your balance.",
+  "funds_refunded": "💰 {amount} has been refunded to your balance.",
+  "create_failed": "❌ Failed to create order. Your funds have been returned.",
+  "btn_topup_balance": "💳 Top Up Balance"
 }

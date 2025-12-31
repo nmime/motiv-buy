@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health.controller';
+import { DocsController } from './docs/docs.controller';
 import { DatabaseModule } from '@app/database';
 import { AuthMainModule } from '@app/feature-auth-main';
 import { UserMainModule } from '@app/feature-user-main';
@@ -38,6 +39,7 @@ import { NotificationSharedModule } from '@app/feature-notification-shared';
   ],
   controllers: [
     HealthController,
+    DocsController,
     // Feature module controllers are already exported by their respective modules
     // AuthController - from AuthMainModule
     // UserController - from UserMainModule

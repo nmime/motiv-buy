@@ -11,7 +11,28 @@ import { BotConfig } from '@app/feature-bot-shared';
 
 @Injectable()
 export class BotConfigService {
+  private runtimeBotUsername: string | null = null;
+
   constructor(private readonly configService: ConfigService) {}
+
+  /**
+   * Set the bot username after bot initialization
+   * Called by BotService after bot.init()
+   *
+   * @param username - Bot username from Telegram API
+   */
+  setBotUsername(username: string): void {
+    this.runtimeBotUsername = username;
+  }
+
+  /**
+   * Get the bot username (from runtime or environment)
+   *
+   * @returns Bot username
+   */
+  getBotUsername(): string {
+    return this.runtimeBotUsername || this.configService.get<string>('BOT_USERNAME', '');
+  }
 
   /**
    * Get bot configuration
@@ -133,6 +154,15 @@ export class BotConfigService {
    */
   isProduction(): boolean {
     return this.configService.get<string>('NODE_ENV') === 'production';
+  }
+
+  /**
+   * Get API documentation URL for traffic source integration
+   *
+   * @returns API docs URL or undefined if not configured
+   */
+  getApiDocsUrl(): string | undefined {
+    return this.configService.get<string>('API_DOCS_URL');
   }
 
   /**

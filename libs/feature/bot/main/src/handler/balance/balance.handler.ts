@@ -9,11 +9,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Composer } from 'grammy';
 import { EntityManager } from '@mikro-orm/core';
 import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/feature-bot-shared';
-import { UserBalanceEntity, UserBalanceHistoryEntity, ProviderCurrencyEntity, CurrencyCode } from '@app/database';
-import { add, decimal, lessThan, multiply, toDisplayString, toError } from '@app/common-shared';
+import { UserBalanceHistoryEntity, ProviderCurrencyEntity, CurrencyCode } from '@app/database';
+import { decimal, lessThan, toDisplayString, toError } from '@app/common-shared';
 import { PaymentService } from '@app/feature-payment-main';
 import { CurrencyRateService } from '@app/feature-currency-shared';
 import { PaymentConfigService } from '@app/feature-payment-shared';
+import { UserBalanceOperationService, BalanceSummary } from '@app/feature-balance-shared';
 import { MessageService } from '../../service/message.service';
 import {
   createBalanceMenuKeyboard,
@@ -37,6 +38,7 @@ export class BalanceHandler {
     private readonly paymentService: PaymentService,
     private readonly currencyRateService: CurrencyRateService,
     private readonly paymentConfigService: PaymentConfigService,
+    private readonly userBalanceService: UserBalanceOperationService,
   ) {
     this.composer = new Composer<BotContext>();
     this.setupHandlers();
@@ -115,8 +117,9 @@ export class BalanceHandler {
    */
   async handleBalanceView(ctx: AuthenticatedBotContext): Promise<void> {
     try {
-      const balances = await this.getUserBalances(ctx.user.id);
-      const balanceText = await this.formatBalanceView(ctx, balances);
+      const baseCurrency = this.paymentConfigService.getBaseCurrency();
+      const balanceSummary = await this.userBalanceService.getBalanceSummary(ctx.user.id, baseCurrency);
+      const balanceText = this.formatBalanceView(ctx, balanceSummary);
       const keyboard = createBalanceMenuKeyboard(ctx);
 
       await this.messageService.sendOrEditMessage(ctx, {
@@ -238,22 +241,13 @@ export class BalanceHandler {
    */
   async handleWithdrawalStart(ctx: AuthenticatedBotContext): Promise<void> {
     try {
-      const balances = await this.getUserBalances(ctx.user.id);
+      const baseCurrency = this.paymentConfigService.getBaseCurrency();
+      const [balanceSummary, balances] = await Promise.all([
+        this.userBalanceService.getBalanceSummary(ctx.user.id, baseCurrency),
+        this.userBalanceService.getUserBalances(ctx.user.id),
+      ]);
 
-      // Calculate total available balance in USD
-      let totalAvailableUsd = decimal(0);
-
-      for (const balance of balances) {
-        // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
-        const currency = await balance.currency.load();
-        if (!currency) {
-          continue;
-        }
-
-        const availableBalance = decimal(balance.getAvailableBalance());
-        const rateToUsd = decimal(currency.rateToUsd);
-        totalAvailableUsd = add(totalAvailableUsd, multiply(availableBalance, rateToUsd));
-      }
+      const totalAvailableUsd = decimal(balanceSummary.available);
 
       if (lessThan(totalAvailableUsd, decimal(10))) {
         await ctx.answerCallbackQuery({
@@ -272,7 +266,7 @@ export class BalanceHandler {
       const currencyKeyboard = await createWithdrawCurrencyKeyboard(ctx, balances);
 
       await this.messageService.sendOrEditMessage(ctx, {
-        text: ctx.t('balance.withdrawal_prompt_usd', { availableUsd: toDisplayString(totalAvailableUsd, 2) }),
+        text: ctx.t('balance.withdrawal_prompt_usd', { availableUsd: balanceSummary.available }),
         parseMode: 'HTML',
         replyMarkup: currencyKeyboard,
       });
@@ -375,15 +369,6 @@ export class BalanceHandler {
   }
 
   /**
-   * Get user balances
-   */
-  private async getUserBalances(userId: string): Promise<UserBalanceEntity[]> {
-    const em = this.em.fork();
-
-    return await em.find(UserBalanceEntity, { user: userId }, { populate: ['currency'] });
-  }
-
-  /**
    * Get currencies available for deposit from database
    */
   private async getDepositCurrencies(): Promise<CurrencyDisplayData[]> {
@@ -418,43 +403,14 @@ export class BalanceHandler {
   }
 
   /**
-   * Format balance view - shows unified USD balance
+   * Format balance view - shows unified USD balance using centralized BalanceSummary
    */
-  private async formatBalanceView(ctx: AuthenticatedBotContext, balances: UserBalanceEntity[]): Promise<string> {
-    if (balances.length === 0) {
-      return ctx.t('balance.no_balances_found');
-    }
-
-    let totalAvailableUsd = decimal(0);
-    let totalLockedUsd = decimal(0);
-
-    // Convert all currency balances to USD
-    for (const balance of balances) {
-      // eslint-disable-next-line no-await-in-loop -- MikroORM lazy reference loading must be sequential
-      const currency = await balance.currency.load();
-      if (!currency) {
-        continue;
-      }
-
-      const availableBalance = decimal(balance.getAvailableBalance());
-      const lockedBalance = decimal(balance.getLockedBalance());
-
-      // Convert to USD using rateToUsd (1 crypto = X USD)
-      const rateToUsd = decimal(currency.rateToUsd);
-      const availableInUsd = multiply(availableBalance, rateToUsd);
-      const lockedInUsd = multiply(lockedBalance, rateToUsd);
-
-      totalAvailableUsd = add(totalAvailableUsd, availableInUsd);
-      totalLockedUsd = add(totalLockedUsd, lockedInUsd);
-    }
-
-    const totalBalanceUsd = add(totalAvailableUsd, totalLockedUsd);
-
+  private formatBalanceView(ctx: AuthenticatedBotContext, balanceSummary: BalanceSummary): string {
     const symbol = this.currencySymbol;
     let text = ctx.t('balance.your_balance') + '\n\n';
-    text += `${ctx.t('balance.available')}: <b>${symbol}${toDisplayString(totalAvailableUsd, 2)}</b>\n`;
-    text += `${ctx.t('balance.locked')}: <b>${symbol}${toDisplayString(totalLockedUsd, 2)}</b>\n`;
-    text += `${ctx.t('balance.total')}: <b>${symbol}${toDisplayString(totalBalanceUsd, 2)}</b>\n\n`;
+    text += `${ctx.t('balance.available')}: <b>${symbol}${balanceSummary.available}</b>\n`;
+    text += `${ctx.t('balance.locked')}: <b>${symbol}${balanceSummary.locked}</b>\n`;
+    text += `${ctx.t('balance.total')}: <b>${symbol}${balanceSummary.total}</b>\n\n`;
     text += ctx.t('balance.balance_buttons_hint');
 
     return text;

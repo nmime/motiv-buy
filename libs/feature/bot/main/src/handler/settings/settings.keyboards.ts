@@ -7,6 +7,7 @@
 
 import { InlineKeyboard } from 'grammy';
 import { BotContext } from '@app/feature-bot-shared';
+import { supportedLanguageOptions } from '@app/common-shared';
 
 interface NotificationPreferences {
   balance: boolean;
@@ -41,16 +42,7 @@ export function createSettingsMenuKeyboard(ctx: BotContext): InlineKeyboard {
 export function createLanguageKeyboard(ctx: BotContext, currentLang: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
-  const languages = [
-    { code: 'en', name: 'English' },
-    { code: 'ru', name: 'Русский' },
-    { code: 'uk', name: 'Українська' },
-    { code: 'es', name: 'Español' },
-    { code: 'fr', name: 'Français' },
-    { code: 'de', name: 'Deutsch' },
-  ];
-
-  languages.forEach((lang) => {
+  supportedLanguageOptions.forEach((lang) => {
     const marker = lang.code === currentLang ? '✅ ' : '';
     keyboard.text(`${marker}${lang.name}`, `settings:lang:${lang.code}`).row();
   });

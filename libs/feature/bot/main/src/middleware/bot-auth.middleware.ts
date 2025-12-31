@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { BotContext } from '@app/feature-bot-shared';
+import { UserEntity } from '@app/database';
+import { updateContextTranslation } from '@app/common-intl';
 import { BotSessionService, BotUserService } from '../service/auth';
 
 /**
@@ -15,6 +18,7 @@ export class BotAuthMiddleware {
   constructor(
     private readonly botUserService: BotUserService,
     private readonly botSessionService: BotSessionService,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -23,8 +27,9 @@ export class BotAuthMiddleware {
   static create(
     botUserService: BotUserService,
     botSessionService: BotSessionService,
+    i18n: I18nService,
   ): (ctx: BotContext, next: () => Promise<void>) => Promise<void> {
-    const middleware = new BotAuthMiddleware(botUserService, botSessionService);
+    const middleware = new BotAuthMiddleware(botUserService, botSessionService, i18n);
 
     return middleware.middleware.bind(middleware);
   }
@@ -64,6 +69,24 @@ export class BotAuthMiddleware {
   }
 
   /**
+   * Sync language from user to session and i18n context
+   * Also updates ctx.t() to use the user's language
+   */
+  private syncUserLanguage(ctx: BotContext, user: Partial<UserEntity>): void {
+    if (!user.language) {
+      return;
+    }
+
+    if (ctx.session) {
+      ctx.session.language = user.language;
+    }
+
+    // Update ctx.language AND recreate ctx.t() to use the new language
+    // This ensures translations work correctly after auth middleware runs
+    updateContextTranslation(ctx, this.i18n, user.language);
+  }
+
+  /**
    * Authenticate user and populate context
    */
   private async authenticateUser(ctx: BotContext): Promise<void> {
@@ -91,6 +114,9 @@ export class BotAuthMiddleware {
             isNewUser: false,
             isAuthenticated: true,
           });
+
+          // Sync language from database to session and i18n context
+          this.syncUserLanguage(ctx, sessionUser);
 
           // Update session activity
           await this.botSessionService.updateSessionActivity(existingSessionId);
@@ -124,6 +150,9 @@ export class BotAuthMiddleware {
         isNewUser,
         isAuthenticated: true,
       });
+
+      // Sync language from database to session and i18n context
+      this.syncUserLanguage(ctx, user);
 
       this.logger.debug('User authenticated and session created', {
         telegramId,

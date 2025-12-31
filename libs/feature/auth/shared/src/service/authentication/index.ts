@@ -1,3 +1,3 @@
-export { AuthUserService } from './auth-user.service';
-export { AuthCreateUserService } from './auth-create-user.service';
-export { AuthUserVisitService } from './auth-user-visit.service';
+export * from './auth-user.service';
+export * from './auth-create-user.service';
+export * from './auth-user-visit.service';

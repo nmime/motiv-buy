@@ -29,12 +29,14 @@ import {
 import { TrafficOrderMapper, TrafficSourceMapper, TrafficTargetMapper } from './mapper';
 import { TrafficSharedModule } from '@app/feature-traffic-shared';
 import { BotSharedModule } from '@app/feature-bot-shared';
+import { BalanceSharedModule } from '@app/feature-balance-shared';
 
 @Module({
   imports: [
     ThrottlerModule,
     TrafficSharedModule,
     BotSharedModule,
+    BalanceSharedModule,
     // Note: BotMainModule removed to prevent circular dependency
     // TelegramModerationNotifier is injected by the app layer
     MikroOrmModule.forFeature([

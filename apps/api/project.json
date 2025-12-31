@@ -12,7 +12,13 @@
         "outputPath": "dist/apps/api",
         "main": "apps/api/src/main.ts",
         "tsConfig": "apps/api/tsconfig.app.json",
-        "assets": [],
+        "assets": [
+          {
+            "glob": "**/*.html",
+            "input": "apps/api/src/docs",
+            "output": "docs"
+          }
+        ],
         "clean": true,
         "transformers": [
           {
