@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/postgresql';
 import {
   NotificationEntity,
-  NotificationTemplateEntity,
   NotificationRepository,
-  NotificationTemplateRepository,
   NotificationStatus,
+  NotificationTemplateEntity,
+  NotificationTemplateRepository,
 } from '@app/database';
 import { CreateNotificationDto, CreateTemplateNotificationDto, NotificationResponseDto } from '../dto';
 

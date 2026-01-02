@@ -1,5 +1,5 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
-import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
+import { ExecutionContext, Injectable } from '@nestjs/common';
+import { ThrottlerException, ThrottlerGuard } from '@nestjs/throttler';
 import { FastifyRequest } from 'fastify';
 
 /**

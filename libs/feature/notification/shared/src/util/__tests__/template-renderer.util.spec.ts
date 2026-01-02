@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { renderTemplate, renderButtons } from '../template-renderer.util';
+import { renderButtons, renderTemplate } from '../template-renderer.util';
 
 /**
  * Template Renderer Utility Tests

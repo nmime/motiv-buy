@@ -1,10 +1,10 @@
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import {
   TrafficOrderEntity,
-  TrafficOrderStatus,
-  TrafficOrderType,
   TrafficOrderSourceEntity,
+  TrafficOrderStatus,
   TrafficOrderTargetEntity,
+  TrafficOrderType,
   TrafficUserEntity,
 } from '../entity';
 import { decimal, divide, greaterThanOrEqual, lessThanOrEqual, multiply, sum, toNumber } from '@app/common-shared';

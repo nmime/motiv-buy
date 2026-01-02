@@ -1,10 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { PaymentEventService, BalanceCreditedEvent } from '@app/feature-payment-shared';
+import { BalanceCreditedEvent, PaymentEventService } from '@app/feature-payment-shared';
 import { UserEntity } from '@app/database';
 import { toDisplayString } from '@app/common-shared';
 import { I18nService } from 'nestjs-i18n';
-import { BotService } from '../service/bot.service';
+import { TelegramNotificationService } from '@app/feature-bot-shared';
 
 /**
  * Handles payment event notifications.
@@ -17,7 +17,7 @@ export class PaymentNotificationHandler implements OnModuleInit {
   constructor(
     private readonly paymentEventService: PaymentEventService,
     private readonly em: EntityManager,
-    private readonly botService: BotService,
+    private readonly telegramNotificationService: TelegramNotificationService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -47,7 +47,7 @@ export class PaymentNotificationHandler implements OnModuleInit {
         args: { amount, currency },
       });
 
-      await this.botService.sendDirectMessage(user.telegramId, String(message));
+      await this.telegramNotificationService.sendDirectMessage(user.telegramId, String(message));
       this.logger.log(`Payment notification sent to user ${user.id}`);
     } catch (error) {
       this.logger.error(`Failed to send payment notification for ${event.transactionId}`, error);

@@ -1,6 +1,6 @@
-import { Entity, PrimaryKey, Property, Enum, Index, Unique, OneToMany, Collection } from '@mikro-orm/core';
+import { Collection, Entity, Enum, Index, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/core';
 import { PaymentProvider } from '../enum';
-import { EntityConstructorData, assignEntityData } from '../type';
+import { assignEntityData, EntityConstructorData } from '../type';
 import { ProviderCurrencyEntity } from './ProviderCurrency.entity';
 import { ProviderRoutingEntity } from './ProviderRouting.entity';
 

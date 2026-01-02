@@ -54,9 +54,18 @@ export class Migration20250105000004PaymentSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__currency_rates_history__currency_id ON currency_rates_history (currency_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__currency_rates_history__provider ON currency_rates_history (provider);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__currency_rates_history__created_at ON currency_rates_history (created_at);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__currency_rates_history__currency_id ON currency_rates_history (currency_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__currency_rates_history__provider ON currency_rates_history (provider);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__currency_rates_history__created_at ON currency_rates_history (created_at);',
+    );
+
     this.addSql(`
       CREATE INDEX IF NOT EXISTS ix__currency_rates_history__currency_provider
         ON currency_rates_history (currency_id, provider);
@@ -96,8 +105,13 @@ export class Migration20250105000004PaymentSystem extends Migration {
         WHERE provider_transaction_id IS NOT NULL;
     `);
 
-    this.addSql('CREATE INDEX IF NOT EXISTS idx__payment_transactions__created_at ON payment_transactions (created_at DESC);');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx__payment_transactions__user_status ON payment_transactions (user_id, status);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx__payment_transactions__created_at ON payment_transactions (created_at DESC);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx__payment_transactions__user_status ON payment_transactions (user_id, status);',
+    );
 
     this.addSql(`
       CREATE TRIGGER update_payment_transactions_updated_at
@@ -186,7 +200,9 @@ export class Migration20250105000004PaymentSystem extends Migration {
     this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_network ON provider_currencies(network);');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_enabled ON provider_currencies(is_enabled);');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_preferred ON provider_currencies(is_preferred);');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_provider_currencies_priority ON provider_currencies(routing_priority);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_provider_currencies_priority ON provider_currencies(routing_priority);',
+    );
 
     this.addSql(`
       CREATE TRIGGER update_provider_currencies_updated_at

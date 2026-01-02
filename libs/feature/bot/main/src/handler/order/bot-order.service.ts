@@ -7,13 +7,13 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { BotContext, ChannelService } from '@app/feature-bot-shared';
-import { OrderService, IChannelService } from '@app/feature-order-main';
+import { IChannelService, OrderService } from '@app/feature-order-main';
 import {
+  defaultOrderConfig,
   OrderConfiguration,
   OrderCreationOrigin,
   OrderFlowStep,
   OrderSessionState,
-  defaultOrderConfig,
 } from '@app/feature-order-shared';
 
 @Injectable()

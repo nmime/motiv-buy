@@ -1,12 +1,12 @@
 import {
+  ContactConfig,
+  ForwardConfig,
+  LocationConfig,
   NotificationButton,
   NotificationContentType,
   NotificationMedia,
   PollConfig,
-  LocationConfig,
-  ContactConfig,
   VenueConfig,
-  ForwardConfig,
 } from '@app/database';
 
 export interface NotificationContent {

@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { BotMainModule } from '@app/feature-bot-main';
+import { BotMainModule, BotSchedulerModule } from '@app/feature-bot-main';
 import { TrafficMainModule } from '@app/feature-traffic-main';
 import { NotificationMainModule } from '@app/feature-notification-main';
-import { PaymentMainModule } from '@app/feature-payment-main';
+import { PaymentMainModule, PaymentPollingService } from '@app/feature-payment-main';
 import { BalanceMainModule } from '@app/feature-balance-main';
+import { CurrencyRateSchedulerService, CurrencySharedModule } from '@app/feature-currency-shared';
 import { AuthSharedModule } from '@app/feature-auth-shared';
 import { BotService } from './service';
 import { ModerationCallbackHandler } from './handler';
@@ -18,17 +20,23 @@ import { ModerationCallbackHandler } from './handler';
  *
  * Architecture:
  * - All handlers and services are provided by BotMainModule
+ * - BotSchedulerModule provides bot-only event listeners (PaymentNotificationHandler)
  * - This module only provides the thin wrapper BotService
  * - Follows proper NestJS module architecture with no duplicate providers
  * - BalanceMainModule provides BALANCE_SERVICE_TOKEN for handlers
  *
- * Integrates notification system for scheduled notifications and event processing.
+ * Bot-only scheduled tasks (registered as providers here):
+ * - CurrencyRateSchedulerService: Updates currency rates every 10 minutes
+ * - PaymentPollingService: Polls payment providers for pending transaction status
+ * - NotificationSchedulerService: Processes pending user notifications (via NotificationMainModule)
+ * - PaymentNotificationHandler: Sends Telegram notifications on balance credited events
  */
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         name: 'default',
@@ -37,13 +45,20 @@ import { ModerationCallbackHandler } from './handler';
       },
     ]),
     BotMainModule,
+    BotSchedulerModule, // Bot-only event listeners and cron handlers
+    CurrencySharedModule,
     TrafficMainModule,
     PaymentMainModule,
     BalanceMainModule,
     AuthSharedModule,
     NotificationMainModule,
   ],
-  providers: [BotService, ModerationCallbackHandler],
+  providers: [
+    BotService,
+    ModerationCallbackHandler,
+    CurrencyRateSchedulerService, // Bot-only: updates currency rates
+    PaymentPollingService, // Bot-only: polls payment providers for status updates
+  ],
   exports: [BotService],
 })
 export class BotModule {}

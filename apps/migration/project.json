@@ -12,6 +12,7 @@
         "outputPath": "dist/apps/migration",
         "main": "apps/migration/src/main.ts",
         "tsConfig": "apps/migration/tsconfig.app.json",
+        "additionalEntryPoints": ["apps/migration/src/migration/Migration*.ts"],
         "assets": [],
         "transformers": [
           {

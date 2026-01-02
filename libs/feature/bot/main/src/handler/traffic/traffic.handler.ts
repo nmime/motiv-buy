@@ -11,37 +11,41 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { MikroORM, EntityManager } from '@mikro-orm/core';
+import { EntityManager, MikroORM } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
 import {
-  BotContext,
   AuthenticatedBotContext,
-  TelegramModerationNotifier,
+  BotContext,
   BotSubscriptionService,
-  ChatType,
   ChatInformation,
+  ChatType,
+  TelegramModerationNotifier,
 } from '@app/feature-bot-shared';
 import {
+  CurrencyCode,
+  ModerationEntityType,
+  ModerationRequestEntity,
+  ModerationStatus,
+  TopicCategory,
+  TrafficActionType,
+  TrafficOrderEntity,
+  TrafficOrderSourceEntity,
+  TrafficOrderSourceStatus,
+  TrafficOrderStatus,
+  TrafficOrderTargetEntity,
+  TrafficOrderTargetStatus,
+  TrafficSourceBalanceRepository,
+  TrafficSourceCategoriesEntity,
+  TrafficSourceCategoryEntity,
   TrafficSourceEntity,
+  TrafficSourceRepository,
   TrafficSourceStatus,
   TrafficSourceType,
-  TrafficSourceRepository,
   TrafficTargetEntity,
   TrafficTargetStatus,
   TrafficTargetType,
-  TrafficOrderEntity,
-  TrafficOrderStatus,
-  TrafficOrderSourceEntity,
-  TrafficOrderSourceStatus,
-  TrafficOrderTargetEntity,
-  TrafficOrderTargetStatus,
-  ModerationRequestEntity,
-  ModerationStatus,
-  ModerationEntityType,
-  TrafficSourceCategoryEntity,
-  TrafficSourceCategoriesEntity,
-  TopicCategory,
 } from '@app/database';
+import { SourceBalanceService, TrafficActionService } from '@app/feature-traffic-shared';
 import { decimal, sum, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../../service/message.service';
 import { MenuActionHandler } from '../menu-action.handler';
@@ -66,6 +70,9 @@ export class TrafficHandler {
     private readonly botConfigService: BotConfigService,
     private readonly botSubscriptionService: BotSubscriptionService,
     private readonly trafficSourceRepository: TrafficSourceRepository,
+    private readonly sourceBalanceService: SourceBalanceService,
+    private readonly trafficSourceBalanceRepository: TrafficSourceBalanceRepository,
+    private readonly trafficActionService: TrafficActionService,
   ) {}
 
   private get currencySymbol(): string {
@@ -172,8 +179,14 @@ ${ctx.t('sell_traffic.description')}
 
 <i>${ctx.t('sell_traffic.select_action')} 👇</i>`;
 
-    const keyboard = new InlineKeyboard()
-      .text(ctx.t('sell_traffic.btn_my_sources'), 'traffic:sources')
+    const keyboard = new InlineKeyboard();
+
+    // Only show "My Sources" button if user has sources
+    if (sourcesCount > 0) {
+      keyboard.text(ctx.t('sell_traffic.btn_my_sources'), 'traffic:sources');
+    }
+
+    keyboard
       .text(ctx.t('sell_traffic.btn_add_source'), 'traffic:sources:add')
       .row()
       .text(ctx.t('common.back'), 'menu:main');
@@ -533,6 +546,153 @@ ${ctx.t('sell_traffic.description')}
       text,
       replyMarkup: this.createBackButton(ctx, `traffic:source:view:${sourceId}`),
     });
+  }
+
+  /**
+   * Handle Source Earnings - shows source balance with transfer option
+   */
+  async handleSourceEarnings(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: { id: ctx.user.id } });
+
+    if (!source) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
+
+      return;
+    }
+
+    const balance = await this.sourceBalanceService.getSourceBalance(sourceId, CurrencyCode.Rub);
+
+    let text = ctx.t('traffic.source_earnings.title');
+    text += ctx.t('traffic.source_earnings.source_name', { name: source.name });
+
+    if (!balance || (balance.available === 0 && balance.pending === 0 && balance.totalEarned === 0)) {
+      text += ctx.t('traffic.source_earnings.no_earnings');
+    } else {
+      text += `<b>${ctx.t('traffic.source_earnings.available')}:</b> ${this.currencySymbol}${toDisplayString(balance.available.toString(), 2)}\n`;
+      text += `<b>${ctx.t('traffic.source_earnings.pending')}:</b> ${this.currencySymbol}${toDisplayString(balance.pending.toString(), 2)}\n`;
+      text += `<b>${ctx.t('traffic.source_earnings.total_earned')}:</b> ${this.currencySymbol}${toDisplayString(balance.totalEarned.toString(), 2)}\n`;
+      text += `<b>${ctx.t('traffic.source_earnings.total_withdrawn')}:</b> ${this.currencySymbol}${toDisplayString(balance.totalWithdrawn.toString(), 2)}\n`;
+    }
+
+    const keyboard = new InlineKeyboard();
+
+    if (balance && balance.available > 0) {
+      keyboard.text(ctx.t('traffic.source_earnings.transfer_all_btn'), `traf:earn:xfer:${sourceId}`);
+      keyboard.row();
+    }
+
+    keyboard.text(ctx.t('common.back'), `traffic:source:view:${sourceId}`);
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: keyboard,
+    });
+  }
+
+  /**
+   * Handle Source Earnings Transfer - confirm and execute transfer to user wallet
+   */
+  async handleSourceEarningsTransfer(ctx: AuthenticatedBotContext, sourceId: string): Promise<void> {
+    const source = await this.em.findOne(TrafficSourceEntity, { id: sourceId, managedBy: { id: ctx.user.id } });
+
+    if (!source) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_not_found'),
+      });
+
+      return;
+    }
+
+    const balance = await this.sourceBalanceService.getSourceBalance(sourceId, CurrencyCode.Rub);
+
+    if (!balance || balance.available <= 0) {
+      await this.safeAnswerCallback(ctx, ctx.t('traffic.source_earnings.no_balance_to_transfer'));
+      await this.handleSourceEarnings(ctx, sourceId);
+
+      return;
+    }
+
+    const result = await this.sourceBalanceService.transferAllToUserBalance(sourceId, ctx.user.id, CurrencyCode.Rub);
+
+    if (result.err) {
+      await this.messageService.sendOrEditMessage(ctx, {
+        text: ctx.t('traffic.source_earnings.transfer_failed'),
+        replyMarkup: this.createBackButton(ctx, `traffic:source:earnings:${sourceId}`),
+      });
+
+      return;
+    }
+
+    const transfer = result.val;
+    const text = ctx.t('traffic.source_earnings.transfer_success', {
+      currency: this.currencySymbol,
+      amount: toDisplayString(transfer.amount.toString(), 2),
+      sourceBalance: toDisplayString(transfer.sourceBalanceAfter.toString(), 2),
+      walletBalance: toDisplayString(transfer.userBalanceAfter.toString(), 2),
+    });
+
+    await this.safeAnswerCallback(
+      ctx,
+      ctx.t('traffic.source_earnings.transfer_success', {
+        currency: '',
+        amount: toDisplayString(transfer.amount.toString(), 2),
+        sourceBalance: '',
+        walletBalance: '',
+      }),
+    );
+
+    await this.messageService.sendOrEditMessage(ctx, {
+      text,
+      replyMarkup: this.createBackButton(ctx, `traffic:source:view:${sourceId}`),
+    });
+  }
+
+  /**
+   * Complete a traffic action for a user
+   * Called by source bots when verifying task completion
+   *
+   * MONEY FLOW:
+   * TrafficOrderBalanceEntity (escrow) → TrafficSourceBalanceEntity
+   *
+   * @param orderId - The order ID
+   * @param sourceId - The traffic source ID
+   * @param userId - The Telegram user ID who completed the action
+   * @param actionType - The type of action (join, subscribe, etc.)
+   * @returns Result with reward amount or error
+   */
+  async completeTrafficAction(
+    orderId: string,
+    sourceId: string,
+    userId: number,
+    actionType: TrafficActionType = TrafficActionType.Join,
+  ): Promise<{ success: boolean; reward?: string; error?: string }> {
+    this.logger.log(`Completing traffic action for order ${orderId}, source ${sourceId}, user ${userId}`);
+
+    const result = await this.trafficActionService.completeAction({
+      orderId,
+      sourceId,
+      userId,
+      actionType,
+    });
+
+    if (result.err) {
+      this.logger.error(`Failed to complete action: ${result.val.message}`);
+
+      return { success: false, error: result.val.message };
+    }
+
+    this.logger.log(`Action completed successfully. Reward: ${result.val.reward}`);
+
+    return { success: true, reward: result.val.reward };
+  }
+
+  /**
+   * Check if a user has completed a traffic action
+   */
+  async hasCompletedTrafficAction(orderId: string, sourceId: string, userId: number): Promise<boolean> {
+    return this.trafficActionService.hasCompletedAction(orderId, sourceId, userId);
   }
 
   /**

@@ -1,6 +1,20 @@
 import { Module } from '@nestjs/common';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { BotSharedModule } from '@app/feature-bot-shared';
-import { BotTokenValidationService } from './service';
+import {
+  TrafficActionsEntity,
+  TrafficOrderBalanceEntity,
+  TrafficOrderEntity,
+  TrafficSourceBalanceEntity,
+  TrafficSourceBalanceHistoryEntity,
+  TrafficSourceBalanceRepository,
+  TrafficSourceEntity,
+  TrafficSourceRepository,
+  UserBalanceEntity,
+  UserBalanceHistoryEntity,
+  UserBalanceRepository,
+} from '@app/database';
+import { BotTokenValidationService, SourceBalanceService, TrafficActionService } from './service';
 
 /**
  * Traffic Shared Module
@@ -11,8 +25,27 @@ import { BotTokenValidationService } from './service';
  * Imports BotSharedModule for BotFactoryService (bot token validation)
  */
 @Module({
-  imports: [BotSharedModule],
-  providers: [BotTokenValidationService],
-  exports: [BotTokenValidationService],
+  imports: [
+    BotSharedModule,
+    MikroOrmModule.forFeature([
+      TrafficSourceEntity,
+      TrafficSourceBalanceEntity,
+      TrafficSourceBalanceHistoryEntity,
+      TrafficActionsEntity,
+      TrafficOrderEntity,
+      TrafficOrderBalanceEntity,
+      UserBalanceEntity,
+      UserBalanceHistoryEntity,
+    ]),
+  ],
+  providers: [
+    BotTokenValidationService,
+    SourceBalanceService,
+    TrafficActionService,
+    TrafficSourceRepository,
+    TrafficSourceBalanceRepository,
+    UserBalanceRepository,
+  ],
+  exports: [BotTokenValidationService, SourceBalanceService, TrafficActionService, TrafficSourceBalanceRepository],
 })
 export class TrafficSharedModule {}

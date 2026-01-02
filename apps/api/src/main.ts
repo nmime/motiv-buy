@@ -34,7 +34,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import fastifyCors from '@fastify/cors';
 import { ApiModule } from './api.module';
-import { setupCluster, isClusterModeEnabled } from './cluster';
+import { isClusterModeEnabled, setupCluster } from './cluster';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -66,17 +66,95 @@ async function bootstrap() {
     });
   }
 
-  // Setup Swagger documentation in development
+  // Setup Swagger documentation
+
+  // External API Swagger - X-API-Key authentication (for traffic sources)
+  const externalConfig = new DocumentBuilder()
+    .setTitle('Motiv-Buy External API')
+    .setDescription(
+      'External API for traffic source integration.\n\n' +
+        '**Authentication:** Pass your API key via `X-API-Key` header.\n\n' +
+        '📚 [Detailed HTML Documentation](docs/external/html)',
+    )
+    .setVersion('1.0')
+    .addApiKey({ type: 'apiKey', name: 'X-API-Key', in: 'header' }, 'X-API-Key')
+    .build();
+
+  const externalDocument = SwaggerModule.createDocument(app, externalConfig, {
+    deepScanRoutes: true,
+    operationIdFactory: (controllerKey: string, methodKey: string) => `${controllerKey}_${methodKey}`,
+  });
+
+  // Filter to only include external API tags
+  const externalTags = ['Traffic Source - External API'];
+  externalDocument.paths = Object.fromEntries(
+    Object.entries(externalDocument.paths).filter(([, pathItem]) => {
+      const operations = Object.values(pathItem as Record<string, { tags?: string[] }>);
+
+      return operations.some((op) => op.tags?.some((tag) => externalTags.includes(tag)));
+    }),
+  );
+
+  SwaggerModule.setup(`${appConfig.apiPrefix}/docs/external`, app, externalDocument);
+
+  // Private API Swagger - JWT Bearer authentication required (always available)
+  const privateConfig = new DocumentBuilder()
+    .setTitle('Motiv-Buy Private API')
+    .setDescription('Private endpoints - requires JWT Bearer authentication')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const privateDocument = SwaggerModule.createDocument(app, privateConfig, {
+    deepScanRoutes: true,
+    operationIdFactory: (controllerKey: string, methodKey: string) => `${controllerKey}_${methodKey}`,
+  });
+
+  // Filter to exclude public tags, webhooks, and external API
+  const excludeTags = [
+    'health',
+    'auth',
+    'public-statistics',
+    'Payment Webhooks',
+    'Bot Webhook',
+    'Traffic Source - External API',
+  ];
+
+  privateDocument.paths = Object.fromEntries(
+    Object.entries(privateDocument.paths).filter(([, pathItem]) => {
+      const operations = Object.values(pathItem as Record<string, { tags?: string[] }>);
+
+      return operations.some((op) => op.tags?.every((tag) => !excludeTags.includes(tag)));
+    }),
+  );
+
+  SwaggerModule.setup(`${appConfig.apiPrefix}/docs/private`, app, privateDocument);
+
+  // Public API Swagger - No authentication required (development only)
   if (appConfig.nodeEnv !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('Motiv-Buy API')
-      .setDescription('HTTP API for Motiv-Buy platform')
+    const publicConfig = new DocumentBuilder()
+      .setTitle('Motiv-Buy Public API')
+      .setDescription('Public endpoints - authentication, health checks, public statistics')
       .setVersion('1.0')
-      .addBearerAuth()
       .build();
 
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup(`${appConfig.apiPrefix}/docs`, app, document);
+    const publicDocument = SwaggerModule.createDocument(app, publicConfig, {
+      include: [],
+      deepScanRoutes: true,
+      operationIdFactory: (controllerKey: string, methodKey: string) => `${controllerKey}_${methodKey}`,
+    });
+
+    // Filter to only include public tags
+    const publicTags = ['health', 'auth', 'public-statistics'];
+    publicDocument.paths = Object.fromEntries(
+      Object.entries(publicDocument.paths).filter(([, pathItem]) => {
+        const operations = Object.values(pathItem as Record<string, { tags?: string[] }>);
+
+        return operations.some((op) => op.tags?.some((tag) => publicTags.includes(tag)));
+      }),
+    );
+
+    SwaggerModule.setup(`${appConfig.apiPrefix}/docs/public`, app, publicDocument);
   }
 
   await app.listen(appConfig.port, appConfig.host);
@@ -86,8 +164,12 @@ async function bootstrap() {
     `🚀 API Application is running on: http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}${clusterMode}`,
   );
 
+  Logger.log(`📚 Swagger (Private): http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}/docs/private`);
+
+  Logger.log(`📚 External API Docs: http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}/docs/external`);
+
   if (appConfig.nodeEnv !== 'production') {
-    Logger.log(`📚 Swagger documentation: http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}/docs`);
+    Logger.log(`📚 Swagger (Public): http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}/docs/public`);
   }
 
   Logger.log(`🌍 Environment: ${appConfig.nodeEnv}`);

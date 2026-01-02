@@ -1,12 +1,12 @@
 import {
-  NotificationTemplateEntity,
-  NotificationContentType,
   NotificationButton,
+  NotificationContentType,
   NotificationMedia,
+  NotificationTemplateEntity,
 } from '@app/database';
 import { defaultLanguage } from '@app/common-shared';
-import { NotificationResult, BuildNotificationOptions } from '../type';
-import { renderTemplate, renderButtons } from './template-renderer.util';
+import { BuildNotificationOptions, NotificationResult } from '../type';
+import { renderButtons, renderTemplate } from './template-renderer.util';
 
 interface LocalizedContent {
   text?: string | string[];

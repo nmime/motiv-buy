@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { CurrencyRateProviderType, CurrencyRateProviderEntity } from '../entity/CurrencyRateProvider.entity';
+import { CurrencyRateProviderEntity, CurrencyRateProviderType } from '../entity/CurrencyRateProvider.entity';
 import { RateProvider } from '../entity/CurrencyRatesHistory.entity';
 
 /**

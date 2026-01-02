@@ -6,7 +6,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/feature-bot-shared';
 import { CurrencyCode } from '@app/database';
 import { BalanceActionHandler } from '../balance-action.handler';
 import { MessageService } from '../../service/message.service';

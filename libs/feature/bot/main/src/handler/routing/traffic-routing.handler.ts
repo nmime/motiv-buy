@@ -6,7 +6,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/feature-bot-shared';
 import { TrafficHandler } from '../traffic';
 import { MessageService } from '../../service/message.service';
 
@@ -169,6 +169,17 @@ export class TrafficRoutingHandler {
       return;
     }
 
+    // Handle earnings transfer: traf:earn:xfer:<sourceId>
+    if (action === 'earn') {
+      const [subAction, sourceId] = params;
+
+      if (subAction === 'xfer' && sourceId) {
+        await this.trafficHandler.handleSourceEarningsTransfer(ctx, sourceId);
+      }
+
+      return;
+    }
+
     // Handle delete confirmation actions: traf:src:del:... or traf:tgt:del:...
     const [operation, confirmFlag, entityId] = params;
 
@@ -256,6 +267,7 @@ export class TrafficRoutingHandler {
       type: (c, id) => this.trafficHandler.handleTrafficSourceTypeSelect(c, id as 'bot' | 'bot_with_token'),
       integrate: (c, id) => this.trafficHandler.handleTrafficSourceIntegration(c, id),
       regen: (c, id) => this.trafficHandler.handleTrafficSourceRegenerateConfirm(c, id),
+      earnings: (c, id) => this.trafficHandler.handleSourceEarnings(c, id),
     };
 
     const handler = sourceActionHandlers[subAction];

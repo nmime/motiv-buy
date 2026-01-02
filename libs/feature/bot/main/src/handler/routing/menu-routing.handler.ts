@@ -7,7 +7,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/feature-bot-shared';
 import { ProfileActionHandler } from '../profile-action.handler';
 import { BalanceActionHandler } from '../balance-action.handler';
 import { StatisticsActionHandler } from '../statistics-action.handler';

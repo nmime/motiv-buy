@@ -6,7 +6,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/feature-bot-shared';
 import { SettingsActionHandler } from '../settings-action.handler';
 import { MiscMenuHandler } from '../menu';
 import { MessageService } from '../../service/message.service';

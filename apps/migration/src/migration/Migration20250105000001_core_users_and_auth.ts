@@ -178,8 +178,13 @@ export class Migration20250105000001CoreUsersAndAuth extends Migration {
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__created_at ON user_source_visits (created_at);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__utm_source ON user_source_visits (utm_source);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__utm_medium ON user_source_visits (utm_medium);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__utm_campaign ON user_source_visits (utm_campaign);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_source_visits__platform_type ON user_source_visits (platform_type);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__user_source_visits__utm_campaign ON user_source_visits (utm_campaign);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__user_source_visits__platform_type ON user_source_visits (platform_type);',
+    );
 
     // Ensure async compliance
     await Promise.resolve();

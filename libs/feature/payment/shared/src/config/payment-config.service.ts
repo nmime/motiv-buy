@@ -3,13 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import Joi from 'joi';
 import { CurrencyCode } from '@app/database';
 import {
-  PaymentConfig,
   CryptoBotConfig,
-  PaymentWebhookConfig,
-  PaymentPollingConfig,
   HelekeConfiguration,
-  YooKassaConfig,
+  PaymentConfig,
+  PaymentPollingConfig,
   PaymentUpdateStrategy,
+  PaymentWebhookConfig,
+  YooKassaConfig,
 } from './payment-config.interface';
 
 /**

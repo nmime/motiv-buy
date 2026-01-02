@@ -113,6 +113,23 @@
     "regenerate_success": "✅ New API key generated! Update your integrations.",
     "copy_hint": "\n\n<i>💡 Tap the spoiler to reveal, then long-press to copy</i>"
   },
+  "source_earnings": {
+    "title": "<b>💰 Source Earnings</b>\n\n",
+    "btn": "💰 Earnings",
+    "source_name": "<b>Source:</b> {name}\n\n",
+    "available": "Available",
+    "pending": "Pending",
+    "total_earned": "Total Earned",
+    "total_withdrawn": "Total Withdrawn",
+    "no_earnings": "<i>No earnings yet. Start earning by completing tasks!</i>",
+    "transfer_btn": "💸 Transfer to Wallet",
+    "transfer_all_btn": "💸 Transfer All",
+    "transfer_confirm": "<b>💸 Transfer to Wallet</b>\n\n<b>Amount:</b> {currency}{amount}\n<b>From:</b> {sourceName}\n\n<i>Transfer these earnings to your personal balance?</i>",
+    "transfer_success": "✅ <b>Transfer Complete!</b>\n\n<b>Amount:</b> {currency}{amount}\n<b>Source Balance:</b> {currency}{sourceBalance}\n<b>Wallet Balance:</b> {currency}{walletBalance}",
+    "transfer_failed": "❌ Transfer failed. Please try again.",
+    "insufficient_balance": "❌ Insufficient balance to transfer.",
+    "no_balance_to_transfer": "❌ No balance available to transfer."
+  },
   "category": {
     "title": "📂 Select Categories",
     "select_prompt": "<b>📂 Select Category</b>\n\n<i>Choose a category for your traffic source:</i>",

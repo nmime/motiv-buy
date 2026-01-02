@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationSharedModule } from '@app/feature-notification-shared';
-import { NotificationSenderService, NotificationSchedulerService } from './service';
+import { NotificationSchedulerService, NotificationSenderService } from './service';
 
 /**
  * Notification main module.

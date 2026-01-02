@@ -3,16 +3,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { NotificationSenderService } from '../notification-sender.service';
 import {
-  NotificationEntity,
-  NotificationTemplateEntity,
-  NotificationRepository,
-  NotificationTemplateRepository,
-  NotificationStatus,
   NotificationChannel,
-  NotificationTargetType,
-  NotificationErrorReason,
   NotificationContentType,
+  NotificationEntity,
+  NotificationErrorReason,
   NotificationPriority,
+  NotificationRepository,
+  NotificationStatus,
+  NotificationTargetType,
+  NotificationTemplateEntity,
+  NotificationTemplateRepository,
 } from '@app/database';
 
 /**

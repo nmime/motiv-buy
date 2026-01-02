@@ -1,5 +1,5 @@
 import { EntityManager, EntityRepository, FilterQuery } from '@mikro-orm/core';
-import { TrafficTargetEntity, TrafficTargetType, TrafficTargetStatus } from '../entity';
+import { TrafficTargetEntity, TrafficTargetStatus, TrafficTargetType } from '../entity';
 
 export class TrafficTargetRepository extends EntityRepository<TrafficTargetEntity> {
   constructor(em: EntityManager) {

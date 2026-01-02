@@ -2,18 +2,25 @@ import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { ModerationService, SourceManagementService, SourcePublicApiService, TrafficService } from './service';
-import { TrafficSourceManagementController, TrafficSourcePublicController } from './controller';
+import {
+  SourceBalanceController,
+  TrafficSourceManagementController,
+  TrafficSourcePublicController,
+} from './controller';
 import {
   ModerationRequestEntity,
   ModerationRequestRepository,
   TrafficActionsEntity,
   TrafficActionsRepository,
+  TrafficOrderBalanceEntity,
+  TrafficOrderBalanceRepository,
   TrafficOrderEntity,
   TrafficOrderRepository,
   TrafficOrderSourceEntity,
   TrafficOrderTargetEntity,
-  TrafficOrderBalanceEntity,
-  TrafficOrderBalanceRepository,
+  TrafficSourceBalanceEntity,
+  TrafficSourceBalanceHistoryEntity,
+  TrafficSourceBalanceRepository,
   TrafficSourceEntity,
   TrafficSourceRepository,
   TrafficTargetEntity,
@@ -47,6 +54,8 @@ import { BalanceSharedModule } from '@app/feature-balance-shared';
       TrafficOrderTargetEntity,
       TrafficOrderBalanceEntity,
       TrafficSourceEntity,
+      TrafficSourceBalanceEntity,
+      TrafficSourceBalanceHistoryEntity,
       TrafficUserEntity,
       TrafficActionsEntity,
       UserEntity,
@@ -54,7 +63,7 @@ import { BalanceSharedModule } from '@app/feature-balance-shared';
       UserBalanceHistoryEntity,
     ]),
   ],
-  controllers: [TrafficSourcePublicController, TrafficSourceManagementController],
+  controllers: [TrafficSourcePublicController, TrafficSourceManagementController, SourceBalanceController],
   providers: [
     ModerationService,
     TrafficService,
@@ -72,6 +81,7 @@ import { BalanceSharedModule } from '@app/feature-balance-shared';
     TrafficUserRepository,
     UserBalanceRepository,
     UserBalanceHistoryRepository,
+    TrafficSourceBalanceRepository,
   ],
   exports: [ModerationService, TrafficService, SourcePublicApiService, SourceManagementService],
 })

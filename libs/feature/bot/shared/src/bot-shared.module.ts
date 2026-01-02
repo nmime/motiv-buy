@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
-import { BotFactoryService, BotSubscriptionService, ChannelService, TelegramModerationNotifier } from './service';
+import {
+  BotFactoryService,
+  BotSubscriptionService,
+  ChannelService,
+  TelegramModerationNotifier,
+  TelegramNotificationService,
+} from './service';
 
 /**
  * Bot Shared Module
  *
- * Shared module that exports bot factory, subscription services, and moderation notifier,
+ * Shared module that exports bot factory, subscription services, and notification services,
  * along with essential types, DTOs, enums, and utilities for other
  * modules to consume.
  *
@@ -13,10 +19,23 @@ import { BotFactoryService, BotSubscriptionService, ChannelService, TelegramMode
  * - BotSubscriptionService: Check user subscriptions to chats
  * - ChannelService: High-level channel operations with automatic token management
  * - TelegramModerationNotifier: Send moderation notifications to Telegram
+ * - TelegramNotificationService: Send direct messages to users
  */
 @Module({
   imports: [],
-  providers: [BotFactoryService, BotSubscriptionService, ChannelService, TelegramModerationNotifier],
-  exports: [BotFactoryService, BotSubscriptionService, ChannelService, TelegramModerationNotifier],
+  providers: [
+    BotFactoryService,
+    BotSubscriptionService,
+    ChannelService,
+    TelegramModerationNotifier,
+    TelegramNotificationService,
+  ],
+  exports: [
+    BotFactoryService,
+    BotSubscriptionService,
+    ChannelService,
+    TelegramModerationNotifier,
+    TelegramNotificationService,
+  ],
 })
 export class BotSharedModule {}

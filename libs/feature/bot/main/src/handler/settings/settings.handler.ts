@@ -17,11 +17,11 @@ import { BotValidationUtil } from '../../util/bot-validation.util';
 import { MessageService } from '../../service/message.service';
 import { BotSessionService } from '../../service/auth';
 import {
-  createSettingsMenuKeyboard,
+  createBackToSettingsKeyboard,
   createLanguageKeyboard,
   createNotificationKeyboard,
   createPrivacyKeyboard,
-  createBackToSettingsKeyboard,
+  createSettingsMenuKeyboard,
 } from './settings.keyboards';
 
 interface UserPreferences {

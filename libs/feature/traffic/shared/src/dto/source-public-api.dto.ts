@@ -115,7 +115,8 @@ export class GetTasksResponseDto {
 }
 
 /**
- * POST /source/tasks/check - Check task completion status
+ * POST /source/tasks/check - Check task completion and get reward
+ * If completed, returns the reward amount
  */
 export class CheckTaskStatusRequestDto {
   @ApiProperty({ description: 'Task ID (signature)', example: 'ORD-1234567890-USER-123456789' })
@@ -126,14 +127,14 @@ export class CheckTaskStatusRequestDto {
 
 export class CheckTaskStatusResponseDto {
   @ApiProperty({
-    description: 'Task completion status',
+    description: 'Task status',
     example: 'completed',
     enum: ['not_started', 'pending', 'completed', 'failed'],
   })
   status!: string;
 
-  @ApiProperty({ description: 'Can submit completion', example: true })
-  canSubmit!: boolean;
+  @ApiPropertyOptional({ description: 'Reward amount (returned when completed)', example: 0.1 })
+  reward?: number;
 
   @ApiPropertyOptional({ description: 'Completion timestamp (ISO 8601)' })
   completedAt?: string;

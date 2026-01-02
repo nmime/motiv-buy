@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Result, Ok, Err } from '@app/common-shared';
+import { Err, Ok, Result } from '@app/common-shared';
 import {
-  PaymentProvider,
   CurrencyCode,
+  PaymentProvider,
   PaymentProviderRepository,
   ProviderCurrencyRepository,
   ProviderRoutingRepository,

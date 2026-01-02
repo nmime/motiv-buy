@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { getErrorMessage } from '@app/common-shared';
-import { TrafficSourceEntity, TrafficSourceType, TrafficSourceStatus, UserEntity } from '@app/database';
+import { TrafficSourceEntity, TrafficSourceStatus, TrafficSourceType, UserEntity } from '@app/database';
 import { ITrafficSourceRepository } from '../repository';
 
 /**

@@ -10,30 +10,28 @@ import { TrafficSharedModule } from '@app/feature-traffic-shared';
 import { PaymentSharedModule } from '@app/feature-payment-shared';
 import { CurrencySharedModule } from '@app/feature-currency-shared';
 import { AppCommonIntlModule } from '@app/common-intl';
-import { BotService, BotUserService, BotSessionService, MenuService, MessageService, SessionService } from './service';
+import { BotService, BotSessionService, BotUserService, MenuService, MessageService, SessionService } from './service';
 import { BotConfigModule } from './config';
 import { OrderModule } from './handler/order/order.module';
 import {
-  CallbackRouterHandler,
-  MenuActionHandler,
-  ProfileActionHandler,
   BalanceActionHandler,
-  StatisticsActionHandler,
-  OrderActionHandler,
-  SettingsActionHandler,
-  SupportHandler,
-  HelpHandler,
-  TrafficHandler,
-  MiscMenuHandler,
-  InformationCommandHandler,
-  // Routing handlers
-  TrafficRoutingHandler,
   BalanceRoutingHandler,
-  OrderRoutingHandler,
-  SettingsRoutingHandler,
+  CallbackRouterHandler,
+  HelpHandler,
+  InformationCommandHandler,
+  MenuActionHandler,
   MenuRoutingHandler,
+  MiscMenuHandler,
+  OrderActionHandler,
+  OrderRoutingHandler,
+  ProfileActionHandler,
+  SettingsActionHandler,
+  SettingsRoutingHandler,
+  StatisticsActionHandler,
+  SupportHandler,
+  TrafficHandler,
+  TrafficRoutingHandler,
 } from './handler';
-import { PaymentNotificationHandler } from './handler/payment-notification.handler';
 import { RateLimitMiddleware } from './middleware';
 import { BotWebhookController } from './controller';
 
@@ -99,7 +97,7 @@ import { BotWebhookController } from './controller';
     SettingsRoutingHandler,
     MenuRoutingHandler,
     RateLimitMiddleware,
-    PaymentNotificationHandler,
+    // PaymentNotificationHandler moved to BotSchedulerModule (bot-only)
   ],
   exports: [
     BotSharedModule,

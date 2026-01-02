@@ -1,6 +1,6 @@
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { TrafficOrderBalanceEntity, TrafficOrderEntity, CurrencyEntity, CurrencyCode } from '../entity';
-import { add, subtract, toDbString, decimal } from '@app/common-shared';
+import { CurrencyCode, CurrencyEntity, TrafficOrderBalanceEntity, TrafficOrderEntity } from '../entity';
+import { add, decimal, subtract, toDbString } from '@app/common-shared';
 
 /**
  * TrafficOrderBalance Repository

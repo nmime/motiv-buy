@@ -15,10 +15,10 @@ import { randomUUID } from 'crypto';
 import {
   CryptoBotProvider,
   HeleketProvider,
-  YooKassaProvider,
-  PaymentService,
   PaymentConfigService,
+  PaymentService,
   WebhookUpdateDto,
+  YooKassaProvider,
 } from '@app/feature-payment-shared';
 
 /**

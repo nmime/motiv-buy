@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { UserSettingsEntity, SettingType } from '@app/database';
+import { SettingType, UserSettingsEntity } from '@app/database';
 import { defaultLanguage } from '@app/common-shared';
-import { UpdateSettingsDto, UserSettingsResponseDto, ThemePreference } from '../dto';
+import { ThemePreference, UpdateSettingsDto, UserSettingsResponseDto } from '../dto';
 
 /**
  * Settings Service

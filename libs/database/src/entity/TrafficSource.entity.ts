@@ -5,6 +5,8 @@ import type { TrafficUserEntity } from './TrafficUser.entity';
 import type { TrafficActionsEntity } from './TrafficActions.entity';
 import type { TrafficSourceCategoriesEntity } from './junction/TrafficSourceCategories.entity';
 import type { TrafficOrderSourceEntity } from './junction/TrafficOrderSource.entity';
+import type { TrafficSourceBalanceEntity } from './TrafficSourceBalance.entity';
+import type { TrafficSourceBalanceHistoryEntity } from './TrafficSourceBalanceHistory.entity';
 
 export enum TrafficSourceType {
   Bot = 'bot',
@@ -92,6 +94,14 @@ export class TrafficSourceEntity {
   /** Junction: Orders that use this source (M:M via TrafficOrderSource) */
   @OneToMany('TrafficOrderSourceEntity', 'trafficSource')
   orderAssignments? = new Collection<TrafficOrderSourceEntity>(this);
+
+  /** Balances for this source (per currency) */
+  @OneToMany('TrafficSourceBalanceEntity', 'trafficSource')
+  balances? = new Collection<TrafficSourceBalanceEntity>(this);
+
+  /** Balance history for this source */
+  @OneToMany('TrafficSourceBalanceHistoryEntity', 'trafficSource')
+  balanceHistory? = new Collection<TrafficSourceBalanceHistoryEntity>(this);
 
   constructor(data: EntityConstructorData<TrafficSourceEntity, 'id' | 'createdAt' | 'updatedAt', never, 'managedBy'>) {
     assignEntityData(this as Record<string, unknown>, data, {

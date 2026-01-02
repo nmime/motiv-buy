@@ -9,12 +9,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AuthenticatedBotContext } from '@app/feature-bot-shared';
 import { EntityManager } from '@mikro-orm/core';
 import {
+  CurrencyCode,
+  ProviderCurrencyEntity,
+  ProviderCurrencyRepository,
+  TransactionType,
   UserBalanceEntity,
   UserBalanceHistoryEntity,
-  ProviderCurrencyRepository,
-  ProviderCurrencyEntity,
-  CurrencyCode,
-  TransactionType,
 } from '@app/database';
 import { MenuActionHandler } from './menu-action.handler';
 import { add, decimal, lessThan, multiply, toDisplayString, toError } from '@app/common-shared';

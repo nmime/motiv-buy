@@ -7,7 +7,7 @@ import { UserRole } from '@app/database';
 import { SessionService } from '../service/session.service';
 import { MenuService } from '../service/menu.service';
 import { MessageService } from '../service/message.service';
-import { unknownToError, toError } from '@app/common-shared';
+import { toError, unknownToError } from '@app/common-shared';
 import { InformationCommandHandler } from './commands';
 import { InlineKeyboard } from 'grammy';
 

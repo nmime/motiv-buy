@@ -38,8 +38,13 @@ export class Migration20250105000008NotificationSystem extends Migration {
 
     // Create indexes for notification_templates table
     this.addSql('CREATE INDEX IF NOT EXISTS ix__notification_templates__code ON notification_templates (code);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__notification_templates__content_type ON notification_templates (content_type);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__notification_templates__is_active ON notification_templates (is_active);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__notification_templates__content_type ON notification_templates (content_type);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__notification_templates__is_active ON notification_templates (is_active);',
+    );
 
     // Create trigger for notification_templates
     this.addSql(`

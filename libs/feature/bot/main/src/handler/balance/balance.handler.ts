@@ -9,20 +9,20 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Composer } from 'grammy';
 import { EntityManager } from '@mikro-orm/core';
 import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/feature-bot-shared';
-import { UserBalanceHistoryEntity, ProviderCurrencyEntity, CurrencyCode } from '@app/database';
+import { CurrencyCode, ProviderCurrencyEntity, UserBalanceHistoryEntity } from '@app/database';
 import { decimal, lessThan, toDisplayString, toError } from '@app/common-shared';
 import { PaymentService } from '@app/feature-payment-main';
 import { CurrencyRateService } from '@app/feature-currency-shared';
 import { PaymentConfigService } from '@app/feature-payment-shared';
-import { UserBalanceOperationService, BalanceSummary } from '@app/feature-balance-shared';
+import { BalanceSummary, UserBalanceOperationService } from '@app/feature-balance-shared';
 import { MessageService } from '../../service/message.service';
 import {
-  createBalanceMenuKeyboard,
-  createDepositCurrencyKeyboard,
-  createHistoryPaginationKeyboard,
-  createDepositConfirmKeyboard,
   createBackToBalanceKeyboard,
   createBackToDepositKeyboard,
+  createBalanceMenuKeyboard,
+  createDepositConfirmKeyboard,
+  createDepositCurrencyKeyboard,
+  createHistoryPaginationKeyboard,
   createWithdrawCurrencyKeyboard,
   CurrencyDisplayData,
 } from './balance.keyboards';

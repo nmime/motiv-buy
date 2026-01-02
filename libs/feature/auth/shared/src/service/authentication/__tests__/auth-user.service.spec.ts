@@ -10,9 +10,9 @@ import { getGeoByIp, GetSourceParamsService, GetUserRefLinkService, SourceRegist
 import {
   UserEntity,
   UserLastAuthRepository,
+  UserRefLinkType,
   UserRepository,
   UserSourceVisitEntity,
-  UserRefLinkType,
 } from '@app/database';
 import { Language } from '@app/common-shared';
 import { LinkType } from '../../../source/const/link-type.enum';

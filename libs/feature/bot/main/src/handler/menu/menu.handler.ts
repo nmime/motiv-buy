@@ -8,15 +8,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MikroORM } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, AuthenticatedBotContext } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext, BotContext } from '@app/feature-bot-shared';
 import {
-  UserEntity,
-  UserStatus,
-  UserRole,
   TrafficOrderEntity,
   TrafficOrderStatus,
   TrafficSourceEntity,
   UserBalanceHistoryEntity,
+  UserEntity,
+  UserRole,
+  UserStatus,
 } from '@app/database';
 import { decimal, toDisplayString } from '@app/common-shared';
 import { MessageService } from '../../service/message.service';

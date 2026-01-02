@@ -68,8 +68,13 @@ export class Migration20250105000003TrafficSystem extends Migration {
 
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_source_categories__name ON traffic_source_categories (name);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_source_categories__slug ON traffic_source_categories (slug);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_source_categories__is_active ON traffic_source_categories (is_active);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_source_categories__sort_order ON traffic_source_categories (sort_order);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_source_categories__is_active ON traffic_source_categories (is_active);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_source_categories__sort_order ON traffic_source_categories (sort_order);',
+    );
 
     // 3. Create traffic_targets table
     this.addSql(`
@@ -166,8 +171,14 @@ export class Migration20250105000003TrafficSystem extends Migration {
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_orders__type ON traffic_orders (type);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_orders__created_at ON traffic_orders (created_at);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_orders__creator_id ON traffic_orders (creator_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_orders__traffic_source_id ON traffic_orders (traffic_source_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_orders__traffic_target_id ON traffic_orders (traffic_target_id);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_orders__traffic_source_id ON traffic_orders (traffic_source_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_orders__traffic_target_id ON traffic_orders (traffic_target_id);',
+    );
+
     this.addSql(
       'CREATE INDEX IF NOT EXISTS ix__traffic_orders__assigned_traffic_user_id ON traffic_orders (assigned_traffic_user_id);',
     );
@@ -195,10 +206,16 @@ export class Migration20250105000003TrafficSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions__traffic_order_id ON traffic_actions (traffic_order_id);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_actions__traffic_order_id ON traffic_actions (traffic_order_id);',
+    );
+
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions__action_type ON traffic_actions (action_type);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions__status ON traffic_actions (status);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions__performed_by_id ON traffic_actions (performed_by_id);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_actions__performed_by_id ON traffic_actions (performed_by_id);',
+    );
+
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions__performed_at ON traffic_actions (performed_at);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions__created_at ON traffic_actions (created_at);');
 
@@ -304,9 +321,18 @@ export class Migration20250105000003TrafficSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_target_sources__target_id ON traffic_target_sources (traffic_target_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_target_sources__source_id ON traffic_target_sources (traffic_source_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_target_sources__is_active ON traffic_target_sources (is_active);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_target_sources__target_id ON traffic_target_sources (traffic_target_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_target_sources__source_id ON traffic_target_sources (traffic_source_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_target_sources__is_active ON traffic_target_sources (is_active);',
+    );
+
     this.addSql(`
       CREATE UNIQUE INDEX IF NOT EXISTS uq__traffic_target_sources__target_source
         ON traffic_target_sources (traffic_target_id, traffic_source_id);
@@ -335,9 +361,18 @@ export class Migration20250105000003TrafficSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_target_users__target_id ON traffic_target_users (traffic_target_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_target_users__user_id ON traffic_target_users (traffic_user_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_target_users__is_blocked ON traffic_target_users (is_blocked);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_target_users__target_id ON traffic_target_users (traffic_target_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_target_users__user_id ON traffic_target_users (traffic_user_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_target_users__is_blocked ON traffic_target_users (is_blocked);',
+    );
+
     this.addSql(`
       CREATE UNIQUE INDEX IF NOT EXISTS uq__traffic_target_users__target_user
         ON traffic_target_users (traffic_target_id, traffic_user_id);
@@ -366,7 +401,10 @@ export class Migration20250105000003TrafficSystem extends Migration {
     `);
 
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_targets__user_id ON user_traffic_targets (user_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_targets__target_id ON user_traffic_targets (traffic_target_id);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__user_traffic_targets__target_id ON user_traffic_targets (traffic_target_id);',
+    );
+
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_targets__role ON user_traffic_targets (role);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_targets__is_active ON user_traffic_targets (is_active);');
     this.addSql(`
@@ -397,7 +435,10 @@ export class Migration20250105000003TrafficSystem extends Migration {
     `);
 
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_sources__user_id ON user_traffic_sources (user_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_sources__source_id ON user_traffic_sources (traffic_source_id);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__user_traffic_sources__source_id ON user_traffic_sources (traffic_source_id);',
+    );
+
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_sources__role ON user_traffic_sources (role);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_sources__is_active ON user_traffic_sources (is_active);');
     this.addSql(`
@@ -427,7 +468,10 @@ export class Migration20250105000003TrafficSystem extends Migration {
     `);
 
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_orders__user_id ON user_traffic_orders (user_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_orders__order_id ON user_traffic_orders (traffic_order_id);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__user_traffic_orders__order_id ON user_traffic_orders (traffic_order_id);',
+    );
+
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_orders__role ON user_traffic_orders (role);');
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_traffic_orders__is_active ON user_traffic_orders (is_active);');
     this.addSql(`
@@ -452,10 +496,19 @@ export class Migration20250105000003TrafficSystem extends Migration {
       );
     `);
 
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions_users__action_id ON traffic_actions_users (traffic_action_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions_users__user_id ON traffic_actions_users (traffic_user_id);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_actions_users__action_id ON traffic_actions_users (traffic_action_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_actions_users__user_id ON traffic_actions_users (traffic_user_id);',
+    );
+
     this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions_users__role ON traffic_actions_users (role);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_actions_users__performed_at ON traffic_actions_users (performed_at);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_actions_users__performed_at ON traffic_actions_users (performed_at);',
+    );
+
     this.addSql(`
       CREATE UNIQUE INDEX IF NOT EXISTS uq__traffic_actions_users__action_user
         ON traffic_actions_users (traffic_action_id, traffic_user_id);
@@ -501,8 +554,13 @@ export class Migration20250105000003TrafficSystem extends Migration {
       'CREATE INDEX IF NOT EXISTS ix__traffic_order_balances__traffic_order_id ON traffic_order_balances (traffic_order_id);',
     );
 
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_order_balances__currency_id ON traffic_order_balances (currency_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__traffic_order_balances__is_settled ON traffic_order_balances (is_settled);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_order_balances__currency_id ON traffic_order_balances (currency_id);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__traffic_order_balances__is_settled ON traffic_order_balances (is_settled);',
+    );
 
     this.addSql(
       `COMMENT ON TABLE traffic_order_balances IS 'Locked funds for traffic orders. Ensures guaranteed payment.';`,

@@ -113,6 +113,23 @@
     "regenerate_success": "✅ Новый API ключ сгенерирован! Обновите ваши интеграции.",
     "copy_hint": "\n\n<i>💡 Нажмите на спойлер чтобы показать, затем удерживайте для копирования</i>"
   },
+  "source_earnings": {
+    "title": "<b>💰 Заработок источника</b>\n\n",
+    "btn": "💰 Заработок",
+    "source_name": "<b>Источник:</b> {name}\n\n",
+    "available": "Доступно",
+    "pending": "В ожидании",
+    "total_earned": "Всего заработано",
+    "total_withdrawn": "Всего выведено",
+    "no_earnings": "<i>Пока нет заработка. Начните зарабатывать, выполняя задания!</i>",
+    "transfer_btn": "💸 Вывести в кошелек",
+    "transfer_all_btn": "💸 Вывести все",
+    "transfer_confirm": "<b>💸 Вывод в кошелек</b>\n\n<b>Сумма:</b> {currency}{amount}\n<b>Из:</b> {sourceName}\n\n<i>Перевести эти средства на личный баланс?</i>",
+    "transfer_success": "✅ <b>Перевод выполнен!</b>\n\n<b>Сумма:</b> {currency}{amount}\n<b>Баланс источника:</b> {currency}{sourceBalance}\n<b>Баланс кошелька:</b> {currency}{walletBalance}",
+    "transfer_failed": "❌ Ошибка перевода. Попробуйте снова.",
+    "insufficient_balance": "❌ Недостаточный баланс для перевода.",
+    "no_balance_to_transfer": "❌ Нет доступного баланса для перевода."
+  },
   "category": {
     "title": "📂 Выберите категории",
     "select_prompt": "<b>📂 Выберите категорию</b>\n\n<i>Выберите категорию для вашего источника трафика:</i>",

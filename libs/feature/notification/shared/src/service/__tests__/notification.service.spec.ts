@@ -3,14 +3,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { NotificationService } from '../notification.service';
 import {
-  NotificationEntity,
-  NotificationTemplateEntity,
-  NotificationRepository,
-  NotificationTemplateRepository,
-  NotificationStatus,
   NotificationChannel,
-  NotificationTargetType,
+  NotificationEntity,
   NotificationPriority,
+  NotificationRepository,
+  NotificationStatus,
+  NotificationTargetType,
+  NotificationTemplateEntity,
+  NotificationTemplateRepository,
 } from '@app/database';
 import { CreateNotificationDto, CreateTemplateNotificationDto } from '../../dto';
 

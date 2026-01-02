@@ -1,5 +1,5 @@
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { TrafficSourceCategoryEntity, TopicCategory } from '../entity';
+import { TopicCategory, TrafficSourceCategoryEntity } from '../entity';
 
 export class TrafficSourceCategoryRepository extends EntityRepository<TrafficSourceCategoryEntity> {
   constructor(em: EntityManager) {

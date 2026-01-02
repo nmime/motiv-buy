@@ -1,15 +1,15 @@
 import {
+  IsDateString,
   IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
-  IsNumber,
-  Min,
-  IsDateString,
   Matches,
+  Min,
 } from 'class-validator';
-import { NotificationChannel, NotificationTargetType, NotificationPriority, NotificationExtra } from '@app/database';
+import { NotificationChannel, NotificationExtra, NotificationPriority, NotificationTargetType } from '@app/database';
 
 export class CreateNotificationDto<T = Record<string, string | number>> {
   @IsEnum(NotificationChannel)

@@ -9,7 +9,7 @@ import {
   SourceResponseDto,
   UpdateSourceDto,
 } from '@app/feature-traffic-shared';
-import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceType, TrafficSourceStatus } from '@app/database';
+import { TrafficSourceEntity, TrafficSourceRepository, TrafficSourceStatus, TrafficSourceType } from '@app/database';
 import { BotFactoryService, TelegramModerationNotifier } from '@app/feature-bot-shared';
 import { ModerationService } from './moderation.service';
 

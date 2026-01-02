@@ -1,13 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsString,
   IsEnum,
-  IsOptional,
   IsInt,
-  Min,
+  IsOptional,
+  IsString,
+  Matches,
   Max,
   MaxLength,
-  Matches,
+  Min,
   Validate,
   ValidatorConstraint,
   ValidatorConstraintInterface,

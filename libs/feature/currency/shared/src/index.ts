@@ -1,2 +1,2 @@
 export * from './currency-shared.module';
-export * from './service/currency-rate.service';
+export * from './service';

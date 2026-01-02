@@ -8,7 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MikroORM } from '@mikro-orm/core';
 import { InlineKeyboard } from 'grammy';
-import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/feature-bot-shared';
 import { toError } from '@app/common-shared';
 import { MenuActionHandler } from './menu-action.handler';
 import { ProfileActionHandler } from './profile-action.handler';
@@ -21,11 +21,11 @@ import { HelpHandler } from './help';
 import { TrafficHandler } from './traffic';
 import { MiscMenuHandler } from './menu';
 import {
-  TrafficRoutingHandler,
   BalanceRoutingHandler,
+  MenuRoutingHandler,
   OrderRoutingHandler,
   SettingsRoutingHandler,
-  MenuRoutingHandler,
+  TrafficRoutingHandler,
 } from './routing';
 import { RateLimitMiddleware } from '../middleware/rate-limit.middleware';
 import { MessageService } from '../service/message.service';

@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import {
   NotificationEntity,
-  NotificationTemplateEntity,
   NotificationRepository,
+  NotificationTemplateEntity,
   NotificationTemplateRepository,
 } from '@app/database';
 import { NotificationService } from './service';

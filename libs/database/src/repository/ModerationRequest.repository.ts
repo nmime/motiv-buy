@@ -1,6 +1,6 @@
 import { EntityManager, EntityRepository, ref } from '@mikro-orm/core';
 import { Logger } from '@nestjs/common';
-import { ModerationRequestEntity, ModerationEntityType, ModerationStatus, UserEntity } from '../entity';
+import { ModerationEntityType, ModerationRequestEntity, ModerationStatus, UserEntity } from '../entity';
 
 export class ModerationRequestRepository extends EntityRepository<ModerationRequestEntity> {
   private readonly logger = new Logger(ModerationRequestRepository.name);

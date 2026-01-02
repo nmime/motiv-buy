@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   NotificationEntity,
+  NotificationErrorReason,
   NotificationRepository,
   NotificationTemplateRepository,
-  NotificationErrorReason,
 } from '@app/database';
 import { buildNotificationFromTemplate, NotificationResult } from '@app/feature-notification-shared';
 

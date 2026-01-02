@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { DatabaseModule } from '@app/database';
-import { CurrencyRateService } from './service/currency-rate.service';
+import { CurrencyRateService } from './service';
 
 @Module({
-  imports: [ConfigModule, ScheduleModule.forRoot(), DatabaseModule],
+  imports: [ConfigModule, DatabaseModule],
   providers: [CurrencyRateService],
   exports: [CurrencyRateService],
 })

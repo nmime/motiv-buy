@@ -1,5 +1,5 @@
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { TrafficSourceEntity, TrafficSourceType, TrafficSourceStatus } from '../entity';
+import { TrafficSourceEntity, TrafficSourceStatus, TrafficSourceType } from '../entity';
 import { TrafficSourceConfig } from '../type';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';

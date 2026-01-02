@@ -1,17 +1,16 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { MikroORM, RequestContext } from '@mikro-orm/core';
 import Redlock from 'redlock';
 import {
   CurrencyCode,
+  CurrencyRateProviderRepository,
   CurrencyRatesHistoryRepository,
   CurrencyRepository,
-  CurrencyRateProviderRepository,
-  RateProviderCurrencyRepository,
   ProviderCurrencyMapping,
   RateProvider,
+  RateProviderCurrencyRepository,
 } from '@app/database';
 import {
   abs,
@@ -35,7 +34,7 @@ interface ProviderConfig {
 }
 
 @Injectable()
-export class CurrencyRateService implements OnModuleInit {
+export class CurrencyRateService {
   private readonly logger = new Logger(CurrencyRateService.name);
 
   private providerConfigs: ProviderConfig[] = [];
@@ -49,7 +48,6 @@ export class CurrencyRateService implements OnModuleInit {
 
   private readonly lockTtl = 60000;
   private readonly lockKey = 'currency-rate-update';
-  private readonly isSchedulerEnabled: boolean;
 
   constructor(
     private readonly orm: MikroORM,
@@ -60,9 +58,7 @@ export class CurrencyRateService implements OnModuleInit {
     private readonly rateProviderCurrencyRepository: RateProviderCurrencyRepository,
     private readonly configService: ConfigService,
     private readonly redlock: Redlock,
-  ) {
-    this.isSchedulerEnabled = this.configService.get<string>('CURRENCY_RATE_SCHEDULER_ENABLED', 'true') === 'true';
-  }
+  ) {}
 
   private async loadProviderConfigs(): Promise<void> {
     if (this.providerConfigsLoaded) {
@@ -139,12 +135,7 @@ export class CurrencyRateService implements OnModuleInit {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
   async updateAllRates(): Promise<void> {
-    if (!this.isSchedulerEnabled) {
-      return;
-    }
-
     let lock;
 
     try {
@@ -191,12 +182,7 @@ export class CurrencyRateService implements OnModuleInit {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupOldRates(): Promise<void> {
-    if (!this.isSchedulerEnabled) {
-      return;
-    }
-
     await this.executeInContext(async () => {
       this.logger.log('Cleaning up old rates');
 
@@ -207,35 +193,6 @@ export class CurrencyRateService implements OnModuleInit {
         this.logger.error('Rate cleanup failed', { error });
       }
     });
-  }
-
-  async onModuleInit(): Promise<void> {
-    if (!this.isSchedulerEnabled) {
-      this.logger.log('Currency rate scheduler disabled');
-
-      return;
-    }
-
-    this.logger.log('Currency rate service starting');
-    setTimeout(() => {
-      this.performInitialization().catch((error) => {
-        this.logger.error('Initialization failed', { error });
-      });
-    }, 1000);
-  }
-
-  private async performInitialization(): Promise<void> {
-    await this.executeInContext(async () => {
-      try {
-        await this.loadProviderConfigs();
-        await this.loadCurrencyMappings();
-      } catch (error) {
-        this.logger.error('Deferred initialization error', { error });
-      }
-    });
-
-    await this.updateAllRates();
-    this.logger.log('Currency rate service ready');
   }
 
   private async fetchWithTimeout(url: string, timeout = 10000): Promise<Response> {

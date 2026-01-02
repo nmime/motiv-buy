@@ -1,5 +1,5 @@
 import { Global, Module, Scope } from '@nestjs/common';
-import { Redis, Cluster } from 'ioredis';
+import { Cluster, Redis } from 'ioredis';
 import { RedisConfigModule, RedisConfigService } from './config';
 import { RedisInjectToken, RedisInjectTransientToken, RedisMode } from './const';
 import { RedisHealthIndicator } from './redis.health';

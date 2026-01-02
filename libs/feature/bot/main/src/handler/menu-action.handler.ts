@@ -242,6 +242,7 @@ export class MenuActionHandler {
   createTrafficSourceDetailKeyboard(ctx: BotContext, sourceId: string): InlineKeyboard {
     return new InlineKeyboard()
       .text(ctx.t('traffic.integration.btn'), `traffic:source:integrate:${sourceId}`)
+      .text(ctx.t('traffic.source_earnings.btn'), `traffic:source:earnings:${sourceId}`)
       .row()
       .text(ctx.t('common.buttons.edit'), `traffic:source:edit:${sourceId}`)
       .text(ctx.t('traffic.toggle_status'), `traffic:source:toggle:${sourceId}`)

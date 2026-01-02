@@ -11,7 +11,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Composer, InlineKeyboard } from 'grammy';
-import { BotContext, AuthenticatedBotContext, isAuthenticated } from '@app/feature-bot-shared';
+import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/feature-bot-shared';
 import { decimal, greaterThan, lessThan, toNumber } from '@app/common-shared';
 import { BotOrderService } from './bot-order.service';
 import { createConfigurationKeyboard } from './order.keyboards';

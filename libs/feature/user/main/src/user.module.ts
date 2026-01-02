@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@app/database';
-import { UserService, SettingsService, SecurityService } from './service';
+import { SecurityService, SettingsService, UserService } from './service';
 import { UserMapper } from './mapper';
-import { UserController, SettingsController, SecurityController } from './controller';
+import { SecurityController, SettingsController, UserController } from './controller';
 
 /**
  * User domain module - main implementation

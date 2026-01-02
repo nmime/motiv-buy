@@ -54,8 +54,13 @@ export class Migration20250105000002BalanceSystem extends Migration {
     `);
 
     this.addSql('CREATE INDEX IF NOT EXISTS ix__user_balance_history__user_id ON user_balance_history (user_id);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_balance_history__transaction_type ON user_balance_history (transaction_type);');
-    this.addSql('CREATE INDEX IF NOT EXISTS ix__user_balance_history__created_at ON user_balance_history (created_at);');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__user_balance_history__transaction_type ON user_balance_history (transaction_type);',
+    );
+
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS ix__user_balance_history__created_at ON user_balance_history (created_at);',
+    );
 
     // Ensure async compliance
     await Promise.resolve();

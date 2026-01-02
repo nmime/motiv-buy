@@ -1,17 +1,22 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Bot, Context, Middleware, session, SessionFlavor, InlineKeyboard } from 'grammy';
+import { Bot, Context, InlineKeyboard, Middleware, session, SessionFlavor } from 'grammy';
 import { RedisAdapter } from '@grammyjs/storage-redis';
 import type { Update } from 'grammy/types';
-import type { Redis, Cluster } from 'ioredis';
-import { BotCommand, BotContext, TelegramModerationNotifier } from '@app/feature-bot-shared';
+import type { Cluster, Redis } from 'ioredis';
+import {
+  BotCommand,
+  BotContext,
+  TelegramModerationNotifier,
+  TelegramNotificationService,
+} from '@app/feature-bot-shared';
 import { BotConfigService } from '../config';
-import { unknownToError, toError } from '@app/common-shared';
+import { toError, unknownToError } from '@app/common-shared';
 import { OrderHandler } from '../handler/order';
 import { I18nService } from 'nestjs-i18n';
 import { createGrammyI18nMiddleware, I18nContextFlavor } from '@app/common-intl';
 import { CallbackRouterHandler } from '../handler/callback-router.handler';
 import { BotAuthMiddleware } from '../middleware';
-import { BotUserService, BotSessionService } from './auth';
+import { BotSessionService, BotUserService } from './auth';
 import { protectHandler } from '../util';
 import { RedisInjectToken } from '@app/common-redis';
 import { MessageService } from './message.service';
@@ -59,6 +64,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
     private readonly botUserService: BotUserService,
     private readonly botSessionService: BotSessionService,
     private readonly telegramModerationNotifier: TelegramModerationNotifier,
+    private readonly telegramNotificationService: TelegramNotificationService,
     @Inject(RedisInjectToken) private readonly redis: Redis | Cluster,
     private readonly messageService: MessageService,
   ) {
@@ -184,8 +190,9 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       // Register feature handlers (Order feature)
       this.registerFeatureHandlers();
 
-      // Inject bot instance into TelegramModerationNotifier
+      // Inject bot instance into shared notification services
       this.telegramModerationNotifier.setBot(this.bot);
+      this.telegramNotificationService.setBot(this.bot);
 
       this.logger.log('Bot service initialized successfully');
     } catch (err: unknown) {

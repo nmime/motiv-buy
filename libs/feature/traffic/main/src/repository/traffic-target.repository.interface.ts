@@ -1,4 +1,4 @@
-import { TrafficTargetEntity, TrafficTargetType, TrafficTargetStatus } from '@app/database';
+import { TrafficTargetEntity, TrafficTargetStatus, TrafficTargetType } from '@app/database';
 
 /**
  * Repository interface for traffic target operations

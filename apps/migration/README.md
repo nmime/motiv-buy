@@ -3,6 +3,35 @@
 Database migration management tool for the Motiv-Buy project, built following CLAUDE.md domain-driven architecture
 principles.
 
+## Quick Reference
+
+### Docker Commands (Local)
+
+```bash
+# Check migration status
+docker compose -f docker-compose.local.yml exec -u root api node dist/apps/migration/src/main.js status
+
+# Run pending migrations
+docker compose -f docker-compose.local.yml exec -u root api node dist/apps/migration/src/main.js up
+```
+
+### Docker Commands (Dev)
+
+```bash
+# Check migration status
+docker compose -f docker-compose.dev.yml exec -u root api node dist/apps/migration/src/main.js status
+
+# Run pending migrations
+docker compose -f docker-compose.dev.yml exec -u root api node dist/apps/migration/src/main.js up
+```
+
+### pnpm Scripts
+
+```bash
+pnpm run migration:status
+pnpm run migration:run
+```
+
 ## Overview
 
 This CLI application provides a comprehensive interface for managing database migrations using MikroORM. It follows the

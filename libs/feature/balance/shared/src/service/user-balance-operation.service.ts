@@ -7,17 +7,17 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { MikroORM, EntityManager } from '@mikro-orm/core';
-import { UserBalanceEntity, CurrencyEntity, CurrencyCode, TrafficOrderBalanceEntity } from '@app/database';
+import { EntityManager, MikroORM } from '@mikro-orm/core';
+import { CurrencyCode, CurrencyEntity, TrafficOrderBalanceEntity, UserBalanceEntity } from '@app/database';
 import {
   add,
-  subtract,
-  greaterThanOrEqual,
   decimal,
+  divide,
+  greaterThanOrEqual,
+  multiply,
+  subtract,
   toDbString,
   toDisplayString,
-  multiply,
-  divide,
 } from '@app/common-shared';
 
 /**

@@ -23,6 +23,8 @@ export * from './TrafficTarget.entity';
 export * from './TrafficOrder.entity';
 export * from './TrafficOrderBalance.entity';
 export * from './TrafficSource.entity';
+export * from './TrafficSourceBalance.entity';
+export * from './TrafficSourceBalanceHistory.entity';
 export * from './TrafficSourceCategory.entity';
 export * from './TrafficUser.entity';
 

@@ -12,7 +12,7 @@ import { AuthenticatedBotContext, BotContext, isAuthenticated } from '@app/featu
 import { TrafficOrderEntity, TrafficOrderStatus, UserBalanceHistoryEntity, UserEntity } from '@app/database';
 import { decimal, sum, toDisplayString, toNumber } from '@app/common-shared';
 import { MessageService } from '../../service/message.service';
-import { createStatisticsMenuKeyboard, createBackToStatisticsKeyboard } from './statistics.keyboards';
+import { createBackToStatisticsKeyboard, createStatisticsMenuKeyboard } from './statistics.keyboards';
 import { PaymentConfigService } from '@app/feature-payment-shared';
 
 interface UserStatistics {

@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { MikroORM, EntityManager as SqlEntityManager } from '@mikro-orm/postgresql';
+import { EntityManager as SqlEntityManager, MikroORM } from '@mikro-orm/postgresql';
 import { NotificationRepository, NotificationTargetType } from '@app/database';
 import { NotificationSenderService } from './notification-sender.service';
 
