@@ -4,7 +4,11 @@
 
 cd /opt/motiv-buy
 
-echo "==> Container Status:"
+echo "==> Infrastructure:"
+docker compose -f docker-compose.infra.yml ps
+
+echo ""
+echo "==> Applications:"
 docker compose -f docker-compose.local.yml ps
 
 echo ""

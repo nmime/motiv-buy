@@ -1,127 +1,50 @@
-# Server Setup Scripts
+# Scripts
 
-Automated unified script for complete server setup.
+## Deployment
 
----
-
-## 🚀 Quick Start
-
-### One Command Setup
-
+### Local Development
 ```bash
-# Staging
-scp scripts/setup-server.sh root@YOUR_IP:/root/ && \
-ssh root@YOUR_IP "bash /root/setup-server.sh staging"
+# Start infrastructure
+docker compose -f docker-compose.infra.yml up -d
 
-# Production
-scp scripts/setup-server.sh root@YOUR_IP:/root/ && \
-ssh root@YOUR_IP "bash /root/setup-server.sh production"
+# Run apps natively
+pnpm run dev:api
+pnpm run dev:bot
 ```
 
----
-
-## 📝 Usage
-
-The unified `setup-server.sh` script works for both staging and production with optional custom domains:
-
+### VPS Manual Deploy (git pull)
 ```bash
-sudo bash setup-server.sh [staging|production] [domain] [email]
-
-# Examples:
-bash setup-server.sh staging                              # Uses motivbuy.com
-bash setup-server.sh production example.com               # Custom domain
-bash setup-server.sh staging mydomain.com me@mydomain.com # Full custom
+./scripts/server-deploy.sh
 ```
 
-**What it does:**
+### Production (CI/CD)
+Uses `docker-compose.production.yml` with registry images.
+Triggered via GitHub Actions.
 
-- ✅ System updates with automatic security patches
-- ✅ Docker installation
-- ✅ User and permission setup
-- ✅ Firewall configuration (UFW)
-- ✅ Fail2ban for SSH protection
-- ✅ Nginx reverse proxy
-- ✅ SSL certificate setup (Let's Encrypt)
-- ✅ Auto-renewal configuration
-
-**Environment-specific:**
-
-- Staging: Less restrictive firewall, more retries for fail2ban
-- Production: Stricter security, rate-limiting on SSH, hardened SSL
-
----
-
-## 📋 Prerequisites
-
-- Ubuntu 22.04+ server
-- Root access via SSH
-- DNS records configured and propagated
-
----
-
-## 🔧 Available Scripts
-
-### setup-server.sh ⭐
-
-**Unified server setup script** (staging and production)
-
-**Usage:**
+## Server Management
 
 ```bash
-# Copy to server
-scp scripts/setup-server.sh root@YOUR_IP:/root/
-
-# Run for staging (default domain)
-ssh root@YOUR_IP "bash /root/setup-server.sh staging"
-
-# Run for production (default domain)
-ssh root@YOUR_IP "bash /root/setup-server.sh production"
-
-# With custom domain
-ssh root@YOUR_IP "bash /root/setup-server.sh staging example.com"
-
-# With custom domain and email
-ssh root@YOUR_IP "bash /root/setup-server.sh production example.com admin@example.com"
+./scripts/server-status.sh           # Check status
+./scripts/server-logs.sh [service]   # View logs (api, bot, postgres, redis, nats)
+./scripts/server-restart.sh [service] # Restart services
+./scripts/server-backup-db.sh        # Backup database
 ```
 
-### deploy-local.sh
+## Utilities
 
-**Local development helper**
+| Script | Purpose |
+|--------|---------|
+| `postgres-entrypoint.sh` | Auto-sync PostgreSQL password on container start |
+| `fix-postgres-auth.sh` | Manual PostgreSQL password fix |
+| `generate-nats-password.sh` | Generate bcrypt hash for NATS auth |
+| `prepare-nats-config.sh` | Prepare NATS config with env substitution |
+| `setup-server.sh` | Initial VPS setup |
+| `deploy-remote.sh` | CI/CD remote deployment script |
 
-**Usage:**
+## Docker Compose Files
 
-```bash
-./scripts/deploy-local.sh [start|stop|restart|logs|build|clean]
-```
-
-**Commands:**
-
-- `start` - Start all services
-- `stop` - Stop all services
-- `restart` - Restart all services
-- `logs` - View logs
-- `build` - Build Docker images
-- `clean` - Clean up Docker resources
-
----
-
-## 📚 Database Scripts
-
-### init-db.sql
-
-Production database initialization
-
-### init-db-dev.sql
-
-Development database with additional dev settings
-
-### seed-dev-data.sql/
-
-Development seed data for testing
-
----
-
-## 🔗 See Also
-
-- Main deployment guide: [docs/DEPLOY.md](../docs/DEPLOY.md)
-- Development guidelines: [CLAUDE.md](../CLAUDE.md)
+| File | Purpose |
+|------|---------|
+| `docker-compose.infra.yml` | Infrastructure (postgres, redis, nats) |
+| `docker-compose.local.yml` | Apps with local build (api, bot) |
+| `docker-compose.production.yml` | Apps with registry images |

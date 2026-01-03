@@ -9,13 +9,18 @@ cd /opt/motiv-buy
 echo "==> Pulling latest code..."
 git pull
 
-echo "==> Building and starting containers..."
-docker compose -f docker-compose.local.yml up -d --build api bot postgres redis nats
+echo "==> Starting infrastructure..."
+docker compose -f docker-compose.infra.yml up -d
+
+echo "==> Building and starting apps..."
+docker compose -f docker-compose.local.yml up -d --build
 
 echo "==> Running migrations..."
-docker compose -f docker-compose.local.yml exec -T -u root api node dist/apps/migration/src/main.js up || true
+sleep 3
+docker compose -f docker-compose.local.yml exec -T api node dist/apps/migration/src/main.js up || true
 
 echo "==> Status:"
+docker compose -f docker-compose.infra.yml ps
 docker compose -f docker-compose.local.yml ps
 
 echo "==> Done!"

@@ -1,0 +1,73 @@
+# Infrastructure Docker Compose
+# PostgreSQL, Redis, NATS
+# Usage: docker compose -f docker-compose.infra.yml up -d
+
+x-common-defaults: &common-defaults
+  restart: unless-stopped
+  networks:
+    - motiv-infra
+
+x-healthcheck-fast: &healthcheck-fast
+  interval: 10s
+  timeout: 3s
+  retries: 5
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: motiv-postgres
+    <<: *common-defaults
+    entrypoint: ['/scripts/postgres-entrypoint.sh']
+    command: ['postgres']
+    environment:
+      POSTGRES_DB: ${DB_NAME:-motiv_buy_dev}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: --auth-host=md5 --auth-local=md5
+    volumes:
+      - motiv-postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./scripts/postgres-entrypoint.sh:/scripts/postgres-entrypoint.sh:ro
+    ports:
+      - '${DB_PORT_EXTERNAL:-5432}:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-motiv_buy_dev}']
+      <<: *healthcheck-fast
+
+  redis:
+    image: redis:7-alpine
+    container_name: motiv-redis
+    <<: *common-defaults
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_dev_password}
+    volumes:
+      - motiv-redis-data:/data
+    ports:
+      - '${REDIS_PORT_EXTERNAL:-6379}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-redis_dev_password}', 'ping']
+      <<: *healthcheck-fast
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: motiv-nats
+    <<: *common-defaults
+    command: ['-js', '-sd=/data', '-m=8222']
+    volumes:
+      - motiv-nats-data:/data
+    ports:
+      - '${NATS_PORT_EXTERNAL:-4222}:4222'
+      - '${NATS_MONITOR_PORT:-8222}:8222'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8222/healthz']
+      <<: *healthcheck-fast
+
+volumes:
+  motiv-postgres-data:
+  motiv-redis-data:
+  motiv-nats-data:
+
+networks:
+  motiv-infra:
+    driver: bridge
+    name: motiv-infra

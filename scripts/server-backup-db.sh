@@ -13,8 +13,7 @@ FILE="$BACKUP_DIR/db_$(date +%Y%m%d_%H%M%S).sql.gz"
 mkdir -p $BACKUP_DIR
 
 echo "==> Creating backup..."
-docker compose -f docker-compose.local.yml exec -T postgres \
-  pg_dump -U $DB_USER $DB_NAME | gzip > $FILE
+docker exec motiv-postgres pg_dump -U $DB_USER $DB_NAME | gzip > $FILE
 
 echo "==> Backup created: $FILE"
 
