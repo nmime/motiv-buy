@@ -4,7 +4,11 @@ set -e
 # Custom entrypoint that ensures password is synced with environment variable
 # This solves the issue where existing PostgreSQL data has a different password
 
-PG_DATA="/var/lib/postgresql/data"
+# Find the actual data directory (varies by PG version)
+PG_DATA=$(find /var/lib/postgresql -name "pg_hba.conf" -exec dirname {} \; 2>/dev/null | head -1)
+if [ -z "$PG_DATA" ]; then
+    PG_DATA="/var/lib/postgresql/data"
+fi
 PG_HBA="$PG_DATA/pg_hba.conf"
 
 # If data directory exists (not first run), temporarily allow trust auth

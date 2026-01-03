@@ -32,8 +32,8 @@ echo -e "  User: ${DB_USER}"
 echo -e "  Password: ${DB_PASSWORD}"
 echo -e "  Database: ${DB_NAME}"
 
-# Detect PostgreSQL container (local compose uses 'postgres', dev uses 'postgres-dev')
-POSTGRES_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E "${PROJECT_NAME}.*postgres" | head -1)
+# Detect PostgreSQL container
+POSTGRES_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E "motiv-postgres|${PROJECT_NAME}.*postgres" | head -1)
 
 if [ -z "$POSTGRES_CONTAINER" ]; then
     echo -e "${RED}Error: No PostgreSQL container found running${NC}"
