@@ -28,19 +28,29 @@ process.on('warning', (warning) => {
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { BotModule } from './bot.module';
 import { BotService } from './service';
 import { createAppConfig } from '@app/common-shared';
 
 async function bootstrap() {
-  const app = await NestFactory.createApplicationContext(BotModule);
+  const app = await NestFactory.create<NestFastifyApplication>(BotModule, new FastifyAdapter({ logger: false }));
+
   const configService = app.get(ConfigService);
   const appConfig = createAppConfig(configService);
   const botService = app.get(BotService);
 
+  // Same API prefix as API service for consistency
+  const apiPrefix = 'api/v1';
+  app.setGlobalPrefix(apiPrefix);
+
   await botService.start();
 
+  const port = parseInt(process.env.BOT_PORT || '5502', 10);
+  await app.listen(port, '0.0.0.0');
+
   Logger.log('🤖 Telegram Bot Application is running');
+  Logger.log(`🏥 Health endpoint: http://0.0.0.0:${port}/${apiPrefix}/health`);
   Logger.log(`🌍 Environment: ${appConfig.nodeEnv}`);
 
   process.once('SIGINT', async () => {

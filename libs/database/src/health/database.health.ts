@@ -1,7 +1,7 @@
 import { unknownToError } from '@app/common-shared';
 import { Injectable } from '@nestjs/common';
 import { HealthIndicatorResult } from '@nestjs/terminus';
-import { DatabaseService } from '../service/database.service';
+import { DatabaseService } from '../service';
 
 /**
  * Database health indicator for NestJS Terminus

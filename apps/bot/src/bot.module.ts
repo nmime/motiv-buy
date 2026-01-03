@@ -9,8 +9,11 @@ import { PaymentMainModule, PaymentPollingService } from '@app/feature-payment-m
 import { BalanceMainModule } from '@app/feature-balance-main';
 import { CurrencyRateSchedulerService, CurrencySharedModule } from '@app/feature-currency-shared';
 import { AuthSharedModule } from '@app/feature-auth-shared';
+import { RedisModule } from '@app/common-redis';
+import { HealthModule } from '@app/common-health';
 import { BotService } from './service';
 import { ModerationCallbackHandler } from './handler';
+import { HealthController } from './health.controller';
 
 /**
  * Bot Application Module
@@ -44,6 +47,8 @@ import { ModerationCallbackHandler } from './handler';
         limit: 10,
       },
     ]),
+    RedisModule,
+    HealthModule,
     BotMainModule,
     BotSchedulerModule, // Bot-only event listeners and cron handlers
     CurrencySharedModule,
@@ -53,6 +58,7 @@ import { ModerationCallbackHandler } from './handler';
     AuthSharedModule,
     NotificationMainModule,
   ],
+  controllers: [HealthController],
   providers: [
     BotService,
     ModerationCallbackHandler,

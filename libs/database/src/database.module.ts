@@ -7,6 +7,7 @@ import 'reflect-metadata';
 import { DatabaseService } from './service/database.service';
 import { getDatabaseConfig } from './config/database.config';
 import { createMikroOrmConfig } from './config/mikro-orm.config';
+import { DatabaseHealthIndicator } from './health/database.health';
 import {
   CurrencyRateProviderRepository,
   CurrencyRatesHistoryRepository,
@@ -252,8 +253,9 @@ const repositoryClasses = [
       provide: DatabaseService,
       useFactory: () => new DatabaseService(getDatabaseConfig()),
     },
+    DatabaseHealthIndicator,
     ...repositoryProviders,
   ],
-  exports: [DatabaseService, MikroOrmModule, ...repositoryClasses],
+  exports: [DatabaseService, DatabaseHealthIndicator, MikroOrmModule, ...repositoryClasses],
 })
 export class DatabaseModule {}

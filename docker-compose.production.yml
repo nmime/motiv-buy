@@ -78,7 +78,7 @@ services:
     ports:
       - '${API_PORT_EXTERNAL}:${PORT}'
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:${PORT}/health']
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:${PORT}/api/v1/health']
       <<: *healthcheck-standard
     deploy:
       <<: *api-resources
@@ -96,8 +96,10 @@ services:
       - ${VPS_DEPLOY_PATH}/data/bot/logs:/app/logs
       - ${VPS_DEPLOY_PATH}/data/bot/temp:/app/temp
       - ${VPS_DEPLOY_PATH}/data/bot/sessions:/app/sessions
+    ports:
+      - '${BOT_PORT_EXTERNAL:-5502}:${BOT_PORT:-5502}'
     healthcheck:
-      test: ['CMD', 'pgrep', '-f', 'node']
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:${BOT_PORT:-5502}/api/v1/health']
       <<: *healthcheck-standard
     deploy:
       <<: *bot-resources

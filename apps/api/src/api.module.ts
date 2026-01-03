@@ -4,6 +4,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health.controller';
 import { DocsController } from './docs/docs.controller';
 import { DatabaseModule } from '@app/database';
+import { RedisModule } from '@app/common-redis';
+import { HealthModule } from '@app/common-health';
 import { AuthMainModule } from '@app/feature-auth-main';
 import { UserMainModule } from '@app/feature-user-main';
 import { BalanceMainModule } from '@app/feature-balance-main';
@@ -44,6 +46,8 @@ import { NotificationSharedModule } from '@app/feature-notification-shared';
       },
     ]),
     DatabaseModule,
+    RedisModule,
+    HealthModule,
     AuthMainModule,
     UserMainModule,
     BalanceMainModule,
