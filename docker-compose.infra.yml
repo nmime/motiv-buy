@@ -23,8 +23,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-motiv_buy_dev}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_HOST_AUTH_METHOD: md5
-      POSTGRES_INITDB_ARGS: --auth-host=md5 --auth-local=md5
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=scram-sha-256
     volumes:
       - motiv-postgres-data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro

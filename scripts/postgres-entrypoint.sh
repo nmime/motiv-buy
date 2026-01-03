@@ -5,18 +5,15 @@ set -e
 # This solves the issue where existing PostgreSQL data has a different password
 
 # Find the actual data directory (varies by PG version)
-PG_DATA=$(find /var/lib/postgresql -name "pg_hba.conf" -exec dirname {} \; 2>/dev/null | head -1)
-if [ -z "$PG_DATA" ]; then
-    PG_DATA="/var/lib/postgresql/data"
-fi
-PG_HBA="$PG_DATA/pg_hba.conf"
+PG_HBA=$(find /var/lib/postgresql -name "pg_hba.conf" 2>/dev/null | head -1)
 
-# If data directory exists (not first run), temporarily allow trust auth
-if [ -f "$PG_HBA" ]; then
+# If data directory exists (not first run), sync password
+if [ -n "$PG_HBA" ] && [ -f "$PG_HBA" ]; then
+    PG_DATA=$(dirname "$PG_HBA")
+
     # Backup and modify pg_hba.conf to trust local connections
     cp "$PG_HBA" "$PG_HBA.bak"
-    sed -i 's/md5/trust/g' "$PG_HBA"
-    sed -i 's/scram-sha-256/trust/g' "$PG_HBA"
+    sed -i 's/scram-sha-256/trust/g; s/md5/trust/g' "$PG_HBA"
 
     # Start password reset in background after postgres is ready
     {

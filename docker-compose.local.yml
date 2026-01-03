@@ -12,6 +12,7 @@ x-healthcheck-standard: &healthcheck-standard
   interval: 30s
   timeout: 10s
   retries: 3
+  start_period: 30s
 
 x-common-env: &common-env
   NODE_ENV: ${NODE_ENV:-development}
@@ -99,6 +100,9 @@ services:
       - ./data/bot/sessions:/app/sessions
     ports:
       - '${BOT_PORT_EXTERNAL:-5502}:${BOT_PORT:-5502}'
+    healthcheck:
+      test: ['CMD', 'pgrep', '-f', 'node']
+      <<: *healthcheck-standard
     deploy:
       <<: *bot-resources
 

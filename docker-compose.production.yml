@@ -12,6 +12,7 @@ x-healthcheck-standard: &healthcheck-standard
   interval: 30s
   timeout: 10s
   retries: 3
+  start_period: 30s
 
 x-common-env: &common-env
   NODE_ENV: ${NODE_ENV}
@@ -95,6 +96,9 @@ services:
       - ${VPS_DEPLOY_PATH}/data/bot/logs:/app/logs
       - ${VPS_DEPLOY_PATH}/data/bot/temp:/app/temp
       - ${VPS_DEPLOY_PATH}/data/bot/sessions:/app/sessions
+    healthcheck:
+      test: ['CMD', 'pgrep', '-f', 'node']
+      <<: *healthcheck-standard
     deploy:
       <<: *bot-resources
 

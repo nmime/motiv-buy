@@ -74,7 +74,7 @@ async function bootstrap() {
     .setDescription(
       'External API for traffic source integration.\n\n' +
         '**Authentication:** Pass your API key via `X-API-Key` header.\n\n' +
-        '📚 [Detailed HTML Documentation](docs/external/html)',
+        `📚 [Detailed HTML Documentation](/${appConfig.apiPrefix}/docs/external/html)`,
     )
     .setVersion('1.0')
     .addApiKey({ type: 'apiKey', name: 'X-API-Key', in: 'header' }, 'X-API-Key')
