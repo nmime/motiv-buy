@@ -1,0 +1,261 @@
+import { Injectable } from '@nestjs/common';
+import { EntityManager } from '@mikro-orm/core';
+import { PaymentProviderEntity, ProviderStatus } from '../entity/PaymentProvider.entity';
+import { PaymentProvider } from '../enum';
+
+/**
+ * Repository for PaymentProvider operations
+ * Handles database queries for payment provider configuration
+ */
+@Injectable()
+export class PaymentProviderRepository {
+  constructor(private readonly em: EntityManager) {}
+
+  /**
+   * Find provider by type
+   */
+  async findByProvider(provider: PaymentProvider): Promise<PaymentProviderEntity | null> {
+    const em = this.em.fork();
+
+    return em.findOne(PaymentProviderEntity, {
+      provider,
+      isEnabled: true,
+    });
+  }
+
+  /**
+   * Get all active providers
+   */
+  async findAllActive(): Promise<PaymentProviderEntity[]> {
+    const em = this.em.fork();
+
+    return em.find(
+      PaymentProviderEntity,
+      {
+        isEnabled: true,
+        status: ProviderStatus.Active,
+      },
+      {
+        orderBy: { priority: 'ASC' },
+      },
+    );
+  }
+
+  /**
+   * Get all enabled providers (including maintenance mode)
+   */
+  async findAllEnabled(): Promise<PaymentProviderEntity[]> {
+    const em = this.em.fork();
+
+    return em.find(
+      PaymentProviderEntity,
+      {
+        isEnabled: true,
+      },
+      {
+        orderBy: { priority: 'ASC' },
+      },
+    );
+  }
+
+  /**
+   * Get providers that support deposits
+   */
+  async findDepositProviders(): Promise<PaymentProviderEntity[]> {
+    const em = this.em.fork();
+
+    return em.find(
+      PaymentProviderEntity,
+      {
+        isEnabled: true,
+        status: ProviderStatus.Active,
+        supportsDeposits: true,
+      },
+      {
+        orderBy: { priority: 'ASC' },
+      },
+    );
+  }
+
+  /**
+   * Get providers that support withdrawals
+   */
+  async findWithdrawalProviders(): Promise<PaymentProviderEntity[]> {
+    const em = this.em.fork();
+
+    return em.find(
+      PaymentProviderEntity,
+      {
+        isEnabled: true,
+        status: ProviderStatus.Active,
+        supportsWithdrawals: true,
+      },
+      {
+        orderBy: { priority: 'ASC' },
+      },
+    );
+  }
+
+  /**
+   * Get providers with Telegram integration
+   */
+  async findTelegramProviders(): Promise<PaymentProviderEntity[]> {
+    const em = this.em.fork();
+
+    return em.find(
+      PaymentProviderEntity,
+      {
+        isEnabled: true,
+        status: ProviderStatus.Active,
+        supportsTelegramIntegration: true,
+      },
+      {
+        orderBy: { priority: 'ASC' },
+      },
+    );
+  }
+
+  /**
+   * Get providers with fiat conversion support
+   */
+  async findFiatProviders(): Promise<PaymentProviderEntity[]> {
+    const em = this.em.fork();
+
+    return em.find(
+      PaymentProviderEntity,
+      {
+        isEnabled: true,
+        status: ProviderStatus.Active,
+        supportsFiatConversion: true,
+      },
+      {
+        orderBy: { priority: 'ASC' },
+      },
+    );
+  }
+
+  /**
+   * Create or update provider configuration
+   */
+  async upsert(
+    data: Required<Pick<PaymentProviderEntity, 'provider' | 'displayName' | 'providerType'>> &
+      Partial<Omit<PaymentProviderEntity, 'provider' | 'displayName' | 'providerType'>>,
+  ): Promise<PaymentProviderEntity> {
+    const em = this.em.fork();
+    let entity = await em.findOne(PaymentProviderEntity, {
+      provider: data.provider,
+    });
+
+    if (entity) {
+      // Update existing
+      em.assign(entity, data);
+    } else {
+      // Create new using entity constructor which properly handles defaults
+      entity = new PaymentProviderEntity(data as ConstructorParameters<typeof PaymentProviderEntity>[0]);
+      em.persist(entity);
+    }
+
+    await em.flush();
+
+    return entity;
+  }
+
+  /**
+   * Update provider status
+   */
+  async updateStatus(provider: PaymentProvider, status: ProviderStatus): Promise<PaymentProviderEntity | null> {
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
+
+    if (!entity) {
+      return null;
+    }
+
+    entity.status = status;
+    await em.flush();
+
+    return entity;
+  }
+
+  /**
+   * Enable/disable provider
+   */
+  async setEnabled(provider: PaymentProvider, enabled: boolean): Promise<PaymentProviderEntity | null> {
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
+
+    if (!entity) {
+      return null;
+    }
+
+    entity.isEnabled = enabled;
+    await em.flush();
+
+    return entity;
+  }
+
+  /**
+   * Update provider priority
+   */
+  async updatePriority(provider: PaymentProvider, priority: number): Promise<PaymentProviderEntity | null> {
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
+
+    if (!entity) {
+      return null;
+    }
+
+    entity.priority = priority;
+    await em.flush();
+
+    return entity;
+  }
+
+  /**
+   * Update reliability score
+   */
+  async updateReliabilityScore(provider: PaymentProvider, score: number): Promise<PaymentProviderEntity | null> {
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
+
+    if (!entity) {
+      return null;
+    }
+
+    entity.reliabilityScore = Math.max(0, Math.min(100, score));
+    await em.flush();
+
+    return entity;
+  }
+
+  /**
+   * Get provider configuration with relationships
+   */
+  async findWithRelations(provider: PaymentProvider): Promise<PaymentProviderEntity | null> {
+    const em = this.em.fork();
+
+    return em.findOne(
+      PaymentProviderEntity,
+      { provider },
+      {
+        populate: ['currencySupport', 'routingRules'],
+      },
+    );
+  }
+
+  /**
+   * Delete provider configuration (use with caution)
+   */
+  async delete(provider: PaymentProvider): Promise<boolean> {
+    const em = this.em.fork();
+    const entity = await em.findOne(PaymentProviderEntity, { provider });
+
+    if (!entity) {
+      return false;
+    }
+
+    await em.removeAndFlush(entity);
+
+    return true;
+  }
+}

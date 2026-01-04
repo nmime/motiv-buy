@@ -1,0 +1,451 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+          - both
+        default: 'staging'
+      ref:
+        description: 'Branch or tag to deploy (defaults to branch from which workflow was triggered)'
+        required: false
+        default: ''
+
+concurrency:
+  group: deployment-${{ inputs.environment }}-${{ inputs.ref || github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOCKER_REGISTRY: ghcr.io
+
+jobs:
+  # ==============================================
+  # Job 1: Validate
+  # ==============================================
+  validate:
+    name: Validate
+    runs-on: [self-hosted, linux]
+    outputs:
+      ref-name: ${{ steps.ref.outputs.name }}
+      commit-sha: ${{ steps.ref.outputs.sha }}
+      deploy-staging: ${{ steps.check.outputs.staging }}
+      deploy-production: ${{ steps.check.outputs.production }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Extract ref name and commit SHA
+        id: ref
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ inputs.ref }}" ]]; then
+            REF_NAME="${{ inputs.ref }}"
+            echo "📌 Deploying explicitly specified ref: $REF_NAME"
+          else
+            REF_NAME=${GITHUB_REF#refs/heads/}
+            echo "📌 Deploying from workflow trigger branch: $REF_NAME"
+            echo "💡 Tip: To deploy a different branch, specify it in the 'ref' input field"
+          fi
+          SANITIZED_REF=$(echo "$REF_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "name=$SANITIZED_REF" >> $GITHUB_OUTPUT
+          echo "original=$REF_NAME" >> $GITHUB_OUTPUT
+          echo "sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "📍 Commit SHA: $COMMIT_SHA"
+
+      - name: Validate deployment target
+        id: check
+        run: |
+          set -euo pipefail
+          ENV="${{ inputs.environment }}"
+          REF="${{ steps.ref.outputs.original }}"
+
+          # Set deployment flags based on environment
+          if [[ "$ENV" == "production" ]] || [[ "$ENV" == "both" ]]; then
+            echo "production=true" >> $GITHUB_OUTPUT
+          else
+            echo "production=false" >> $GITHUB_OUTPUT
+          fi
+
+          if [[ "$ENV" == "staging" ]] || [[ "$ENV" == "both" ]]; then
+            echo "staging=true" >> $GITHUB_OUTPUT
+          else
+            echo "staging=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "✅ Validation passed for environment: $ENV (ref: $REF)"
+
+  # ==============================================
+  # Job 2: Build and Push Docker Images
+  # ==============================================
+  build:
+    name: Build & Push (All Apps)
+    runs-on: [self-hosted, linux]
+    needs: validate
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ALL apps in one stage (Nx deduplicates libs)
+        run: |
+          set -euo pipefail
+          echo "🏗️  Building shared dependencies and ALL apps in optimized stages..."
+          echo "📌 Using commit SHA: ${{ needs.validate.outputs.commit-sha }}"
+          echo "⚠️  Disabling build cache to ensure fresh build with latest code"
+
+          # Step 1: Build deps stage (npm install) - NO CACHE
+          echo "📦 Step 1/2: Installing dependencies (no cache)..."
+          docker buildx build \
+            --target deps \
+            --no-cache \
+            -f Dockerfile . || exit 1
+
+          # Step 2: Build all-apps-builder stage (Nx builds all apps + libs ONCE) - NO CACHE
+          echo "🏗️  Step 2/2: Building ALL apps (Nx will deduplicate shared libraries, no cache)..."
+          docker buildx build \
+            --target all-apps-builder \
+            --no-cache \
+            -f Dockerfile . || exit 1
+
+          echo "✅ All apps built successfully with deduplicated libraries (fresh build)!"
+
+      - name: Create and push final production images in parallel
+        run: |
+          set -euo pipefail
+          echo "🐳 Creating final production images (reusing single build output)..."
+
+          APPS=("api" "bot" "migration")
+          declare -A PIDS
+
+          # Determine which tags to use based on deployment target
+          STAGING="${{ needs.validate.outputs.deploy-staging }}"
+          PRODUCTION="${{ needs.validate.outputs.deploy-production }}"
+
+          # Launch all final image builds in parallel
+          # Each copies from the same all-apps-builder stage (built once above)
+          for APP in "${APPS[@]}"; do
+            echo "📦 Creating production image for $APP..."
+            (
+              TAGS=""
+
+              # Add staging tags if deploying to staging
+              if [[ "$STAGING" == "true" ]]; then
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:staging"
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:${{ needs.validate.outputs.ref-name }}"
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:staging-${{ needs.validate.outputs.commit-sha }}"
+              fi
+
+              # Add production tags if deploying to production
+              if [[ "$PRODUCTION" == "true" ]]; then
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:latest"
+                TAGS="$TAGS --tag ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/motiv-buy-$APP:prod-${{ needs.validate.outputs.commit-sha }}"
+              fi
+
+              docker buildx build \
+                --build-arg APP_NAME=$APP \
+                $TAGS \
+                --push \
+                -f Dockerfile . || exit 1
+            ) &
+            PIDS[$APP]=$!
+          done
+
+          # Wait and check results
+          FAILED=()
+          for APP in "${APPS[@]}"; do
+            echo "⏳ Waiting for $APP (PID: ${PIDS[$APP]})..."
+            if wait ${PIDS[$APP]}; then
+              echo "✅ $APP succeeded"
+            else
+              echo "❌ $APP failed"
+              FAILED+=($APP)
+            fi
+          done
+
+          # Report results
+          if [ ${#FAILED[@]} -ne 0 ]; then
+            echo "❌ Failed builds: ${FAILED[*]}"
+            exit 1
+          fi
+
+          echo ""
+          echo "======================================"
+          echo "✅ All images pushed successfully"
+          echo "======================================"
+          echo "Built from single Nx run - zero duplicate library builds!"
+          echo "📋 Tagged for: staging=$STAGING, production=$PRODUCTION"
+
+  # ==============================================
+  # Job 3: Deploy to Staging
+  # ==============================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: [self-hosted, linux]
+    needs: [validate, build]
+    if: needs.validate.outputs.deploy-staging == 'true'
+    environment: staging
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          clean: true # Clean working directory before checkout
+          fetch-depth: 0 # Fetch all history to ensure latest commits
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Test SSH Connection
+        run: |
+          set -euo pipefail
+          echo "🔍 Testing SSH connection to staging server..."
+          if ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=10 \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} "echo 'SSH connection successful'"; then
+            echo "✅ SSH connection test passed"
+          else
+            echo "❌ SSH connection test failed"
+            exit 1
+          fi
+
+      - name: Download fresh deploy script from Git
+        run: |
+          echo "============================================"
+          echo "📥 Downloading deploy script from Git..."
+          echo "============================================"
+
+          # Download WITHOUT set -x to avoid interfering with redirection
+          git show ${{ github.ref }}:scripts/deploy.sh > /tmp/deploy-fresh.sh
+          DOWNLOAD_EXIT_CODE=$?
+
+          if [ $DOWNLOAD_EXIT_CODE -ne 0 ]; then
+            echo "❌ git show failed with exit code: $DOWNLOAD_EXIT_CODE"
+            exit 1
+          fi
+
+          chmod +x /tmp/deploy-fresh.sh
+
+          echo ""
+          echo "Verifying downloaded script..."
+          ACTUAL_LINES=$(wc -l < /tmp/deploy-fresh.sh)
+          EXPECTED_LINES=396  # Updated for piped .env generation (simpler)
+
+          ls -lh /tmp/deploy-fresh.sh
+          echo "Script has $ACTUAL_LINES lines (expected ~$EXPECTED_LINES)"
+
+          if [ "$ACTUAL_LINES" -lt "$EXPECTED_LINES" ]; then
+            echo "⚠️  WARNING: Script appears truncated!"
+            echo "First 10 lines:"
+            head -10 /tmp/deploy-fresh.sh
+            echo "..."
+            echo "Last 10 lines:"
+            tail -10 /tmp/deploy-fresh.sh
+            exit 1
+          fi
+
+          echo ""
+          echo "First 10 lines of script:"
+          head -10 /tmp/deploy-fresh.sh
+          echo "..."
+          echo "Lines 320-340 (remote script execution):"
+          sed -n '320,340p' /tmp/deploy-fresh.sh
+
+          if grep -q "🚀 Starting" /tmp/deploy-fresh.sh; then
+            echo ""
+            echo "✅ Deployment start marker found in script"
+          else
+            echo ""
+            echo "⚠️  Deployment marker NOT found - script may be corrupted"
+            exit 1
+          fi
+
+          echo "✅ Script downloaded and verified successfully"
+          echo "============================================"
+
+      - name: Deploy
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH }}
+          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+          DOCKER_IMAGE_PREFIX: ${{ github.repository_owner }}/motiv-buy
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          REDIS_MODE: default
+          REDIS_HOSTS: redis:6379
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CRYPTO_BOT_API_TOKEN: ${{ secrets.CRYPTO_BOT_API_TOKEN }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
+          NATS_USER: ${{ vars.NATS_USER }}
+          NATS_PASSWORD: ${{ secrets.NATS_PASSWORD }}
+        run: |
+          echo "============================================"
+          echo "🚀 Executing deployment script..."
+          echo "Script path: /tmp/deploy-fresh.sh"
+          echo "============================================"
+          /tmp/deploy-fresh.sh staging
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
+
+  # ==============================================
+  # Job 4: Deploy to Production
+  # ==============================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: [self-hosted, linux]
+    needs: [validate, build]
+    if: needs.validate.outputs.deploy-production == 'true'
+    environment: production
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Test SSH Connection
+        run: |
+          set -euo pipefail
+          echo "🔍 Testing SSH connection to production server..."
+          if ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=10 \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} "echo 'SSH connection successful'"; then
+            echo "✅ SSH connection test passed"
+          else
+            echo "❌ SSH connection test failed - Please check:"
+            echo "  1. Server is online and accessible"
+            echo "  2. SSH service is running on port 22"
+            echo "  3. Firewall allows SSH connections"
+            echo "  4. VPS_HOST variable is set correctly in production environment"
+            exit 1
+          fi
+
+      - name: Deploy
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH }}
+          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+          DOCKER_IMAGE_PREFIX: ${{ github.repository_owner }}/motiv-buy
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          REDIS_MODE: default
+          REDIS_HOSTS: redis:6379
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CRYPTO_BOT_API_TOKEN: ${{ secrets.CRYPTO_BOT_API_TOKEN }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
+          NATS_USER: ${{ vars.NATS_USER }}
+          NATS_PASSWORD: ${{ secrets.NATS_PASSWORD }}
+        run: ./scripts/deploy.sh production
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
+
+  # ==============================================
+  # Job 5: Deployment Summary
+  # ==============================================
+  summary:
+    name: Summary
+    runs-on: [self-hosted, linux]
+    needs: [validate, deploy-staging, deploy-production]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "### 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ref**: ${{ needs.validate.outputs.ref-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ needs.validate.outputs.commit-sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Staging status
+          if [[ "${{ needs.validate.outputs.deploy-staging }}" == "true" ]]; then
+            echo "**Staging Deployment**" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
+              echo "- ✅ Deployed successfully" >> $GITHUB_STEP_SUMMARY
+              echo "- API: https://api.st.motivbuy.com" >> $GITHUB_STEP_SUMMARY
+              echo "- Health: https://api.st.motivbuy.com/health" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ Deployment failed" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Production status
+          if [[ "${{ needs.validate.outputs.deploy-production }}" == "true" ]]; then
+            echo "**Production Deployment**" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+              echo "- ✅ Deployed successfully" >> $GITHUB_STEP_SUMMARY
+              echo "- API: https://api.motivbuy.com" >> $GITHUB_STEP_SUMMARY
+              echo "- Health: https://api.motivbuy.com/health" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ Deployment failed" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi

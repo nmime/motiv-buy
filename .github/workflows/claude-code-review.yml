@@ -1,0 +1,35 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    # Uncomment to limit to specific files:
+    # paths: ["src/**/*.{ts,tsx,js,jsx}"]
+
+jobs:
+  claude-review:
+    # Uncomment to filter by PR author/contributor type:
+    # if: contains(fromJson('["user1", "user2"]'), github.event.pull_request.user.login)
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Review PR per CLAUDE.md: quality, bugs, performance, security, tests.
+
+            Be concise - reduce verbosity, skip fluff, focus on actionable issues only.
+            Post using: gh pr comment
+
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'

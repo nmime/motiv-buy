@@ -1,0 +1,143 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { EntityManager, MikroORM, RequestContext } from '@mikro-orm/core';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { getErrorMessage, toError } from '@app/common-shared';
+import { createMikroOrmConfig, DatabaseConfig } from '../config';
+
+@Injectable()
+export class DatabaseService {
+  private readonly logger = new Logger(DatabaseService.name);
+  private orm!: MikroORM;
+  private isConnected = false;
+  private config!: DatabaseConfig;
+
+  constructor(config?: DatabaseConfig) {
+    if (config) {
+      this.config = config;
+    }
+  }
+
+  async initialize(): Promise<void> {
+    try {
+      const mikroOrmConfig = createMikroOrmConfig(this.config);
+      this.orm = await MikroORM.init(mikroOrmConfig);
+      this.isConnected = true;
+      this.logger.log('Database connection established');
+
+      const migrator = this.orm.getMigrator();
+      await migrator.up();
+      this.logger.log('Database migrations applied');
+    } catch (err: unknown) {
+      const message = getErrorMessage(err);
+      this.logger.error('Database connection failed:', message);
+
+      throw toError(err);
+    }
+  }
+
+  getORM(): MikroORM {
+    if (!this.orm || !this.isConnected) {
+      throw new Error('Database not initialized. Call initialize() first.');
+    }
+
+    return this.orm;
+  }
+
+  getEntityManager(): EntityManager {
+    return this.getORM().em;
+  }
+
+  async close(): Promise<void> {
+    if (this.orm) {
+      await this.orm.close();
+      this.isConnected = false;
+      this.logger.log('Database connection closed');
+    }
+  }
+
+  async healthCheck(): Promise<{
+    status: 'healthy' | 'unhealthy';
+    connected: boolean;
+    uptime: number;
+    type: string;
+  }> {
+    try {
+      const em = this.getEntityManager();
+      await em.getConnection().execute('SELECT 1');
+
+      return {
+        status: 'healthy',
+        connected: true,
+        uptime: process.uptime(),
+        type: this.config.type,
+      };
+    } catch (err: unknown) {
+      const message = getErrorMessage(err);
+      this.logger.error('Database health check failed:', message);
+
+      return {
+        status: 'unhealthy',
+        connected: false,
+        uptime: process.uptime(),
+        type: this.config.type,
+      };
+    }
+  }
+
+  createRequestContext() {
+    return async (_request: FastifyRequest, _reply: FastifyReply, done: () => void) => {
+      RequestContext.create(this.getEntityManager(), done);
+    };
+  }
+
+  async transaction<T>(callback: (em: EntityManager) => Promise<T>): Promise<T> {
+    const em = this.getEntityManager();
+
+    return em.transactional(callback);
+  }
+
+  async runMigrations(): Promise<void> {
+    const migrator = this.orm.getMigrator();
+    await migrator.up();
+  }
+
+  async createMigration(name?: string): Promise<void> {
+    const migrator = this.orm.getMigrator();
+    const migration = await migrator.createMigration(name);
+    this.logger.log(`Migration created: ${migration.fileName}`);
+  }
+
+  async getMigrationStatus(): Promise<{
+    executed: Array<{ name: string; executedAt?: Date }>;
+    pending: Array<{ name: string }>;
+  }> {
+    const migrator = this.orm.getMigrator();
+    const [executed, pending] = await Promise.all([migrator.getExecutedMigrations(), migrator.getPendingMigrations()]);
+
+    return { executed, pending };
+  }
+
+  async rollbackMigration(): Promise<void> {
+    const migrator = this.orm.getMigrator();
+    await migrator.down();
+    this.logger.log('Last migration rolled back');
+  }
+
+  async createSchema(): Promise<void> {
+    const generator = this.orm.getSchemaGenerator();
+    await generator.createSchema();
+    this.logger.log('Database schema created');
+  }
+
+  async updateSchema(): Promise<void> {
+    const generator = this.orm.getSchemaGenerator();
+    await generator.updateSchema();
+    this.logger.log('Database schema updated');
+  }
+
+  async dropSchema(): Promise<void> {
+    const generator = this.orm.getSchemaGenerator();
+    await generator.dropSchema();
+    this.logger.log('Database schema dropped');
+  }
+}

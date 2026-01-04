@@ -1,0 +1,12 @@
+packages:
+  - packages/*
+  - libs/*
+  - apps/*
+
+ignoredBuiltDependencies:
+  - '@nestjs/core'
+  - '@parcel/watcher'
+  - '@scarf/scarf'
+  - msgpackr-extract
+  - nx
+  - unrs-resolver

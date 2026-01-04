@@ -1,0 +1,139 @@
+# Application Docker Compose (Production - Registry Images)
+# API, Bot, Monitoring
+# Prerequisites: docker compose -f docker-compose.infra.yml up -d
+# Usage: docker compose -f docker-compose.production.yml up -d
+
+x-common-defaults: &common-defaults
+  restart: unless-stopped
+  networks:
+    - motiv-infra
+
+x-healthcheck-standard: &healthcheck-standard
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s
+
+x-common-env: &common-env
+  NODE_ENV: ${NODE_ENV}
+  PROJECT_NAME: ${PROJECT_NAME}
+  ENV: ${ENV}
+
+x-db-env: &db-env
+  DB_HOST: motiv-postgres
+  DB_PORT: 5432
+  DB_NAME: ${DB_NAME}
+  DB_USER: ${DB_USER}
+  DB_PASSWORD: ${DB_PASSWORD}
+
+x-redis-env: &redis-env
+  REDIS_MODE: ${REDIS_MODE}
+  REDIS_HOSTS: motiv-redis:6379
+  REDIS_HOST: motiv-redis
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+x-nats-env: &nats-env
+  NATS_URL: nats://motiv-nats:4222
+  NATS_CLIENT_NAME: ${PROJECT_NAME}-app
+  NATS_USER: ${NATS_USER}
+  NATS_PASSWORD: ${NATS_PASSWORD}
+
+x-api-resources: &api-resources
+  resources:
+    limits:
+      cpus: '1.0'
+      memory: 512M
+    reservations:
+      cpus: '0.5'
+      memory: 256M
+
+x-bot-resources: &bot-resources
+  resources:
+    limits:
+      cpus: '0.5'
+      memory: 256M
+    reservations:
+      cpus: '0.25'
+      memory: 128M
+
+services:
+  api:
+    image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_PREFIX}-api:${IMAGE_TAG}
+    container_name: ${PROJECT_NAME}-api-${ENV}
+    <<: *common-defaults
+    environment:
+      <<: [*common-env, *db-env, *redis-env, *nats-env]
+      PORT: ${PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      LOG_LEVEL: ${LOG_LEVEL}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
+      CURRENCY_RATE_SCHEDULER_ENABLED: 'false'
+    volumes:
+      - ${VPS_DEPLOY_PATH}/data/api/logs:/app/logs
+      - ${VPS_DEPLOY_PATH}/data/api/uploads:/app/uploads
+      - ${VPS_DEPLOY_PATH}/data/api/temp:/app/temp
+    ports:
+      - '${API_PORT_EXTERNAL}:${PORT}'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:${PORT}/api/v1/health']
+      <<: *healthcheck-standard
+    deploy:
+      <<: *api-resources
+
+  bot:
+    image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_PREFIX}-bot:${IMAGE_TAG}
+    container_name: ${PROJECT_NAME}-bot-${ENV}
+    <<: *common-defaults
+    environment:
+      <<: [*common-env, *db-env, *redis-env, *nats-env]
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BOT_INSTANCE_ENABLED: 'true'
+      API_BASE_URL: http://api:${PORT}
+      LOG_LEVEL: ${LOG_LEVEL}
+    volumes:
+      - ${VPS_DEPLOY_PATH}/data/bot/logs:/app/logs
+      - ${VPS_DEPLOY_PATH}/data/bot/temp:/app/temp
+      - ${VPS_DEPLOY_PATH}/data/bot/sessions:/app/sessions
+    ports:
+      - '${BOT_PORT_EXTERNAL:-5502}:${BOT_PORT:-5502}'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:${BOT_PORT:-5502}/api/v1/health']
+      <<: *healthcheck-standard
+    deploy:
+      <<: *bot-resources
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ${PROJECT_NAME}-prometheus-${ENV}
+    <<: *common-defaults
+    volumes:
+      - ./config/prometheus/prometheus-prod.yml:/etc/prometheus/prometheus.yml:ro
+      - ${VPS_DEPLOY_PATH}/data/prometheus:/prometheus
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ${PROJECT_NAME}-grafana-${ENV}
+    <<: *common-defaults
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - ${VPS_DEPLOY_PATH}/data/grafana:/var/lib/grafana
+    ports:
+      - '${GRAFANA_PORT:-3002}:3000'
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+networks:
+  motiv-infra:
+    external: true
+    name: motiv-infra

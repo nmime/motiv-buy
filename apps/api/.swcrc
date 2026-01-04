@@ -1,0 +1,28 @@
+{
+  "jsc": {
+    "target": "es2022",
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true,
+      "tsx": false
+    },
+    "transform": {
+      "legacyDecorator": true,
+      "decoratorMetadata": true
+    },
+    "keepClassNames": true,
+    "loose": false,
+    "paths": {
+      "@app/database": ["../../libs/database/src/index.ts"],
+      "@app/feature-auth-main": ["../../libs/feature/auth/main/src/index.ts"],
+      "@app/feature-user-main": ["../../libs/feature/user/main/src/index.ts"],
+      "@app/feature-balance-main": ["../../libs/feature/balance/main/src/index.ts"],
+      "@app/feature-statistic-main": ["../../libs/feature/statistic/main/src/index.ts"]
+    }
+  },
+  "module": {
+    "type": "commonjs"
+  },
+  "sourceMaps": true,
+  "minify": false
+}

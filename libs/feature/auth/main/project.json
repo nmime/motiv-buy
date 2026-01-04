@@ -1,0 +1,46 @@
+{
+  "name": "@app/feature-auth-main",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/feature/auth/main/src",
+  "projectType": "library",
+  "tags": ["scope:auth", "type:feature", "layer:main"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/feature/auth/main",
+        "main": "libs/feature/auth/main/src/index.ts",
+        "tsConfig": "libs/feature/auth/main/tsconfig.lib.json",
+        "assets": [],
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {
+              "afterDeclarations": true
+            }
+          }
+        ]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/feature/auth/main/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/feature/auth/main/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

@@ -1,0 +1,285 @@
+import { Injectable } from '@nestjs/common';
+import {
+  TransactionStatus,
+  TransactionType,
+  UserBalanceHistoryRepository,
+  UserEntity,
+  UserRepository,
+  UserSettingsRepository,
+} from '@app/database';
+import { AsyncResult, multiply, sum, toNumber, unknownToError } from '@app/common-shared';
+import { Err, Ok } from 'ts-results';
+import { InternalException } from '@app/common-exception';
+import {
+  NotificationSettingsData,
+  ReferralLinkData,
+  ReferralStatsData,
+  UpdateNotificationSettingsData,
+  UserReferralData,
+} from '../type';
+
+/**
+ * User service - business logic implementation
+ */
+@Injectable()
+export class UserService {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly userBalanceHistoryRepository: UserBalanceHistoryRepository,
+    private readonly userSettingsRepository: UserSettingsRepository,
+  ) {}
+
+  /**
+   * Find user by ID
+   */
+  async findById(id: string): AsyncResult<UserEntity, InternalException> {
+    try {
+      const user = await this.userRepository.findOne({ id });
+      if (!user) {
+        return Err(new InternalException({ detail: `User with ID ${id} not found` }));
+      }
+
+      return Ok(user);
+    } catch (error: unknown) {
+      const errorMessage = unknownToError(error);
+
+      return Err(new InternalException({ detail: `Failed to find user: ${errorMessage}` }));
+    }
+  }
+
+  /**
+   * Find user by Telegram ID
+   */
+  async getUserByTelegramId(telegramId: string): AsyncResult<UserEntity, InternalException> {
+    try {
+      const user = await this.userRepository.findOne({ telegramId });
+      if (!user) {
+        return Err(new InternalException({ detail: `User with Telegram ID ${telegramId} not found` }));
+      }
+
+      return Ok(user);
+    } catch (error: unknown) {
+      const errorMessage = unknownToError(error);
+
+      return Err(new InternalException({ detail: `Failed to find user by Telegram ID: ${errorMessage}` }));
+    }
+  }
+
+  /**
+   * Update user's last active timestamp
+   */
+  async updateLastActive(id: string): AsyncResult<void, InternalException> {
+    try {
+      const user = await this.userRepository.findOne({ id });
+      if (!user) {
+        return Err(new InternalException({ detail: `User with ID ${id} not found` }));
+      }
+
+      await this.userRepository.updateLastActive(user.telegramId);
+
+      return Ok(undefined);
+    } catch (error: unknown) {
+      const errorMessage = unknownToError(error);
+
+      return Err(new InternalException({ detail: `Failed to update last active: ${errorMessage}` }));
+    }
+  }
+
+  /**
+   * Get referral statistics for user
+   */
+  async getReferralStats(userId: string): AsyncResult<ReferralStatsData, InternalException> {
+    const user = await this.userRepository.findOne({ id: userId });
+    if (!user) {
+      return Err(new InternalException({ detail: 'Internal server error occurred' }));
+    }
+
+    // Get users who were referred by this user
+    const referredUsers = await this.userRepository.count({ referredBy: user.telegramId });
+
+    // Calculate total earnings from referrals
+    const totalEarnings = await this.calculateReferralEarnings(userId);
+
+    return Ok({
+      totalReferrals: referredUsers,
+      totalEarnings,
+    });
+  }
+
+  /**
+   * Get referral link for user
+   */
+  async getReferralLink(userId: string): AsyncResult<ReferralLinkData, InternalException> {
+    const user = await this.userRepository.findOne({ id: userId });
+    if (!user) {
+      return Err(new InternalException({ detail: 'Internal server error occurred' }));
+    }
+
+    // Generate referral code based on telegram ID
+    const referralCode = `ref_${user.telegramId}`;
+    const referralLink = `https://t.me/MotivBuyBot?start=${referralCode}`;
+
+    return Ok({
+      telegramMessage: `Join MotivBuy using my referral link: ${referralLink}`,
+      link: referralLink,
+    });
+  }
+
+  /**
+   * Get notification settings for user
+   */
+  async getNotificationSettings(userId: string): AsyncResult<NotificationSettingsData, InternalException> {
+    const user = await this.userRepository.findOne({ id: userId });
+    if (!user) {
+      return Err(new InternalException({ detail: 'Internal server error occurred' }));
+    }
+
+    const limitSetting = await this.userSettingsRepository.findOne({
+      user: userId,
+      key: 'limitNotificationsEnabled',
+    });
+
+    const inactivitySetting = await this.userSettingsRepository.findOne({
+      user: userId,
+      key: 'inactivityNotificationsEnabled',
+    });
+
+    return Ok({
+      limitNotificationsEnabled: (limitSetting?.getValue() as boolean) ?? true,
+      inactivityNotificationsEnabled: (inactivitySetting?.getValue() as boolean) ?? true,
+    });
+  }
+
+  /**
+   * Update notification settings for user
+   */
+  async updateNotificationSettings(
+    userId: string,
+    settings: UpdateNotificationSettingsData,
+  ): AsyncResult<NotificationSettingsData, InternalException> {
+    const user = await this.userRepository.findOne({ id: userId });
+    if (!user) {
+      return Err(new InternalException({ detail: 'Internal server error occurred' }));
+    }
+
+    /**
+     * NOTE: User Settings Persistence - Deferred Implementation
+     *
+     * Current behavior: Returns input values without persistence
+     * Settings are not persisted between sessions
+     *
+     * Future requirements for full implementation:
+     * 1. Design user_settings table schema with key-value pairs
+     * 2. Implement proper validation for settings values
+     * 3. Add settings history tracking for audit trail
+     * 4. Create settings migration system for schema updates
+     * 5. Implement settings caching layer (Redis)
+     * 6. Add settings versioning support
+     */
+    return Ok({
+      limitNotificationsEnabled: settings.limitNotificationsEnabled ?? true,
+      inactivityNotificationsEnabled: settings.inactivityNotificationsEnabled ?? true,
+    });
+  }
+
+  /**
+   * Send notification to user with limits and inactivity data
+   */
+  async sendNotification(
+    userId: string,
+    settings: UpdateNotificationSettingsData,
+  ): AsyncResult<NotificationSettingsData, InternalException> {
+    const user = await this.userRepository.findOne({ id: userId });
+    if (!user) {
+      return Err(new InternalException({ detail: 'Internal server error occurred' }));
+    }
+
+    // Get current notification settings
+    const currentSettingsResult = await this.getNotificationSettings(userId);
+    if (currentSettingsResult.err) {
+      return currentSettingsResult;
+    }
+
+    const currentSettings = currentSettingsResult.val;
+
+    // Update settings if provided and return current state
+    if (settings.limitNotificationsEnabled !== undefined || settings.inactivityNotificationsEnabled !== undefined) {
+      return this.updateNotificationSettings(userId, settings);
+    }
+
+    return Ok(currentSettings);
+  }
+
+  /**
+   * Get referral data for a user
+   */
+  async getReferralData(userId: string): AsyncResult<UserReferralData, InternalException> {
+    try {
+      const user = await this.userRepository.findOne({ id: userId });
+      if (!user) {
+        return Err(new InternalException({ detail: 'User not found' }));
+      }
+
+      // Get referral statistics
+      const referredUsers = await this.userRepository.count({ referredBy: user.telegramId });
+      const referralEarnings = await this.calculateReferralEarnings(userId);
+      const referralCode = `ref_${user.telegramId}`;
+      const referralLink = `https://t.me/MotivBuyBot?start=${referralCode}`;
+
+      return Ok({
+        count: referredUsers,
+        earned: referralEarnings,
+        link: referralLink,
+        messageId: undefined,
+      });
+    } catch (error: unknown) {
+      const errorMessage = unknownToError(error);
+
+      return Err(new InternalException({ detail: `Failed to get referral data: ${errorMessage}` }));
+    }
+  }
+
+  /**
+   * Calculate referral earnings for a user (10% of referrals' income)
+   */
+  private async calculateReferralEarnings(userId: string): Promise<number> {
+    try {
+      // Get all users referred by this user (need to get telegramId first)
+      const currentUser = await this.userRepository.findOne({ id: userId });
+      if (!currentUser) {
+        return 0;
+      }
+
+      const referredUserIds = await this.userRepository.find(
+        { referredBy: currentUser.telegramId },
+        { fields: ['id'] },
+      );
+
+      if (referredUserIds.length === 0) {
+        return 0;
+      }
+
+      // Calculate 10% of their total completed income transactions
+      const userTransactionPromises = referredUserIds.map(async (referredUser) => {
+        const transactions = await this.userBalanceHistoryRepository.find({
+          user: referredUser.id,
+          status: TransactionStatus.Completed,
+          type: { $in: [TransactionType.Deposit, TransactionType.TradeBuy, TransactionType.ReferralBonus] },
+        });
+
+        // Sum all transaction amounts for this user
+        const userTotal = sum(transactions.map((tx) => tx.amount || '0'));
+
+        // Apply 10% commission
+        return toNumber(multiply(userTotal, '0.1'));
+      });
+
+      const userEarningsArray = await Promise.all(userTransactionPromises);
+      const totalEarnings = sum(userEarningsArray.map((earnings) => earnings.toString()));
+
+      return toNumber(totalEarnings);
+    } catch {
+      return 0;
+    }
+  }
+}

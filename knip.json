@@ -1,0 +1,54 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "apps/*/src/main.ts",
+    "libs/*/src/index.ts",
+    "libs/*/*/src/index.ts",
+    "libs/*/*/*/src/index.ts"
+  ],
+  "project": [
+    "apps/**/*.ts",
+    "libs/**/*.ts"
+  ],
+  "ignore": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.e2e-spec.ts",
+    "**/jest.config.ts",
+    "**/mikro-orm.config.ts",
+    "**/test/setup.ts",
+    "**/test-setup.ts",
+    "**/*-setup.ts",
+    "apps/migration/src/migration/**",
+    "config/**/*",
+    "scripts/**/*",
+    "monorepo/**/*"
+  ],
+  "ignoreDependencies": [
+    "@nx/*",
+    "@swc/*",
+    "@nestjs/schematics",
+    "eslint-*",
+    "jiti",
+    "@mikro-orm/cli",
+    "@mikro-orm/reflection",
+    "mikro-orm-cache-adapter-redis",
+    "@fastify/helmet",
+    "@fastify/rate-limit",
+    "passport-strategy",
+    "ts-morph",
+    "tslib",
+    "jest-environment-node",
+    "ts-jest",
+    "typescript-transform-paths"
+  ],
+  "rules": {
+    "enumMembers": "off"
+  },
+  "compilers": {
+    "ts": "typescript"
+  },
+  "paths": {
+    "@app/*": ["libs/*/src", "libs/*/*/src", "libs/*/*/*/src"]
+  }
+}

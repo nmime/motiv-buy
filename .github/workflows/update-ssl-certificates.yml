@@ -1,0 +1,277 @@
+name: Update SSL Certificates
+
+on:
+  push:
+    paths:
+      - 'config/domains.yml'
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to update (staging/production/both)'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+          - both
+        default: 'staging'
+
+concurrency:
+  group: ssl-update-${{ github.event.inputs.environment || 'auto' }}
+  cancel-in-progress: false
+
+jobs:
+  # ==============================================
+  # Parse Domains Configuration
+  # ==============================================
+  parse-config:
+    name: Parse Configuration
+    runs-on: [self-hosted, linux]
+    outputs:
+      staging-domains: ${{ steps.parse.outputs.staging-domains }}
+      production-domains: ${{ steps.parse.outputs.production-domains }}
+      staging-email: ${{ steps.parse.outputs.staging-email }}
+      production-email: ${{ steps.parse.outputs.production-email }}
+      update-staging: ${{ steps.check.outputs.update-staging }}
+      update-production: ${{ steps.check.outputs.update-production }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install yq (YAML parser)
+        run: |
+          set -euo pipefail
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Parse domains.yml
+        id: parse
+        run: |
+          set -euo pipefail
+          # Parse staging domains
+          STAGING_DOMAINS=$(yq '.staging.domains | join(" -d ")' config/domains.yml)
+          STAGING_EMAIL=$(yq '.staging.email' config/domains.yml)
+
+          # Parse production domains
+          PRODUCTION_DOMAINS=$(yq '.production.domains | join(" -d ")' config/domains.yml)
+          PRODUCTION_EMAIL=$(yq '.production.email' config/domains.yml)
+
+          # Output
+          echo "staging-domains=-d $STAGING_DOMAINS" >> $GITHUB_OUTPUT
+          echo "staging-email=$STAGING_EMAIL" >> $GITHUB_OUTPUT
+          echo "production-domains=-d $PRODUCTION_DOMAINS" >> $GITHUB_OUTPUT
+          echo "production-email=$PRODUCTION_EMAIL" >> $GITHUB_OUTPUT
+
+          echo "📋 Staging domains: $STAGING_DOMAINS"
+          echo "📋 Production domains: $PRODUCTION_DOMAINS"
+
+      - name: Determine which environments to update
+        id: check
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Manual trigger
+            ENV="${{ github.event.inputs.environment }}"
+            if [[ "$ENV" == "both" ]] || [[ "$ENV" == "staging" ]]; then
+              echo "update-staging=true" >> $GITHUB_OUTPUT
+            else
+              echo "update-staging=false" >> $GITHUB_OUTPUT
+            fi
+
+            if [[ "$ENV" == "both" ]] || [[ "$ENV" == "production" ]]; then
+              echo "update-production=true" >> $GITHUB_OUTPUT
+            else
+              echo "update-production=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Automatic trigger (push to domains.yml)
+            if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+              # Master branch: update production only
+              echo "update-staging=false" >> $GITHUB_OUTPUT
+              echo "update-production=true" >> $GITHUB_OUTPUT
+            else
+              # Develop or other: update staging only
+              echo "update-staging=true" >> $GITHUB_OUTPUT
+              echo "update-production=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  # ==============================================
+  # Update Staging SSL
+  # ==============================================
+  update-staging:
+    name: Update Staging SSL
+    runs-on: [self-hosted, linux]
+    needs: parse-config
+    if: needs.parse-config.outputs.update-staging == 'true'
+    environment:
+      name: staging
+      url: https://st.motivbuy.com
+
+    steps:
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Update SSL certificates
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'SSL_EOF'
+          set -euo pipefail
+
+          echo '🔒 Updating staging SSL certificates...'
+
+          # Obtain or expand SSL certificate
+          if sudo certbot --nginx \
+            ${{ needs.parse-config.outputs.staging-domains }} \
+            --expand \
+            --agree-tos \
+            --email ${{ needs.parse-config.outputs.staging-email }} \
+            --non-interactive \
+            --redirect; then
+
+            echo '✅ SSL certificates updated successfully'
+
+            # Reload Nginx
+            sudo systemctl reload nginx
+
+            # Show certificate info
+            sudo certbot certificates
+          else
+            echo '❌ SSL certificate update failed'
+            exit 1
+          fi
+          SSL_EOF
+
+      - name: Verify SSL
+        run: |
+          set -euo pipefail
+          echo "🔍 Verifying SSL certificates..."
+
+          # Wait for changes to propagate
+          sleep 5
+
+          # Test HTTPS endpoints
+          curl -f -I https://api.st.motivbuy.com || echo "⚠️ Warning: api.st.motivbuy.com may not be accessible"
+          curl -f -I https://st.motivbuy.com || echo "⚠️ Warning: st.motivbuy.com may not be accessible"
+
+          echo "✅ Verification complete"
+
+      - name: Cleanup SSH keys
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### 🔒 Staging SSL Certificate Update" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Domains**: Updated from config/domains.yml" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ **SSL certificates updated successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **SSL certificate update failed!**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ==============================================
+  # Update Production SSL
+  # ==============================================
+  update-production:
+    name: Update Production SSL
+    runs-on: [self-hosted, linux]
+    needs: parse-config
+    if: needs.parse-config.outputs.update-production == 'true'
+    environment:
+      name: production
+      url: https://motivbuy.com
+
+    steps:
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Update SSL certificates
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes \
+            ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'SSL_EOF'
+          set -euo pipefail
+
+          echo '🔒 Updating production SSL certificates...'
+
+          # Obtain or expand SSL certificate
+          if sudo certbot --nginx \
+            ${{ needs.parse-config.outputs.production-domains }} \
+            --expand \
+            --agree-tos \
+            --email ${{ needs.parse-config.outputs.production-email }} \
+            --non-interactive \
+            --redirect; then
+
+            echo '✅ SSL certificates updated successfully'
+
+            # Reload Nginx
+            sudo systemctl reload nginx
+
+            # Show certificate info
+            sudo certbot certificates
+          else
+            echo '❌ SSL certificate update failed'
+            exit 1
+          fi
+          SSL_EOF
+
+      - name: Verify SSL
+        run: |
+          set -euo pipefail
+          echo "🔍 Verifying SSL certificates..."
+
+          # Wait for changes to propagate
+          sleep 5
+
+          # Test HTTPS endpoints
+          curl -f -I https://api.motivbuy.com || echo "⚠️ Warning: api.motivbuy.com may not be accessible"
+          curl -f -I https://motivbuy.com || echo "⚠️ Warning: motivbuy.com may not be accessible"
+
+          echo "✅ Verification complete"
+
+      - name: Cleanup SSH keys
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### 🔒 Production SSL Certificate Update" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Domains**: Updated from config/domains.yml" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ **SSL certificates updated successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **SSL certificate update failed!**" >> $GITHUB_STEP_SUMMARY
+          fi

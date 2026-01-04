@@ -1,0 +1,273 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+
+jobs:
+  # ==============================================
+  # Job 1: Code Quality & Tests
+  # ==============================================
+  quality:
+    name: Quality & Tests
+    runs-on: [self-hosted, linux]
+    continue-on-error: true
+    env:
+      NX_CLOUD_DISABLED: 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js with pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm run lint
+        continue-on-error: true
+
+      - name: Check code formatting
+        run: pnpm run format:check
+        continue-on-error: true
+
+      - name: Run tests
+        run: pnpm run test
+        continue-on-error: true
+
+      - name: Generate coverage report
+        run: pnpm run test:coverage || true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  # ==============================================
+  # Job 2: Docker Build & Validation
+  # ==============================================
+  docker:
+    name: Docker Build (All Apps)
+    runs-on: [self-hosted, linux]
+    # Run in parallel with quality for faster execution
+    if: always()
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine commit SHA
+        id: sha
+        run: |
+          set -euo pipefail
+          # For pull requests, use the head SHA (actual PR commit)
+          # For pushes, use github.sha (the commit that was pushed)
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            SHA="${{ github.event.pull_request.head.sha }}"
+            echo "Using PR head SHA: $SHA"
+          else
+            SHA="${{ github.sha }}"
+            echo "Using push SHA: $SHA"
+          fi
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images in parallel
+        run: |
+          set -euo pipefail
+          echo "🐳 Building all apps with shared cache optimization..."
+          echo "📌 Using commit SHA: ${{ steps.sha.outputs.sha }}"
+
+          APPS=("api" "bot" "migration")
+          declare -A PIDS
+
+          # Launch all builds in parallel
+          for APP in "${APPS[@]}"; do
+            echo "📦 Building $APP..."
+            (
+              docker buildx build \
+                --build-arg APP_NAME=$APP \
+                --tag ghcr.io/${{ github.repository_owner }}/motiv-buy-$APP:ci-${{ steps.sha.outputs.sha }} \
+                --cache-from type=gha,scope=shared \
+                --cache-from type=gha,scope=$APP \
+                --push \
+                -f Dockerfile . || exit 1
+            ) &
+            PIDS[$APP]=$!
+          done
+
+          # Wait and check results
+          FAILED=()
+          for APP in "${APPS[@]}"; do
+            echo "⏳ Waiting for $APP (PID: ${PIDS[$APP]})..."
+            if wait ${PIDS[$APP]}; then
+              echo "✅ $APP succeeded"
+            else
+              echo "❌ $APP failed"
+              FAILED+=($APP)
+            fi
+          done
+
+          # Report results
+          if [ ${#FAILED[@]} -ne 0 ]; then
+            echo "❌ Failed builds: ${FAILED[*]}"
+            exit 1
+          fi
+
+          echo "✅ All builds completed successfully!"
+          echo "📋 Built images:"
+          echo "  - ghcr.io/${{ github.repository_owner }}/motiv-buy-api:ci-${{ steps.sha.outputs.sha }}"
+          echo "  - ghcr.io/${{ github.repository_owner }}/motiv-buy-bot:ci-${{ steps.sha.outputs.sha }}"
+          echo "  - ghcr.io/${{ github.repository_owner }}/motiv-buy-migration:ci-${{ steps.sha.outputs.sha }}"
+
+  # ==============================================
+  # Job 3: Security Scanning
+  # ==============================================
+  security:
+    name: Security Scan
+    runs-on: [self-hosted, linux]
+    # Run in parallel with quality for faster execution
+    if: always()
+    continue-on-error: true
+    env:
+      NX_CLOUD_DISABLED: 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js with pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run security audit
+        run: pnpm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-security-scan
+          path: trivy-results.sarif
+          retention-days: 30
+
+  # ==============================================
+  # Job 4: CI Summary
+  # ==============================================
+  summary:
+    name: CI Summary
+    runs-on: [self-hosted, linux]
+    needs: [quality, docker, security]
+    if: always()
+
+    steps:
+      - name: Check CI Status
+        run: |
+          echo "### CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status | Blocking |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality & Tests | ${{ needs.quality.result }} | ❌ No |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker.result }} | ✅ Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security.result }} | ❌ No |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check for critical failures (Docker build)
+          if [[ "${{ needs.docker.result }}" != "success" ]]; then
+            echo "## ❌ Critical Failure" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Docker build failed.** This blocks deployment." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          # Check for non-blocking failures (Tests/Quality)
+          if [[ "${{ needs.quality.result }}" != "success" ]]; then
+            echo "## ⚠️ Warning: Quality Checks Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Tests or quality checks failed, but build continues.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please review and fix:" >> $GITHUB_STEP_SUMMARY
+            echo "- Check test failures in the 'Quality & Tests' job" >> $GITHUB_STEP_SUMMARY
+            echo "- Review linting or formatting issues" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "::warning::Tests or quality checks failed. Please review the Quality & Tests job for details."
+          fi
+
+          # Check for security warnings
+          if [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "## ⚠️ Security Scan Issues" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Security scan completed with warnings. Review the Security Scan job." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "::warning::Security scan found potential issues. Please review."
+          fi
+
+          # All critical checks passed
+          if [[ "${{ needs.quality.result }}" == "success" ]]; then
+            echo "## ✅ All Checks Passed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Ready to deploy!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ✅ Build Successful (with warnings)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Docker build succeeded. Deployment is possible, but please address warnings above." >> $GITHUB_STEP_SUMMARY
+          fi

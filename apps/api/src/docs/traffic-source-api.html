@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Source API - Developer Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            --border: #334155;
+            --code-bg: #0d1117;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        /* Layout */
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 2rem 0;
+        }
+
+        .sidebar-logo {
+            padding: 0 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-logo h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .sidebar-logo span {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        .sidebar-nav {
+            padding: 0 1rem;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            padding: 0 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+        }
+
+        .nav-link:hover {
+            background: var(--bg-card-hover);
+            color: var(--text);
+        }
+
+        .nav-link.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-link .icon {
+            width: 18px;
+            height: 18px;
+            opacity: 0.7;
+        }
+
+        .method-badge {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .method-badge.post {
+            background: #3b82f6;
+            color: white;
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+
+        /* Hero */
+        .hero {
+            background: var(--accent-gradient);
+            padding: 4rem 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+
+        .hero-content {
+            position: relative;
+            max-width: 700px;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.125rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 100px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Content */
+        .content {
+            padding: 3rem;
+            max-width: 900px;
+        }
+
+        .section {
+            margin-bottom: 4rem;
+        }
+
+        .section-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-header h2 .icon {
+            width: 28px;
+            height: 28px;
+            color: var(--primary-light);
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            padding: 1rem 1.5rem;
+            background: rgba(99, 102, 241, 0.1);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Quick Start Steps */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            padding: 1.25rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        .step:hover {
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .step-content p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Endpoint */
+        .endpoint {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .endpoint-header {
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .endpoint-method {
+            padding: 0.35rem 0.75rem;
+            background: #3b82f6;
+            color: white;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .endpoint-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .endpoint-desc {
+            padding: 1rem 1.5rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .endpoint-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .endpoint-section:last-child {
+            border-bottom: none;
+        }
+
+        .endpoint-section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--primary-light);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            background: rgba(0,0,0,0.2);
+        }
+
+        td {
+            font-size: 0.875rem;
+        }
+
+        .param-name {
+            font-family: 'JetBrains Mono', monospace;
+            color: #a5b4fc;
+            font-weight: 500;
+        }
+
+        .param-type {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .tag-required {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .tag-optional {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-dim);
+        }
+
+        /* Code Blocks */
+        .code-block {
+            position: relative;
+            background: var(--code-bg);
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.15s;
+        }
+
+        .copy-btn:hover {
+            background: var(--bg-card);
+            color: var(--text);
+            border-color: var(--primary);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .code-block pre {
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .code-block code {
+            font-family: inherit;
+        }
+
+        /* Syntax Highlighting */
+        .code-block .string { color: #a5d6ff; }
+        .code-block .number { color: #79c0ff; }
+        .code-block .key { color: #ffa657; }
+        .code-block .boolean { color: #ff7b72; }
+
+        /* Info Boxes */
+        .info-box {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+
+        .info-box.info {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .info-box.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .info-box.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .info-box.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .info-box-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .info-box.info .info-box-icon { color: var(--primary-light); }
+        .info-box.warning .info-box-icon { color: var(--warning); }
+        .info-box.success .info-box-icon { color: var(--success); }
+        .info-box.error .info-box-icon { color: var(--error); }
+
+        .info-box-content {
+            font-size: 0.875rem;
+        }
+
+        .info-box-content strong {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Flow Diagram */
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 2rem;
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            min-width: 140px;
+        }
+
+        .flow-step.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .flow-step-icon {
+            width: 32px;
+            height: 32px;
+            color: var(--primary-light);
+        }
+
+        .flow-step-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .flow-arrow {
+            color: var(--text-dim);
+            font-size: 1.5rem;
+        }
+
+        /* Status Codes */
+        .status-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .status-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            min-width: 48px;
+            text-align: center;
+        }
+
+        .status-code.s2xx { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+        .status-code.s4xx { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+        .status-code.s5xx { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+
+        .status-info h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .status-info p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Mobile */
+        @media (max-width: 1024px) {
+            .sidebar {
+                display: none;
+            }
+            .main {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hero {
+                padding: 2rem 1.5rem;
+            }
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+            .content {
+                padding: 1.5rem;
+            }
+            .flow {
+                flex-direction: column;
+            }
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        /* Code Tabs */
+        .code-tabs {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: -1px;
+            padding: 0 0.5rem;
+            overflow-x: auto;
+        }
+
+        .code-tab {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .code-tab:hover {
+            background: var(--bg-card-hover);
+            color: var(--text);
+        }
+
+        .code-tab.active {
+            background: var(--code-bg);
+            color: var(--text);
+            border-color: var(--primary);
+            border-bottom: 1px solid var(--code-bg);
+        }
+
+        /* Syntax Highlighting */
+        .code-block .keyword { color: #ff7b72; }
+        .code-block .function { color: #d2a8ff; }
+        .code-block .type { color: #79c0ff; }
+        .code-block .variable { color: #ffa657; }
+        .code-block .comment { color: #8b949e; font-style: italic; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <h1>Motiv Buy</h1>
+                <span>Traffic Source API v1.0</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Getting Started</div>
+                    <a href="#quick-start" class="nav-link">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        Quick Start
+                    </a>
+                    <a href="#authentication" class="nav-link">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                        Authentication
+                    </a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Endpoints</div>
+                    <a href="#get-tasks" class="nav-link">
+                        <span class="method-badge post">POST</span>
+                        /tasks
+                    </a>
+                    <a href="#check-task" class="nav-link">
+                        <span class="method-badge post">POST</span>
+                        /tasks/check
+                    </a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Reference</div>
+                    <a href="#targeting" class="nav-link">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        Targeting
+                    </a>
+                    <a href="#errors" class="nav-link">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        Error Handling
+                    </a>
+                    <a href="#rate-limits" class="nav-link">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Rate Limits
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main -->
+        <main class="main">
+            <!-- Hero -->
+            <div class="hero">
+                <div class="hero-content">
+                    <h1>Traffic Source API</h1>
+                    <p>Integrate your traffic source with our platform. Simple, fast, and powerful API with just 2 endpoints.</p>
+                    <div class="hero-badges">
+                        <span class="badge">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            Secure API Key Auth
+                        </span>
+                        <span class="badge">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            10K req/min
+                        </span>
+                        <span class="badge">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+                            JSON REST API
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content">
+                <!-- Quick Start -->
+                <section id="quick-start" class="section">
+                    <div class="section-header">
+                        <h2>
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            Quick Start
+                        </h2>
+                        <p>Get up and running in 3 simple steps</p>
+                    </div>
+
+                    <div class="steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <h4>Get Your API Key</h4>
+                                <p>Contact support to receive your unique API key for authentication.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <h4>Fetch Available Tasks</h4>
+                                <p>Call <code>POST /tasks</code> with user data to get tasks matching your targeting criteria.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <h4>Check Task Completion</h4>
+                                <p>Use <code>POST /tasks/check</code> to verify if a user has completed a task.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Flow Diagram -->
+                    <div class="flow">
+                        <div class="flow-step">
+                            <svg class="flow-step-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            <span class="flow-step-label">User Opens App</span>
+                        </div>
+                        <span class="flow-arrow">&#8594;</span>
+                        <div class="flow-step active">
+                            <svg class="flow-step-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            <span class="flow-step-label">GET /tasks</span>
+                        </div>
+                        <span class="flow-arrow">&#8594;</span>
+                        <div class="flow-step">
+                            <svg class="flow-step-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                            <span class="flow-step-label">Show Tasks</span>
+                        </div>
+                        <span class="flow-arrow">&#8594;</span>
+                        <div class="flow-step active">
+                            <svg class="flow-step-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span class="flow-step-label">/tasks/check</span>
+                        </div>
+                        <span class="flow-arrow">&#8594;</span>
+                        <div class="flow-step">
+                            <svg class="flow-step-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span class="flow-step-label">Pay Reward</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Authentication -->
+                <section id="authentication" class="section">
+                    <div class="section-header">
+                        <h2>
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                            Authentication
+                        </h2>
+                        <p>All API requests require authentication via the X-API-Key header</p>
+                    </div>
+
+                    <div class="info-box info">
+                        <svg class="info-box-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div class="info-box-content">
+                            <strong>Base URL</strong>
+                            <code>https://api.motivbuy.com/api/v1/source</code>
+                        </div>
+                    </div>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-label">Request Header</span>
+                            <button class="copy-btn" onclick="copyCode(this)">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                Copy
+                            </button>
+                        </div>
+                        <pre><code>X-API-Key: your_api_key_here
+Content-Type: application/json</code></pre>
+                    </div>
+
+                    <div class="info-box warning">
+                        <svg class="info-box-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <div class="info-box-content">
+                            <strong>Security Warning</strong>
+                            Keep your API key secure. Never expose it in client-side code or public repositories.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- GET Tasks -->
+                <section id="get-tasks" class="section">
+                    <div class="section-header">
+                        <h2>Get Available Tasks</h2>
+                        <p>Fetch tasks for a user based on targeting criteria</p>
+                    </div>
+
+                    <div class="endpoint">
+                        <div class="endpoint-header">
+                            <span class="endpoint-method">POST</span>
+                            <span class="endpoint-path">/api/v1/source/tasks</span>
+                        </div>
+                        <div class="endpoint-desc">
+                            Returns a list of available tasks filtered by user targeting parameters. Tasks are matched against order requirements.
+                        </div>
+
+                        <div class="endpoint-section">
+                            <div class="endpoint-section-title">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                Request Body
+                            </div>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th>
+                                            <th>Type</th>
+                                            <th>Required</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">userId</span></td>
+                                            <td><span class="param-type">integer</span></td>
+                                            <td><span class="tag tag-required">Required</span></td>
+                                            <td>User's Telegram ID</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">limit</span></td>
+                                            <td><span class="param-type">integer</span></td>
+                                            <td><span class="tag tag-optional">Optional</span></td>
+                                            <td>Max tasks to return (1-20, default: 5)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="endpoint-section" id="targeting">
+                            <div class="endpoint-section-title">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+                                Targeting Parameters (Optional)
+                            </div>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                                Pass user data to filter tasks by targeting requirements. Only tasks matching ALL provided criteria will be returned.
+                            </p>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th>
+                                            <th>Type</th>
+                                            <th>Example</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">gender</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td><code>male</code></td>
+                                            <td>User gender: <code>male</code> or <code>female</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">age</span></td>
+                                            <td><span class="param-type">integer</span></td>
+                                            <td><code>25</code></td>
+                                            <td>User age (13-100)</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">country</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td><code>US</code></td>
+                                            <td>ISO 3166-1 alpha-2 country code</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">region</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td><code>CA</code></td>
+                                            <td>Region or state code</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">city</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td><code>Los Angeles</code></td>
+                                            <td>City name</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">language</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td><code>en</code></td>
+                                            <td>ISO 639-1 language code</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="endpoint-section">
+                            <div class="endpoint-section-title">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Response - Task Object
+                            </div>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Field</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">taskId</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td>Unique task identifier (use for /tasks/check)</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">orderId</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td>Order identifier</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">action</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td><code>subscribe</code> | <code>join</code> | <code>view</code> | <code>react</code> | <code>comment</code> | <code>start</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">price</span></td>
+                                            <td><span class="param-type">number</span></td>
+                                            <td>Reward amount in USDT</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">link</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td>Target link (Telegram channel/bot)</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">name</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td>Target name</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">remainingSlots</span></td>
+                                            <td><span class="param-type">integer</span></td>
+                                            <td>Available slots remaining</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="endpoint-section">
+                            <div class="endpoint-section-title">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                                Example
+                            </div>
+
+                            <!-- Language Tabs -->
+                            <div class="code-tabs" data-group="get-tasks">
+                                <button class="code-tab active" data-lang="curl">cURL</button>
+                                <button class="code-tab" data-lang="typescript">TypeScript</button>
+                                <button class="code-tab" data-lang="python">Python</button>
+                                <button class="code-tab" data-lang="php">PHP</button>
+                                <button class="code-tab" data-lang="go">Go</button>
+                            </div>
+
+                            <div class="code-block" data-group="get-tasks" data-lang="curl">
+                                <div class="code-header">
+                                    <span class="code-label">cURL</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code>curl -X POST https://api.motivbuy.com/api/v1/source/tasks \
+  -H "X-API-Key: your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": 123456789,
+    "limit": 10,
+    "gender": "male",
+    "age": 25,
+    "country": "US",
+    "language": "en"
+  }'</code></pre>
+                            </div>
+
+                            <div class="code-block" data-group="get-tasks" data-lang="typescript" style="display: none;">
+                                <div class="code-header">
+                                    <span class="code-label">TypeScript</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code><span class="keyword">const</span> <span class="function">getTasks</span> = <span class="keyword">async</span> (userId: <span class="type">number</span>) => {
+  <span class="keyword">const</span> response = <span class="keyword">await</span> <span class="function">fetch</span>(<span class="string">'https://api.motivbuy.com/api/v1/source/tasks'</span>, {
+    method: <span class="string">'POST'</span>,
+    headers: {
+      <span class="string">'X-API-Key'</span>: process.env.API_KEY,
+      <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,
+    },
+    body: JSON.<span class="function">stringify</span>({
+      userId,
+      limit: <span class="number">10</span>,
+      gender: <span class="string">'male'</span>,
+      age: <span class="number">25</span>,
+      country: <span class="string">'US'</span>,
+      language: <span class="string">'en'</span>,
+    }),
+  });
+
+  <span class="keyword">return</span> response.<span class="function">json</span>();
+};
+
+<span class="comment">// Usage</span>
+<span class="keyword">const</span> tasks = <span class="keyword">await</span> <span class="function">getTasks</span>(<span class="number">123456789</span>);
+console.<span class="function">log</span>(tasks);</code></pre>
+                            </div>
+
+                            <div class="code-block" data-group="get-tasks" data-lang="python" style="display: none;">
+                                <div class="code-header">
+                                    <span class="code-label">Python</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code><span class="keyword">import</span> requests
+<span class="keyword">import</span> os
+
+<span class="keyword">def</span> <span class="function">get_tasks</span>(user_id: <span class="type">int</span>) -> <span class="type">dict</span>:
+    response = requests.<span class="function">post</span>(
+        <span class="string">'https://api.motivbuy.com/api/v1/source/tasks'</span>,
+        headers={
+            <span class="string">'X-API-Key'</span>: os.environ[<span class="string">'API_KEY'</span>],
+            <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,
+        },
+        json={
+            <span class="string">'userId'</span>: user_id,
+            <span class="string">'limit'</span>: <span class="number">10</span>,
+            <span class="string">'gender'</span>: <span class="string">'male'</span>,
+            <span class="string">'age'</span>: <span class="number">25</span>,
+            <span class="string">'country'</span>: <span class="string">'US'</span>,
+            <span class="string">'language'</span>: <span class="string">'en'</span>,
+        }
+    )
+    <span class="keyword">return</span> response.<span class="function">json</span>()
+
+<span class="comment"># Usage</span>
+tasks = <span class="function">get_tasks</span>(<span class="number">123456789</span>)
+<span class="function">print</span>(tasks)</code></pre>
+                            </div>
+
+                            <div class="code-block" data-group="get-tasks" data-lang="php" style="display: none;">
+                                <div class="code-header">
+                                    <span class="code-label">PHP</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code><span class="keyword">&lt;?php</span>
+
+<span class="keyword">function</span> <span class="function">getTasks</span>(<span class="variable">$userId</span>) {
+    <span class="variable">$ch</span> = <span class="function">curl_init</span>();
+
+    <span class="function">curl_setopt_array</span>(<span class="variable">$ch</span>, [
+        CURLOPT_URL => <span class="string">'https://api.motivbuy.com/api/v1/source/tasks'</span>,
+        CURLOPT_RETURNTRANSFER => <span class="keyword">true</span>,
+        CURLOPT_POST => <span class="keyword">true</span>,
+        CURLOPT_HTTPHEADER => [
+            <span class="string">'X-API-Key: '</span> . <span class="function">getenv</span>(<span class="string">'API_KEY'</span>),
+            <span class="string">'Content-Type: application/json'</span>,
+        ],
+        CURLOPT_POSTFIELDS => <span class="function">json_encode</span>([
+            <span class="string">'userId'</span> => <span class="variable">$userId</span>,
+            <span class="string">'limit'</span> => <span class="number">10</span>,
+            <span class="string">'gender'</span> => <span class="string">'male'</span>,
+            <span class="string">'age'</span> => <span class="number">25</span>,
+            <span class="string">'country'</span> => <span class="string">'US'</span>,
+            <span class="string">'language'</span> => <span class="string">'en'</span>,
+        ]),
+    ]);
+
+    <span class="variable">$response</span> = <span class="function">curl_exec</span>(<span class="variable">$ch</span>);
+    <span class="function">curl_close</span>(<span class="variable">$ch</span>);
+
+    <span class="keyword">return</span> <span class="function">json_decode</span>(<span class="variable">$response</span>, <span class="keyword">true</span>);
+}
+
+<span class="comment">// Usage</span>
+<span class="variable">$tasks</span> = <span class="function">getTasks</span>(<span class="number">123456789</span>);
+<span class="function">print_r</span>(<span class="variable">$tasks</span>);</code></pre>
+                            </div>
+
+                            <div class="code-block" data-group="get-tasks" data-lang="go" style="display: none;">
+                                <div class="code-header">
+                                    <span class="code-label">Go</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code><span class="keyword">package</span> main
+
+<span class="keyword">import</span> (
+    <span class="string">"bytes"</span>
+    <span class="string">"encoding/json"</span>
+    <span class="string">"net/http"</span>
+    <span class="string">"os"</span>
+)
+
+<span class="keyword">func</span> <span class="function">getTasks</span>(userID <span class="type">int64</span>) (<span class="type">map[string]interface{}</span>, <span class="type">error</span>) {
+    payload := <span class="type">map[string]interface{}</span>{
+        <span class="string">"userId"</span>:   userID,
+        <span class="string">"limit"</span>:    <span class="number">10</span>,
+        <span class="string">"gender"</span>:   <span class="string">"male"</span>,
+        <span class="string">"age"</span>:      <span class="number">25</span>,
+        <span class="string">"country"</span>:  <span class="string">"US"</span>,
+        <span class="string">"language"</span>: <span class="string">"en"</span>,
+    }
+
+    body, _ := json.<span class="function">Marshal</span>(payload)
+    req, _ := http.<span class="function">NewRequest</span>(<span class="string">"POST"</span>,
+        <span class="string">"https://api.motivbuy.com/api/v1/source/tasks"</span>,
+        bytes.<span class="function">NewBuffer</span>(body))
+
+    req.Header.<span class="function">Set</span>(<span class="string">"X-API-Key"</span>, os.<span class="function">Getenv</span>(<span class="string">"API_KEY"</span>))
+    req.Header.<span class="function">Set</span>(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)
+
+    client := &http.Client{}
+    resp, err := client.<span class="function">Do</span>(req)
+    <span class="keyword">if</span> err != <span class="keyword">nil</span> {
+        <span class="keyword">return</span> <span class="keyword">nil</span>, err
+    }
+    <span class="keyword">defer</span> resp.Body.<span class="function">Close</span>()
+
+    <span class="keyword">var</span> result <span class="type">map[string]interface{}</span>
+    json.<span class="function">NewDecoder</span>(resp.Body).<span class="function">Decode</span>(&result)
+    <span class="keyword">return</span> result, <span class="keyword">nil</span>
+}
+
+<span class="comment">// Usage</span>
+<span class="keyword">func</span> <span class="function">main</span>() {
+    tasks, _ := <span class="function">getTasks</span>(<span class="number">123456789</span>)
+    fmt.<span class="function">Println</span>(tasks)
+}</code></pre>
+                            </div>
+
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span class="code-label">Response</span>
+                                </div>
+<pre><code>{
+  <span class="key">"tasks"</span>: [
+    {
+      <span class="key">"taskId"</span>: <span class="string">"ORD-01HXYZ-USER-123456789"</span>,
+      <span class="key">"orderId"</span>: <span class="string">"ORD-01HXYZ"</span>,
+      <span class="key">"action"</span>: <span class="string">"subscribe"</span>,
+      <span class="key">"price"</span>: <span class="number">0.10</span>,
+      <span class="key">"link"</span>: <span class="string">"https://t.me/examplechannel"</span>,
+      <span class="key">"name"</span>: <span class="string">"Crypto Signals Channel"</span>,
+      <span class="key">"username"</span>: <span class="string">"@cryptosignals"</span>,
+      <span class="key">"description"</span>: <span class="string">"Subscribe to get daily crypto signals"</span>,
+      <span class="key">"remainingSlots"</span>: <span class="number">95</span>
+    }
+  ],
+  <span class="key">"totalCount"</span>: <span class="number">1</span>
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Check Task -->
+                <section id="check-task" class="section">
+                    <div class="section-header">
+                        <h2>Check Task Status</h2>
+                        <p>Verify if a user has completed a specific task</p>
+                    </div>
+
+                    <div class="endpoint">
+                        <div class="endpoint-header">
+                            <span class="endpoint-method">POST</span>
+                            <span class="endpoint-path">/api/v1/source/tasks/check</span>
+                        </div>
+                        <div class="endpoint-desc">
+                            Check whether a task has been completed by the user. Use the <code>taskId</code> returned from the /tasks endpoint.
+                        </div>
+
+                        <div class="endpoint-section">
+                            <div class="endpoint-section-title">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                Request Body
+                            </div>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th>
+                                            <th>Type</th>
+                                            <th>Required</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">taskId</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td><span class="tag tag-required">Required</span></td>
+                                            <td>Task ID from /tasks response</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="endpoint-section">
+                            <div class="endpoint-section-title">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Response
+                            </div>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Field</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">status</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td><code>not_started</code> | <code>pending</code> | <code>completed</code> | <code>failed</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">canSubmit</span></td>
+                                            <td><span class="param-type">boolean</span></td>
+                                            <td>Whether the task can still be submitted</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">completedAt</span></td>
+                                            <td><span class="param-type">string</span></td>
+                                            <td>ISO 8601 timestamp when completed</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="endpoint-section">
+                            <div class="endpoint-section-title">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                                Example
+                            </div>
+
+                            <!-- Language Tabs -->
+                            <div class="code-tabs" data-group="check-task">
+                                <button class="code-tab active" data-lang="curl">cURL</button>
+                                <button class="code-tab" data-lang="typescript">TypeScript</button>
+                                <button class="code-tab" data-lang="python">Python</button>
+                                <button class="code-tab" data-lang="php">PHP</button>
+                                <button class="code-tab" data-lang="go">Go</button>
+                            </div>
+
+                            <div class="code-block" data-group="check-task" data-lang="curl">
+                                <div class="code-header">
+                                    <span class="code-label">cURL</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code>curl -X POST https://api.motivbuy.com/api/v1/source/tasks/check \
+  -H "X-API-Key: your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"taskId": "ORD-01HXYZ-USER-123456789"}'</code></pre>
+                            </div>
+
+                            <div class="code-block" data-group="check-task" data-lang="typescript" style="display: none;">
+                                <div class="code-header">
+                                    <span class="code-label">TypeScript</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code><span class="keyword">interface</span> <span class="type">TaskStatusResponse</span> {
+  status: <span class="string">'not_started'</span> | <span class="string">'pending'</span> | <span class="string">'completed'</span> | <span class="string">'failed'</span>;
+  canSubmit: <span class="type">boolean</span>;
+  completedAt?: <span class="type">string</span>;
+}
+
+<span class="keyword">const</span> <span class="function">checkTaskStatus</span> = <span class="keyword">async</span> (taskId: <span class="type">string</span>): <span class="type">Promise&lt;TaskStatusResponse&gt;</span> => {
+  <span class="keyword">const</span> response = <span class="keyword">await</span> <span class="function">fetch</span>(<span class="string">'https://api.motivbuy.com/api/v1/source/tasks/check'</span>, {
+    method: <span class="string">'POST'</span>,
+    headers: {
+      <span class="string">'X-API-Key'</span>: process.env.API_KEY,
+      <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,
+    },
+    body: JSON.<span class="function">stringify</span>({ taskId }),
+  });
+
+  <span class="keyword">return</span> response.<span class="function">json</span>();
+};
+
+<span class="comment">// Usage</span>
+<span class="keyword">const</span> status = <span class="keyword">await</span> <span class="function">checkTaskStatus</span>(<span class="string">'ORD-01HXYZ-USER-123456789'</span>);
+<span class="keyword">if</span> (status.status === <span class="string">'completed'</span>) {
+  console.<span class="function">log</span>(<span class="string">'Task completed at:'</span>, status.completedAt);
+}</code></pre>
+                            </div>
+
+                            <div class="code-block" data-group="check-task" data-lang="python" style="display: none;">
+                                <div class="code-header">
+                                    <span class="code-label">Python</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code><span class="keyword">import</span> requests
+<span class="keyword">import</span> os
+<span class="keyword">from</span> typing <span class="keyword">import</span> TypedDict, Literal
+
+<span class="keyword">class</span> <span class="type">TaskStatusResponse</span>(TypedDict):
+    status: Literal[<span class="string">'not_started'</span>, <span class="string">'pending'</span>, <span class="string">'completed'</span>, <span class="string">'failed'</span>]
+    canSubmit: <span class="type">bool</span>
+    completedAt: <span class="type">str</span> | <span class="keyword">None</span>
+
+<span class="keyword">def</span> <span class="function">check_task_status</span>(task_id: <span class="type">str</span>) -> <span class="type">TaskStatusResponse</span>:
+    response = requests.<span class="function">post</span>(
+        <span class="string">'https://api.motivbuy.com/api/v1/source/tasks/check'</span>,
+        headers={
+            <span class="string">'X-API-Key'</span>: os.environ[<span class="string">'API_KEY'</span>],
+            <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,
+        },
+        json={<span class="string">'taskId'</span>: task_id}
+    )
+    <span class="keyword">return</span> response.<span class="function">json</span>()
+
+<span class="comment"># Usage</span>
+status = <span class="function">check_task_status</span>(<span class="string">'ORD-01HXYZ-USER-123456789'</span>)
+<span class="keyword">if</span> status[<span class="string">'status'</span>] == <span class="string">'completed'</span>:
+    <span class="function">print</span>(f<span class="string">"Task completed at: {status['completedAt']}"</span>)</code></pre>
+                            </div>
+
+                            <div class="code-block" data-group="check-task" data-lang="php" style="display: none;">
+                                <div class="code-header">
+                                    <span class="code-label">PHP</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code><span class="keyword">&lt;?php</span>
+
+<span class="keyword">function</span> <span class="function">checkTaskStatus</span>(<span class="variable">$taskId</span>): <span class="type">array</span> {
+    <span class="variable">$ch</span> = <span class="function">curl_init</span>();
+
+    <span class="function">curl_setopt_array</span>(<span class="variable">$ch</span>, [
+        CURLOPT_URL => <span class="string">'https://api.motivbuy.com/api/v1/source/tasks/check'</span>,
+        CURLOPT_RETURNTRANSFER => <span class="keyword">true</span>,
+        CURLOPT_POST => <span class="keyword">true</span>,
+        CURLOPT_HTTPHEADER => [
+            <span class="string">'X-API-Key: '</span> . <span class="function">getenv</span>(<span class="string">'API_KEY'</span>),
+            <span class="string">'Content-Type: application/json'</span>,
+        ],
+        CURLOPT_POSTFIELDS => <span class="function">json_encode</span>([
+            <span class="string">'taskId'</span> => <span class="variable">$taskId</span>,
+        ]),
+    ]);
+
+    <span class="variable">$response</span> = <span class="function">curl_exec</span>(<span class="variable">$ch</span>);
+    <span class="function">curl_close</span>(<span class="variable">$ch</span>);
+
+    <span class="keyword">return</span> <span class="function">json_decode</span>(<span class="variable">$response</span>, <span class="keyword">true</span>);
+}
+
+<span class="comment">// Usage</span>
+<span class="variable">$status</span> = <span class="function">checkTaskStatus</span>(<span class="string">'ORD-01HXYZ-USER-123456789'</span>);
+<span class="keyword">if</span> (<span class="variable">$status</span>[<span class="string">'status'</span>] === <span class="string">'completed'</span>) {
+    <span class="function">echo</span> <span class="string">'Task completed at: '</span> . <span class="variable">$status</span>[<span class="string">'completedAt'</span>];
+}</code></pre>
+                            </div>
+
+                            <div class="code-block" data-group="check-task" data-lang="go" style="display: none;">
+                                <div class="code-header">
+                                    <span class="code-label">Go</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        Copy
+                                    </button>
+                                </div>
+<pre><code><span class="keyword">package</span> main
+
+<span class="keyword">import</span> (
+    <span class="string">"bytes"</span>
+    <span class="string">"encoding/json"</span>
+    <span class="string">"net/http"</span>
+    <span class="string">"os"</span>
+)
+
+<span class="keyword">type</span> <span class="type">TaskStatusResponse</span> <span class="keyword">struct</span> {
+    Status      <span class="type">string</span> <span class="string">`json:"status"`</span>
+    CanSubmit   <span class="type">bool</span>   <span class="string">`json:"canSubmit"`</span>
+    CompletedAt <span class="type">string</span> <span class="string">`json:"completedAt,omitempty"`</span>
+}
+
+<span class="keyword">func</span> <span class="function">checkTaskStatus</span>(taskID <span class="type">string</span>) (*<span class="type">TaskStatusResponse</span>, <span class="type">error</span>) {
+    payload := <span class="type">map[string]string</span>{<span class="string">"taskId"</span>: taskID}
+    body, _ := json.<span class="function">Marshal</span>(payload)
+
+    req, _ := http.<span class="function">NewRequest</span>(<span class="string">"POST"</span>,
+        <span class="string">"https://api.motivbuy.com/api/v1/source/tasks/check"</span>,
+        bytes.<span class="function">NewBuffer</span>(body))
+
+    req.Header.<span class="function">Set</span>(<span class="string">"X-API-Key"</span>, os.<span class="function">Getenv</span>(<span class="string">"API_KEY"</span>))
+    req.Header.<span class="function">Set</span>(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)
+
+    client := &http.Client{}
+    resp, err := client.<span class="function">Do</span>(req)
+    <span class="keyword">if</span> err != <span class="keyword">nil</span> {
+        <span class="keyword">return</span> <span class="keyword">nil</span>, err
+    }
+    <span class="keyword">defer</span> resp.Body.<span class="function">Close</span>()
+
+    <span class="keyword">var</span> result <span class="type">TaskStatusResponse</span>
+    json.<span class="function">NewDecoder</span>(resp.Body).<span class="function">Decode</span>(&result)
+    <span class="keyword">return</span> &result, <span class="keyword">nil</span>
+}
+
+<span class="comment">// Usage</span>
+<span class="keyword">func</span> <span class="function">main</span>() {
+    status, _ := <span class="function">checkTaskStatus</span>(<span class="string">"ORD-01HXYZ-USER-123456789"</span>)
+    <span class="keyword">if</span> status.Status == <span class="string">"completed"</span> {
+        fmt.<span class="function">Println</span>(<span class="string">"Task completed at:"</span>, status.CompletedAt)
+    }
+}</code></pre>
+                            </div>
+
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span class="code-label">Response - Completed</span>
+                                </div>
+<pre><code>{
+  <span class="key">"status"</span>: <span class="string">"completed"</span>,
+  <span class="key">"canSubmit"</span>: <span class="boolean">false</span>,
+  <span class="key">"completedAt"</span>: <span class="string">"2025-01-06T12:30:00Z"</span>
+}</code></pre>
+                            </div>
+
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span class="code-label">Response - Not Started</span>
+                                </div>
+<pre><code>{
+  <span class="key">"status"</span>: <span class="string">"not_started"</span>,
+  <span class="key">"canSubmit"</span>: <span class="boolean">true</span>
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Errors -->
+                <section id="errors" class="section">
+                    <div class="section-header">
+                        <h2>
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            Error Handling
+                        </h2>
+                        <p>All errors return a consistent JSON format</p>
+                    </div>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-label">Error Response Format</span>
+                        </div>
+<pre><code>{
+  <span class="key">"statusCode"</span>: <span class="number">401</span>,
+  <span class="key">"message"</span>: <span class="string">"Invalid API key"</span>,
+  <span class="key">"error"</span>: <span class="string">"Unauthorized"</span>
+}</code></pre>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <span class="status-code s2xx">200</span>
+                                    <div class="status-info">
+                                        <h4>Success</h4>
+                                        <p>Request completed successfully</p>
+                                    </div>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-code s4xx">400</span>
+                                    <div class="status-info">
+                                        <h4>Bad Request</h4>
+                                        <p>Invalid parameters or validation failed</p>
+                                    </div>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-code s4xx">401</span>
+                                    <div class="status-info">
+                                        <h4>Unauthorized</h4>
+                                        <p>Invalid or missing API key</p>
+                                    </div>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-code s4xx">403</span>
+                                    <div class="status-info">
+                                        <h4>Forbidden</h4>
+                                        <p>API key is inactive or suspended</p>
+                                    </div>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-code s4xx">429</span>
+                                    <div class="status-info">
+                                        <h4>Too Many Requests</h4>
+                                        <p>Rate limit exceeded - wait and retry</p>
+                                    </div>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-code s5xx">500</span>
+                                    <div class="status-info">
+                                        <h4>Server Error</h4>
+                                        <p>Internal error - please retry later</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Rate Limits -->
+                <section id="rate-limits" class="section">
+                    <div class="section-header">
+                        <h2>
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Rate Limits
+                        </h2>
+                        <p>API rate limiting is applied per API key</p>
+                    </div>
+
+                    <div class="info-box success">
+                        <svg class="info-box-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <div class="info-box-content">
+                            <strong>10,000 requests per minute</strong>
+                            That's ~166 requests per second sustained throughput per API key.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 style="margin-bottom: 0.75rem;">When rate limited:</h4>
+                            <ul style="margin-left: 1.5rem; color: var(--text-muted);">
+                                <li>API returns HTTP <code>429 Too Many Requests</code></li>
+                                <li>Wait for the 1-minute window to reset</li>
+                                <li>Implement exponential backoff for retries</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <footer>
+                <p>Traffic Source API Documentation &bull; Need help? Contact <a href="mailto:support@motivbuy.com" style="color: var(--primary-light);">support@motivbuy.com</a></p>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // Copy to clipboard
+        function copyCode(btn) {
+            const codeBlock = btn.closest('.code-block');
+            const code = codeBlock.querySelector('code').textContent;
+
+            navigator.clipboard.writeText(code).then(() => {
+                btn.classList.add('copied');
+                btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copied!';
+
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> Copy';
+                }, 2000);
+            });
+        }
+
+        // Active nav link on scroll
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                if (scrollY >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Code Tab Switching
+        document.querySelectorAll('.code-tabs').forEach(tabContainer => {
+            const group = tabContainer.dataset.group;
+            const tabs = tabContainer.querySelectorAll('.code-tab');
+            const codeBlocks = document.querySelectorAll(`.code-block[data-group="${group}"]`);
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const lang = tab.dataset.lang;
+
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    // Show/hide code blocks
+                    codeBlocks.forEach(block => {
+                        if (block.dataset.lang === lang) {
+                            block.style.display = 'block';
+                        } else {
+                            block.style.display = 'none';
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

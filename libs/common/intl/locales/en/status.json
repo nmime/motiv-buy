@@ -1,0 +1,7 @@
+{
+  "display": "📊 Account Status\n\nUser ID: {userId}\nStatus: Active\nMember since: {memberSince}\n\nAll systems operational.",
+  "active": "✅ Active",
+  "inactive": "❌ Inactive",
+  "pending": "⏳ Pending",
+  "suspended": "🚫 Suspended"
+}

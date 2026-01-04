@@ -1,0 +1,20 @@
+#!/bin/bash
+# Check server status
+# Usage: ./scripts/server-status.sh
+
+cd /opt/motiv-buy
+
+echo "==> Infrastructure:"
+docker compose -f docker-compose.infra.yml ps
+
+echo ""
+echo "==> Applications:"
+docker compose -f docker-compose.local.yml ps
+
+echo ""
+echo "==> Disk Usage:"
+df -h /opt/motiv-buy
+
+echo ""
+echo "==> Docker Disk:"
+docker system df

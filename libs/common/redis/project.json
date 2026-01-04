@@ -1,0 +1,46 @@
+{
+  "name": "@app/common-redis",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/common/redis/src",
+  "projectType": "library",
+  "tags": ["scope:common", "type:utility"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/common/redis",
+        "main": "libs/common/redis/src/index.ts",
+        "tsConfig": "libs/common/redis/tsconfig.lib.json",
+        "assets": [],
+        "transformers": [
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {}
+          },
+          {
+            "name": "typescript-transform-paths/nx-transformer",
+            "options": {
+              "afterDeclarations": true
+            }
+          }
+        ]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/common/redis/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/common/redis/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}
