@@ -165,11 +165,6 @@ This guide covers:
 - Deploying to staging
 - Deploying to production
 
-### Environments
-
-- **Staging:** `157.180.64.229` - [st.motivbuy.com](https://st.motivbuy.com)
-- **Production:** `65.108.218.78` - [motivbuy.com](https://motivbuy.com)
-
 ### GitHub Actions Workflows
 
 - **CI:** Automated testing, linting, and Docker builds (runs on push/PR)
