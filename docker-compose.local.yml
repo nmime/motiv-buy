@@ -1,7 +1,12 @@
 # Application Docker Compose (Local Build)
 # API, Bot, Monitoring
 # Prerequisites: docker compose -f docker-compose.infra.yml up -d
-# Usage: docker compose -f docker-compose.local.yml up -d --build
+#
+# FAST BUILD (recommended):
+#   docker buildx bake && docker compose -f docker-compose.local.yml up -d
+#
+# LEGACY BUILD (slower, builds twice):
+#   docker compose -f docker-compose.local.yml up -d --build
 
 x-common-defaults: &common-defaults
   restart: unless-stopped
@@ -57,11 +62,14 @@ x-bot-resources: &bot-resources
 
 services:
   api:
+    image: motiv-buy-api:latest
     build:
       context: .
       dockerfile: Dockerfile
       args:
         APP_NAME: api
+      x-bake:
+        target: api
     container_name: ${PROJECT_NAME:-motiv-buy}-api
     <<: *common-defaults
     env_file:
@@ -83,11 +91,14 @@ services:
       <<: *api-resources
 
   bot:
+    image: motiv-buy-bot:latest
     build:
       context: .
       dockerfile: Dockerfile
       args:
         APP_NAME: bot
+      x-bake:
+        target: bot
     container_name: ${PROJECT_NAME:-motiv-buy}-bot
     <<: *common-defaults
     env_file:
