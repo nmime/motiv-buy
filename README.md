@@ -1,4 +1,4 @@
-# Motiv-Buy
+# Motiv-Buy [@MotivBuyRoBot](https://t.me/MotivBuyRoBot)
 
 Developed for [@majorka_m05](https://t.me/majorka_m05) with a deadline delay, but all contract conditions were fulfilled.
 
@@ -200,6 +200,15 @@ git push origin master
 ```
 
 ## Documentation
+
+### API Documentation (Production)
+
+- **[External API (HTML)](https://api.motivbuy.com/api/v1/docs/external/html)** - External API documentation (HTML)
+- **[External API (JSON)](https://api.motivbuy.com/api/v1/docs/external)** - External API documentation (OpenAPI JSON)
+- **[Public API](https://api.motivbuy.com/api/v1/docs/public)** - Public API documentation
+- **[Private API](https://api.motivbuy.com/api/v1/docs/private)** - Private/Internal API documentation
+
+### Project Documentation
 
 - **[CLAUDE.md](CLAUDE.md)** - Code standards and development guidelines
 - **[docs/DEPLOY.md](docs/DEPLOY.md)** - Deploy from scratch

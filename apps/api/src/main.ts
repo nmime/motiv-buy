@@ -136,35 +136,33 @@ async function bootstrap() {
     useGlobalPrefix: false,
   });
 
-  // Public API Swagger - No authentication required (development only)
-  if (appConfig.nodeEnv !== 'production') {
-    const publicConfig = new DocumentBuilder()
-      .setTitle('Motiv-Buy Public API')
-      .setDescription('Public endpoints - authentication, health checks, public statistics')
-      .setVersion('1.0')
-      .build();
+  // Public API Swagger - No authentication required
+  const publicConfig = new DocumentBuilder()
+    .setTitle('Motiv-Buy Public API')
+    .setDescription('Public endpoints - authentication, health checks, public statistics')
+    .setVersion('1.0')
+    .build();
 
-    const publicDocument = SwaggerModule.createDocument(app, publicConfig, {
-      include: [],
-      deepScanRoutes: true,
-      operationIdFactory: (controllerKey: string, methodKey: string) => `${controllerKey}_${methodKey}`,
-    });
+  const publicDocument = SwaggerModule.createDocument(app, publicConfig, {
+    include: [],
+    deepScanRoutes: true,
+    operationIdFactory: (controllerKey: string, methodKey: string) => `${controllerKey}_${methodKey}`,
+  });
 
-    // Filter to only include public tags
-    const publicTags = ['health', 'auth', 'public-statistics'];
-    publicDocument.paths = Object.fromEntries(
-      Object.entries(publicDocument.paths).filter(([, pathItem]) => {
-        const operations = Object.values(pathItem as Record<string, { tags?: string[] }>);
+  // Filter to only include public tags
+  const publicTags = ['health', 'auth', 'public-statistics'];
+  publicDocument.paths = Object.fromEntries(
+    Object.entries(publicDocument.paths).filter(([, pathItem]) => {
+      const operations = Object.values(pathItem as Record<string, { tags?: string[] }>);
 
-        return operations.some((op) => op.tags?.some((tag) => publicTags.includes(tag)));
-      }),
-    );
+      return operations.some((op) => op.tags?.some((tag) => publicTags.includes(tag)));
+    }),
+  );
 
-    SwaggerModule.setup(`${appConfig.apiPrefix}/docs/public`, app, publicDocument, {
-      jsonDocumentUrl: `${appConfig.apiPrefix}/docs/public/json`,
-      useGlobalPrefix: false,
-    });
-  }
+  SwaggerModule.setup(`${appConfig.apiPrefix}/docs/public`, app, publicDocument, {
+    jsonDocumentUrl: `${appConfig.apiPrefix}/docs/public/json`,
+    useGlobalPrefix: false,
+  });
 
   await app.listen(appConfig.port, appConfig.host);
 
@@ -177,9 +175,7 @@ async function bootstrap() {
 
   Logger.log(`📚 External API Docs: http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}/docs/external`);
 
-  if (appConfig.nodeEnv !== 'production') {
-    Logger.log(`📚 Swagger (Public): http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}/docs/public`);
-  }
+  Logger.log(`📚 Swagger (Public): http://${appConfig.host}:${appConfig.port}/${appConfig.apiPrefix}/docs/public`);
 
   Logger.log(`🌍 Environment: ${appConfig.nodeEnv}`);
   Logger.log(`⚙️  Process ID: ${process.pid}`);
