@@ -90,6 +90,7 @@ services:
     environment:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BOT_INSTANCE_ENABLED: 'true'
       API_BASE_URL: http://api:${PORT}
       LOG_LEVEL: ${LOG_LEVEL}
     volumes:

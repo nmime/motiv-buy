@@ -75,6 +75,13 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
+    // Skip bot initialization if not enabled (API mode - only sends messages via HTTP)
+    if (!this.botConfigService.isBotInstanceEnabled()) {
+      this.logger.log('Bot instance disabled (BOT_INSTANCE_ENABLED=false), skipping initialization');
+
+      return;
+    }
+
     await this.initialize();
   }
 
@@ -211,6 +218,13 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
    * @returns Promise<void>
    */
   async start(): Promise<void> {
+    // Skip if bot instance is disabled
+    if (!this.botConfigService.isBotInstanceEnabled()) {
+      this.logger.log('Bot instance disabled, skipping start');
+
+      return;
+    }
+
     if (!this.bot) {
       throw new Error(this.i18n.t('common.errors.bot_not_initialized'));
     }

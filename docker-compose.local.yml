@@ -94,6 +94,7 @@ services:
       - .env
     environment:
       <<: [*common-env, *db-env, *redis-env, *nats-env]
+      BOT_INSTANCE_ENABLED: 'true'
     volumes:
       - ./data/bot/logs:/app/logs
       - ./data/bot/temp:/app/temp

@@ -157,6 +157,17 @@ export class BotConfigService {
   }
 
   /**
+   * Check if bot instance should be initialized
+   * When false, BotService will skip Grammy bot creation (API mode - only sends messages via HTTP)
+   * When true, BotService will create Grammy bot instance for polling/webhooks (Bot mode)
+   *
+   * @returns True if bot instance should be initialized (default: false)
+   */
+  isBotInstanceEnabled(): boolean {
+    return this.configService.get<string>('BOT_INSTANCE_ENABLED', 'false') === 'true';
+  }
+
+  /**
    * Get API documentation URL for traffic source integration
    *
    * @returns API docs URL or undefined if not configured

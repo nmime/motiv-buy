@@ -44,6 +44,8 @@ async function bootstrap() {
   const apiPrefix = 'api/v1';
   app.setGlobalPrefix(apiPrefix);
 
+  await app.init();
+
   await botService.start();
 
   const port = parseInt(process.env.BOT_PORT || '5502', 10);
