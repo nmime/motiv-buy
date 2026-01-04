@@ -1,6 +1,6 @@
 # Motiv-Buy
 
-Motivational shopping bot platform with payment processing, user balance management, and traffic tracking built with NestJS monorepo architecture.
+Developed for [@majorka_m05](https://t.me/majorka_m05) with a deadline delay, but all contract conditions were fulfilled.
 
 ## Author
 
@@ -8,15 +8,17 @@ Motivational shopping bot platform with payment processing, user balance managem
 
 ## Technology Stack
 
-- **Backend Framework:** NestJS 11.x
-- **Language:** TypeScript (strict mode)
-- **Database:** PostgreSQL with MikroORM
-- **Cache:** Redis
-- **Message Queue:** NATS
-- **Bot Platform:** Telegram Bot API
-- **Payment:** CryptoBot API
-- **Build Tool:** Nx Monorepo
-- **Package Manager:** pnpm
+- **Backend Framework:** NestJS 11.x + Fastify 5.x
+- **Language:** TypeScript 5.9 (strict mode)
+- **Database:** PostgreSQL with MikroORM 6.x
+- **Cache:** Redis (ioredis 5.x)
+- **Message Queue:** NATS 2.x
+- **Bot Platform:** grammY 1.x
+- **Payment Providers:** CryptoBot, Heleket, YooKassa
+- **Rate Providers (Crypto):** CoinGecko, Binance, CryptoCompare, Kraken, CoinCodex, Huobi, OKX
+- **Rate Providers (Fiat):** ExchangeRate API, Frankfurter, FreeCurrency API, Coinbase, OpenExchangeRates
+- **Build Tool:** Nx 22.x Monorepo
+- **Package Manager:** pnpm 10.x
 - **Containerization:** Docker & Docker Compose
 
 ## Project Structure
@@ -210,8 +212,4 @@ git push origin master
 
 ## License
 
-**Proprietary Software** - Copyright © 2024 @nmime. All rights reserved.
-
-This software and associated documentation are the exclusive property of the author. Use, reproduction, distribution, modification, or any other exploitation of this software without explicit written permission from the author is strictly prohibited.
-
-For licensing inquiries, contact: [@nmime](https://t.me/nmime)
+MIT License - Free to use, modify, and distribute.
