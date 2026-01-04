@@ -70,7 +70,7 @@ WORKDIR /app
 # Copy workspace configs (needed by some runtime imports)
 COPY --chown=nodejs:nodejs package.json pnpm-workspace.yaml nx.json tsconfig.json ./
 
-# Copy PRODUCTION dependencies only (much smaller than full node_modules)
+# Copy PRODUCTION dependencies only (smaller image)
 COPY --from=deps-prod --chown=nodejs:nodejs /app/node_modules ./node_modules
 
 # Copy built apps
