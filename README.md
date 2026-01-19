@@ -1,6 +1,6 @@
 # Motiv-Buy [@MotivBuyRoBot](https://t.me/MotivBuyRoBot)
 
-Developed for [@majorka_m05](https://t.me/majorka_m05) with a deadline delay, but all contract conditions were fulfilled.
+Digital marketplace for motivated traffic across Telegram. Built with NestJS, TypeScript, PostgreSQL, Redis & NATS. Multi-provider payments, real-time rates, scalable microservices architecture.
 
 ## Author
 

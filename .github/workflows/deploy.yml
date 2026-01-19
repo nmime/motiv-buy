@@ -30,7 +30,8 @@ jobs:
   # ==============================================
   validate:
     name: Validate
-    runs-on: [self-hosted, linux]
+    # runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     outputs:
       ref-name: ${{ steps.ref.outputs.name }}
       commit-sha: ${{ steps.ref.outputs.sha }}
@@ -89,7 +90,8 @@ jobs:
   # ==============================================
   build:
     name: Build & Push (All Apps)
-    runs-on: [self-hosted, linux]
+    # runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     needs: validate
 
     permissions:
@@ -206,7 +208,8 @@ jobs:
   # ==============================================
   deploy-staging:
     name: Deploy to Staging
-    runs-on: [self-hosted, linux]
+    # runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     needs: [validate, build]
     if: needs.validate.outputs.deploy-staging == 'true'
     environment: staging
@@ -336,7 +339,8 @@ jobs:
   # ==============================================
   deploy-production:
     name: Deploy to Production
-    runs-on: [self-hosted, linux]
+    # runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     needs: [validate, build]
     if: needs.validate.outputs.deploy-production == 'true'
     environment: production
@@ -409,7 +413,8 @@ jobs:
   # ==============================================
   summary:
     name: Summary
-    runs-on: [self-hosted, linux]
+    # runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     needs: [validate, deploy-staging, deploy-production]
     if: always()
 

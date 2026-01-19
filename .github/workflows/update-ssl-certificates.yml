@@ -29,7 +29,8 @@ jobs:
   # ==============================================
   parse-config:
     name: Parse Configuration
-    runs-on: [self-hosted, linux]
+    # runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     outputs:
       staging-domains: ${{ steps.parse.outputs.staging-domains }}
       production-domains: ${{ steps.parse.outputs.production-domains }}
@@ -105,7 +106,8 @@ jobs:
   # ==============================================
   update-staging:
     name: Update Staging SSL
-    runs-on: [self-hosted, linux]
+    # runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     needs: parse-config
     if: needs.parse-config.outputs.update-staging == 'true'
     environment:
@@ -193,7 +195,8 @@ jobs:
   # ==============================================
   update-production:
     name: Update Production SSL
-    runs-on: [self-hosted, linux]
+    # runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     needs: parse-config
     if: needs.parse-config.outputs.update-production == 'true'
     environment:
